@@ -1,21 +1,21 @@
 # Commands:
 #
-# device="gpu"; (Set device to cpu to build and run CPU only docker)
+# device="gpu"; (Leave empty to build and run CPU only docker)
 #
-# sudo docker build --tag tensorflow:lingvo --build-arg bazel_version=0.13.1 $(test "$device" = "cpu" && echo "--build-arg base_image=ubuntu:16.04") - < lingvo/docker/dev.dockerfile
+# sudo docker build --tag tensorflow:lingvo --build-arg bazel_version=0.13.1 $(test "$device" = "gpu" && echo "--build-arg base_image=nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04") - < lingvo/docker/dev.dockerfile
 # sudo docker run --rm $(test "$device" = "gpu" && echo "--runtime=nvidia") -it -v /tmp/lingvo:/tmp/lingvo -v ${HOME}/.gitconfig:/home/${USER}/.gitconfig:ro --name lingvo  tensorflow:lingvo bash
 
 # TODO(drpng): upgrade to latest (17.10)
-ARG gpu_base_image="nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04"
-ARG base_image=$gpu_base_image
+ARG cpu_base_image="ubuntu:16.04"
+ARG base_image=$cpu_base_image
 FROM $base_image
 
 LABEL maintainer="Patrick Nguyen <drpng@google.com>"
 
 # Re-declare args because the args declared before FROM can't be used in any
 # instruction after a FROM.
-ARG gpu_base_image="nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04"
-ARG base_image=$gpu_base_image
+ARG cpu_base_image="ubuntu:16.04"
+ARG base_image=$cpu_base_image
 
 # Pick up some TF dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -60,7 +60,7 @@ RUN pip --no-cache-dir install \
         && \
     python -m ipykernel.kernelspec
 
-RUN pip install tf-nightly$(test "$base_image" = "$gpu_base_image" && echo "-gpu")
+RUN pip install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
 
 ARG bazel_version
 # This is to install bazel, for development purposes.
