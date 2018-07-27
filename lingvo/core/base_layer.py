@@ -217,7 +217,8 @@ class LayerBase(object):
     Args:
       params: A params used to construct this layer.
     """
-    assert params.name, 'Layer params must have a "name"'
+    assert params.name, ('Layer params for %s must have a "name"',
+                         self.__class__.__name__)
     self._params = params.Copy()
     tf.logging.debug('Creating layer %s with params: \n %s \n',
                      self.__class__.__name__, str(params))
