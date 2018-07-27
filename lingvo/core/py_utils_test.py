@@ -464,6 +464,24 @@ class PyUtilsTest(tf.test.TestCase):
     self.assertAlmostEqual(3e-5, _Eval(3000))
     self.assertAlmostEqual(4e-6, _Eval(4000))
 
+  def testStackTensorsRecursively(self):
+    with self.test_session(use_gpu=False, graph=tf.Graph()):
+      stacked = py_utils.StackTensorsRecursively([
+          py_utils.NestedMap(
+              x=tf.constant([1, 2]),
+              y=py_utils.NestedMap(),
+              z=py_utils.NestedMap(a=tf.constant([1, 2]),),
+          ),
+          py_utils.NestedMap(
+              x=tf.constant([3, 4]),
+              y=py_utils.NestedMap(),
+              z=py_utils.NestedMap(a=tf.constant([10, 20]),),
+          ),
+      ])
+      tf.global_variables_initializer().run()
+      self.assertAllEqual(stacked.x, tf.constant([[1, 2], [3, 4]]))
+      self.assertAllEqual(stacked.z.a, tf.constant([[1, 2], [10, 20]]))
+
 
 class WeightedAvgTest(tf.test.TestCase):
 

@@ -77,6 +77,10 @@ class TransformerAttentionLayer(base_layer.LayerBase):
         'Probability at which we apply dropout to the residual layers, '
         'such that, residual(x, y) = (x + dropout(y)).')
     p.Define(
+        'residual_dropout_tpl', layers.DropoutLayer.Params(),
+        'Residual dropout params template. keep_prop will be reset to '
+        '(1.0 - residual_dropout_prob).')
+    p.Define(
         'random_seed', None,
         'If set, this decides the random seed to apply in various random'
         ' ops (attention, residual, feed-forward) such that this layer is'
@@ -113,7 +117,7 @@ class TransformerAttentionLayer(base_layer.LayerBase):
       params.input_dim = p.source_dim
       self.CreateChild('layer_norm', params)
 
-      dropout_tpl = layers.DropoutLayer.Params()
+      dropout_tpl = p.residual_dropout_tpl.Copy()
       dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
       dropout_tpl.seed = p.random_seed
       self.CreateChild('residual_dropout', dropout_tpl)
@@ -168,13 +172,19 @@ class TransformerAttentionLayer(base_layer.LayerBase):
       causal_padding = None
 
     query_dim = tf.shape(query_vec)[-1]
-    self.atten.InitForSourcePacked(theta.atten, source_vecs, source_vecs,
-                                   source_paddings, source_segment_id)
+    (concated_source_vecs, concated_source_contexts,
+     source_padding, source_segment_id) = self.atten.PackSource(
+         theta.atten, source_vecs, source_vecs, source_paddings,
+         source_segment_id)
 
     if query_segment_id is not None:
       query_segment_id = tf.reshape(query_segment_id, [-1])
-    ctx_vec, atten_prob, _ = self.atten.ComputeContextVector(
+    ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithSource(
         theta.atten,
+        concated_source_vecs,
+        concated_source_contexts,
+        source_padding,
+        source_segment_id,
         tf.reshape(query_vec, [-1, query_dim]),
         per_step_source_padding=causal_padding,
         query_segment_id=query_segment_id)
@@ -254,6 +264,10 @@ class TransformerFeedForwardLayer(base_layer.LayerBase):
         'Probability at which we apply dropout to the residual layers, '
         'such that, residual(x, y) = (x + dropout(y)).')
     p.Define(
+        'residual_dropout_tpl', layers.DropoutLayer.Params(),
+        'Residual dropout params template. keep_prop will be reset to '
+        '(1.0 - residual_dropout_prob).')
+    p.Define(
         'relu_dropout_prob', 0.0,
         'Probability at which we apply dropout to the hidden layer '
         'of feed-forward network.')
@@ -298,7 +312,7 @@ class TransformerFeedForwardLayer(base_layer.LayerBase):
       params.input_dim = p.input_dim
       self.CreateChild('layer_norm', params)
 
-      dropout_tpl = layers.DropoutLayer.Params()
+      dropout_tpl = p.residual_dropout_tpl.Copy()
       dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
       dropout_tpl.seed = p.random_seed
       self.CreateChild('residual_dropout', dropout_tpl)
