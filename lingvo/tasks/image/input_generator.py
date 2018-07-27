@@ -55,7 +55,6 @@ class MnistTrainInput(_MnistInputBase):
   def Params(cls):
     """Defaults params."""
     p = super(MnistTrainInput, cls).Params()
-    p.ckpt = '/placer/prod/home/brain-speech-exp/keras_dataset/mnist'
     p.data = 'x_train'
     p.label = 'y_train'
     p.num_samples = 60000
@@ -71,7 +70,6 @@ class MnistTestInput(_MnistInputBase):
   def Params(cls):
     """Defaults params."""
     p = super(MnistTestInput, cls).Params()
-    p.ckpt = '/placer/prod/home/brain-speech-exp/keras_dataset/mnist'
     p.data = 'x_test'
     p.label = 'y_test'
     p.num_samples = 10000

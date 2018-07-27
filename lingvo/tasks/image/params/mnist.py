@@ -28,16 +28,24 @@ class Base(base_model_params.SingleTaskModelParams):
   """Input params for MNIST."""
 
   @classmethod
+  def _Path(cls):
+    return '/tmp/mnist'
+
+  @classmethod
   def Train(cls):
-    return input_generator.MnistTrainInput.Params()
+    p = input_generator.MnistTrainInput.Params()
+    p.ckpt = cls._Path()
+    return p
 
   @classmethod
   def Test(cls):
-    return input_generator.MnistTestInput.Params()
+    p = input_generator.MnistTestInput.Params()
+    p.ckpt = cls._Path()
+    return p
 
   @classmethod
   def Dev(cls):
-    return input_generator.MnistTestInput.Params()
+    return cls.Test()
 
 
 @model_registry.RegisterSingleTaskModel
