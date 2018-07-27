@@ -19,6 +19,8 @@ limitations under the License.
 #include "lingvo/core/ops/record_yielder.h"
 
 #include "tensorflow/core/lib/hash/hash.h"
+#include "tensorflow/core/lib/io/buffered_inputstream.h"
+#include "tensorflow/core/lib/io/random_inputstream.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/env.h"
@@ -241,57 +243,103 @@ Status RecordYielder::MatchFiles(const string& patterns,
   return Status::OK();
 }
 
+// Record yielder for plain text files.
+class PlainTextYielder : public RecordYielder {
+ public:
+  explicit PlainTextYielder(const Options& opts) : RecordYielder(opts) {}
+
+ protected:
+  void ShardLoop(Shard* shard) override {
+    std::vector<Rope> values;
+    const int64 kRecords = 16;
+    for (const string& filename : shard->filenames) {
+      if (ShouldFinish(Status::OK())) break;
+      VLOG(1) << "Shard " << shard->index << " " << filename;
+      std::unique_ptr<RandomAccessFile> file;
+      shard->status = Env::Default()->NewRandomAccessFile(filename, &file);
+      if (!shard->status.ok()) {
+        break;
+      }
+      std::unique_ptr<io::RandomAccessInputStream> input_stream(
+          new io::RandomAccessInputStream(file.get()));
+      io::BufferedInputStream in(input_stream.get(), 2 << 20);
+
+      string line;
+      while (true) {
+        shard->status = in.ReadLine(&line);
+        if (errors::IsOutOfRange(shard->status)) {
+          shard->status = Status::OK();
+          break;
+        }
+        values.emplace_back(line);
+        if (values.size() >= kRecords && Add(&values)) {
+          shard->status = errors::Aborted("stopped");
+          break;
+        }
+      }
+    }
+    // Adds the remaining values of this shard to buf_.
+    while (!values.empty()) {
+      Add(&values);
+    }
+    shard->done.Notify();
+  }
+};
+
 // Record yielder for tfrecord files.
 class TFRecordYielder : public RecordYielder {
  public:
-  explicit TFRecordYielder(const Options& opts);
+  explicit TFRecordYielder(const Options& opts) : RecordYielder(opts) {}
 
  protected:
-  void ShardLoop(Shard* shard) override;
+  void ShardLoop(Shard* shard) override {
+    std::vector<Rope> values;
+    const int64 kRecords = 16;
+    for (const string& filename : shard->filenames) {
+      if (ShouldFinish(Status::OK())) break;
+      VLOG(1) << "Shard " << shard->index << " " << filename;
+      std::unique_ptr<RandomAccessFile> file;
+      shard->status = Env::Default()->NewRandomAccessFile(filename, &file);
+      if (!shard->status.ok()) {
+        break;
+      }
+      io::RecordReaderOptions opts;
+      opts.buffer_size = 2 << 20;
+      io::SequentialRecordReader reader(file.get());
+      string record;
+      while (true) {
+        shard->status = reader.ReadRecord(&record);
+        if (errors::IsOutOfRange(shard->status)) {
+          shard->status = Status::OK();
+          break;
+        }
+        values.emplace_back(record);
+        if (values.size() >= kRecords && Add(&values)) {
+          shard->status = errors::Aborted("stopped");
+          break;
+        }
+      }
+    }
+    // Adds the remaining values of this shard to buf_.
+    while (!values.empty()) {
+      Add(&values);
+    }
+    shard->done.Notify();
+  }
 };
 
-TFRecordYielder::TFRecordYielder(const Options& opts) : RecordYielder(opts) {}
-
-void TFRecordYielder::ShardLoop(Shard* shard) {
-  std::vector<Rope> values;
-  const int64 kRecords = 16;
-  for (const string& filename : shard->filenames) {
-    if (ShouldFinish(Status::OK())) break;
-    VLOG(1) << "Shard " << shard->index << " " << filename;
-    std::unique_ptr<RandomAccessFile> file;
-    shard->status = Env::Default()->NewRandomAccessFile(filename, &file);
-    if (!shard->status.ok()) {
-      break;
-    }
-    io::RecordReaderOptions opts;
-    opts.buffer_size = 2 << 20;
-    io::SequentialRecordReader reader(file.get());
-    string record;
-    while (true) {
-      shard->status = reader.ReadRecord(&record);
-      if (errors::IsOutOfRange(shard->status)) {
-        shard->status = Status::OK();
-        break;
-      }
-      values.emplace_back(record);
-      if (values.size() >= kRecords && Add(&values)) {
-        shard->status = errors::Aborted("stopped");
-        break;
-      }
-    }
-  }
-  // Adds the remaining values of this shard to buf_.
-  while (!values.empty()) {
-    Add(&values);
-  }
-  shard->done.Notify();
-}
-
 namespace {
+
+bool register_text_yielder =
+    RecordYielder::Register("text", [](const RecordYielder::Options& opts) {
+      return new PlainTextYielder(opts);
+    });
+
 bool register_tf_record_yielder =
     RecordYielder::Register("tfrecord", [](const RecordYielder::Options& opts) {
       return new TFRecordYielder(opts);
     });
+
 }  // namespace
 }  // namespace lingvo
 }  // namespace tensorflow

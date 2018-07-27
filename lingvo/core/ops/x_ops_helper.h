@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef LINGVO_CORE_OPS_X_OPS_H_
-#define LINGVO_CORE_OPS_X_OPS_H_
+#ifndef LINGVO_CORE_OPS_X_OPS_HELPER_H_
+#define LINGVO_CORE_OPS_X_OPS_HELPER_H_
 
 #define INPUT_ATTRS                                \
   Attr("file_pattern: string")                     \
@@ -45,4 +45,4 @@ num_threads: Number of threads to use for the record batcher. Each thread fills\
     separate batches based on bucket limits.\
 )"
 
-#endif  // LINGVO_CORE_OPS_X_OPS_H_
+#endif  // LINGVO_CORE_OPS_X_OPS_HELPER_H_

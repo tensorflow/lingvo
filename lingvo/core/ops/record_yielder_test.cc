@@ -26,7 +26,59 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-void GenerateTestData(const string& prefix, int n, int m) {
+void GeneratePlainTextTestData(const string& prefix, int n, int m) {
+  for (int i = 0; i < n; ++i) {
+    std::unique_ptr<WritableFile> file;
+    TF_CHECK_OK(Env::Default()->NewWritableFile(
+        io::JoinPath("/tmp", strings::StrCat(prefix, ".", i)),
+        &file));
+    for (int j = 0; j < m; ++j) {
+      TF_CHECK_OK(file->Append(strings::Printf("%010d\n", m * i + j)));
+    }
+  }
+}
+
+TEST(RecordYielderTest, PlainTextYielderBasicTest) {
+  const int N = 10;
+  const int M = 1000;
+  GeneratePlainTextTestData("basic", N, M);
+  RecordYielder::Options opts;
+  opts.file_pattern =
+      strings::StrCat("text:", io::JoinPath("/tmp", "basic.*"));
+  opts.seed = 301;
+  opts.file_shuffle_shift_ratio = 0.5;
+  opts.bufsize = 2000;
+  opts.parallelism = 1;
+
+  RecordYielder* yielder = RecordYielder::New(opts);
+  std::vector<string> vals;
+  Rope v;
+  for (int i = 0; i < N * M; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v));
+    VLOG(1) << i << " " << v;
+    vals.emplace_back(string(v));
+  }
+  std::sort(vals.begin(), vals.end());
+  auto new_end = std::unique(vals.begin(), vals.end());
+
+  // One epoch should have no duplicates.
+  ASSERT_EQ(new_end, vals.end());
+
+  // Iterates another two epochs.
+  for (int i = 0; i < 2 * N * M; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v));
+  }
+
+  // Iterates another 34 epochs.
+  for (int i = 0; i < 2 * 17 * N * M; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v));
+  }
+
+  EXPECT_EQ(yielder->current_epoch(), 37);
+  yielder->Close();
+}
+
+void GenerateTfRecordTestData(const string& prefix, int n, int m) {
   for (int i = 0; i < n; ++i) {
     std::unique_ptr<WritableFile> file;
     TF_CHECK_OK(Env::Default()->NewWritableFile(
@@ -39,10 +91,10 @@ void GenerateTestData(const string& prefix, int n, int m) {
   }
 }
 
-TEST(RecordYielderTest, RecordYielderBasicTest) {
+TEST(RecordYielderTest, TfRecordYielderBasicTest) {
   const int N = 10;
   const int M = 1000;
-  GenerateTestData("basic", N, M);
+  GenerateTfRecordTestData("basic", N, M);
   RecordYielder::Options opts;
   opts.file_pattern =
       strings::StrCat("tfrecord:", io::JoinPath("/tmp", "basic.*"));
@@ -91,7 +143,7 @@ int NumMatches(const std::vector<Rope>& vals1,
 
 TEST(RecordYielderTest, ShufflesShard) {
   const int M = 32;
-  GenerateTestData("oneshard", 1 /* num_shards */, M);
+  GenerateTfRecordTestData("oneshard", 1 /* num_shards */, M);
 
   RecordYielder::Options opts;
   opts.file_pattern = strings::StrCat(
@@ -146,7 +198,8 @@ TEST(RecordYielder, Error) {
 TEST(RecordYielder, MatchFilesFromMultiplePatterns) {
   const int N = 2;
   const int M = 32;
-  GenerateTestData("twoshard", N /* num_shards */,  M /* record per shard */);
+  GenerateTfRecordTestData("twoshard", N /* num_shards */,
+                           M /* record per shard */);
   RecordYielder::Options opts;
   const string path0 = io::JoinPath("/tmp", "twoshard.0");
   const string path1 = io::JoinPath("/tmp", "twoshard.1");
