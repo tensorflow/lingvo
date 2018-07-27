@@ -1276,6 +1276,36 @@ class DropoutLayer(base_layer.LayerBase):
       return inputs
 
 
+class DeterministicDropoutLayer(base_layer.LayerBase):
+  """Apply dropout during trainig."""
+
+  @classmethod
+  def Params(cls):
+    p = super(DeterministicDropoutLayer, cls).Params()
+    p.Define('keep_prob', 1.0, 'Keep probability.')
+    p.Define('seed', None, 'Random seed')
+    return p
+
+  def FProp(self, theta, inputs):
+    """Apply dropout to inputs.
+
+    Args:
+      theta: A nested map object containing weights' values of this
+        layer and its children layers.
+      inputs: The inputs tensor.
+    Returns:
+      inputs with dropout applied at training time.
+    """
+    p = self.params
+    if p.keep_prob < 1.0 and not p.is_eval:
+      return py_utils.DeterministicDropout(
+          inputs,
+          self.params.keep_prob,
+          py_utils.GetOpSeedPair(op_seed=self.params.seed))
+    else:
+      return inputs
+
+
 class LayerNorm(base_layer.LayerBase):
   """Layer normalization.
 

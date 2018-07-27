@@ -22,6 +22,7 @@ import numpy as np
 import tensorflow as tf
 
 from lingvo.core import attention
+from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
@@ -199,6 +200,67 @@ class LayersWithAttentionTest(tf.test.TestCase):
       # pylint: enable=bad-whitespace
       self.assertAllClose(expected_ctx, actual_ctx)
       self.assertAllClose(expected_probs, actual_probs)
+
+  def testTransformerAttentionLayerDeterministicDropout(self):
+    with self.test_session(use_gpu=True) as sess:
+      # Needed to generate a seed pair.
+      py_utils.ResetStepSeed()
+      py_utils.GetOrCreateGlobalStep()
+
+      depth = 4
+      p = layers_with_attention.TransformerAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = False
+      p.num_attention_heads = 2
+
+      p.residual_dropout_tpl = layers.DeterministicDropoutLayer.Params()
+      p.residual_dropout_prob = 0.1
+
+      transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
+
+      (source_vecs, source_padding, _,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+
+      ctx, probs = transformer_atten.FProp(transformer_atten.theta, source_vecs,
+                                           source_padding)
+
+      tf.global_variables_initializer().run()
+      actual_ctx, actual_probs = sess.run([ctx, probs])
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      print(np.array_repr(actual_ctx))
+      expected_ctx = np.array([
+          [[-1.45762944,  1.5337404 ,  0.34037334, -0.97208667],
+           [-1.35992002, -1.06530988,  1.53705895,  2.79370689]],
+          [[ 0.00657134,  1.12030125, -1.32564592, -1.73569465],
+           [-0.80793667, -0.10877949, -0.80295694,  2.25494242]],
+          [[ 1.76956046, -0.50777751, -1.19745886, -1.46751583],
+           [-1.79178905, -0.77374339,  1.31586027,  2.98173356]],
+          [[-0.85498607, -0.37413225,  1.25707364, -0.50043333],
+           [ 1.62276983,  0.50820369, -1.52967572, -2.02076197]],
+          [[-0.66754031, -0.68657839, -0.51643699,  1.96581018],
+           [-1.4816376 ,  0.89419198, -0.57226259,  1.90177512]]
+      ], dtype=np.float32)
+
+      print(np.array_repr(actual_probs))
+      expected_probs = np.array([
+          [[ 0.21387868,  0.22080734,  0.        ,  0.        ,  0.56531399],
+           [ 0.        ,  0.30584112,  0.24723588,  0.44692296,  0.        ]],
+          [[ 0.25358215,  0.50932312,  0.        ,  0.        ,  0.23709476],
+           [ 0.        ,  0.56834149,  0.2632803 ,  0.16837817,  0.        ]],
+          [[ 0.38519409,  0.55454361,  0.        ,  0.        ,  0.06026226],
+           [ 0.        ,  0.33708778,  0.21976741,  0.4431448 ,  0.        ]],
+          [[ 0.27139962,  0.12790371,  0.        ,  0.        ,  0.60069668],
+           [ 0.        ,  0.31849149,  0.28174096,  0.39976761,  0.        ]],
+          [[ 0.16272782,  0.15781289,  0.        ,  0.        ,  0.67945927],
+           [ 0.        ,  0.55003977,  0.26049581,  0.18946445,  0.        ]]
+      ], dtype=np.float32)
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
   def testTransformerAttentionLayerStepByStep(self):
     with self.test_session(use_gpu=True) as sess:
