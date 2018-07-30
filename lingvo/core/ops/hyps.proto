@@ -1,0 +1,16 @@
+syntax = "proto2";
+
+package tensorflow.lingvo;
+
+message Hypothesis {
+  // The beam to which this hyp belongs.
+  optional int32 beam_id = 1;
+  repeated int32 ids = 2;
+  repeated float scores = 3;
+
+  message AttenVec {
+    repeated float prob = 1;
+  }
+  repeated AttenVec atten_vecs = 4;
+  optional float normalized_score = 5;
+}

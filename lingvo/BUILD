@@ -1,0 +1,117 @@
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+licenses(["notice"])  # Apache 2.0
+
+exports_files(["LICENSE"])
+
+config_setting(
+    name = "cuda",
+    values = {"define": "using_cuda=true"},
+)
+
+load(
+    "//lingvo:lingvo.bzl",
+    "lingvo_pkg_tar",
+)
+
+py_library(
+    name = "base_runner",
+    srcs = ["base_runner.py"],
+    deps = [
+        ":base_trial",
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.,
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:early_stop",
+        "//lingvo/core:py_utils",
+    ],
+)
+
+py_library(
+    name = "base_trial",
+    srcs = ["base_trial.py"],
+    deps = [
+        "//lingvo/core:hyperparams",
+    ],
+)
+
+py_library(
+    name = "model_imports_no_params",
+    srcs = ["model_imports.py"],
+    deps = [
+        ":model_registry",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+# Depend on this for access to the model registry with params for all tasks as
+# transitive deps.  Only py_binary should depend on this target.
+py_library(
+    name = "model_imports",
+    deps = [
+        "//lingvo:model_imports_no_params",
+        "//lingvo/tasks:all_params",
+    ],
+)
+
+py_test(
+    name = "model_import_test",
+    srcs = ["model_import_test.py"],
+    deps = [
+        ":model_imports_no_params",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "models_test",
+    srcs = ["models_test.py"],
+    deps = [
+        ":model_imports",
+        ":model_registry",
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_input_generator",
+        "//lingvo/core:base_model",
+        "//lingvo/core:base_model_params",
+    ],
+)
+
+py_library(
+    name = "model_registry",
+    srcs = ["model_registry.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_model_params",
+    ],
+)
+
+py_test(
+    name = "model_registry_test",
+    srcs = ["model_registry_test.py"],
+    deps = [
+        ":model_registry",
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_input_generator",
+        "//lingvo/core:base_model",
+        "//lingvo/core:base_model_params",
+    ],
+)
+
+# Transitive dependencies must be packaged by hand.
+filegroup(
+    name = "pkg_files",
+    srcs = glob(
+        ["*.py"],
+        exclude = ["*_test.py"],
+    ),
+)
+
+lingvo_pkg_tar(
+    name = "lingvo_trainer_pkg",
+    srcs = [":pkg_files"],
+    mode = "0755",
+    strip_prefix = "/",
+)

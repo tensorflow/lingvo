@@ -1,0 +1,641 @@
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+licenses(["notice"])  # Apache 2.0
+
+load(
+    "//lingvo:lingvo.bzl",
+    "cuda_py_test",
+)
+
+py_library(
+    name = "attention",
+    srcs = ["attention.py"],
+    deps = [
+        ":base_layer",
+        ":layers",
+        ":py_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+cuda_py_test(
+    name = "attention_test",
+    srcs = ["attention_test.py"],
+    deps = [
+        ":attention",
+        ":py_utils",
+        ":test_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "base_encoder",
+    srcs = ["base_encoder.py"],
+    deps = [":base_layer"],
+)
+
+py_library(
+    name = "base_decoder",
+    srcs = ["base_decoder.py"],
+    deps = [
+        ":base_layer",
+        ":beam_search_helper",
+    ],
+)
+
+py_library(
+    name = "beam_search_helper",
+    srcs = [
+        "beam_search_helper.py",
+    ],
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        # Implicit tensorflow dependency.
+        "//lingvo/core/ops:py_x_ops",
+    ],
+)
+
+py_test(
+    name = "beam_search_helper_test",
+    srcs = ["beam_search_helper_test.py"],
+    deps = [
+        ":beam_search_helper",
+        ":py_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "base_input_generator",
+    srcs = ["base_input_generator.py"],
+    deps = [
+        ":base_layer",
+        ":cluster_factory",
+        ":input_generator_helper",
+        ":py_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core/ops:py_x_ops",
+    ],
+)
+
+py_library(
+    name = "base_layer",
+    srcs = ["base_layer.py"],
+    deps = [
+        ":hyperparams",
+        ":py_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "base_layer_test",
+    size = "small",
+    srcs = ["base_layer_test.py"],
+    deps = [
+        ":base_layer",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "base_model",
+    srcs = ["base_model.py"],
+    deps = [
+        ":base_input_generator",
+        ":base_layer",
+        ":build_data",
+        ":cluster_factory",
+        ":early_stop",
+        ":hyperparams",
+        ":lr_schedule",
+        ":optimizer",
+        ":py_utils",
+        ":summary_utils",
+        ":task_scheduler",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "base_model_test",
+    srcs = ["base_model_test.py"],
+    deps = [
+        ":base_decoder",
+        ":base_encoder",
+        ":base_input_generator",
+        ":base_layer",
+        ":base_model",
+        ":base_model_params",
+        ":hyperparams",
+        ":layers",
+        ":py_utils",
+        ":task_scheduler",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "base_model_params",
+    srcs = ["base_model_params.py"],
+    deps = [
+        ":base_input_generator",
+        ":base_model",
+        ":hyperparams",
+    ],
+)
+
+py_test(
+    name = "base_model_params_test",
+    srcs = ["base_model_params_test.py"],
+    deps = [
+        ":base_model_params",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "build_data",
+    srcs = ["build_data.py"],
+    deps = [
+        ":hyperparams",
+        # Implicit build_data dependency.
+    ],
+)
+
+py_library(
+    name = "cluster",
+    srcs = ["cluster.py"],
+    deps = [
+        ":hyperparams",
+        ":py_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "cluster_factory",
+    srcs = ["cluster_factory.py"],
+    deps = [
+        "//lingvo/core:cluster",
+    ],
+)
+
+py_test(
+    name = "cluster_test",
+    size = "small",
+    srcs = ["cluster_test.py"],
+    deps = [
+        ":cluster_factory",
+        ":py_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "cudnn_rnn_utils",
+    srcs = ["cudnn_rnn_utils.py"],
+    deps = [
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow contrib cudnn_rnn_py dependency.,
+    ],
+)
+
+cuda_py_test(
+    name = "cudnn_rnn_utils_test",
+    srcs = ["cudnn_rnn_utils_test.py"],
+    deps = [
+        ":cudnn_rnn_utils",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "early_stop",
+    srcs = ["early_stop.py"],
+    deps = [
+        ":hyperparams",
+        # Implicit tensorflow dependency.
+        "//lingvo/core/ops:py_x_ops",
+    ],
+)
+
+py_test(
+    name = "early_stop_test",
+    size = "small",
+    srcs = ["early_stop_test.py"],
+    deps = [
+        ":early_stop",
+        ":hyperparams",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "hyperparams",
+    srcs = ["hyperparams.py"],
+    deps = [
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "hyperparams_test",
+    srcs = ["hyperparams_test.py"],
+    deps = [
+        ":hyperparams",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "input_generator_helper",
+    srcs = ["input_generator_helper.py"],
+    deps = [
+        ":py_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "input_generator_helper_test",
+    srcs = ["input_generator_helper_test.py"],
+    deps = [
+        ":input_generator_helper",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "layers",
+    srcs = ["layers.py"],
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        ":quant_utils",
+        ":recurrent",
+        ":summary_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+cuda_py_test(
+    name = "layers_test",
+    srcs = ["layers_test.py"],
+    deps = [
+        ":layers",
+        ":py_utils",
+        ":quant_utils",
+        ":test_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "lr_schedule",
+    srcs = ["lr_schedule.py"],
+    deps = [
+        ":base_layer",
+        ":cluster_factory",
+        ":early_stop",
+        ":py_utils",
+        # Implicit tensorflow dependency.
+        "//lingvo/core/ops:py_x_ops",
+    ],
+)
+
+py_test(
+    name = "lr_schedule_test",
+    size = "small",
+    srcs = ["lr_schedule_test.py"],
+    deps = [
+        ":cluster_factory",
+        ":early_stop",
+        ":lr_schedule",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "metrics",
+    srcs = ["metrics.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "metrics_test",
+    srcs = ["metrics_test.py"],
+    deps = [
+        ":metrics",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "multitask_model",
+    srcs = ["multitask_model.py"],
+    deps = [
+        ":base_layer",
+        ":base_model",
+        ":py_utils",
+    ],
+)
+
+py_test(
+    name = "multitask_model_test",
+    srcs = ["multitask_model_test.py"],
+    deps = [
+        ":base_input_generator",
+        ":base_layer",
+        ":base_model",
+        ":base_model_params",
+        ":hyperparams",
+        ":multitask_model",
+        ":py_utils",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "optimizer",
+    srcs = ["optimizer.py"],
+    deps = [
+        ":hyperparams",
+        ":py_utils",
+        ":summary_utils",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "optimizer_test",
+    size = "small",
+    srcs = ["optimizer_test.py"],
+    deps = [
+        ":layers",
+        ":optimizer",
+        ":py_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "plot",
+    srcs = ["plot.py"],
+    deps = [
+        # Implicit matplotlib dependency.
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "plot_test",
+    srcs = ["plot_test.py"],
+    deps = [
+        ":plot",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "py_utils",
+    srcs = ["py_utils.py"],
+    deps = [
+        ":hyperparams",
+        ":retry",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.,
+        "//lingvo/core/ops:py_x_ops",
+    ],
+)
+
+py_test(
+    name = "py_utils_test",
+    size = "medium",
+    srcs = ["py_utils_test.py"],
+    data = [
+        "//lingvo/core/testdata:lenet_test_model",
+    ],
+    deps = [
+        ":base_layer",
+        ":cluster_factory",
+        ":py_utils",
+        ":test_helper",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo:model_registry",
+        "//lingvo/tasks/image/params:mnist",
+    ],
+)
+
+py_library(
+    name = "quant_utils",
+    srcs = ["quant_utils.py"],
+    deps = [
+        ":base_layer",
+        ":hyperparams",
+        ":py_utils",
+        ":summary_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "quant_utils_test",
+    size = "small",
+    srcs = ["quant_utils_test.py"],
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        ":quant_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "recurrent",
+    srcs = ["recurrent.py"],
+    deps = [
+        ":py_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "recurrent_test",
+    srcs = ["recurrent_test.py"],
+    deps = [
+        ":py_utils",
+        ":recurrent",
+        ":test_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "retry",
+    srcs = ["retry.py"],
+    deps = [
+        # Implicit retry dependency.
+    ],
+)
+
+py_test(
+    name = "retry_test",
+    srcs = ["retry_test.py"],
+    deps = [
+        ":retry",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "summary_utils",
+    srcs = ["summary_utils.py"],
+    deps = [
+        ":plot",
+        ":py_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "task_scheduler",
+    srcs = ["task_scheduler.py"],
+    deps = [
+        ":base_layer",
+        ":early_stop",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "task_scheduler_test",
+    srcs = ["task_scheduler_test.py"],
+    deps = [
+        ":early_stop",
+        ":task_scheduler",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "test_helper",
+    srcs = ["test_helper.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "test_utils",
+    srcs = ["test_utils.py"],
+    deps = [
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "test_utils_test",
+    srcs = ["test_utils_test.py"],
+    deps = [
+        ":test_utils",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "rnn_cell",
+    srcs = ["rnn_cell.py"],
+    deps = [
+        ":base_layer",
+        ":cudnn_rnn_utils",
+        ":hyperparams",
+        ":quant_utils",
+        ":summary_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow contrib cudnn_rnn_py dependency.,
+    ],
+)
+
+cuda_py_test(
+    name = "rnn_cell_test",
+    srcs = ["rnn_cell_test.py"],
+    deps = [
+        ":py_utils",
+        ":rnn_cell",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "layers_with_attention",
+    srcs = ["layers_with_attention.py"],
+    deps = [
+        ":attention",
+        ":base_layer",
+        ":layers",
+        ":py_utils",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "layers_with_attention_test",
+    size = "medium",
+    srcs = ["layers_with_attention_test.py"],
+    deps = [
+        ":attention",
+        ":layers_with_attention",
+        ":py_utils",
+        ":test_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
