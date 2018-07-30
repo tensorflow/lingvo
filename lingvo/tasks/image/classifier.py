@@ -210,17 +210,12 @@ class ModelV2(BaseClassifier):
       self.CreateChild('softmax', p.softmax)
 
   def FPropTower(self, theta, input_batch):
-    p = self.params
     batch = tf.shape(input_batch.data)[0]
-    height, width, depth = p.input.data_shape
 
     cluster = cluster_factory.Current()
 
     # Forward through layers.
-    with tf.device(cluster.WorkerDeviceInModelSplit(0)):
-      act = tf.reshape(input_batch.data, [batch, height, width, depth])
-
-    act = self.extract.FProp(theta.extract, act)
+    act = self.extract.FProp(theta.extract, input_batch.data)
 
     last_device = cluster.WorkerDeviceInModelSplit(py_utils.GetModelSplit() - 1)
     with tf.device(last_device):

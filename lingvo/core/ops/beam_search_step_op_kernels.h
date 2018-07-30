@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef LINGVO_CORE_OPS_BEAM_SEARCH_STEP_OP_H_
-#define LINGVO_CORE_OPS_BEAM_SEARCH_STEP_OP_H_
+#ifndef LINGVO_CORE_OPS_BEAM_SEARCH_STEP_OP_KERNELS_H_
+#define LINGVO_CORE_OPS_BEAM_SEARCH_STEP_OP_KERNELS_H_
 
 #include <algorithm>   // std::sort
 #include <functional>  // std::greater
@@ -237,4 +237,4 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
 }  // namespace lingvo
 }  // namespace tensorflow
 
-#endif  // LINGVO_CORE_OPS_BEAM_SEARCH_STEP_OP_H_
+#endif  // LINGVO_CORE_OPS_BEAM_SEARCH_STEP_OP_KERNELS_H_

@@ -1535,5 +1535,34 @@ class LayerNormTest(tf.test.TestCase):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
 
 
+class DeterministicDropoutTest(tf.test.TestCase):
+
+  def testDeterministicDropoutLayer(self):
+    params = layers.DeterministicDropoutLayer.Params().Set(keep_prob=0.7)
+    params.name = 'drop'
+    dropout = layers.DeterministicDropoutLayer(params)
+
+    x = tf.ones([4, 6], dtype=tf.float32)
+
+    with self.test_session() as sess:
+      graph = tf.get_default_graph()
+      global_step = py_utils.GetOrCreateGlobalStep()
+      tf.assign(global_step, tf.constant(1234, dtype=tf.int64))
+      graph.add_to_collection('step_seed', tf.constant(5678, dtype=tf.int64))
+
+      x = dropout.FProp(dropout.theta, x)
+      tf.global_variables_initializer().run()
+      x_val = sess.run(x)
+      print(np.array_repr(x_val))
+      # pyformat: disable
+      self.assertAllClose(
+          [[1.0 / 0.7, 0.0000000, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7],
+           [1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7],
+           [1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 0.0000000, 1.0 / 0.7, 1.0 / 0.7],
+           [0.0000000, 1.0 / 0.7, 0.0000000, 0.0000000, 1.0 / 0.7, 0.0000000]],
+          x_val)
+      # pyformat: enable
+
+
 if __name__ == '__main__':
   tf.test.main()

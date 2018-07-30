@@ -22,7 +22,6 @@ import contextlib
 import hashlib
 import math
 import re
-
 import six
 from six.moves import range
 from six.moves import zip
@@ -1559,15 +1558,24 @@ def VariationalNoiseParams(scale, global_vn=False, per_step_vn=False,
   return p
 
 
+def GetStepSeed(graph=None):
+  """Gets step_seed."""
+  graph = graph or tf.get_default_graph()
+  step_seed_tensors = graph.get_collection_ref('step_seed')
+  if len(step_seed_tensors) == 1:
+    return step_seed_tensors[0]
+  return None
+
+
 def ResetStepSeed(graph=None, seed=0):
   """Resets step_seed to specified value."""
   graph = graph or tf.get_default_graph()
   step_seed_tensors = graph.get_collection_ref('step_seed')
   if len(step_seed_tensors) == 1:
-    step_seed_tensors[0] = tf.convert_to_tensor(seed, dtype=tf.int32)
+    step_seed_tensors[0] = tf.convert_to_tensor(seed, dtype=tf.int64)
   elif not step_seed_tensors:
     tf.add_to_collection('step_seed', tf.convert_to_tensor(
-        seed, dtype=tf.int32))
+        seed, dtype=tf.int64))
   else:
     raise ValueError('Multiple tensors in step_seed collection.')
 
@@ -1576,25 +1584,21 @@ def GetIncStepSeed(graph=None):
   """Returns and increments the step_seed."""
   graph = graph or tf.get_default_graph()
   step_seed_tensors = graph.get_collection_ref('step_seed')
-  if len(step_seed_tensors) == 1:
-    step_seed_tensor = step_seed_tensors[0]
-    step_seed_tensors[0] = step_seed_tensors[0] + 1
-  elif not step_seed_tensors:
-    step_seed_tensor = tf.convert_to_tensor(0, dtype=tf.int32)
-    tf.add_to_collection('step_seed', step_seed_tensor)
-  else:
-    raise ValueError('Multiple tensors in step_seed collection.')
-
-  return step_seed_tensor
+  assert len(step_seed_tensors) == 1, str(step_seed_tensors)
+  step_seed = step_seed_tensors[0]
+  # TODO(lepikhin): introduce a routine filling a queue of uint32 random seeds
+  # independent of underlying PRNG used by tensorflow.
+  step_seed_tensors[0] = step_seed_tensors[0] + 1
+  return step_seed
 
 
 def GetOpSeedPair(op_seed=None, graph=None):
   """Returns the seed pair for an operation given op_seed."""
   graph = graph or tf.get_default_graph()
   step_seed = GetIncStepSeed(graph)
-  global_step = GetOrCreateGlobalStep()
-
+  global_step = tf.train.get_global_step(graph)
   seeds = tf.stack([global_step, tf.cast(step_seed, global_step.dtype)])
+
   if op_seed is not None:
     seeds += op_seed
 
@@ -1897,3 +1901,20 @@ def PadOrTrimTo(x, shape):
   x = tf.pad(x, tf.stack([zeros, pad], axis=1))
   # If dim-i is larger than shape[i], we slice [0:shape[i]] for dim-i.
   return tf.reshape(tf.slice(x, zeros, shape), shape)
+
+
+def StackTensorsRecursively(values):
+  """Recursively stacks Tensors in a list of NestedMaps.
+
+  Args:
+    values: a list of NestedMaps or Tensors to stacks.
+
+  Returns:
+    A NestedMap with stacked values or a stacked Tensor.
+  """
+  flatten = [w.Flatten() for w in values]
+  stacked = []
+  for i in range(len(flatten[0])):
+    stacked += [tf.stack([flatten[j][i] for j in range(len(flatten))])]
+  ret = values[0].Pack(stacked)
+  return ret
