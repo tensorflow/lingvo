@@ -356,6 +356,69 @@ class LinearRampupExponentialDecayScaledByNumSplitSchedule(
     return self.combine.Value(current_step)
 
 
+class LinearRampupPiecewiseConstantSchedule(BaseLearningRateSchedule):
+  """A learning rate schedule does the following.
+
+    1. The learning rate is scaled by #split * lrs[i]
+      (often #split is the same as #replicas during batch splitting synchronous
+      training).
+    2. The multiplier ramps up linearly from 0 to the peak(lrs[0]) at
+       boundaries[0].
+    3. After peak, the multiplier stays lrs[i] when step falls into
+       [boundaries[i], boundaries[i+1])
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(LinearRampupPiecewiseConstantSchedule, cls).Params()
+    p.Define('boundaries', [], 'Boundaries at which learning rate changes.')
+    p.Define('lrs', [], 'A list of learning rate multiplers.')
+    p.Define(
+        'num_splits', 0, 'Specifies the intended number of num_splits for '
+        'LR. Overrides num_splits if non-zero.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(LinearRampupPiecewiseConstantSchedule, self).__init__(params)
+
+    p = self.params
+    assert len(p.boundaries) >= 2 and len(p.boundaries) == len(p.lrs)
+    # We always compute lr schedule from the trainer's perspective.
+    # Also note that this schedule makes sense to sync training only.
+    if p.num_splits:
+      splits = p.num_splits
+    else:
+      # Infer num_splits from cluster.
+      cluster_params = cluster_factory.Current().params.Copy()
+      cluster_params.task = 0
+      assert cluster_params.mode == 'sync'
+      cluster_params.job = 'trainer_client'
+      my_cluster = cluster_params.cls(cluster_params)
+      splits = my_cluster.num_splits_per_client
+
+    assert splits >= 1
+    splits = float(splits)
+    boundaries = [step / splits for step in p.boundaries]
+    lrs = [step * splits for step in p.lrs]
+
+    tf.logging.info('splits: {}\n boundaries: {}\n lrs: {} '.format(
+        splits, boundaries, lrs))
+
+    schedules = [
+        LinearLearningRateSchedule.Params().Set(
+            start=(0., 0.), limit=(boundaries[0], lrs[0])),
+        PiecewiseConstantLearningRateSchedule.Params().Set(
+            boundaries=boundaries, values=[1e8] + lrs)
+    ]
+    self.CreateChild(
+        'combine',
+        CombinedMinimumLearningRateSchedule.Params().Set(schedules=schedules))
+
+  def FProp(self, theta, current_step):
+    return self.combine.Value(current_step)
+
+
 class DevBasedSchedule(BaseLearningRateSchedule):
   """Decay triggered by lack of improvement on the dev set.
 
