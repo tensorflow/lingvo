@@ -44,16 +44,23 @@ tf.flags.DEFINE_string(
 
 FLAGS = tf.flags.FLAGS
 
-# Global dictionary mapping subclass name to registered ModelParam subclass.
-_MODEL_PARAMS = {}
 
+def _MaybeUpdateParamsFromFlags(cfg):
+  """Updates .Model() Params from flags if set."""
+  if FLAGS.model_params_override and FLAGS.model_params_file_override:
+    raise ValueError('Only one of --model_params_override and'
+                     ' --model_params_file_override may be specified.')
 
-def GetAllRegisteredClasses():
-  """Returns global registry map from model names to their param classes."""
-  return _MODEL_PARAMS
+  cfg.FromText(FLAGS.model_params_override.replace(';', '\n'))
+  if (FLAGS.model_params_file_override and
+      tf.gfile.Exists(FLAGS.model_params_file_override)):
+    text = tf.gfile.FastGFile(FLAGS.model_params_file_override, 'r').read()
+    cfg.FromText(text)
 
 
 class _ModelRegistryHelper(object):
+  # Global dictionary mapping subclass name to registered ModelParam subclass.
+  _MODEL_PARAMS = {}
 
   @classmethod
   def _ClassPathPrefix(cls):
@@ -96,11 +103,11 @@ class _ModelRegistryHelper(object):
   def _RegisterModel(cls, wrapper_cls, src_cls):
     """Registers a ModelParams subclass in the global registry."""
     key = cls._ModelParamsClassKey(src_cls)
-    if key in _MODEL_PARAMS:
+    if key in cls._MODEL_PARAMS:
       raise ValueError('Duplicate model registered for key {}: {}.{}'.format(
           key, src_cls.__module__, src_cls.__name__))
     # Decorate param methods to add source info metadata.
-    _MODEL_PARAMS[key] = wrapper_cls
+    cls._MODEL_PARAMS[key] = wrapper_cls
     return key
 
   @classmethod
@@ -148,62 +155,60 @@ class _ModelRegistryHelper(object):
     cls._RegisterModel(cls._CreateWrapperClass(src_cls), src_cls)
     return src_cls
 
+  @classmethod
+  def GetAllRegisteredClasses(cls):
+    """Returns global registry map from model names to their param classes."""
+    return cls._MODEL_PARAMS
+
+  @classmethod
+  def GetClass(cls, class_key):
+    """Returns a ModelParams subclass with the given `class_key`.
+
+    Args:
+      class_key: string key of the ModelParams subclass to return.
+
+    Returns:
+      A ModelParams class.
+
+    Raises:
+      KeyError: If no class with the given key has been registered.
+    """
+    all_params = cls.GetAllRegisteredClasses()
+    if class_key not in all_params:
+      raise KeyError('Model %s not found. Known models = %s' %
+                     (class_key, '\n'.join(sorted(all_params.keys()))))
+    return all_params[class_key]
+
+  @classmethod
+  def GetParams(cls, class_key, dataset_name):
+    """Constructs a Params object for given model and dataset, obeying flags.
+
+    In case of default model, params may be updated based on the flags
+    --model_params_override or --model_params_file_override. In case of a
+    versioned model, params are updated based on the flag
+    --versioned_model_spec.
+
+    Args:
+      class_key: String class key (i.e. image.mnist.LeNet5).
+      dataset_name: Method to generate dataset params (i.e. 'Test').
+
+    Returns:
+      Full hyperparams.Params for the model class.
+    """
+    model_params_cls = cls.GetClass(class_key)
+    cfg = model_params_cls.Model()
+    cfg.input = model_params_cls.GetDatasetParams(dataset_name)
+
+    _MaybeUpdateParamsFromFlags(cfg)
+    return cfg
+
 
 # pyformat: disable
 # pylint: disable=invalid-name
 RegisterSingleTaskModel = _ModelRegistryHelper.RegisterSingleTaskModel
 RegisterMultiTaskModel = _ModelRegistryHelper.RegisterMultiTaskModel
+GetAllRegisteredClasses = _ModelRegistryHelper.GetAllRegisteredClasses
+GetClass = _ModelRegistryHelper.GetClass
+GetParams = _ModelRegistryHelper.GetParams
 # pylint: enable=invalid-name
 # pyformat: enable
-
-
-def GetClass(class_key):
-  """Returns a ModelParams subclass with the given `class_key`.
-
-  Args:
-    class_key: string key of the ModelParams subclass to return.
-
-  Returns:
-    A ModelParams class.
-
-  Raises:
-    KeyError: If no class with the given key has been registered.
-  """
-  if class_key not in _MODEL_PARAMS:
-    raise KeyError('Model %s not found. Known models = %s' %
-                   (class_key, '\n'.join(sorted(_MODEL_PARAMS.keys()))))
-  return _MODEL_PARAMS[class_key]
-
-
-def GetParams(class_key, dataset_name):
-  """Constructs a Params object for given model and dataset, obeying flags.
-
-  In case of default model, params may be updated based on the flags
-  --model_params_override or --model_params_file_override. In case of a
-  versioned model, params are updated based on the flag --versioned_model_spec.
-
-  Args:
-    class_key: String class key (i.e. speech.VsOnlineCanonical).
-    dataset_name: Method to generate dataset params (i.e. 'Test').
-  Returns:
-    Full hyperparams.Params for the model class.
-  """
-  model_params_cls = GetClass(class_key)
-  cfg = model_params_cls.Model()
-  cfg.input = model_params_cls.GetDatasetParams(dataset_name)
-
-  _MaybeUpdateParamsFromFlags(cfg)
-  return cfg
-
-
-def _MaybeUpdateParamsFromFlags(cfg):
-  """Updates .Model() Params from flags if set."""
-  if FLAGS.model_params_override and FLAGS.model_params_file_override:
-    raise ValueError('Only one of --model_params_override and'
-                     ' --model_params_file_override may be specified.')
-
-  cfg.FromText(FLAGS.model_params_override.replace(';', '\n'))
-  if (FLAGS.model_params_file_override and
-      tf.gfile.Exists(FLAGS.model_params_file_override)):
-    text = tf.gfile.FastGFile(FLAGS.model_params_file_override, 'r').read()
-    cfg.FromText(text)

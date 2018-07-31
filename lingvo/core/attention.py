@@ -45,6 +45,9 @@ def _ApplyAttentionDropout(params, x, step_state=None, prng_seed=None):
   Returns:
     A Tensor with the same shape as `x`.
   """
+  if params.atten_dropout_prob == 0:
+    return x
+
   if params.atten_dropout_deterministic:
     if isinstance(step_state, py_utils.NestedMap):
       assert 'global_step' in step_state, step_state.DebugString()
@@ -525,6 +528,37 @@ class AdditiveAttention(BaseAttentionLayer):
 
     self._encode_source = EncodeSource
 
+  def PackSource(self,
+                 theta,
+                 source_vecs,
+                 source_contexts,
+                 source_padding,
+                 source_segment_id=None):
+    """Packs source vectors. Does not change attention state.
+
+    Unlike the InitForSource API above, this API takes in a single tensor
+    representing the entire sequence.
+
+    Args:
+      theta: A nested map object containing weights' values of this
+        layer and its children layers.
+      source_vecs: A single tensor of shape [time, batch_size, source_dim].
+      source_contexts: A single tensor of shape [time, batch_size, some_dim].
+      source_padding: A tensor of shape [time, batch_size].
+      source_segment_id: A tensor of shape [time, batch_size].
+
+    Returns:
+      Concated source vectors, concated source contexts, and source paddings.
+    """
+    with tf.name_scope(self.params.name):
+      if source_segment_id is None:
+        source_segment_id = tf.zeros_like(source_padding)
+
+      (concated_source_vecs, concated_source_contexts) = (
+          self._encode_source(theta.source_var, source_vecs, source_contexts))
+    return (concated_source_vecs, concated_source_contexts, source_padding,
+            source_segment_id)
+
   def InitForSourcePacked(self,
                           theta,
                           source_vecs,
@@ -547,14 +581,11 @@ class AdditiveAttention(BaseAttentionLayer):
     Returns:
       Concated source vectors, concated source contexts, and source paddings.
     """
-    with tf.name_scope(self.params.name):
-      if source_segment_id is None:
-        source_segment_id = tf.zeros_like(source_padding)
-      self._source_init_done = True
-      self._source_padding = source_padding
-      self._source_segment_id = source_segment_id
-      (self._concated_source_vecs, self._concated_source_contexts) = (
-          self._encode_source(theta.source_var, source_vecs, source_contexts))
+    self._source_init_done = True
+
+    (self._concated_source_vecs, self._concated_source_contexts,
+     self._source_padding, self._source_segment_id) = self.PackSource(
+         theta, source_vecs, source_contexts, source_padding, source_segment_id)
     return (self._concated_source_vecs, self._concated_source_contexts,
             self._source_padding, self._source_segment_id)
 
@@ -807,6 +838,38 @@ class DotProductAttention(BaseAttentionLayer):
 
     self._ctx_vec = Atten
 
+  def PackSource(self,
+                 theta,
+                 source_vecs,
+                 source_contexts,
+                 source_padding,
+                 source_segment_id=None):
+    """Packs source vectors. Does not change attention state.
+
+    Args:
+      theta: A nested map object containing weights' values of this
+        layer and its children layers.
+      source_vecs: A tensor of shape [time, source_batch, source_dim].
+      source_contexts: A tensor of shape [time, source_batch, context_dim].
+      source_padding: A tensor of shape [time, source_batch].
+      source_segment_id: A tensor of shape [time, source_batch].
+
+    Returns:
+      A tuple (concated_source_vecs, concated_source_contexts, source_padding),
+      where concated_source_vecs is a tensor of shape [time, batch_size,
+      hidden_dim], concated_source_contexts is a tensor of shape [batch_size,
+      time, some_dim] and source_padding is a tensor of shape [time,
+      batch_size]. Note the mismatch between concated_source_vecs and
+      concated_source_contexts. In concated_source_vecs, time is the first dim,
+      while it is the second dim in concated_source_contexts.
+    """
+    concated_source_vecs = tf.identity(source_vecs)
+    concated_source_contexts = tf.transpose(source_contexts, [1, 0, 2])
+    if source_segment_id is None:
+      source_segment_id = tf.zeros_like(source_padding)
+    return (concated_source_vecs, concated_source_contexts, source_padding,
+            source_segment_id)
+
   def InitForSourcePacked(self,
                           theta,
                           source_vecs,
@@ -833,13 +896,9 @@ class DotProductAttention(BaseAttentionLayer):
       while it is the second dim in concated_source_contexts.
     """
     self._source_init_done = True
-    self._concated_source_vecs = tf.identity(source_vecs)
-    self._concated_source_contexts = tf.transpose(source_contexts, [1, 0, 2])
-    self._source_padding = source_padding
-    if source_segment_id is None:
-      self._source_segment_id = tf.zeros_like(source_padding)
-    else:
-      self._source_segment_id = source_segment_id
+    (self._concated_source_vecs, self._concated_source_contexts,
+     self._source_padding, self._source_segment_id) = self.PackSource(
+         theta, source_vecs, source_contexts, source_padding, source_segment_id)
     return (self._concated_source_vecs, self._concated_source_contexts,
             self._source_padding, self._source_segment_id)
 
@@ -1067,8 +1126,41 @@ class MultiHeadedAttention(BaseAttentionLayer):
       num_heads] and source_segment_id is a tensor of shape
       [source_seq_len, batch_size * num_heads].
     """
-    p = self.params
     self._source_init_done = True
+    (self._concated_source_vecs, self._concated_source_contexts,
+     self._source_padding, self._source_segment_id) = self.PackSource(
+         theta, source_vecs, source_contexts, source_padding, source_segment_id)
+    return (self._concated_source_vecs, self._concated_source_contexts,
+            self._source_padding, self._source_segment_id)
+
+  def PackSource(self,
+                 theta,
+                 source_vecs,
+                 source_contexts,
+                 source_padding,
+                 source_segment_id=None):
+    """Packs source vectors. Does not change attention state.
+
+    Args:
+      theta: A nested map object containing weights' values of this
+        layer and its children layers.
+      source_vecs: A tensor of shape [time, source_batch, source_dim].
+      source_contexts: A tensor of shape [time, source_batch, context_dim].
+      source_padding: A tensor of shape [time, source_batch].
+      source_segment_id: A tensor of shape [time, source_batch].
+
+    Returns:
+      (concated_source_vecs, concated_source_contexts, source_padding,
+      source_segment_id) tuple where concated_source_vecs is a tensor of shape
+      [source_seq_len, batch_size * num_heads, orig_source_dim / num_heads],
+      concated_source_contexts is a tensor of shape [source_batch_size *
+      num_heads, source_seq_len,  orig_context_dim / num_heads],
+      source_padding is a tensor of shape [source_seq_len, batch_size *
+      num_heads] and source_segment_id is a tensor of shape
+      [source_seq_len, batch_size * num_heads].
+    """
+
+    p = self.params
     if not p.enable_source_proj:
       assert p.source_dim == p.hidden_dim
     if not p.enable_query_proj:
@@ -1097,7 +1189,6 @@ class MultiHeadedAttention(BaseAttentionLayer):
       source_projected = tf.reshape(
           source_projected,
           [time_steps, batch_size * num_heads, hidden_depth // num_heads])
-      self._source_seq_len = tf.shape(source_padding)[0]
       if p.use_source_vec_as_attention_value:
         source_contexts_reshaped = source_projected
       else:
@@ -1125,13 +1216,12 @@ class MultiHeadedAttention(BaseAttentionLayer):
                 tf.reshape(source_segment_id, [time_steps, batch_size, 1]),
                 [1, 1, num_heads]), [time_steps, batch_size * num_heads])
 
-      (self._concated_source_vecs, self._concated_source_contexts,
-       self._source_padding,
-       self._source_segment_id) = self.atten.InitForSourcePacked(
+      (concated_source_vecs, concated_source_contexts,
+       source_padding, source_segment_id) = self.atten.PackSource(
            theta.atten, source_projected, source_contexts_reshaped,
            source_padding_replicated, source_segment_id_repl)
-      return (self._concated_source_vecs, self._concated_source_contexts,
-              self._source_padding, self._source_segment_id)
+      return (concated_source_vecs, concated_source_contexts, source_padding,
+              source_segment_id)
 
   def ExtendSourcePacked(self, theta, new_source_vecs, new_source_contexts,
                          new_source_paddings, new_source_segment_ids,
@@ -1970,6 +2060,34 @@ class MonotonicAttention(BaseAttentionLayer):
 
     self._encode_source = EncodeSource
 
+  def PackSource(self,
+                 theta,
+                 source_vecs,
+                 source_contexts,
+                 source_padding,
+                 source_segment_id=None):
+    """Packs source vectors. Does not change attention state.
+
+    Args:
+      theta: A nested map object containing weights' values of this
+        layer and its children layers.
+      source_vecs: A single tensor of shape [time, batch_size, source_dim].
+      source_contexts: A single tensor of shape [time, batch_size, some_dim].
+      source_padding: A tensor of shape [time, batch_size].
+      source_segment_id: A tensor of shape [time, batch_size].
+
+    Returns:
+      Concated source vectors, concated source contexts, and source paddings.
+    """
+    with tf.name_scope(self.params.name):
+      (concated_source_vecs, concated_source_contexts) = (
+          self._encode_source(theta.source_var, source_vecs, source_contexts))
+      if source_segment_id is None:
+        source_segment_id = tf.zeros_like(source_padding)
+
+    return (concated_source_vecs, concated_source_contexts, source_padding,
+            source_segment_id)
+
   def InitForSourcePacked(self,
                           theta,
                           source_vecs,
@@ -1989,14 +2107,11 @@ class MonotonicAttention(BaseAttentionLayer):
     Returns:
       Concated source vectors, concated source contexts, and source paddings.
     """
-    with tf.name_scope(self.params.name):
-      self._source_init_done = True
-      self._source_padding = source_padding
-      (self._concated_source_vecs, self._concated_source_contexts) = (
-          self._encode_source(theta.source_var, source_vecs, source_contexts))
-      if source_segment_id is None:
-        source_segment_id = tf.zeros_like(source_padding)
-      self._source_segment_id = source_segment_id
+    self._source_init_done = True
+    (self._concated_source_vecs, self._concated_source_contexts,
+     self._source_padding, self._source_segment_id) = self.PackSource(
+         theta, source_vecs, source_contexts, source_padding, source_segment_id)
+
     return (self._concated_source_vecs, self._concated_source_contexts,
             self._source_padding, self._source_segment_id)
 
