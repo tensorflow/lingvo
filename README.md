@@ -24,7 +24,7 @@ to install and run the software in multiple configuration.
 
 To install the toolkit, you need:
 * a TensorFlow [installation](https://www.tensorflow.org/install/),
-* a `C++` compiler,
+* a `C++` compiler (for now, gcc-4.8.x is required),
 * the bazel build system, and
 * the protobuf package.
 
