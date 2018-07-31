@@ -332,6 +332,21 @@ class LearningRateScheduleTest(tf.test.TestCase):
       # best = 10, out of window, min factor
       self.assertAllClose(lrs.Value(0).eval(), 0.20)
 
+  def testLinearRampupPiecewiseConstantSchedule(self):
+    p = lr_schedule.LinearRampupPiecewiseConstantSchedule.Params().Set(
+        boundaries=[40, 64, 80, 96],
+        lrs=[1.0, 0.1, 0.01, 0.001],
+    )
+    with self.test_session(), cluster_factory.ForTestingWorker(
+        mode='sync', job='trainer_client', tpus=8):
+      lrs = p.cls(p)
+      pts = [[i, lrs.Value(i).eval()] for i in range(0, 15, 1)]
+
+      self.assertAllClose(
+          pts, [[0, 0.0], [1, 1.6], [2, 3.2], [3, 4.8], [4, 6.4], [5, 8.0],
+                [6, 8.0], [7, 8.0], [8, 8.], [9, 0.8], [10, 0.8], [11, 0.08],
+                [12, 0.08], [13, 0.008], [14, 0.008]])
+
 
 if __name__ == '__main__':
   tf.test.main()

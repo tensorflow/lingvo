@@ -17,6 +17,7 @@ py_library(
 
 py_library(
     name = "params",
+    srcs = ["__init__.py"],
     deps = [
         ":mnist",
     ],

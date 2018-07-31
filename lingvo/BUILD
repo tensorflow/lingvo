@@ -21,6 +21,7 @@ py_library(
     srcs = ["base_runner.py"],
     deps = [
         ":base_trial",
+        ":model_registry",
         # Implicit tensorflow dependency.
         # Implicit tensorflow py proto dependency.,
         "//lingvo/core:cluster_factory",
@@ -97,6 +98,63 @@ py_test(
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
+    ],
+)
+
+py_library(
+    name = "trainer_lib",
+    srcs = ["trainer.py"],
+    deps = [
+        ":base_trial",
+        ":model_imports_no_params",
+        # Implicit network file system dependency.
+        "//lingvo:base_runner",
+        # Implicit IPython dependency.
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.,
+        # Implicit tensorflow grpc dependency.,
+        "//lingvo/core:base_model",
+        "//lingvo/core:base_model_params",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:metrics",
+        "//lingvo/core:py_utils",
+    ],
+)
+
+py_binary(
+    name = "trainer",
+    srcs = [":trainer_lib"],
+    deps = [
+        ":model_imports",
+        ":trainer_lib",
+        # Implicit IPython dependency.
+    ],
+)
+
+py_test(
+    name = "trainer_test",
+    srcs = ["trainer_test.py"],
+    shard_count = 5,
+    tags = [
+        "noasan",
+        "nomsan",
+        "notsan",
+        "optonly",
+    ],
+    deps = [
+        ":base_trial",
+        ":model_registry",
+        ":trainer_lib",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_input_generator",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:base_model",
+        "//lingvo/core:py_utils",
+        "//lingvo/tasks/image:input_generator",
+        "//lingvo/tasks/image/params:mnist",
     ],
 )
 

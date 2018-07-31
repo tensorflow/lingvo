@@ -639,3 +639,43 @@ py_test(
         # Implicit tensorflow dependency.
     ],
 )
+
+py_library(
+    name = "rnn_layers",
+    srcs = ["rnn_layers.py"],
+    deps = [
+        ":attention",
+        ":base_layer",
+        ":cluster_factory",
+        ":cudnn_rnn_utils",
+        ":hyperparams",
+        ":layers",
+        ":layers_with_attention",
+        ":py_utils",
+        ":recurrent",
+        ":rnn_cell",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow contrib cudnn_rnn_py dependency.,
+    ],
+)
+
+cuda_py_test(
+    name = "rnn_layers_test",
+    size = "large",
+    srcs = ["rnn_layers_test.py"],
+    shard_count = 15,
+    deps = [
+        ":attention",
+        ":base_layer",
+        ":cluster",
+        ":layers_with_attention",
+        ":py_utils",
+        ":rnn_cell",
+        ":rnn_layers",
+        ":test_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
