@@ -72,7 +72,7 @@ class RecurrentTest(tf.test.TestCase):
 
   def testBasic(self):
 
-    with self.test_session() as sess:
+    with self.session() as sess:
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
@@ -118,7 +118,7 @@ class RecurrentTest(tf.test.TestCase):
 
   def testCapture(self):
 
-    with self.test_session() as sess:
+    with self.session() as sess:
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
@@ -174,7 +174,7 @@ class RecurrentTest(tf.test.TestCase):
 
   def testCaptureDisallowed(self):
 
-    with self.test_session() as unused_sess:
+    with self.session() as unused_sess:
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
@@ -207,7 +207,7 @@ class RecurrentTest(tf.test.TestCase):
           inputs.coeff * tf.random_uniform(shape=[], dtype=state.value.dtype))
       return next_state, py_utils.NestedMap()
 
-    with self.test_session():
+    with self.session():
       theta = py_utils.NestedMap()
       state = py_utils.NestedMap()
       state.value = tf.constant(0.0)
@@ -240,7 +240,7 @@ class RecurrentTest(tf.test.TestCase):
       next_state.value = state.value + Coeff(inputs.coeff)
       return next_state, py_utils.NestedMap()
 
-    with self.test_session():
+    with self.session():
       theta = py_utils.NestedMap()
       state = py_utils.NestedMap()
       state.value = tf.constant(0.0)
@@ -261,7 +261,7 @@ class RecurrentTest(tf.test.TestCase):
                                        [0, 2]), ([[0.0], [1.0], [0.0]], [0, 0]),
                             ([[0.0], [0.0], [1.0]], [0, 1]), ([[0.0], [0.0],
                                                                [0.0]], [0, 0])]:
-      with self.test_session() as sess:
+      with self.session() as sess:
         inputs = py_utils.NestedMap()
         inputs.padding = tf.constant(value)
 
@@ -328,7 +328,7 @@ class RecurrentTest(tf.test.TestCase):
     return py_utils.NestedMap(h=dout.x, padding=dout.padding)
 
   def _testElmanHelper(self, seqlen, use_grad):
-    with self.test_session() as sess:
+    with self.session() as sess:
       tf.set_random_seed(342462)
 
       batch = 3

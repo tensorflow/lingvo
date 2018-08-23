@@ -73,7 +73,7 @@ class BeamSearchOpTest(tf.test.TestCase):
            valid_eos_max_logit_delta=0.1,
            lm_weight=lm_weight)
 
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
        atten_probs, done, scores, atten_probs, lm_log_probs) = sess.run([
            best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
@@ -478,7 +478,7 @@ class BeamSearchOpTest(tf.test.TestCase):
       self.assertAllClose(av1.prob, av2.prob)
 
   def testTopKTerminatedHypsOp(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       b_size = 8
       num_beams = 2
       num_hyps_per_beam = b_size / num_beams

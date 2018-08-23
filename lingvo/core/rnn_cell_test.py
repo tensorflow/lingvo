@@ -43,7 +43,7 @@ class RNNCellTest(tf.test.TestCase):
                             trainable_zero_state=False,
                             couple_input_forget_gates=False,
                             apply_pruning=False):
-    with self.test_session(
+    with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=inline)):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
@@ -141,7 +141,7 @@ class RNNCellTest(tf.test.TestCase):
         inline=False, trainable_zero_state=True, couple_input_forget_gates=True)
 
   def testLSTMSimple_Masked(self):
-    with self.test_session(
+    with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=False)):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
@@ -198,7 +198,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(c_expected, state1.c.eval())
 
   def testLSTMSimple_Projections(self):
-    with self.test_session(
+    with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=False)):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
@@ -251,7 +251,7 @@ class RNNCellTest(tf.test.TestCase):
     self._testLSTMSimpleGrouped(num_shuffle_shards=2)
 
   def _testLSTMSimpleGrouped(self, num_shuffle_shards):
-    with self.test_session(
+    with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=False)):
       params = rnn_cell.LSTMCellGrouped.Params()
       params.name = 'lstm'
@@ -342,7 +342,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(out_expected, out_actual)
 
   def _testLSTMSimple_VN(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -387,7 +387,7 @@ class RNNCellTest(tf.test.TestCase):
     self._testLSTMSimple_VN()
 
   def testLSTMSimpleDouble(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -429,7 +429,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(c_expected, state1.c.eval())
 
   def testLSTMSimpleNoOutputNonlinearity(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = False
@@ -474,7 +474,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(c_expected, state1.c.eval())
 
   def testLSTMSimpleBypass(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = False
@@ -528,7 +528,7 @@ class RNNCellTest(tf.test.TestCase):
         input_nodes, cell_nodes, direction=UNI_RNN)
 
     # tf CuDNN LSTM
-    with self.test_session(use_gpu=True, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=True, graph=tf.Graph()) as sess:
       inputs = tf.expand_dims(tf.constant(inputs_v, dtype=dtype), 0)
       state_h = tf.expand_dims(tf.constant(h_v, dtype=dtype), 0)
       state_c = tf.expand_dims(tf.constant(c_v, dtype=dtype), 0)
@@ -558,7 +558,7 @@ class RNNCellTest(tf.test.TestCase):
       cudnn_outputs_v, cudnn_h_v, cudnn_c_v = sess.run([outputs, h, c])
 
     # LSTMCellCuDNNCompliant
-    with self.test_session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       p = rnn_cell.LSTMCellCuDNNCompliant.Params()
       p.name = 'lstm_cell_cudnn'
       p.dtype = dtype
@@ -587,7 +587,7 @@ class RNNCellTest(tf.test.TestCase):
     self.assertAllClose(cudnn_c_v, c_v)
 
   def _testConvLSTMHelper(self, inline=False):
-    with self.test_session(
+    with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=inline)):
       params = rnn_cell.ConvLSTMCell.Params()
       params.name = 'conv_lstm'
@@ -648,7 +648,7 @@ class RNNCellTest(tf.test.TestCase):
     self._testConvLSTMHelper(inline=True)
 
   def _testConvLSTM_VN(self, per_step_vn=False):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.ConvLSTMCell.Params()
       params.name = 'conv_lstm'
       params.output_nonlinearity = True
@@ -694,7 +694,7 @@ class RNNCellTest(tf.test.TestCase):
     self._testConvLSTM_VN(per_step_vn=False)
 
   def testLSTMSimpleWithForgetGateBias(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -737,7 +737,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(c_expected, state1.c.eval())
 
   def testZoneOut_Disabled(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       prev_v = [[0.2, 0.0], [0.1, 0.4], [0.1, 0.5]]
       cur_v = [[0.3, 1.0], [0.0, 2.4], [0.2, 3.4]]
       padding_v = [[1.0], [0.0], [0.0]]
@@ -754,7 +754,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(v_expected, new_v_evaled)
 
   def testZoneOut_Enabled(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       prev_v = [[0.2, 0.0], [0.1, 0.4], [0.1, 0.5]]
       cur_v = [[0.3, 1.0], [0.0, 2.4], [0.2, 3.4]]
       padding_v = [[1.0], [0.0], [0.0]]
@@ -771,7 +771,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(v_expected, new_v_evaled)
 
   def testZoneOut_Eval(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       prev_v = [[0.2, 0.0], [0.1, 0.4], [0.1, 0.5]]
       cur_v = [[0.3, 1.0], [0.0, 2.4], [0.2, 3.4]]
       padding_v = [[1.0], [0.0], [0.0]]
@@ -790,7 +790,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(v_expected, new_v_evaled)
 
   def testLSTMSimpleWithZoneOut(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -828,7 +828,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(c_expected, c_v)
 
   def _testLSTMSimpleDeterministicWithZoneOutHelper(self, seed_dtype=tf.int64):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.LSTMCellSimpleDeterministic.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -897,7 +897,7 @@ class RNNCellTest(tf.test.TestCase):
     self.assertAllClose(c_expected, c_v)
 
   def _testLNLSTMCell(self, cell_cls, num_hidden_nodes=0):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = cell_cls.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -934,7 +934,7 @@ class RNNCellTest(tf.test.TestCase):
       return m_v, c_v
 
   def testQuantizedLSTMCellPadding(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       params = rnn_cell.QuantizedLSTMCell.Params()
       params.name = 'lstm'
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
@@ -1008,7 +1008,7 @@ class RNNCellTest(tf.test.TestCase):
         m=tf.constant(np.random.uniform(size=(3, 2)), tf.float32))
     state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.global_variables_initializer().run()
       # pylint: disable=bad-whitespace
       m_expected = [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
@@ -1025,7 +1025,7 @@ class RNNCellTest(tf.test.TestCase):
       self.assertEqual(3.0, cap.eval())
 
   def testQuantizedLSTMCell(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       params = rnn_cell.QuantizedLSTMCell.Params()
       params.name = 'lstm'
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
@@ -1125,7 +1125,7 @@ class RNNCellTest(tf.test.TestCase):
                                        c_expected,
                                        num_hidden_nodes=0,
                                        padding=None):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       params = rnn_cell.FakeQuantizedLSTMCell.Params()
       params.name = 'lstm'
       params.is_eval = is_inference
@@ -1188,7 +1188,7 @@ class RNNCellTest(tf.test.TestCase):
                           tf.zeros_like(state0.c).eval())
 
   def testSRUCell(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.SRUCell.Params()
       params.name = 'sru'
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
@@ -1224,7 +1224,7 @@ class RNNCellTest(tf.test.TestCase):
 
   def testQRNNPoolingCell(self):
     num_rnn_matrices = 4
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.QRNNPoolingCell.Params()
       params.name = 'QuasiRNN'
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
@@ -1268,7 +1268,7 @@ class RNNCellTest(tf.test.TestCase):
 
   def testQRNNPoolingCellInSRUMode(self):
     num_rnn_matrices = 4
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       params = rnn_cell.QRNNPoolingCell.Params()
       params.name = 'SRU'
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)

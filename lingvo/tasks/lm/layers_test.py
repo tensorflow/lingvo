@@ -43,7 +43,7 @@ class RnnLmNoEmbeddingTest(tf.test.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lm = p.cls(p)
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
@@ -81,7 +81,7 @@ class RnnLmNoEmbeddingTest(tf.test.TestCase):
     p.softmax.input_dim = proj
     p.softmax.num_classes = vocab
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lm = p.cls(p)
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
@@ -119,7 +119,7 @@ class RnnLmNoEmbeddingTest(tf.test.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.test_session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       lm = p.cls(p)
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
@@ -163,7 +163,7 @@ class RnnLmNoEmbeddingTest(tf.test.TestCase):
     p.direct_features_dim = direct_features_dim
     p.softmax.input_dim = dims + direct_features_dim
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lm = p.cls(p)
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
@@ -211,7 +211,7 @@ class RnnLmTest(tf.test.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lm = p.cls(p)
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
@@ -257,7 +257,7 @@ class RnnLmTest(tf.test.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lm = p.cls(p)
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -297,7 +297,7 @@ class RnnLmTest(tf.test.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.test_session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       lm = p.cls(p)
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
@@ -370,7 +370,7 @@ class MoeLmTest(tf.test.TestCase):
     vocab, time, batch = 7, 13, 3
     p = self._MoeLmParams(vocab, False)
 
-    with self.test_session(graph=tf.Graph()) as sess:
+    with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
       tf.set_random_seed(123456)
       lm = p.cls(p)
@@ -394,7 +394,7 @@ class MoeLmTest(tf.test.TestCase):
     vocab, time, batch = 7, 13, 3
     p = self._MoeLmParams(vocab, False)
 
-    with self.test_session(graph=tf.Graph()) as sess:
+    with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
       tf.set_random_seed(123456)
       lm = p.cls(p)
@@ -418,7 +418,7 @@ class MoeLmTest(tf.test.TestCase):
     vocab, time, batch = 7, 13, 3
     p = self._MoeLmParams(vocab, False, False)
 
-    with self.test_session(graph=tf.Graph()) as sess:
+    with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
       tf.set_random_seed(123456)
       lm = p.cls(p)
@@ -443,7 +443,7 @@ class MoeLmTest(tf.test.TestCase):
     p = self._MoeLmParams(vocab, True)
     p.dtype = tf.float64
 
-    with self.test_session(graph=tf.Graph()) as sess:
+    with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
       tf.set_random_seed(123456)
       lm = p.cls(p)
@@ -509,7 +509,7 @@ class TransformerLmNoEmbeddingTest(tf.test.TestCase):
 
   def testBasic(self):
     p = self._testParams(dtype=tf.float32)
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lm = p.cls(p)
       inputs, paddings, targets = self._testInputs(dtype=tf.float32)
       sess.run(tf.global_variables_initializer())
@@ -526,7 +526,7 @@ class TransformerLmNoEmbeddingTest(tf.test.TestCase):
 
   def testBasicGrad(self):
     p = self._testParams(dtype=tf.float64)
-    with self.test_session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       lm = p.cls(p)
       inputs, paddings, targets = self._testInputs(dtype=tf.float64)
       xent_output, _ = lm.FPropDefaultTheta(
@@ -549,7 +549,7 @@ class TransformerLmNoEmbeddingTest(tf.test.TestCase):
 
   def testStep(self):
     p = self._testParams(dtype=tf.float32)
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lm = p.cls(p)
       inputs, paddings, _ = self._testInputs(dtype=tf.float32, last_padding=0.0)
 
@@ -592,7 +592,7 @@ class TransformerLmTest(tf.test.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lm = p.cls(p)
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
@@ -637,7 +637,7 @@ class TransformerLmTest(tf.test.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lm = p.cls(p)
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -678,7 +678,7 @@ class TransformerLmTest(tf.test.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.test_session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       lm = p.cls(p)
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])

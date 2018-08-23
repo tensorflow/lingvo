@@ -41,7 +41,7 @@ class EncoderTest(tf.test.TestCase):
     _ = encoder.MTEncoderV1(p)
 
   def testForwardPass(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       tf.set_random_seed(8372749040)
       p = self._EncoderParams()
       mt_enc = encoder.MTEncoderV1(p)
@@ -76,7 +76,7 @@ class EncoderTest(tf.test.TestCase):
     return p
 
   def testBiEncoderForwardPassWithInputPacking(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       with tf.variable_scope('bienc_test', reuse=tf.AUTO_REUSE):
         bs = 3
         sl = 3
@@ -116,7 +116,7 @@ class EncoderTest(tf.test.TestCase):
     _ = encoder.MTEncoderBiRNN(p)
 
   def testBiEncoderForwardPass(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       tf.set_random_seed(8372749040)
       p = self._BiEncoderParams()
       mt_enc = encoder.MTEncoderBiRNN(p)
@@ -137,7 +137,7 @@ class EncoderTest(tf.test.TestCase):
       self.assertAllClose(expected_enc_out, actual_enc_out)
 
   def testBiEncoderForwardPassWithDropout(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       tf.set_random_seed(8372749040)
       p = self._BiEncoderParams()
       p.dropout_prob = 0.5
@@ -167,7 +167,7 @@ class EncoderTest(tf.test.TestCase):
       self.assertAllClose(expected_enc_out, actual_enc_out)
 
   def testBiEncoderForwardPassWithTransparent(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       tf.set_random_seed(8372749040)
       p = self._BiEncoderParams()
       p.is_transparent = True
@@ -225,7 +225,7 @@ class TransformerEncoderTest(tf.test.TestCase):
     _ = encoder.TransformerEncoder(p)
 
   def testForwardPass(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       bs = 2
       sl = 21
       tf.set_random_seed(8372749040)
@@ -261,7 +261,7 @@ class TransformerEncoderTest(tf.test.TestCase):
       self.assertAllClose(expected_enc_out, actual_enc_out_sum)
 
   def testForwardPassWithInputPacking(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
         bs = 3
         sl = 3
@@ -300,7 +300,7 @@ class TransformerEncoderTest(tf.test.TestCase):
         self.assertAllClose(actual_packed_enc_out, actual_enc_out)
 
   def testForwardPassSplitBatch(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       bs = 8
       sl = 20
       tf.set_random_seed(8372749040)

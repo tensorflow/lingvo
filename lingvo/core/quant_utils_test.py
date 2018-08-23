@@ -111,7 +111,7 @@ class QuantizableLayerTest(tf.test.TestCase):
   # pyformat: enable
 
   def testOpWrapperArgChecking(self):
-    with self.test_session():
+    with self.session():
       p = SampleQuantizedProjectionLayer.Params()
       p.name = 'test'
       l = p.cls(p)
@@ -141,13 +141,13 @@ class QuantizableLayerTest(tf.test.TestCase):
         fns.qtanh(6.0, qt='non_existing')  # Test that qt has precedence.
 
   def testLayerWithNoQDomain(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       p = SampleQuantizedProjectionLayer.Params()
       self._testLayerHelper('testLayerWithNoQDomain', sess, p,
                             self.NO_QDOMAIN_EXPECTED)
 
   def testLayerWithIdentityQDomain(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       p = SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.QDomain.Params()
       self._testLayerHelper('testLayerWithIdentityQDomain', sess, p,
@@ -166,7 +166,7 @@ class QuantizableLayerTest(tf.test.TestCase):
         [ 0.02352941, -0.1490196 , -0.09411764,  0.01568627]]]
     # pyformat: enable
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       p = SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
       l = self._testLayerHelper(
@@ -195,7 +195,7 @@ class QuantizableLayerTest(tf.test.TestCase):
         [ 0.       , -0.125    , -0.0625   ,  0.       ]]]
     # pyformat: enable
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       p = SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.SymetricScheduledClipQDomain.Params()
       p.qdomain.default.cc_schedule.Set(
@@ -246,7 +246,7 @@ class ClippingCapScheduleTest(object):
     p.start_cap = 6.0
     p.end_cap = 1.0
     cc_schedule = p.cls(p)
-    with self.test_session():
+    with self.session():
       print(cc_schedule.Value(25).eval())
       print(cc_schedule.Value(50).eval())
       print(cc_schedule.Value(60).eval())
@@ -281,7 +281,7 @@ class ClippingCapScheduleTest(object):
     p.quant_start_step = 15
     p.start_cap = 6.0
     p.end_cap = 1.0
-    with self.test_session() as sess:
+    with self.session() as sess:
       cc_schedule = p.cls(p)
       tf.global_variables_initializer().run()
       # Move to fully quantized part of schedule
@@ -331,7 +331,7 @@ class ClippingCapScheduleTest(object):
     p.quant_start_step = 15
     p.start_cap = 6.0
     p.end_cap = 1.0
-    with self.test_session() as sess:
+    with self.session() as sess:
       cc_schedule = p.cls(p)
       tf.global_variables_initializer().run()
       # Step 0: No clipping.

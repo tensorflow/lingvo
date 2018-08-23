@@ -27,7 +27,7 @@ from lingvo.core.ops import py_x_ops
 class TokenizerOpsTest(tf.test.TestCase):
 
   def testLabelsToTokenId(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       token_ids, target_ids, paddings = sess.run(
           py_x_ops.label_to_token_id(
               [
@@ -59,7 +59,7 @@ class TokenizerOpsTest(tf.test.TestCase):
          [0, 0, 0, 0, 0, 0, 0, 0, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1]])
 
   def testLabelsToTokenIdAppendEOSFalse(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       token_ids, target_ids, paddings = sess.run(
           py_x_ops.label_to_token_id(
               [
@@ -88,7 +88,7 @@ class TokenizerOpsTest(tf.test.TestCase):
          [0, 0, 0, 0, 0, 0, 0, 1, 1, 1], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1]])
 
   def testIdToToken(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       token_ids = [[12, 9, 16, 16, 19, 2, 2, 2, 2,
                     2], [23, 13, 22, 73, 2, 2, 2, 2, 2,
                          2], [27, 12, 5, 24, 3, 5, 3, 0, 3,
@@ -106,7 +106,7 @@ class TokenizerOpsTest(tf.test.TestCase):
 
   def testStrToVocabToken(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       token_ids, target_ids, paddings = sess.run(
           py_x_ops.str_to_vocab_tokens(
               [
@@ -132,7 +132,7 @@ class TokenizerOpsTest(tf.test.TestCase):
 
   def testStrToVocabTokenAppendEOSFalse(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       token_ids, target_ids, paddings = sess.run(
           py_x_ops.str_to_vocab_tokens(
               [
@@ -158,7 +158,7 @@ class TokenizerOpsTest(tf.test.TestCase):
 
   def testNgramIdToToken(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_ngrams.txt')
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       ngram_ids = [[14, 11, 6, 24, 7, 3, 13, 82, 2, 2],
                    [57, 3, 73, 17, 22, 9, 2, 2, 2, 2]]
       lengths = [8, 6]
@@ -169,7 +169,7 @@ class TokenizerOpsTest(tf.test.TestCase):
 
   def testNgramIdToTokenSeparator(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_ngrams.txt')
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       ngram_ids = [[14, 11, 6, 24, 7, 3, 13, 82, 2, 2],
                    [57, 3, 73, 17, 22, 9, 2, 2, 2, 2]]
       lengths = [8, 6]

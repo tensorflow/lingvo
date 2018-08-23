@@ -61,7 +61,7 @@ class GenericInputOpTest(tf.test.TestCase):
           bucket_batch_limit=[8],
           processor=_process)
 
-    with self.test_session(graph=g) as sess:
+    with self.session(graph=g) as sess:
       record_seen = set()
       for i in range(100):
         ans_strs, ans_vals = sess.run([strs, vals])
@@ -101,7 +101,7 @@ class GenericInputOpTest(tf.test.TestCase):
           dynamic_padding_dimensions=[0, 1],
           dynamic_padding_constants=[0] * 2)
 
-    with self.test_session(graph=g) as sess:
+    with self.session(graph=g) as sess:
       for i in range(10):
         vals, transposed_vals = sess.run([vals_t, transposed_vals_t])
         print(vals, np.transpose(transposed_vals, [0, 2, 1, 3]))

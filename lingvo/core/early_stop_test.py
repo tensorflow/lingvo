@@ -115,7 +115,7 @@ class EarlyStopTest(tf.test.TestCase):
 
     es = early_stop.EarlyStop(p)
     es.FProp(None)
-    with self.test_session() as sess:
+    with self.session() as sess:
       jobname = es.metric_history.params.jobname
       metric = es.metric_history.params.metric
       mh = early_stop.MetricHistory
@@ -154,7 +154,7 @@ class EarlyStopTest(tf.test.TestCase):
 
     es = early_stop.EarlyStop(p)
     es.FProp(None)
-    with self.test_session() as sess:
+    with self.session() as sess:
       jobname = es.metric_history.params.jobname
       metric = es.metric_history.params.metric
       mh = early_stop.MetricHistory

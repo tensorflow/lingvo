@@ -69,7 +69,7 @@ class BaseTaskTest(tf.test.TestCase):
     has_nan_or_inf, grad_scale, final_var_grads = task.ScaleGradients(var_grads)
 
     FLAGS.enable_check_numerics = False
-    with self.test_session():
+    with self.session():
       tf.global_variables_initializer().run()
       self.assertFalse(has_nan_or_inf.eval())
       self.assertEqual(1.0, grad_scale.eval())
@@ -90,7 +90,7 @@ class BaseTaskTest(tf.test.TestCase):
     var_grads = py_utils.NestedMap(a=(var_a, tf.log(0.)))
     has_nan_or_inf, grad_scale, final_var_grads = task.ScaleGradients(var_grads)
 
-    with self.test_session():
+    with self.session():
       tf.global_variables_initializer().run()
       self.assertTrue(has_nan_or_inf.eval())
       self.assertEqual(0., grad_scale.eval())
@@ -111,7 +111,7 @@ class BaseTaskTest(tf.test.TestCase):
     var_grads = py_utils.NestedMap(a=(var_a, 0. * tf.log(0.)))
     has_nan_or_inf, grad_scale, final_var_grads = task.ScaleGradients(var_grads)
 
-    with self.test_session():
+    with self.session():
       tf.global_variables_initializer().run()
       self.assertTrue(has_nan_or_inf.eval())
       self.assertEqual(0., grad_scale.eval())
@@ -133,7 +133,7 @@ class BaseTaskTest(tf.test.TestCase):
     var_grads = py_utils.NestedMap(a=(var_a, 0. * tf.log(0.)))
     has_nan_or_inf, grad_scale, final_var_grads = task.ScaleGradients(var_grads)
 
-    with self.test_session():
+    with self.session():
       tf.global_variables_initializer().run()
       with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
                                    'is not finite'):
@@ -226,7 +226,7 @@ class DistillationTaskTest(tf.test.TestCase):
     self.assertIsNotNone(task.train_op)
     self.assertIsNotNone(task.total_examples)
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       tf.global_variables_initializer().run()
 
       variables = {}
@@ -342,7 +342,7 @@ class MultiTaskModelTest(tf.test.TestCase):
     task_counts = {'a': 0, 'b': 0}
 
     # initialize tensorflow graph and global step
-    with self.test_session() as sess:
+    with self.session() as sess:
       tf.global_variables_initializer().run()
       global_step = sess.run(model.global_step)
       for _ in range(100):

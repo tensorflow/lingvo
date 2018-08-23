@@ -43,7 +43,7 @@ class InputTest(tf.test.TestCase):
 
   def testBasic(self):
     p = self._CreateNmtInputParams()
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       inp = input_generator.NmtInput(p)
       # Runs a few steps.
       for _ in range(10):
@@ -56,7 +56,7 @@ class InputTest(tf.test.TestCase):
     p.source_max_length = 30
     p.target_max_length = 30
     p.pad_to_max_seq_length = True
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       inp = input_generator.NmtInput(p)
       fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
 
@@ -98,7 +98,7 @@ class InputTest(tf.test.TestCase):
         ],
     ]
 
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       inp = input_generator.NmtInput(p)
       splits = inp.SplitInputBatch(num_splits)
       split_ids = sess.run([splits[0].src.ids, splits[1].src.ids])
@@ -109,7 +109,7 @@ class InputTest(tf.test.TestCase):
     p = self._CreateNmtInputParams()
     num_splits = 2
 
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       inp = input_generator.NmtInput(p)
       fetched = sess.run(inp.SplitInputBatch(num_splits))
 

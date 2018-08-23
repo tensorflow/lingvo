@@ -55,7 +55,7 @@ class ClassifierTest(tf.test.TestCase):
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
         model = p.cls(p)
         model.ConstructFPropBPropGraph()
-    with self.test_session(graph=g) as sess:
+    with self.session(graph=g) as sess:
       sess.run(tf.global_variables_initializer())
       CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model, sess))
       CompareToGoldenSingleFloat(self, 2.302405, self._runOneStep(model, sess))

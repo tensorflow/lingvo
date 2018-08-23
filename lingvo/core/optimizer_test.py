@@ -72,7 +72,7 @@ class OptimizerTest(tf.test.TestCase):
               lr, py_utils.ApplyGradMultiplier(var_grads2, 1. / 2.))
       init_op = tf.global_variables_initializer()
 
-    with self.test_session(use_gpu=True, graph=g1) as sess:
+    with self.session(use_gpu=True, graph=g1) as sess:
       sess.run(init_op)
       vars1 = sess.run(proj_layer.vars.Flatten())
       loss1_1, grads1_1, loss1_2, grads1_2 = sess.run(
@@ -115,7 +115,7 @@ class OptimizerTest(tf.test.TestCase):
       init_op = tf.global_variables_initializer()
       global_step = py_utils.GetOrCreateGlobalStep()
       increment_global_step_op = tf.assign_add(global_step, 1)
-    with self.test_session(use_gpu=True, graph=g2) as sess:
+    with self.session(use_gpu=True, graph=g2) as sess:
       sess.run(init_op)
       vars2, global_step = sess.run([proj_layer.vars.Flatten(), global_step])
       loss2_1, grads2_1 = sess.run(

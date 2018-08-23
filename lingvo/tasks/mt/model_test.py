@@ -178,7 +178,7 @@ class TransformerModelTest(tf.test.TestCase):
     return p
 
   def testConstruction(self):
-    with self.test_session():
+    with self.session():
       p = self._testParams()
       mdl = p.cls(p)
       print('vars = ', mdl.vars)
@@ -190,7 +190,7 @@ class TransformerModelTest(tf.test.TestCase):
       self.assertEqual(len(tf.trainable_variables()), len(flatten_vars))
 
   def testFProp(self, dtype=tf.float32, fprop_dtype=tf.float32):
-    with self.test_session() as sess:
+    with self.session() as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.dtype = dtype
@@ -214,7 +214,7 @@ class TransformerModelTest(tf.test.TestCase):
           atol=1e-6, rtol=1e-6)
 
   def testFPropEvalMode(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.is_eval = True
@@ -233,7 +233,7 @@ class TransformerModelTest(tf.test.TestCase):
                  (293.08011, 10.374517)])
 
   def testBProp(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.cls(p)
@@ -277,7 +277,7 @@ class TransformerModelTest(tf.test.TestCase):
         print(l)
       return p
 
-    with self.test_session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.input = TestInputGenerator.Params()
@@ -298,7 +298,7 @@ class TransformerModelTest(tf.test.TestCase):
 
       expected = sess.run(mdl.decoder.softmax.vars['weight_0'])
 
-    with self.test_session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.input = TestInputGenerator.Params()
@@ -321,7 +321,7 @@ class TransformerModelTest(tf.test.TestCase):
   def testBatchSplit(self):
 
     def Run(num_splits):
-      with self.test_session(use_gpu=False, graph=tf.Graph()) as sess:
+      with self.session(use_gpu=False, graph=tf.Graph()) as sess:
         tf.set_random_seed(93820981)
         p = self._testParams()
         p.input.bucket_batch_limit = [
@@ -338,7 +338,7 @@ class TransformerModelTest(tf.test.TestCase):
     self.assertAllEqual(res1[1], res2[1])
 
   def testBatchSizeInInputGenerator(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       with cluster_factory.ForTestingWorker(
@@ -351,7 +351,7 @@ class TransformerModelTest(tf.test.TestCase):
       self.assertEqual(mdl.input_generator.scaled_bucket_batch_limit, [20, 40])
 
   def testDecode(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(93820985)
       p = self._testParams()
       mdl = p.cls(p)

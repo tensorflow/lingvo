@@ -69,7 +69,7 @@ class ModelTest(tf.test.TestCase):
     p = self._Params()
     p.input = self._InputParams(for_training=False)
 
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       mdl = p.cls(p)
       mdl.FPropDefaultTheta()
       loss = mdl.eval_metrics['loss'][0]
@@ -91,7 +91,7 @@ class ModelTest(tf.test.TestCase):
     tp = p.train
     tp.learning_rate = 3e-3
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       mdl = p.cls(p)
       mdl.FPropDefaultTheta()
       mdl.BProp()

@@ -78,7 +78,7 @@ class LayersTestBase(tf.test.TestCase):
     slen = 10 + trailing_pad_len
     num_layers = 4
     with tf.Graph().as_default() as g:
-      with self.test_session(use_gpu=True, graph=g) as sess:
+      with self.session(use_gpu=True, graph=g) as sess:
         params = rnn_cell.LSTMCellSimple.Params()
         params.name = 'lstm'
         params.output_nonlinearity = True
@@ -122,7 +122,7 @@ class LayersTestBase(tf.test.TestCase):
     dims = 16
     slen = 10 + trailing_pad_len
     num_layers = 4
-    with self.test_session(use_gpu=True, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=True, graph=tf.Graph()) as sess:
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -179,7 +179,7 @@ class LayersTestBase(tf.test.TestCase):
 class LayersTest(LayersTestBase):
 
   def testRNN(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -233,7 +233,7 @@ class LayersTest(LayersTestBase):
       self.assertAllClose(c_expected, actual.c)
 
   def testReversePaddedSequence(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       # inputs is [seq_length, batch_size, input_dim] = [4, 3, 2]
       # The length of each batch is [2, 3, 4]
       inputs = tf.constant(
@@ -303,7 +303,7 @@ class LayersTest(LayersTestBase):
 
     # Train graph
     with tf.Graph().as_default() as g:
-      with self.test_session(use_gpu=True, graph=g) as sess:
+      with self.session(use_gpu=True, graph=g) as sess:
         g.seed = 87654321
         init_op, outputs, final = _CreateLayer(is_eval=False)  # pylint:disable=unbalanced-tuple-unpacking
         saver = tf.train.Saver()
@@ -320,7 +320,7 @@ class LayersTest(LayersTestBase):
 
     # Eval graph
     with tf.Graph().as_default() as g:
-      with self.test_session(use_gpu=False, graph=g) as sess:
+      with self.session(use_gpu=False, graph=g) as sess:
         g.seed = 87654321
         outputs, final = _CreateLayer(is_eval=True)  # pylint:disable=unbalanced-tuple-unpacking
         saver = tf.train.Saver()
@@ -354,7 +354,7 @@ class LayersTest(LayersTestBase):
     paddings_v[-2] = np.zeros((1, batch_size, 1))
 
     with tf.Graph().as_default() as g:
-      with self.test_session(use_gpu=True) as sess:
+      with self.session(use_gpu=True) as sess:
         g.seed = 87654321
         params = self._CreateCuDNNLSTMParams(
             input_nodes, cell_nodes, dtype=dtype, is_eval=False)
@@ -382,7 +382,7 @@ class LayersTest(LayersTestBase):
           self.assertAllClose(x, y)
 
   def testRNNGradientChecker(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -445,7 +445,7 @@ class LayersTest(LayersTestBase):
     padding_steps = 2
     batch_size = 2
     depth = 3
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       lstm_params = rnn_cell.LSTMCellSimple.Params()
       lstm_params.output_nonlinearity = True
       lstm_params.num_input_nodes = depth
@@ -500,7 +500,7 @@ class LayersTest(LayersTestBase):
       self.assertAllClose(actual_reversed_outputs, actual_bak_outputs)
 
   def testRNNWithConvLSTMCell(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       params = rnn_cell.ConvLSTMCell.Params()
       params.name = 'conv_lstm'
       params.output_nonlinearity = True
@@ -559,7 +559,7 @@ class LayersTest(LayersTestBase):
       self.assertAllClose(c_expected, actual.c)
 
   def _testFRNNWithConvLSTMCell(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       params = rnn_cell.ConvLSTMCell.Params()
       params.name = 'conv_lstm'
       params.output_nonlinearity = True
@@ -625,7 +625,7 @@ class LayersTest(LayersTestBase):
     self._testFRNNWithConvLSTMCell()
 
   def testRNNWithConvLSTMCellGradientChecker(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       params = rnn_cell.ConvLSTMCell.Params()
       params.name = 'conv_lstm'
       params.output_nonlinearity = True
@@ -677,7 +677,7 @@ class LayersTest(LayersTestBase):
         self.assertAllClose(x, y, rtol=0.1, atol=0.1)
 
   def _testFRNNWithConvLSTMCellGradientChecker(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       params = rnn_cell.ConvLSTMCell.Params()
       params.name = 'conv_lstm'
       params.output_nonlinearity = True
@@ -723,7 +723,7 @@ class LayersTest(LayersTestBase):
     self._testFRNNWithConvLSTMCellGradientChecker()
 
   def testFRNNWithLSTMCellSimpleDeterministicGradientChecker(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       params = rnn_cell.LSTMCellSimpleDeterministic.Params()
       params.name = 'conv_lstm'
       params.output_nonlinearity = True
@@ -769,7 +769,7 @@ class LayersTest(LayersTestBase):
     batch = 3
     dims = 16
     slen = 10
-    with self.test_session(use_gpu=True, config=config) as sess:
+    with self.session(use_gpu=True, config=config) as sess:
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -828,7 +828,7 @@ class LayersTest(LayersTestBase):
     batch = 3
     dims = 16
     slen = 10
-    with self.test_session(use_gpu=True, config=config) as sess:
+    with self.session(use_gpu=True, config=config) as sess:
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.output_nonlinearity = True
@@ -901,7 +901,7 @@ class LayersTest(LayersTestBase):
     batch = 3
     dims = 16
     slen = 10 + trailing_pad_len
-    with self.test_session(
+    with self.session(
         use_gpu=True, config=tf.ConfigProto(allow_soft_placement=True)) as sess:
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm_forward'
@@ -972,7 +972,7 @@ class LayersTest(LayersTestBase):
     batch = 3
     dims = 16
     slen = 10
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm_forward'
       params.output_nonlinearity = True
@@ -1121,7 +1121,7 @@ class LayersTest(LayersTestBase):
     return p
 
   def testMultiSourceFRNNWithAttention(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       p = self._MultiSourceFRNNWithAttentionParams()
       msrc_frnn = p.cls(p)
 
@@ -1158,7 +1158,7 @@ class LayersTest(LayersTestBase):
       # pylint: enable=bad-whitespace
 
   def testMultiSourceFRNNWithAttentionMultiDepth(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       p = self._MultiSourceFRNNWithAttentionParams(single_source_length=False)
       msrc_frnn = p.cls(p)
 
@@ -1194,7 +1194,7 @@ class LayersTest(LayersTestBase):
       # pylint: enable=bad-whitespace
 
   def testMultiSourceFRNNWithAttentionSingleSource(self, dtype=tf.float32):
-    with self.test_session(
+    with self.session(
         use_gpu=True, config=py_utils.SessionConfig(inline=False)) as sess:
       p = self._MultiSourceFRNNWithAttentionParams(
           single_source=True, dtype=dtype)
@@ -1233,7 +1233,7 @@ class LayersTest(LayersTestBase):
       self.assertAllClose(np.sum(ys, axis=(0, 2)), expected_sum02)
 
   def testMultiSourceFRNNWithAttentionGradSingleSource(self, dtype=tf.float64):
-    with self.test_session(
+    with self.session(
         use_gpu=True, config=py_utils.SessionConfig(inline=False)) as sess:
 
       p = self._MultiSourceFRNNWithAttentionParams(
@@ -1280,7 +1280,7 @@ class LayersTest(LayersTestBase):
         Compare(parameters[i].name, sym, num)
 
   def testMultiSourceFRNNWithAttentionGrad(self, dtype=tf.float64):
-    with self.test_session(
+    with self.session(
         use_gpu=True, config=py_utils.SessionConfig(inline=False)) as sess:
 
       p = self._MultiSourceFRNNWithAttentionParams(dtype=dtype)
@@ -1337,7 +1337,7 @@ class LayersTest(LayersTestBase):
         Compare(parameters[i].name, sym, num)
 
   def testMultiSourceFRNNWithAttentionGradMultiDepth(self, dtype=tf.float64):
-    with self.test_session(
+    with self.session(
         use_gpu=True, config=py_utils.SessionConfig(inline=False)) as sess:
 
       p = self._MultiSourceFRNNWithAttentionParams(
@@ -1440,7 +1440,7 @@ class LayersTest(LayersTestBase):
     tlen = 7
     tbatch = 6
 
-    with self.test_session(
+    with self.session(
         use_gpu=True, config=py_utils.SessionConfig(inline=True)) as sess:
       np.random.seed(12345)
       p = self._CreateFRNNWithAttentionParams(
@@ -1492,7 +1492,7 @@ class LayersTest(LayersTestBase):
     tlen = 7
     tbatch = 6
 
-    with self.test_session(
+    with self.session(
         use_gpu=True, config=py_utils.SessionConfig(inline=True)) as sess:
       np.random.seed(12345)
       p = self._CreateFRNNWithAttentionParams(

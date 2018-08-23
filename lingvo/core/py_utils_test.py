@@ -42,7 +42,7 @@ class PyUtilsTest(tf.test.TestCase):
     self.assertTrue(py_utils.IsDefaultParamInit(p))
 
   def testCreateVariableBasics(self):
-    with self.test_session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False, graph=tf.Graph()):
       methods = [
           py_utils.WeightInit.Gaussian,
           py_utils.WeightInit.Uniform,
@@ -81,7 +81,7 @@ class PyUtilsTest(tf.test.TestCase):
         self.assertAllEqual(v1_v, v2_v)
 
   def testCreateVariableUniform(self):
-    with self.test_session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(12345678)
       methods = [
           py_utils.WeightInit.Uniform,
@@ -108,7 +108,7 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertAllClose(v2_v_expted, v2_v.tolist())
 
   def testCreateVariableNormal(self):
-    with self.test_session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(832124)
       methods = [
           py_utils.WeightInit.Gaussian,
@@ -134,7 +134,7 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertAllClose(v2_v_expted, v2_v.tolist())
 
   def testCreateVariableException(self):
-    with self.test_session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(832124)
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian())
       var1 = py_utils.CreateVariable('var1', pc)[0]
@@ -152,7 +152,7 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertAllEqual(var1.eval(), var2.eval())
 
   def testCreateVariableDifferentSeed(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(3251343)
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian())
       with tf.variable_scope('layer0'):
@@ -167,7 +167,7 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertTrue(np.max(np.abs(w0_val - w1_val)) > 0.1)
 
   def testXavier(self):
-    with self.test_session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
       dtypes = [tf.float32, tf.float16]
@@ -186,7 +186,7 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertAllClose(v1_v_expted, v1_v.tolist())
 
   def testXavier1D(self):
-    with self.test_session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
       dtypes = [tf.float32, tf.float16]
@@ -204,7 +204,7 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertAllClose(v1_v_expted, v1_v.tolist())
 
   def testXavier3D(self):
-    with self.test_session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
       dtypes = [tf.float32, tf.float16]
@@ -224,7 +224,7 @@ class PyUtilsTest(tf.test.TestCase):
   def testCheckNumerics(self):
     xv = [[1, 2], [3, 4]]
     yv = [10] * 4
-    with self.test_session() as sess:
+    with self.session() as sess:
       x = tf.constant(xv, tf.float32)
       y = tf.constant(yv)
       z = tf.reduce_mean(tf.constant([], tf.float32))
@@ -349,7 +349,7 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertEqual(v.device, expected_device)
 
   def testComputeGradient(self):
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       a = tf.get_variable('a', [])
       b = tf.get_variable('b', [], trainable=False)
       c = tf.get_variable('c', [])
@@ -365,7 +365,7 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertEqual(var_grads.a[0].name, 'a:0')
 
   def testAdjustGradientsWithL2Loss(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       emb = tf.get_variable(
           'emb',
           initializer=tf.constant(np.arange(100).reshape([10, 10]), tf.float32))
@@ -427,7 +427,7 @@ class PyUtilsTest(tf.test.TestCase):
     self.assertTrue(set([p1, p2, p3, p4]) == z2_p4_needed)
 
   def testStatsCounter(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       foo = py_utils.StatsCounter('foo')
       val = foo.Value()
       params = base_layer.LayerBase.Params()
@@ -452,7 +452,7 @@ class PyUtilsTest(tf.test.TestCase):
     values = (1e-3, 2e-4, 3e-5, 4e-6)
 
     def _Eval(x):
-      with self.test_session(use_gpu=False) as sess:
+      with self.session(use_gpu=False) as sess:
         result = py_utils.PiecewiseConstant(
             x, boundaries, values, vdtype=tf.float32)
         return sess.run(result)
@@ -465,7 +465,7 @@ class PyUtilsTest(tf.test.TestCase):
     self.assertAlmostEqual(4e-6, _Eval(4000))
 
   def testStackTensorsRecursively(self):
-    with self.test_session(use_gpu=False, graph=tf.Graph()):
+    with self.session(use_gpu=False, graph=tf.Graph()):
       stacked = py_utils.StackTensorsRecursively([
           py_utils.NestedMap(
               x=tf.constant([1, 2]),
@@ -486,7 +486,7 @@ class PyUtilsTest(tf.test.TestCase):
 class WeightedAvgTest(tf.test.TestCase):
 
   def testWeightedAvg(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       losses = tf.constant([5.6, 4.6, 1.5, 3.4])
       weights = tf.constant([10, 9, 2, 8])
       loss, weight = py_utils.WeightedAvg(losses, weights)
@@ -495,7 +495,7 @@ class WeightedAvgTest(tf.test.TestCase):
       self.assertAllClose(actual, expected)
 
   def testWeightedAvgOfMetrics(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       metrics = [{
           'a': (2.0, 0.5),
           'b': (5.0, 1.5)
@@ -547,7 +547,7 @@ class OverrideVarsFromCheckpointsTest(tf.test.TestCase):
 
   def testOverrideVarsFromCheckpoint(self):
 
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(8372749040)
       cfg = model_registry.GetParams('image.mnist.LeNet5', 'Train')
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
@@ -572,7 +572,7 @@ class OverrideVarsFromCheckpointsTest(tf.test.TestCase):
 
   def testOverrideVarsFromCheckpointWithIgnoreRules(self):
 
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       tf.set_random_seed(8372749040)
       cfg = model_registry.GetParams('image.mnist.LeNet5', 'Train')
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
@@ -761,20 +761,20 @@ class ReadOnlyAttrDictViewTest(tf.test.TestCase):
 class ApplyPaddingTest(tf.test.TestCase):
 
   def testApplyPaddingToZeroWithBroadcast(self):
-    with self.test_session():
+    with self.session():
       y = py_utils.ApplyPadding([[0.0], [1.0], [0.0]],
                                 [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]).eval()
       self.assertAllClose(y, [[1.0, 2.0], [0.0, 0.0], [5.0, 6.0]])
 
   def testApplyPaddingToConstWithBroadcast(self):
-    with self.test_session():
+    with self.session():
       y = py_utils.ApplyPadding([[0.0], [1.0], [0.0]],
                                 [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]],
                                 [[1.0, 2.0], [9.0, 10.0], [5.0, 6.0]]).eval()
       self.assertAllClose(y, [[1.0, 2.0], [9.0, 10.0], [5.0, 6.0]])
 
   def testApplyPaddingToZeroWithoutBroadcast(self):
-    with self.test_session():
+    with self.session():
       y = py_utils.ApplyPadding([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]],
                                 [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]).eval()
       self.assertAllClose(y, [[1.0, 2.0], [0.0, 4.0], [5.0, 0.0]])
@@ -786,7 +786,7 @@ class MixByWeightTest(tf.test.TestCase):
     var_a = tf.get_variable('a', trainable=False, initializer=0)
     var_b = tf.get_variable('b', trainable=False, initializer=0)
 
-    with self.test_session() as sess:
+    with self.session() as sess:
       sess.run(tf.global_variables_initializer())
 
       def _AddFn(var):
