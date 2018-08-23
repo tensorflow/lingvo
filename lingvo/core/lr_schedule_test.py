@@ -112,6 +112,36 @@ class LearningRateScheduleTest(tf.test.TestCase):
             lrs.Value(step).eval() * 2.,
             lrs.Value(step + 10).eval() + lrs.Value(step - 10).eval())
 
+  def testTransformerLearningRateScheduleWithDecayEnd(self):
+    p = lr_schedule.TransformerLearningRateSchedule.Params()
+    p.warmup_steps = 4000
+    p.model_dim = 512
+    p.decay_end = 5000
+    lrs = p.cls(p)
+    with self.test_session():
+      self.assertAllClose(lrs.Value(0).eval(), 1.74693e-07)
+      self.assertAllClose(lrs.Value(3000).eval(), 0.000524253)
+      self.assertAllClose(lrs.Value(5000).eval(), 0.000624937)
+
+      # Tests that the schedule peaks at 4000 steps.
+      self.assertGreater(lrs.Value(4000).eval(), lrs.Value(3990).eval())
+      self.assertGreater(lrs.Value(4000).eval(), lrs.Value(4010).eval())
+
+      # Tests that the schedule increases linearly before 4000 steps.
+      for step in range(300, 4000, 200):
+        self.assertAllClose(
+            lrs.Value(step).eval() * 2.,
+            lrs.Value(step + 10).eval() + lrs.Value(step - 10).eval())
+
+      print(lrs.Value(4999).eval())
+      print(lrs.Value(5000).eval())
+      print(lrs.Value(5001).eval())
+      print(lrs.Value(6000).eval())
+      # Tests that the schedule is fixed after decay end steps.
+      self.assertGreater(lrs.Value(4999).eval(), lrs.Value(5000).eval())
+      self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(5001).eval())
+      self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(6000).eval())
+
   def testTransformerLearningRateScheduleNoWarmUp(self):
     params = lr_schedule.TransformerLearningRateScheduleNoWarmUp.Params().Set(
         decay_start=4000, model_dim=512)
