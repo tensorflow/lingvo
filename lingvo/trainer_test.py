@@ -117,10 +117,12 @@ class TrainerTest(BaseTrainerTest):
 
     train_files = tf.gfile.Glob(logdir + '/train/*')
     self.assertTrue(self._HasFile(train_files, 'ckpt'))
-    self.assertTrue(self._HasFile(train_files, 'params.txt'))
-    self.assertTrue(self._HasFile(train_files, 'model_analysis.txt'))
-    self.assertTrue(self._HasFile(train_files, 'train.pbtxt'))
-    self.assertTrue(self._HasFile(train_files, 'tfevents'))
+    control_files = tf.gfile.Glob(logdir + '/control/*')
+    for files in [train_files, control_files]:
+      self.assertTrue(self._HasFile(files, 'params.txt'))
+      self.assertTrue(self._HasFile(files, 'model_analysis.txt'))
+      self.assertTrue(self._HasFile(files, 'train.pbtxt'))
+      self.assertTrue(self._HasFile(files, 'tfevents'))
 
     # EvalerDev may not run concurrently with Controller in a single process
     # because EvalerDev loads checkpoints and overwrites states like global
@@ -201,10 +203,12 @@ class TrainerWithTrialTest(TrainerTest):
 
     train_files = tf.gfile.Glob(logdir + '/train/*')
     self.assertTrue(self._HasFile(train_files, 'ckpt'))
-    self.assertTrue(self._HasFile(train_files, 'params.txt'))
-    self.assertTrue(self._HasFile(train_files, 'model_analysis.txt'))
-    self.assertTrue(self._HasFile(train_files, 'train.pbtxt'))
-    self.assertTrue(self._HasFile(train_files, 'tfevents'))
+    control_files = tf.gfile.Glob(logdir + '/control/*')
+    for files in [train_files, control_files]:
+      self.assertTrue(self._HasFile(files, 'params.txt'))
+      self.assertTrue(self._HasFile(files, 'model_analysis.txt'))
+      self.assertTrue(self._HasFile(files, 'train.pbtxt'))
+      self.assertTrue(self._HasFile(files, 'tfevents'))
 
     # EvalerDev may not run concurrently with Controller in a single process
     # because EvalerDev loads checkpoints and overwrites states like global

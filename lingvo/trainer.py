@@ -164,7 +164,9 @@ class Controller(base_runner.BaseRunner):
     assert not self._model_task_name, 'Controller needs all tasks!'
     self._save_path = os.path.join(self._train_dir, 'ckpt')
     tf.gfile.MakeDirs(self._train_dir)
-    self._summary_writer = self._CreateSummaryWriter(self._train_dir)
+    self._control_dir = os.path.join(self._logdir, 'control')
+    tf.gfile.MakeDirs(self._control_dir)
+    self._summary_writer = self._CreateSummaryWriter(self._control_dir)
     self._time_steps = []  # A short history of (timestamp, global_step)
 
     with self._graph.as_default(), tf.container(self._container_id):
@@ -181,11 +183,13 @@ class Controller(base_runner.BaseRunner):
         self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
         self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
 
-    self._WriteToLog(self.params.ToText(), self._train_dir, 'params.txt')
     self._ExportMetrics(params=self.params)
     model_analysis, self._total_num_params = _ModelAnalysis(self._model)
     tf.logging.error(model_analysis)
-    self._WriteToLog(model_analysis, self._train_dir, 'model_analysis.txt')
+    for outdir in [self._control_dir, self._train_dir]:
+      self._WriteToLog(model_analysis, outdir, 'model_analysis.txt')
+      self._WriteToLog(self.params.ToText(), outdir, 'params.txt')
+      tf.train.write_graph(self._graph.as_graph_def(), outdir, 'train.pbtxt')
 
   def Start(self):
     self._RunLoop('controller', self._Loop)
@@ -370,7 +374,10 @@ class Trainer(base_runner.BaseRunner):
       self._task_probs_summary_writers = []
 
     # Saves the graph def.
-    if self.params.cluster.task == 0:
+    if self.params.cluster.task > 0:
+      self._summary_writer = None
+    else:
+      self._summary_writer = self._CreateSummaryWriter(self._train_dir)
       tf.train.write_graph(self._graph.as_graph_def(), self._train_dir,
                            'train.pbtxt')
     worker_id = self.params.cluster.task
@@ -378,7 +385,8 @@ class Trainer(base_runner.BaseRunner):
                                   self.params.train.start_up_delay_steps)
 
   def _SummarizeValue(self, steps, tag, value, writer):
-    writer.add_summary(metrics.CreateScalarSummary(tag, value), steps)
+    if writer:
+      writer.add_summary(metrics.CreateScalarSummary(tag, value), steps)
 
   def Start(self):
     self._RunLoop('trainer', self._Loop)
@@ -452,9 +460,10 @@ class Trainer(base_runner.BaseRunner):
             self._model.global_step,
             model_task.eval_metrics,
         ])
-        msg = 'step:%6d %s' % (global_step, ' '.join(
-            '%s:%.8g' % (key, val)
-            for key, (val, _) in sorted(six.iteritems(eval_metrics))))
+        msg = 'step:%6d' % (global_step)
+        for key, (val, _) in sorted(six.iteritems(eval_metrics)):
+          msg += ' %s:%.8g' % (key, val)
+          self._SummarizeValue(global_step, key, val, self._summary_writer)
         if global_step >= next_status_step:
           self._SetStatusMessage(msg)
           next_status_step = global_step + status_interval_steps
