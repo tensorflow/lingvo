@@ -133,5 +133,9 @@ class CorpusBleuMetric(BaseMetric):
     self._scorer.AddSentence(ref_str, hyp_str)
 
   @property
+  def unsegmenter(self):
+    return self._scorer.unsegmenter
+
+  @property
   def value(self):
     return self._scorer.ComputeOverallScore()

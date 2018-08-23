@@ -19,8 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-
 import numpy as np
 from six.moves import range
 import tensorflow as tf
@@ -32,7 +30,7 @@ from lingvo.tasks.mt import input_generator
 
 class InputTest(tf.test.TestCase):
 
-  def _CreateNmtInputParams(self, use_nmt_example=False):
+  def _CreateNmtInputParams(self):
     p = input_generator.NmtInput.Params()
     input_file = test_helper.test_src_dir_path(
         'tasks/mt/testdata/wmt14_ende_wpm_32k_test.tfrecord')

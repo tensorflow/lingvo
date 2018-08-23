@@ -6,5 +6,8 @@ licenses(["notice"])  # Apache 2.0
 # http://www.statmt.org/wmt14/dev.tgz
 filegroup(
     name = "wmt14_ende_tfexample",
-    data = ["wmt14_ende_wpm_32k_test.tfrecord"],
+    data = [
+        "wmt14_ende_wpm_32k_test.tfrecord",
+        "wmt14_ende_wpm_32k_test.vocab",
+    ],
 )

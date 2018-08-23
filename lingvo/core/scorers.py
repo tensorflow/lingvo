@@ -20,20 +20,57 @@ from __future__ import print_function
 
 import collections
 import math
-
 import six
 from six.moves import range
 
 
+def _IsUnicode(s):
+  return isinstance(s, six.text_type)
+
+
+def _ToUnicode(line):
+  if not _IsUnicode(line):
+    return line.decode('utf-8')
+  return line
+
+
 def _Tokenize(string):
-  if not isinstance(string, six.text_type):
-    string = string.decode('utf-8')
-  return string.split()
+  return _ToUnicode(string).split()
 
 
 def NGrams(lst, order):
   """Generator that yields all n-grams of the given order present in lst."""
   return (lst[i:i + order] for i in range(len(lst) - order + 1))
+
+
+class Unsegmenter(object):
+  """Un-segments (merges) segmented strings.
+
+  Used to retain back the original surface form of strings that are encoded
+  using byte-pair-encoding (BPE), word-piece-models (WPM) or
+  sentence-piece-models (SPM).
+  """
+
+  _BPE_SEPARATOR = _ToUnicode('@@ ')
+  _WPM_SEPARATOR = _ToUnicode('\xe2\x96\x81')  # Same for SPM.
+
+  def __init__(self, separator_type=None):
+    self._separator_type = separator_type
+
+  def _UnsegmentWpm(self, line):
+    return _ToUnicode(line).replace(' ', '').replace(self._WPM_SEPARATOR,
+                                                     ' ').strip()
+
+  def _UnsegmentBpe(self, line):
+    return _ToUnicode(line).replace(self._BPE_SEPARATOR, '').strip()
+
+  def __call__(self, line):
+    if self._separator_type == 'bpe':
+      return self._UnsegmentBpe(line)
+    elif self._separator_type in ['wpm', 'spm']:
+      return self._UnsegmentWpm(line)
+    else:
+      return line
 
 
 class BleuScorer(object):
@@ -53,18 +90,23 @@ class BleuScorer(object):
   0.6687...
   """
 
-  def __init__(self, max_ngram=4):
+  def __init__(self, max_ngram=4, separator_type=None):
     self._max_ngram = max_ngram
     self._hyp_ngram_matches = [0 for _ in range(max_ngram)]
     self._hyp_ngram_counts = [0 for _ in range(max_ngram)]
     self._num_ref_tokens = 0
     self._num_hyp_tokens = 0
+    self._unsegmenter = Unsegmenter(separator_type)
+
+  @property
+  def unsegmenter(self):
+    return self._unsegmenter
 
   def AddSentence(self, ref_str, hyp_str):
     """Accumulates ngram statistics for the given ref and hyp string pair."""
-    ref_tokens = tuple(_Tokenize(ref_str))
+    ref_tokens = tuple(_Tokenize(self._unsegmenter(ref_str)))
     self._num_ref_tokens += len(ref_tokens)
-    hyp_tokens = tuple(_Tokenize(hyp_str))
+    hyp_tokens = tuple(_Tokenize(self._unsegmenter(hyp_str)))
     self._num_hyp_tokens += len(hyp_tokens)
     for order_idx in range(self._max_ngram):
       ref_counts = collections.Counter(NGrams(ref_tokens, order_idx + 1))

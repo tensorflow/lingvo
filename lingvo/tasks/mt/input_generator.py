@@ -23,6 +23,7 @@ import tensorflow as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import py_utils
+from lingvo.core import tokenizers
 from lingvo.core.ops import py_x_ops
 
 
@@ -33,11 +34,11 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
   def Params(cls):
     """Defaults params for NmtInput."""
     p = super(NmtInput, cls).Params()
+    p.tokenizer = tokenizers.VocabFileTokenizer.Params()
     p.source_max_length = 300
     return p
 
   def _DataSourceFromFilePattern(self, file_pattern):
-    p = self.params
 
     def Proc(record):
       """Parses a serialized tf.Example record."""
@@ -108,12 +109,12 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
     ret = py_utils.NestedMap()
 
     ret.src = py_utils.NestedMap()
-    ret.src.ids = self._src_ids
+    ret.src.ids = tf.cast(self._src_ids, dtype=tf.int32)
     ret.src.paddings = self._src_paddings
 
     ret.tgt = py_utils.NestedMap()
     ret.tgt.ids = self._tgt_ids
-    ret.tgt.labels = self._tgt_labels
+    ret.tgt.labels = tf.cast(self._tgt_labels, dtype=tf.int32)
     ret.tgt.weights = self._tgt_weights
     ret.tgt.paddings = self._tgt_paddings
 
