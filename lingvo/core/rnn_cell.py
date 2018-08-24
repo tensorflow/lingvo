@@ -44,7 +44,7 @@ def _FPropDtype(params):
   return params.fprop_dtype if params.fprop_dtype is not None else params.dtype
 
 
-class RNNCell(base_layer.LayerBase):
+class RNNCell(quant_utils.QuantizableLayer):
   """RNN cells.
 
   RNNCell represents recurrent state in a NestedMap.
@@ -171,7 +171,7 @@ def ZoneOut(prev_v, cur_v, padding_v, zo_prob, is_eval, random_uniform):
   padding_v = tf.convert_to_tensor(padding_v)
   if zo_prob == 0.0:
     # Special case for when ZoneOut is not enabled.
-    return prev_v * padding_v + cur_v * (1.0 - padding_v)
+    return py_utils.ApplyPadding(padding_v, cur_v, prev_v)
 
   if is_eval:
     # We take expectation in the eval mode.
@@ -226,12 +226,19 @@ class LSTMCellSimple(RNNCell):
     p.Define('random_seed', None, 'Random seed. Useful for unittests.')
     p.Define('trainable_zero_state', False,
              'If true the zero_states are trainable variables.')
+    p.Define('enable_lstm_bias', True, 'Enable the LSTM Cell bias.')
     p.Define(
         'couple_input_forget_gates', False,
         'Whether to couple the input and forget gates. Just like '
         'tf.contrib.rnn.CoupledInputForgetGateLSTMCell')
     p.Define('apply_pruning', False, 'Whether to prune the weights while '
              'training')
+
+    # Non-default quantization behaviour.
+    p.qdomain.Define('c_state', None, 'Quantization for the c-state.')
+    p.qdomain.Define('m_state', None, 'Quantization for the m-state.')
+    p.qdomain.Define('fullyconnected', None,
+                     'Quantization for fully connected node.')
     return p
 
   @base_layer.initializer
@@ -242,6 +249,19 @@ class LSTMCellSimple(RNNCell):
     p = self.params
     assert isinstance(p.cell_value_cap,
                       (int, float)) or p.cell_value_cap is None
+
+    assert p.cell_value_cap is None or p.qdomain.default is None
+    self.TrackQTensor(
+        'zero_m', 'm_output', 'm_output_projection', domain='m_state')
+    self.TrackQTensor(
+        'zero_c',
+        'mixed',
+        'c_add_bias',
+        'c_input_gate',
+        'c_forget_gate',
+        'c_output_gate',
+        domain='c_state')
+    self.TrackQTensor('fc', domain='fullyconnected')
 
     with tf.variable_scope(p.name) as scope:
       # Define weights.
@@ -280,10 +300,11 @@ class LSTMCellSimple(RNNCell):
         w_proj.shape = [self.hidden_size, self.output_size]
         self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
 
-      bias_pc = wm_pc.Copy()
-      bias_pc.shape = [self.num_gates * self.hidden_size]
-      bias_pc.init = py_utils.WeightInit.Constant(0.0)
-      self.CreateVariable('b', bias_pc, self.AddGlobalVN)
+      if p.enable_lstm_bias:
+        bias_pc = wm_pc.Copy()
+        bias_pc.shape = [self.num_gates * self.hidden_size]
+        bias_pc.init = py_utils.WeightInit.Constant(0.0)
+        self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
       if p.trainable_zero_state:
         zs_m_pc = py_utils.WeightParams(
@@ -334,6 +355,9 @@ class LSTMCellSimple(RNNCell):
     else:
       zero_m = tf.zeros((batch_size, self.output_size), dtype=_FPropDtype(p))
       zero_c = tf.zeros((batch_size, self.hidden_size), dtype=_FPropDtype(p))
+    if p.is_inference:
+      zero_m = self.QTensor('zero_m', zero_m)
+      zero_c = self.QTensor('zero_c', zero_c)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def _ResetState(self, state, inputs):
@@ -346,33 +370,51 @@ class LSTMCellSimple(RNNCell):
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
-    return py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), theta.wm)
+    fns = self.fns
+    wm = self.QWeight(theta.wm)
+    mixed = fns.qmatmul(tf.concat(inputs.act + [state0.m], 1), wm, qt='fc')
+    return mixed
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
     p = self.params
+    fns = self.fns
+    if p.enable_lstm_bias:
+      b = self.QWeight(tf.expand_dims(theta.b, 0), domain='c_state')
+      xmw = fns.qadd(xmw, b, qt='c_add_bias')
+
     if not p.couple_input_forget_gates:
-      i_i, i_g, f_g, o_g = tf.split(
-          value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
+      i_i, i_g, f_g, o_g = tf.split(value=xmw, num_or_size_splits=4, axis=1)
       if p.forget_gate_bias != 0.0:
         f_g += p.forget_gate_bias
-      new_c = tf.sigmoid(f_g) * state0.c + tf.sigmoid(i_g) * tf.tanh(i_i)
+      forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
+      # Sigmoid / tanh calls are not quantized under the assumption they share
+      # the range with c_input_gate and c_forget_gate.
+      input_gate = fns.qmultiply(
+          tf.sigmoid(i_g), tf.tanh(i_i), qt='c_forget_gate')
+      output_gate = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
+      new_c = output_gate
     else:
-      i_i, f_g, o_g = tf.split(
-          value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=3, axis=1)
+      i_i, f_g, o_g = tf.split(value=xmw, num_or_size_splits=3, axis=1)
       if p.forget_gate_bias != 0.0:
         f_g += p.forget_gate_bias
-      new_c = (
-          tf.sigmoid(f_g) * state0.c + (1.0 - tf.sigmoid(f_g)) * tf.tanh(i_i))
+      # Sigmoid / tanh calls are not quantized under the assumption they share
+      # the range with c_input_gate and c_forget_gate.
+      forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
+      input_gate = fns.qmultiply(
+          1.0 - tf.sigmoid(f_g), tf.tanh(i_i), qt='c_forget_gate')
+      output_gate = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
+      new_c = output_gate
     # Clip the cell states to reasonable value.
     if p.cell_value_cap is not None:
       new_c = tf.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
     if p.output_nonlinearity:
-      new_m = tf.sigmoid(o_g) * tf.tanh(new_c)
+      new_m = fns.qmultiply(tf.sigmoid(o_g), tf.tanh(new_c), qt='m_output')
     else:
-      new_m = tf.sigmoid(o_g) * new_c
+      new_m = fns.qmultiply(tf.sigmoid(o_g), new_c, qt='m_output')
     if p.num_hidden_nodes:
-      new_m = tf.matmul(new_m, theta.w_proj)
+      w_proj = self.QWeight(theta.w_proj, domain='m_state')
+      new_m = fns.qmatmul(new_m, w_proj, qt='m_output_projection')
 
     # Apply Zoneout.
     return self._ApplyZoneOut(state0, inputs, new_c, new_m)
@@ -390,10 +432,10 @@ class LSTMCellSimple(RNNCell):
       c_random_uniform = None
       m_random_uniform = None
 
-    new_c = ZoneOut(state0.c, new_c, inputs.padding, p.zo_prob, p.is_eval,
-                    c_random_uniform)
-    new_m = ZoneOut(state0.m, new_m, inputs.padding, p.zo_prob, p.is_eval,
-                    m_random_uniform)
+    new_c = ZoneOut(state0.c, new_c, self.QRPadding(inputs.padding), p.zo_prob,
+                    p.is_eval, c_random_uniform)
+    new_m = ZoneOut(state0.m, new_m, self.QRPadding(inputs.padding), p.zo_prob,
+                    p.is_eval, m_random_uniform)
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=new_m, c=new_c)

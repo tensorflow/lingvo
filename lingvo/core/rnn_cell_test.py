@@ -1072,61 +1072,61 @@ class RNNCellTest(tf.test.TestCase):
       sess.run(update_op)
       self.assertEqual(3.0, cap.eval())
 
-  def testFakeQuantizedLSTMCellTrainingUnclipped(self):
+  def testQuantizedLSTMCellSimpleTrainingUnclipped(self):
     m_expected = [[0.097589, 0.579055], [0.046737, 0.187892],
                   [0.001656, 0.426245]]
     c_expected = [[0.241993, 0.820267], [0.086863, 0.349722],
                   [0.003176, 0.655448]]
-    self._testFakeQuantizedLSTMCellHelper(
+    self._testQuantizedLSTMCellSimpleHelper(
         is_inference=False,
         set_training_step=False,
         m_expected=m_expected,
         c_expected=c_expected)
 
-  def testFakeQuantizedLSTMCellTraining(self):
+  def testQuantizedLSTMCellSimpleTraining(self):
     padding = [[0.0], [0.0], [1.0]]
     m_expected = [[0.09375, 0.5625], [0.046875, 0.1875], [0.809813, 0.872176]]
     c_expected = [[0.23288, 0.806], [0.090057, 0.355591], [0.747715, 0.961307]]
-    self._testFakeQuantizedLSTMCellHelper(
+    self._testQuantizedLSTMCellSimpleHelper(
         is_inference=False,
         set_training_step=True,
         m_expected=m_expected,
         c_expected=c_expected,
         padding=padding)
 
-  def testFakeQuantizedLSTMCellHiddenNodes(self):
+  def testQuantizedLSTMCellSimpleHiddenNodes(self):
     m_expected = [[0.382812, 0.296875], [0.164062, 0.171875],
                   [0.3125, -0.039062]]
     c_expected = [[-0.160339, 0.795929, 0.449707,
                    0.347534], [-0.049194, 0.548279, -0.060852, -0.106354],
                   [-0.464172, 0.345947, 0.407349, 0.430878]]
-    self._testFakeQuantizedLSTMCellHelper(
+    self._testQuantizedLSTMCellSimpleHelper(
         is_inference=False,
         set_training_step=True,
         m_expected=m_expected,
         c_expected=c_expected,
         num_hidden_nodes=4)
 
-  def testFakeQuantizedLSTMCellInference(self):
+  def testQuantizedLSTMCellSimpleInference(self):
     # At inference time, quantization/clipping is forced on, so even though
     # we don't set the training step, we should get fully quantized results.
     m_expected = [[0.09375, 0.5625], [0.046875, 0.1875], [0., 0.429688]]
     c_expected = [[0.23288, 0.806], [0.090057, 0.355591], [-0.003937, 0.662567]]
-    self._testFakeQuantizedLSTMCellHelper(
+    self._testQuantizedLSTMCellSimpleHelper(
         is_inference=True,
         set_training_step=False,
         m_expected=m_expected,
         c_expected=c_expected)
 
-  def _testFakeQuantizedLSTMCellHelper(self,
-                                       is_inference,
-                                       set_training_step,
-                                       m_expected,
-                                       c_expected,
-                                       num_hidden_nodes=0,
-                                       padding=None):
+  def _testQuantizedLSTMCellSimpleHelper(self,
+                                         is_inference,
+                                         set_training_step,
+                                         m_expected,
+                                         c_expected,
+                                         num_hidden_nodes=0,
+                                         padding=None):
     with self.session(use_gpu=False) as sess:
-      params = rnn_cell.FakeQuantizedLSTMCell.Params()
+      params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.is_eval = is_inference
       params.is_inference = is_inference
@@ -1136,13 +1136,40 @@ class RNNCellTest(tf.test.TestCase):
       params.num_input_nodes = 2
       params.num_output_nodes = 2
       params.num_hidden_nodes = num_hidden_nodes
-      params.cc_schedule.clip_start_step = 1  # Step 0 is unclipped.
-      params.cc_schedule.clip_end_step = 2
-      params.cc_schedule.quant_start_step = 2
-      params.cc_schedule.start_cap = 5.0
-      params.cc_schedule.end_cap = 1.0
+      params.output_nonlinearity = False
+      params.cell_value_cap = None
+      params.enable_lstm_bias = False
 
-      lstm = rnn_cell.FakeQuantizedLSTMCell(params)
+      cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
+          clip_start_step=1,  # Step 0 is unclipped.
+          clip_end_step=2,
+          quant_start_step=2,
+          start_cap=5.0,
+          end_cap=1.0)
+
+      qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+          cc_schedule=cc_schedule)
+      params.qdomain.default = qdomain
+
+      # M state uses the default 8-bit quantziation.
+      cc_schedule = cc_schedule.Copy()
+      qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+          cc_schedule=cc_schedule)
+      params.qdomain.m_state = qdomain
+
+      # C state uses 16 bit quantization..
+      cc_schedule = cc_schedule.Copy().Set(bits=16)
+      qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+          cc_schedule=cc_schedule)
+      params.qdomain.c_state = qdomain
+
+      # Fully connected layer clips slightly differently.
+      cc_schedule = cc_schedule.Copy().Set(start_cap=64.0, end_cap=8.0)
+      qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+          cc_schedule=cc_schedule)
+      params.qdomain.fullyconnected = qdomain
+
+      lstm = rnn_cell.LSTMCellSimple(params)
       lstm_vars = lstm.vars
       print('lstm vars = ', lstm_vars)
       self.assertTrue('wm' in lstm_vars.wm.name)
@@ -1150,9 +1177,6 @@ class RNNCellTest(tf.test.TestCase):
         self.assertTrue('w_proj' in lstm_vars.w_proj.name)
       else:
         self.assertFalse('w_proj' in lstm_vars)
-      if not is_inference:
-        self.assertTrue('clip_ratio' in lstm_vars.cc_schedule.clip_ratio.name)
-        self.assertTrue('fq_ratio' in lstm_vars.cc_schedule.fq_ratio.name)
 
       np.random.seed(_NUMPY_RANDOM_SEED)
       if padding is None:
