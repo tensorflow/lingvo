@@ -810,10 +810,12 @@ class EmbeddingLayer(base_layer.LayerBase):
         vi, vi_var = py_utils.CreateVariable('var_%d' % i, w_pc)
         self._vars.append(vi_var)
         if p.on_ps:
-          self._emb_shards.append(vi_var)
+          v = vi_var
         else:
-          # Variables are first copied to workers.
-          self._emb_shards.append(tf.identity(vi))
+          v = tf.identity(vi)
+        if p.fprop_dtype is not None and p.fprop_dtype != p.dtype:
+          v = tf.cast(v, p.fprop_dtype)
+        self._emb_shards.append(v)
 
     self._vars_map = py_utils.NestedMap(wm=self._vars)
     self._theta_map = py_utils.NestedMap(wm=self._emb_shards)

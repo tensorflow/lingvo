@@ -346,20 +346,22 @@ class LayerBase(object):
     should_cast = (
         self._params.fprop_dtype is not None and
         self._params.fprop_dtype != self._params.dtype)
-    for k in self._private_theta.keys():
-      ret[k] = self._private_theta[k]
-
     if should_cast:
 
       def _DoCast(x, fprop_dtype):
-        if (x.dtype.is_floating and x.dtype != fprop_dtype):
+        if x.dtype != fprop_dtype:
           return tf.cast(x, fprop_dtype)
         else:
           return x
 
-      return ret.Transform(lambda x: _DoCast(x, self._params.fprop_dtype))
+      private_theta = self._private_theta.Transform(
+          lambda x: _DoCast(x, self._params.fprop_dtype))
     else:
-      return ret
+      private_theta = self._private_theta
+
+    for k in private_theta.keys():
+      ret[k] = private_theta[k]
+    return ret
 
   @property
   def accumulators(self):
