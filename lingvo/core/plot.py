@@ -264,6 +264,25 @@ def _RenderMatplotlibFigures(figsize, max_outputs, plot_func, *numpy_data_list):
   return np.array(images)
 
 
+def _FigureToSummary(name, fig):
+  """Create tf.Summary proto from matplotlib.figure.Figure ."""
+  canvas = backend_agg.FigureCanvasAgg(fig)
+  fig.canvas.draw()
+  ncols, nrows = fig.canvas.get_width_height()
+  png_file = cStringIO.StringIO()
+  canvas.print_figure(png_file)
+  png_str = png_file.getvalue()
+  return tf.Summary(value=[
+      tf.Summary.Value(
+          tag='%s/image' % name,
+          image=tf.Summary.Image(
+              height=nrows,
+              width=ncols,
+              colorspace=3,
+              encoded_image_string=png_str))
+  ])
+
+
 def Matrix(name, figsize, matrix, setter=None, **kwargs):
   """Plot a numpy matrix and generates tf.Summary proto for it.
 
@@ -280,21 +299,31 @@ def Matrix(name, figsize, matrix, setter=None, **kwargs):
   """
   fig = plt.Figure(figsize=figsize, dpi=100, facecolor='white')
   axes = fig.add_subplot(1, 1, 1)
-  canvas = backend_agg.FigureCanvasAgg(fig)
   AddImage(fig, axes, matrix, **kwargs)
   if setter:
     setter(fig, axes)
-  fig.canvas.draw()
-  ncols, nrows = fig.canvas.get_width_height()
-  png_file = cStringIO.StringIO()
-  canvas.print_figure(png_file)
-  png_str = png_file.getvalue()
-  return tf.Summary(value=[
-      tf.Summary.Value(
-          tag='%s/image' % name,
-          image=tf.Summary.Image(
-              height=nrows,
-              width=ncols,
-              colorspace=3,
-              encoded_image_string=png_str))
-  ])
+  return _FigureToSummary(name, fig)
+
+
+def Curve(name, figsize, xs, ys, setter=None, **kwargs):
+  """Plot curve(s) to a tf.Summary proto.
+
+  Args:
+    name: Image summary name.
+    figsize: A 2D tuple containing the overall figure (width, height)
+      dimensions in inches.
+    xs: x values for matplotlib.pyplot.plot.
+    ys: y values for matplotlib.pyplot.plot.
+    setter: A callable taking (fig, axes). Useful to fine-control
+      layout of the figure, xlabel, xticks, etc.
+    **kwargs: Extra args for matplotlib.pyplot.plot.
+
+  Returns:
+    A tf.Summary proto contains the line plot.
+  """
+  fig = plt.Figure(figsize=figsize, dpi=100, facecolor='white')
+  axes = fig.add_subplot(1, 1, 1)
+  axes.plot(xs, ys, '.-', **kwargs)
+  if setter:
+    setter(fig, axes)
+  return _FigureToSummary(name, fig)
