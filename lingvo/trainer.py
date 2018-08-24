@@ -737,6 +737,21 @@ class RunnerManager(object):
   """Helper class for managing runners."""
 
   @classmethod
+  def LaunchTensorFlow(cls):
+    """Starts TF machinary in this process."""
+    tf.logging.info('Launching tensorflow.')
+
+    target = FLAGS.tf_master
+    if not target.startswith('localhost'):
+      # E.g., train_client is configured w/ FLAGS.tf_master pointing to
+      # another job. In that case, start a local server.
+      target = tf.train.Server.create_local_server().target
+    with tf.Session(target).as_default():
+      value = (tf.constant(1.) + tf.constant(1.)).eval()
+    assert value == 2.0, 'Something is really wrong.'
+    tf.logging.info('Launched tensorflow.')
+
+  @classmethod
   def GetParamsForDataset(cls, model_name, job_name, dataset_name):
     """Returns params for `model_name` on the dataset `dataset_name`."""
     try:
@@ -998,6 +1013,10 @@ def InspectDecoder():
 def main(unused_argv):
   tf.logging.set_verbosity(tf.logging.INFO)
   RunnerManager.MaybeConfigRunLocally()
+
+  if not (FLAGS.run_locally or FLAGS.mode == 'inspect_evaler' or
+          FLAGS.mode == 'inspect_decoder'):
+    RunnerManager.LaunchTensorFlow()
 
   # pylint: disable=g-import-not-at-top
   # pylint: disable=unused-variable
