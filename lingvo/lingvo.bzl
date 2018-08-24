@@ -1,6 +1,7 @@
 """Implements custom rules for Lingvo."""
 
 load("@bazel_tools//tools/build_defs/pkg:pkg.bzl", "pkg_tar")
+load("@subpar//:subpar.bzl", "par_binary")
 
 def tf_copts():
     # TODO(drpng): autoconf this.
@@ -31,6 +32,12 @@ def lingvo_cc_test(name, srcs, deps = []):
             "@com_google_googletest//:gtest_main",
         ] + deps,
     )
+
+def lingvo_py_binary(*args, **kwargs):
+    # Extract all files to a temporary directory is required to allow access to
+    # the shared object containing lingvo ops.
+    kwargs["zip_safe"] = False
+    par_binary(*args, **kwargs)
 
 def custom_kernel_library(name, op_def_lib, srcs, hdrs = [], deps = []):
     native.cc_library(
@@ -78,15 +85,6 @@ def lingvo_cuda_py_test(name, tags = [], deps = [], **kwargs):
         tags = tags + ["requires-gpu"],
         deps = deps,
         **kwargs
-    )
-
-def lingvo_pkg_tar(name, srcs, mode, strip_prefix, include_runfiles):
-    return pkg_tar(
-        name = name,
-        srcs = srcs,
-        mode = mode,
-        strip_prefix = strip_prefix,
-        include_runfiles = include_runfiles,
     )
 
 def _proto_gen_cc_src(name, basename):

@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-r"""Trainer.
+"""Trainer.
 
 To run locally:
 $ bazel build -c opt lingvo:trainer
-$ bazel-bin/lingvo/trainer \
-   --logtostderr \
-   --model=image.mnist.LeNet5 \
-   --mode=sync \
-   --logdir=/tmp/lenet5 \
-   --run_locally=cpu
+$ bazel-bin/lingvo/trainer --logtostderr --model=image.mnist.LeNet5 --mode=sync
+--logdir=/tmp/lenet5 --run_locally=cpu
 
 To use GPU, add --config=cuda to build command and set --run_locally=gpu.
 """

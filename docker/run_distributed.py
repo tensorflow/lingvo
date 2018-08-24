@@ -54,11 +54,11 @@ DOCKER_BIN = "/usr/bin/docker"
 # All that is required is that we have pip installed tensorflow.
 DOCKER_IMAGE_NAME = "tensorflow:lingvo"
 # This was created using
-# bazel build -c opt //lingvo:lingvo_trainer_pkg
-# cp bazel-bin/lingvo/lingvo_trainer_pkg.tar .
+# bazel build -c opt //lingvo:trainer.par
+# cp bazel-bin/lingvo/trainer.par .
 # Since /tmp/lingvo is mounted, we can see it.
 # TODO(drpng): hard-wiring below.
-TRAINER_PACKAGE = "/tmp/lingvo/lingvo_trainer_pkg.tar"
+TRAINER_PACKAGE = "/tmp/lingvo/trainer.par"
 DRY_RUN = False
 NETWORK_NAME = "tf-net"
 
@@ -129,17 +129,16 @@ def StartFleet():
 
 def InstallAndStartTrainer():
   """Unpacks the trainer and kick off training."""
-  shutil.copy(TRAINER_PACKAGE, SHARED_FS_MOUNTPOINT + "/lingvo_trainer_pkg.tar")
+  shutil.copy(TRAINER_PACKAGE, SHARED_FS_MOUNTPOINT + "/trainer.par")
   ps_hosts = ",".join(CLUSTER_SPEC["ps"])
   worker_hosts = ",".join(CLUSTER_SPEC["worker"])
   for job_name, machines in six.iteritems(CLUSTER_SPEC):
     task_idx = 0
     for machine_port in machines:
       machine_name = _Machine(machine_port)
-      _ExecInDocker(machine_name,
-                    ["tar", "-xf",
-                     SHARED_FS_MOUNTPOINT + "/lingvo_trainer_pkg.tar"],
-                    workdir="/tmp")
+      _ExecInDocker(
+          machine_name, ["tar", "-xf", SHARED_FS_MOUNTPOINT + "/trainer.par"],
+          workdir="/tmp")
       _ExecInDocker(machine_name,
                     ["python", SCRIPT,
                      "--shared_fs", SHARED_FS_MOUNTPOINT,
