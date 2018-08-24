@@ -739,7 +739,10 @@ class RunnerManager(object):
   @classmethod
   def GetParamsForDataset(cls, model_name, job_name, dataset_name):
     """Returns params for `model_name` on the dataset `dataset_name`."""
-    cfg = base_runner.GetParams(model_name, dataset_name)
+    try:
+      cfg = base_runner.GetParams(model_name, dataset_name)
+    except AttributeError:
+      cfg = base_runner.GetParams(model_name, dataset_name.title())
     cls.UpdateClusterParamsFromFlags(cfg, job_name)
     return cfg
 
@@ -796,11 +799,11 @@ class RunnerManager(object):
         return Trainer(cfg, *common_args)
     elif job.startswith(evaler_job_name_prefix):
       dataset_name = job[len(evaler_job_name_prefix):]
-      cfg = cls.GetParamsForDataset(model_name, 'evaler', dataset_name.title())
+      cfg = cls.GetParamsForDataset(model_name, 'evaler', dataset_name)
       return Evaler(dataset_name.lower(), cfg, *common_args)
     elif job.startswith(decoder_job_name_prefix):
       dataset_name = job[len(decoder_job_name_prefix):]
-      cfg = cls.GetParamsForDataset(model_name, 'decoder', dataset_name.title())
+      cfg = cls.GetParamsForDataset(model_name, 'decoder', dataset_name)
       return Decoder(dataset_name.lower(), cfg, *common_args)
     else:
       raise ValueError('job %s is not supported' % job)
