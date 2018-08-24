@@ -77,6 +77,12 @@ class MTBaseModel(base_model.BaseTask):
     with self._DecoderDevice():
       return self.decoder.ComputeLoss(theta.decoder, predictions, batch.tgt)
 
+  def _GetTokenizerKeyToUse(self, key):
+    """Returns a tokenizer key to use for the provided `key`."""
+    if key in self.input_generator.tokenizer_dict:
+      return key
+    return None
+
   def _BeamSearchDecode(self):
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
@@ -90,15 +96,17 @@ class MTBaseModel(base_model.BaseTask):
       topk_scores = decoder_outs.topk_scores
 
       slen = tf.to_int32(tf.reduce_sum(1 - batch.src.paddings, 1) - 1)
-      srcs = self.input_generator.IdsToStrings(batch.src.ids, slen, 'src')
-      topk_decoded = self.input_generator.IdsToStrings(topk_ids, topk_lens - 1,
-                                                       'tgt')
+      srcs = self.input_generator.IdsToStrings(
+          batch.src.ids, slen, self._GetTokenizerKeyToUse('src'))
+      topk_decoded = self.input_generator.IdsToStrings(
+          topk_ids, topk_lens - 1, self._GetTokenizerKeyToUse('tgt'))
       topk_decoded = tf.reshape(topk_decoded, tf.shape(topk_hyps))
       topk_scores = tf.reshape(topk_scores, tf.shape(topk_hyps))
 
       refs = self.input_generator.IdsToStrings(
           batch.tgt.labels,
-          tf.to_int32(tf.reduce_sum(1.0 - batch.tgt.paddings, 1) - 1.0), 'tgt')
+          tf.to_int32(tf.reduce_sum(1.0 - batch.tgt.paddings, 1) - 1.0),
+          self._GetTokenizerKeyToUse('tgt'))
 
       ret_dict = {
           'target_ids': batch.tgt.ids,
