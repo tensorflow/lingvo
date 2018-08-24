@@ -21,9 +21,9 @@ from __future__ import print_function
 import os
 
 from lingvo import model_registry
-from lingvo.core import lr_schedule
 from lingvo.core import base_model_params
 from lingvo.core import layers
+from lingvo.core import lr_schedule
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
