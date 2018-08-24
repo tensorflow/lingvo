@@ -544,7 +544,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         theta.frnn_with_atten.cell, rnn_states[0],
         py_utils.NestedMap(
             act=[tf.concat([embs, prev_atten_context], 1)],
-            padding=step_paddings))
+            padding=step_paddings,
+            reset_mask=tf.ones_like(step_paddings)))
     new_rnn_states.append(new_rnn_states_0)
     rnn_out = self._rnn_attn.GetOutput(new_rnn_states_0)
     cur_atten_context, atten_probs, atten_states = (
@@ -561,7 +562,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
           layer_theta.cell, rnn_states[1 + i],
           py_utils.NestedMap(
               act=[tf.concat([rnn_out, atten_context], 1)],
-              padding=step_paddings))
+              padding=step_paddings,
+              reset_mask=tf.ones_like(step_paddings)))
       new_rnn_states.append(new_rnn_states_i)
       new_rnn_out = layer.rnn_cell.GetOutput(new_rnn_states_i)
       if 1 + i >= p.residual_start:
