@@ -463,14 +463,8 @@ class TransformerEncoder(base_encoder.BaseEncoder):
       dropout_tpl.seed = p.random_seed
       self.CreateChild('input_dropout', dropout_tpl)
 
-    # Note: this call is out of tf.variable_scope context, this allows for
-    # checkpoint backward compatibility.
-    py_utils.SetNameIfNone(p.transformer_stack, p.name)
-
+    p.transformer_stack.name = p.name
     p.transformer_stack.random_seed = p.random_seed
-
-    if p.transformer_stack.name != p.name:
-      raise ValueError('%s != %s' % (p.transformer_stack.name, p.name))
     self.CreateChild('transformer_stack', p.transformer_stack)
 
   def FProp(self, theta, input_batch):

@@ -1135,7 +1135,8 @@ class MultiHeadedAttention(BaseAttentionLayer):
           atten_dropout_prob=p.atten_dropout_prob,
           atten_dropout_deterministic=p.atten_dropout_deterministic,
           packed_input=p.packed_input)
-      py_utils.SetNameIfNone(att_p, 'inner_att')
+      if not att_p.name:
+        att_p.name = 'inner_att'
       self.CreateChild('atten', att_p)
 
   def InitForSourcePacked(self,

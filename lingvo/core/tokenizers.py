@@ -30,6 +30,7 @@ class BaseTokenizer(base_layer.LayerBase):
   def Params(cls):
     """Defaults params for tokenizers."""
     p = super(BaseTokenizer, cls).Params()
+    p.name = 'tokenizer'
     p.Define('vocab_size', 64, 'The size of the vocabuary.')
     p.Define(
         'append_eos', True, 'Whether to append </s> at the end and treat '
@@ -43,7 +44,6 @@ class BaseTokenizer(base_layer.LayerBase):
 
   @base_layer.initializer
   def __init__(self, params):
-    py_utils.SetNameIfNone(params, 'tokenizer')
     super(BaseTokenizer, self).__init__(params)
     p = self.params
 

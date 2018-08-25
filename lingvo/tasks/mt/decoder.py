@@ -340,7 +340,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       with tf.device(emb_device):
         self.CreateChild('emb', p.emb)
 
-        py_utils.SetNameIfNone(p.attention, 'atten')
         p.attention.dtype = p.dtype
         p.attention.source_dim = p.source_dim
         p.attention.query_dim = p.rnn_cell_dim

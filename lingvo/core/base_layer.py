@@ -227,8 +227,8 @@ class LayerBase(object):
     Args:
       params: A params used to construct this layer.
     """
-    assert params.name, ('Layer params for %s must have a "name"',
-                         self.__class__.__name__)
+    assert params.name, (
+        'Layer params for %s must have a "name"' % self.__class__.__name__)
     self._params = params.Copy()
     tf.logging.debug('Creating layer %s with params: \n %s \n',
                      self.__class__.__name__, str(params))
@@ -543,9 +543,9 @@ class LayerBase(object):
       params: Hyperparams object to instantiate a layer.
     """
     self._CheckName(name)
-    py_utils.SetNameIfNone(params, name)
-    p = params.Copy()
-    self.CopyBaseParams(self.params, p)
+    if not params.name:
+      params.name = name
+    p = self.CopyBaseParams(self.params, params.Copy())
     child = p.cls(p)
     self._private_children[name] = child
 
@@ -574,7 +574,8 @@ class LayerBase(object):
           children.append(CreateChildrenHelper(p))
         else:
           p = self.CopyBaseParams(self.params, p.Copy())
-          py_utils.SetNameIfNone(p, '%s_%d' % (name, i))
+          if not p.name:
+            p.name = '%s_%d' % (name, i)
           children.append(p.cls(p))
       return children
 

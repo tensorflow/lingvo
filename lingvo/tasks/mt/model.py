@@ -55,10 +55,6 @@ class MTBaseModel(base_model.BaseTask):
     super(MTBaseModel, self).__init__(params)
     p = self.params
 
-    py_utils.SetNameIfNone(p.encoder, 'enc')
-    py_utils.SetNameIfNone(p.decoder, 'dec')
-    py_utils.SetNameIfNone(p.input, 'input')
-
     with tf.variable_scope(p.name):
       with self._EncoderDevice():
         self.CreateChild('encoder', p.encoder)
