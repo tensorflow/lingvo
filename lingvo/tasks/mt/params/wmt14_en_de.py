@@ -40,7 +40,6 @@ class WmtEnDeTransformerBase(base_model_params.SingleTaskModelParams):
     p.file_random_seed = 0
     p.file_parallelism = 16
     p.file_buffer_size = 10000000
-    p.pad_to_max_seq_length = True
 
     p.file_pattern = 'tfrecord:' + os.path.join(
         cls.DATADIR, 'converted', 'train-v0-mixed-wpm32k-tfrecord')
@@ -61,7 +60,6 @@ class WmtEnDeTransformerBase(base_model_params.SingleTaskModelParams):
     p.file_random_seed = 27182818
     p.file_parallelism = 1
     p.file_buffer_size = 1
-    p.pad_to_max_seq_length = True
 
     p.file_pattern = 'tfrecord:' + os.path.join(
         cls.DATADIR, 'converted', 'newstest2013-en_de-v0-mixed-wpm32k-tfrecord')
@@ -80,7 +78,6 @@ class WmtEnDeTransformerBase(base_model_params.SingleTaskModelParams):
     p.file_random_seed = 27182818
     p.file_parallelism = 1
     p.file_buffer_size = 1
-    p.pad_to_max_seq_length = True
 
     p.file_pattern = 'tfrecord:' + os.path.join(
         cls.DATADIR, 'converted', 'newstest2014-en_de-v0-mixed-wpm32k-tfrecord')
