@@ -49,7 +49,6 @@ def _AssertCellParamsCuDNNCompatible(p_cell):
     assert p_cell.forget_gate_bias == 0
     assert p_cell.output_nonlinearity
     assert p_cell.zo_prob == 0.0
-    assert not p_cell.trainable_zero_state
 
 
 def _ReversePaddedSequence(inputs, paddings):

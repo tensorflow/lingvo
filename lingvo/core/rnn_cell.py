@@ -224,8 +224,6 @@ class LSTMCellSimple(RNNCell):
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
     p.Define('random_seed', None, 'Random seed. Useful for unittests.')
-    p.Define('trainable_zero_state', False,
-             'If true the zero_states are trainable variables.')
     p.Define('enable_lstm_bias', True, 'Enable the LSTM Cell bias.')
     p.Define(
         'couple_input_forget_gates', False,
@@ -306,17 +304,6 @@ class LSTMCellSimple(RNNCell):
         bias_pc.init = py_utils.WeightInit.Constant(0.0)
         self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
-      if p.trainable_zero_state:
-        zs_m_pc = py_utils.WeightParams(
-            shape=[1, p.num_output_nodes],
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('zero_state_m', zs_m_pc)
-        zs_c_pc = zs_m_pc.Copy()
-        zs_c_pc.shape = [1, self.hidden_size]
-        self.CreateVariable('zero_state_c', zs_c_pc)
-
       # Collect some stats.
       w = self.vars.wm
       if p.couple_input_forget_gates:
@@ -349,12 +336,8 @@ class LSTMCellSimple(RNNCell):
 
   def zero_state(self, batch_size):
     p = self.params
-    if p.trainable_zero_state:
-      zero_m = tf.tile(self.theta.zero_state_m, [batch_size, 1])
-      zero_c = tf.tile(self.theta.zero_state_c, [batch_size, 1])
-    else:
-      zero_m = tf.zeros((batch_size, self.output_size), dtype=_FPropDtype(p))
-      zero_c = tf.zeros((batch_size, self.hidden_size), dtype=_FPropDtype(p))
+    zero_m = tf.zeros((batch_size, self.output_size), dtype=_FPropDtype(p))
+    zero_c = tf.zeros((batch_size, self.hidden_size), dtype=_FPropDtype(p))
     if p.is_inference:
       zero_m = self.QTensor('zero_m', zero_m)
       zero_c = self.QTensor('zero_c', zero_c)
@@ -602,7 +585,6 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
     super(LSTMCellSimpleDeterministic, self).__init__(params)
     p = self.params
     assert p.name
-    assert not p.trainable_zero_state
     with tf.variable_scope(p.name):
       _, self._step_counter = py_utils.CreateVariable(
           name='lstm_step_counter',
@@ -617,8 +599,6 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
 
   def zero_state(self, batch_size):
     p = self.params
-    # We don't support trainable zero_state.
-    assert not p.trainable_zero_state
     zero_m = tf.zeros((batch_size, self.output_size), dtype=p.dtype)
     zero_c = tf.zeros((batch_size, self.hidden_size), dtype=p.dtype)
     # The first random seed changes for different layers and training steps.
@@ -908,8 +888,6 @@ class LayerNormalizedLSTMCell(RNNCell):
              'If > 0, applies ZoneOut regularization with the given prob.')
     p.Define('random_seed', None, 'Random seed. Useful for unittests.')
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
-    p.Define('trainable_zero_state', False,
-             'If true the zero_states are trainable variables.')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
     return p
@@ -922,8 +900,6 @@ class LayerNormalizedLSTMCell(RNNCell):
     """Initializes LayerNormalizedLSTMCell."""
     super(LayerNormalizedLSTMCell, self).__init__(params)
     params = self.params
-    if params.trainable_zero_state:
-      raise ValueError('Trainable inital state is not supported!')
     if not isinstance(params.cell_value_cap, (int, float)):
       raise ValueError('Cell value cap must of type int or float!')
 
@@ -1314,8 +1290,6 @@ class SRUCell(RNNCell):
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
     p.Define('random_seed', None, 'Random seed. Useful for unittests.')
-    p.Define('trainable_zero_state', False,
-             'If true the zero_states are trainable variables.')
     return p
 
   @base_layer.initializer
@@ -1342,15 +1316,6 @@ class SRUCell(RNNCell):
       bias_pc.init = py_utils.WeightInit.Constant(0.0)
       self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
-      if p.trainable_zero_state:
-        zs_pc = py_utils.WeightParams(
-            shape=[1, p.num_output_nodes],
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('zero_state_m', zs_pc)
-        self.CreateVariable('zero_state_c', zs_pc)
-
       # Collect some stats
       x_t2, resized, f_t, r_t = tf.split(
           value=self.vars.wm, num_or_size_splits=4, axis=1)
@@ -1366,12 +1331,8 @@ class SRUCell(RNNCell):
 
   def zero_state(self, batch_size):
     p = self.params
-    if p.trainable_zero_state:
-      zero_m = tf.tile(self.theta.zero_state_m, [batch_size, 1])
-      zero_c = tf.tile(self.theta.zero_state_c, [batch_size, 1])
-    else:
-      zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
-      zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
+    zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
+    zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def GetOutput(self, state):
@@ -1441,8 +1402,6 @@ class QRNNPoolingCell(RNNCell):
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
     p.Define('random_seed', None, 'Random seed. Useful for unittests.')
-    p.Define('trainable_zero_state', False,
-             'If true the zero_states are trainable variables.')
     p.Define('pooling_formula', 'INVALID',
              'Options: quasi_ifo, sru. Which pooling math to use')
     return p
@@ -1459,29 +1418,15 @@ class QRNNPoolingCell(RNNCell):
     assert isinstance(p.cell_value_cap,
                       (int, float)) or p.cell_value_cap is None
 
-    with tf.variable_scope(p.name):
-      if p.trainable_zero_state:
-        zs_pc = py_utils.WeightParams(
-            shape=[1, p.num_output_nodes],
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('zero_state_m', zs_pc)
-        self.CreateVariable('zero_state_c', zs_pc)
-
-      self._timestep = -1
+    self._timestep = -1
 
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
   def zero_state(self, batch_size):
     p = self.params
-    if p.trainable_zero_state:
-      zero_m = tf.tile(self.theta.zero_state_m, [batch_size, 1])
-      zero_c = tf.tile(self.theta.zero_state_c, [batch_size, 1])
-    else:
-      zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
-      zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
+    zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
+    zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def GetOutput(self, state):

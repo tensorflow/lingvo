@@ -40,7 +40,6 @@ class RNNCellTest(tf.test.TestCase):
 
   def _testLSTMSimpleHelper(self,
                             inline=False,
-                            trainable_zero_state=False,
                             couple_input_forget_gates=False,
                             apply_pruning=False):
     with self.session(
@@ -54,7 +53,6 @@ class RNNCellTest(tf.test.TestCase):
       params.vn.per_step_vn = False
       params.num_input_nodes = 2
       params.num_output_nodes = 2
-      params.trainable_zero_state = trainable_zero_state
       params.couple_input_forget_gates = couple_input_forget_gates
 
       lstm = rnn_cell.LSTMCellSimple(params)
@@ -82,10 +80,7 @@ class RNNCellTest(tf.test.TestCase):
       # Initialize all the variables, and then run one step.
       tf.global_variables_initializer().run()
 
-      if trainable_zero_state:
-        variable_count = 4  # weights, biases, initial states for c and h
-      else:
-        variable_count = 2
+      variable_count = 2
       wts = tf.get_collection('LSTMCellSimple_vars')
       self.assertEqual(variable_count, len(wts))
 
@@ -127,18 +122,11 @@ class RNNCellTest(tf.test.TestCase):
   def testLSTMSimple_Inline(self):
     self._testLSTMSimpleHelper(inline=True)
 
-  def testLSTMSimple_TrainableZeroState(self):
-    self._testLSTMSimpleHelper(inline=False, trainable_zero_state=True)
-
   def testCifgLSTMSimple_NoInline(self):
     self._testLSTMSimpleHelper(inline=False, couple_input_forget_gates=True)
 
   def testCifgLSTMSimple_Inline(self):
     self._testLSTMSimpleHelper(inline=True, couple_input_forget_gates=True)
-
-  def testCifgLSTMSimple_TrainableZeroState(self):
-    self._testLSTMSimpleHelper(
-        inline=False, trainable_zero_state=True, couple_input_forget_gates=True)
 
   def testLSTMSimple_Masked(self):
     with self.session(
@@ -210,7 +198,6 @@ class RNNCellTest(tf.test.TestCase):
       params.num_input_nodes = 2
       params.num_output_nodes = 1
       params.num_hidden_nodes = 2
-      params.trainable_zero_state = False
 
       lstm = rnn_cell.LSTMCellSimple(params)
 
@@ -264,7 +251,6 @@ class RNNCellTest(tf.test.TestCase):
       child_p.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
       child_p.vn.global_vn = False
       child_p.vn.per_step_vn = False
-      child_p.trainable_zero_state = False
 
       lstm = params.cls(params)
 
