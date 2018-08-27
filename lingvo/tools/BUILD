@@ -37,3 +37,11 @@ py_binary(
         # Implicit tensorflow dependency.
     ],
 )
+
+py_binary(
+    name = "print_tf_records",
+    srcs = ["print_tf_records.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+    ],
+)
