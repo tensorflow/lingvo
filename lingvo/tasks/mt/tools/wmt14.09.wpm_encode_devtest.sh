@@ -29,3 +29,5 @@ TEST_TFRECORDS="${ROOT}/wpm/test.tfrecords"
 
 wpm_encode "${DEV_SRC_FILES}" "${DEV_TGT_FILES}" 0 1 ${DEV_TFRECORDS}
 wpm_encode "${TEST_SRC_FILES}" "${TEST_TGT_FILES}" 0 1 ${TEST_TFRECORDS}
+
+cp -f "${WPM_VOC}" "${ROOT}/wpm"

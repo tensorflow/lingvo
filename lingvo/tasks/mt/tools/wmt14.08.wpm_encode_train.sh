@@ -36,3 +36,5 @@ TRAIN_TFRECORDS="${ROOT}/wpm/train.tfrecords-%5.5d-of-%5.5d"
 # The encoding goes at about 200 sentences per second.
 # So, 4.4M sentences will take about 6 hours to run on a single core.
 wpm_encode "${SRC_FILES}" "${TGT_FILES}" 200 16 ${TRAIN_TFRECORDS}
+
+cp -f "${WPM_VOC}" "${ROOT}/wpm"
