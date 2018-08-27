@@ -72,7 +72,7 @@ DECODE_CLUSTER_SPEC = {
 }
 
 MODEL = "image.mnist.LeNet5"
-DATADIR = "/tmp/mnist_data"
+DATADIR = "/tmp/mnist"
 TRAIN_MODE = "sync"
 
 TRAIN_CLUSTER_SPEC = (
