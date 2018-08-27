@@ -207,7 +207,7 @@ you must run the trainer with the proper cluster spec:
 
 ```shell
 trainer.par --cluster_spec=<cluster_spec> \
-  --model=mt.wmt14.WmtEnDeTransformerSmall \
+  --model=mt.wmt14_en_de.WmtEnDeTransformerSmall \
   --job=<role> --task=<task_id> --mode=sync --logtostderr \
   --logdir=<shared_log_dir>
 ```
