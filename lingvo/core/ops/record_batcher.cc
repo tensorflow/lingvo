@@ -146,9 +146,6 @@ void RecordBatcher::ProcessorLoop() {
     auto iter = std::lower_bound(opts_.bucket_upper_bound.begin(),
                                  opts_.bucket_upper_bound.end(), bucket);
     if (iter == opts_.bucket_upper_bound.end()) {
-      LOG_FIRST_N(INFO, 10) << "Skipping example with bucket key " << bucket
-                            << " since it is larger than the largest bucket. "
-                            << "Only logging first 10.";
       VLOG(1) << "Skip. bucket out-of-range " << bucket;
       continue;
     }
