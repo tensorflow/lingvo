@@ -63,6 +63,10 @@ tf.flags.DEFINE_string(
     'in the single process.')
 
 tf.flags.DEFINE_string('tf_master', '', 'TF runtime.')
+tf.flags.DEFINE_string(
+    'cluster_spec', '', 'A tf.train.ClusterSpec to override the master. '
+    'The dict is specified as: job=host1:port1,host2:port2,'
+    'host3:port3@job2=host3:port4,...')
 
 tf.flags.DEFINE_string(
     'mode', 'async', 'How this trainer binary is used. '
@@ -758,6 +762,48 @@ class RunnerManager(object):
     return cfg
 
   @classmethod
+  def MaybeConfigRunDistributed(cls):
+    """If given a FLAGS.cluster_spec, create a server and update flags."""
+    if not FLAGS.cluster_spec:
+      return
+    job_specs = FLAGS.cluster_spec.split('@')
+    cluster_spec_dict = {}
+    for job_spec in job_specs:
+      # ps_host=worker1:1231,worker2:1234
+      job_machines = job_spec.split('=')
+      if len(job_machines) != 2:
+        raise ValueError('Invalid job specification: %s', job_spec)
+      cluster_spec_dict[job_machines[0]] = job_machines[1].split(',')
+    start_server = True
+    for role in sorted(cluster_spec_dict.keys()):
+      if role.startswith('decoder_'):
+        assert len(job_specs) == 1, 'Decoder jobs must run on their own'
+        assert ',' not in job_specs[0], 'Only single machine supported'
+        FLAGS.decoder_job = '/job:localhost'
+        FLAGS.decoder_replicas = 1
+        start_server = False
+      elif role.startswith('evaler_'):
+        assert len(job_specs) == 1, 'Evaler jobs must run on their own'
+        assert ',' not in job_specs[0], 'Only single machine supported'
+        FLAGS.evaler_job = '/job:localhost'
+        FLAGS.evaler_replicas = 1
+        start_server = False
+      elif role == 'worker':
+        assert FLAGS.mode == 'sync', (
+            '\'worker\' jobs should only be in sync mode')
+        FLAGS.worker_job = '/job:worker'
+        FLAGS.worker_replicas = len(cluster_spec_dict['worker'])
+        FLAGS.ps_job = '/job:worker'
+        FLAGS.ps_replicas = FLAGS.worker_replicas
+    if start_server:
+      cluster = tf.train.ClusterSpec(cluster_spec_dict)
+      server = tf.train.Server(
+          cluster, job_name=FLAGS.job, task_index=FLAGS.task)
+      FLAGS.tf_master = server.target
+      # TODO(drpng): properly join all processes.
+      cls._server = server
+
+  @classmethod
   def UpdateClusterParamsFromFlags(cls, cfg, job_name):
     """Update Params with a training cluster configuration from flags."""
     cfg.cluster.mode = FLAGS.mode
@@ -816,6 +862,10 @@ class RunnerManager(object):
       dataset_name = job[len(decoder_job_name_prefix):]
       cfg = cls.GetParamsForDataset(model_name, 'decoder', dataset_name)
       return Decoder(dataset_name.lower(), cfg, *common_args)
+    # TODO(drpng): make a tf_server.
+    elif job == 'ps' or 'worker' or 'input':
+      if cls._server:
+        cls._server.join()
     else:
       raise ValueError('job %s is not supported' % job)
 
@@ -1009,6 +1059,7 @@ def InspectDecoder():
 def main(unused_argv):
   tf.logging.set_verbosity(tf.logging.INFO)
   RunnerManager.MaybeConfigRunLocally()
+  RunnerManager.MaybeConfigRunDistributed()
 
   if not (FLAGS.run_locally or FLAGS.mode == 'inspect_evaler' or
           FLAGS.mode == 'inspect_decoder'):
