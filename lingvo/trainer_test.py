@@ -117,12 +117,12 @@ class TrainerTest(BaseTrainerTest):
 
     train_files = tf.gfile.Glob(logdir + '/train/*')
     self.assertTrue(self._HasFile(train_files, 'ckpt'))
+    self.assertTrue(self._HasFile(train_files, 'tfevents'))
     control_files = tf.gfile.Glob(logdir + '/control/*')
-    for files in [train_files, control_files]:
-      self.assertTrue(self._HasFile(files, 'params.txt'))
-      self.assertTrue(self._HasFile(files, 'model_analysis.txt'))
-      self.assertTrue(self._HasFile(files, 'train.pbtxt'))
-      self.assertTrue(self._HasFile(files, 'tfevents'))
+    self.assertTrue(self._HasFile(control_files, 'params.txt'))
+    self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
+    self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
+    self.assertTrue(self._HasFile(control_files, 'tfevents'))
 
     # EvalerDev may not run concurrently with Controller in a single process
     # because EvalerDev loads checkpoints and overwrites states like global
@@ -184,7 +184,6 @@ class TrainerWithTrialTest(TrainerTest):
     trial.ReportEvalMeasure.return_value = True
 
     runners = [self._CreateController(cfg), self._CreateTrainer(cfg)]
-
     # Param override works.
     for runner in runners:
       self.assertEqual(runner.params.task.softmax.num_classes, 20)
@@ -203,12 +202,12 @@ class TrainerWithTrialTest(TrainerTest):
 
     train_files = tf.gfile.Glob(logdir + '/train/*')
     self.assertTrue(self._HasFile(train_files, 'ckpt'))
+    self.assertTrue(self._HasFile(train_files, 'tfevents'))
     control_files = tf.gfile.Glob(logdir + '/control/*')
-    for files in [train_files, control_files]:
-      self.assertTrue(self._HasFile(files, 'params.txt'))
-      self.assertTrue(self._HasFile(files, 'model_analysis.txt'))
-      self.assertTrue(self._HasFile(files, 'train.pbtxt'))
-      self.assertTrue(self._HasFile(files, 'tfevents'))
+    self.assertTrue(self._HasFile(control_files, 'params.txt'))
+    self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
+    self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
+    self.assertTrue(self._HasFile(control_files, 'tfevents'))
 
     # EvalerDev may not run concurrently with Controller in a single process
     # because EvalerDev loads checkpoints and overwrites states like global

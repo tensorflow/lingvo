@@ -184,12 +184,13 @@ class Controller(base_runner.BaseRunner):
         self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
 
     self._ExportMetrics(params=self.params)
-    model_analysis, self._total_num_params = _ModelAnalysis(self._model)
-    tf.logging.error(model_analysis)
-    for outdir in [self._control_dir, self._train_dir]:
-      self._WriteToLog(model_analysis, outdir, 'model_analysis.txt')
-      self._WriteToLog(self.params.ToText(), outdir, 'params.txt')
-      tf.train.write_graph(self._graph.as_graph_def(), outdir, 'train.pbtxt')
+    self._model_analysis, self._total_num_params = _ModelAnalysis(self._model)
+    tf.logging.error(self._model_analysis)
+    self._WriteToLog(self._model_analysis, self._control_dir,
+                     'model_analysis.txt')
+    self._WriteToLog(self.params.ToText(), self._control_dir, 'params.txt')
+    tf.train.write_graph(self._graph.as_graph_def(), self._control_dir,
+                         'train.pbtxt')
 
   def Start(self):
     self._RunLoop('controller', self._Loop)
@@ -736,6 +737,13 @@ class Decoder(base_runner.BaseRunner):
 class RunnerManager(object):
   """Helper class for managing runners."""
 
+  # This is a hack so these classes can be overridded with internal
+  # non-public implementations.
+  Controller = Controller
+  Trainer = Trainer
+  Evaler = Evaler
+  Decoder = Decoder
+
   @classmethod
   def LaunchTensorFlow(cls):
     """Starts TF machinary in this process."""
@@ -844,24 +852,24 @@ class RunnerManager(object):
     common_args = (model_task_name, logdir, tf_master, trial)
     if job == 'controller':
       cfg = cls.GetParamsForDataset(model_name, 'controller', 'Train')
-      return Controller(cfg, *common_args)
+      return cls.Controller(cfg, *common_args)
     elif job == 'trainer':
       cfg = cls.GetParamsForDataset(model_name, 'trainer', 'Train')
-      return Trainer(cfg, *common_args)
+      return cls.Trainer(cfg, *common_args)
     elif job == 'trainer_client':
       cfg = cls.GetParamsForDataset(model_name, 'trainer_client', 'Train')
       if py_utils.use_tpu():
         raise ValueError('TPU training is not supported.')
       else:
-        return Trainer(cfg, *common_args)
+        return cls.Trainer(cfg, *common_args)
     elif job.startswith(evaler_job_name_prefix):
       dataset_name = job[len(evaler_job_name_prefix):]
       cfg = cls.GetParamsForDataset(model_name, 'evaler', dataset_name)
-      return Evaler(dataset_name.lower(), cfg, *common_args)
+      return cls.Evaler(dataset_name.lower(), cfg, *common_args)
     elif job.startswith(decoder_job_name_prefix):
       dataset_name = job[len(decoder_job_name_prefix):]
       cfg = cls.GetParamsForDataset(model_name, 'decoder', dataset_name)
-      return Decoder(dataset_name.lower(), cfg, *common_args)
+      return cls.Decoder(dataset_name.lower(), cfg, *common_args)
     # TODO(drpng): make a tf_server.
     elif job == 'ps' or 'worker' or 'input':
       if cls._server:
