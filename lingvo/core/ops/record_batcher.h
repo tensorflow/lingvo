@@ -112,6 +112,8 @@ class RecordBatcher {
   Condition curr_empty_;
   Condition curr_non_empty_;
   int64 records_yielded_ GUARDED_BY(mu_) = 0;
+  int64 total_records_yielded_ GUARDED_BY(mu_) = 0;
+  int64 total_records_skipped_ GUARDED_BY(mu_) = 0;
   std::vector<Batch> buckets_ GUARDED_BY(mu_);
   FlushList to_flush_ GUARDED_BY(mu_);
   Condition to_flush_empty_;
