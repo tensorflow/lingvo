@@ -521,21 +521,26 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       s_seq_len = tf.shape(source_encs)[0]
       atten_context = tf.zeros(
           [num_hyps, p.attention.source_dim], dtype=source_encs.dtype)
-      atten_states = None
+      atten_states = self._atten.ZeroAttentionState(s_seq_len, num_hyps)
       atten_probs = tf.zeros([num_hyps, s_seq_len], dtype=source_encs.dtype)
     else:
       self._atten.InitForSourcePacked(theta.frnn_with_atten.atten, source_encs,
                                       source_encs, source_paddings)
+
+      src_seq_len = tf.shape(source_encs)[0]
+      zero_atten_state = self._atten.ZeroAttentionState(src_seq_len, num_hyps)
+
       (atten_context, atten_probs,
        atten_states) = self._atten.ComputeContextVector(
            theta.frnn_with_atten.atten,
-           tf.zeros([num_hyps, p.rnn_cell_dim], dtype=p.dtype))
+           tf.zeros([num_hyps, p.rnn_cell_dim], dtype=p.dtype),
+           attention_state=zero_atten_state)
 
-    assert not atten_states  # TODO(chorowski): implement propagation of state
-    return rnn_states, atten_context, atten_probs
+    assert atten_states is not None
+    return rnn_states, atten_context, atten_probs, atten_states
 
   def _DecodeStep(self, theta, embs, step_paddings, prev_atten_context,
-                  rnn_states):
+                  rnn_states, prev_atten_states):
     """Decode one step."""
     p = self.params
     new_rnn_states = []
@@ -548,8 +553,11 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     new_rnn_states.append(new_rnn_states_0)
     rnn_out = self._rnn_attn.GetOutput(new_rnn_states_0)
     cur_atten_context, atten_probs, atten_states = (
-        self._atten.ComputeContextVector(theta.frnn_with_atten.atten, rnn_out))
-    assert not atten_states  # TODO(chorowski): implement propagation of state
+        self._atten.ComputeContextVector(
+            theta.frnn_with_atten.atten,
+            rnn_out,
+            attention_state=prev_atten_states))
+    assert atten_states is not None
 
     if p.use_prev_atten_ctx:
       atten_context = prev_atten_context
@@ -575,7 +583,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       step_out = tf.concat([rnn_out, atten_context], 1)
     else:
       step_out = rnn_out
-    return cur_atten_context, atten_probs, new_rnn_states, step_out
+    return (cur_atten_context, atten_probs, new_rnn_states, step_out,
+            atten_states)
 
   def _GetAttentionInitState(self):
     """Gets the attention initialization state.
@@ -617,20 +626,22 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       states: a NestedMap of initial model states.
           rnn_states: Initial state of the RNN.
           atten_context: Initial attention context vector.
+          atten_states: Initial attention state.
     """
     # additional_source_info is currently not used.
     del additional_source_info
     num_beams = py_utils.GetShape(source_encs)[1]
     num_hyps = num_beams * num_hyps_per_beam
-    rnn_states, init_atten_context, atten_probs = self._InitDecoder(
-        self.theta, source_encs, source_paddings, num_hyps)
+    rnn_states, init_atten_context, atten_probs, atten_states = (
+        self._InitDecoder(self.theta, source_encs, source_paddings, num_hyps))
 
     initial_results = py_utils.NestedMap({'atten_probs': atten_probs})
 
     return initial_results, py_utils.NestedMap({
         'rnn_states': rnn_states,
         'atten_context': init_atten_context,
-        'atten_probs': atten_probs
+        'atten_probs': atten_probs,
+        'atten_states': atten_states,
     })
 
   def _PreBeamSearchStepCallback(self,
@@ -660,6 +671,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       out_states: A NestedMap. The updated states.
           rnn_states: Last state of the RNN.
           atten_context: Updated attention context vector.
+          atten_states: Updates attention states.
     """
     p = self.params
     # additional_source_info is currently not used.
@@ -668,11 +680,13 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     prev_rnn_states = states['rnn_states']
     prev_atten_context = states['atten_context']
     prev_atten_probs = states['atten_probs']
+    prev_atten_states = states['atten_states']
     step_paddings = tf.zeros(py_utils.GetShape(step_ids), dtype=p.dtype)
     embs = self.emb.EmbLookupDefaultTheta(tf.reshape(step_ids, [-1]))
     embs = self.ApplyClipping(self.theta, embs)
-    atten_context, atten_probs, rnn_states, step_out = self._DecodeStep(
-        self.theta, embs, step_paddings, prev_atten_context, prev_rnn_states)
+    atten_context, atten_probs, rnn_states, step_out, atten_states = (
+        self._DecodeStep(self.theta, embs, step_paddings, prev_atten_context,
+                         prev_rnn_states, prev_atten_states))
     atten_probs = tf.reshape(atten_probs, tf.shape(prev_atten_probs))
 
     logits = self.softmax.Logits(self.theta.softmax, [step_out])
@@ -692,6 +706,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'rnn_states': rnn_states,
         'atten_context': atten_context,
         'atten_probs': atten_probs,  # the updated attention probs
+        'atten_states': atten_states,
     })
 
     return bs_results, new_states

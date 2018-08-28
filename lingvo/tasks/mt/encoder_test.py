@@ -63,6 +63,17 @@ class EncoderTest(tf.test.TestCase):
            [-2.96017470e-06, -1.51323195e-06, -1.03562079e-05, 1.23328198e-06]]]
       self.assertAllClose(expected_enc_out, actual_enc_out)
 
+  def _UniEncoderParams(self):
+    p = encoder.MTEncoderUniRNN.Params()
+    p.name = 'encoder'
+    p.emb.vocab_size = 16
+    p.emb.embedding_dim = 2
+    p.emb.max_num_shards = 1
+    p.lstm_cell_size = 2
+    p.num_lstm_layers = 3
+    p.random_seed = 837464
+    return p
+
   def _BiEncoderParams(self):
     p = encoder.MTEncoderBiRNN.Params()
     p.name = 'encoder'
@@ -114,6 +125,28 @@ class EncoderTest(tf.test.TestCase):
     p = self._BiEncoderParams()
     p.is_transparent = True
     _ = encoder.MTEncoderBiRNN(p)
+
+  def testUniEncoderForwardPass(self):
+    with self.session(use_gpu=False):
+      tf.set_random_seed(8372749040)
+      p = self._UniEncoderParams()
+      mt_enc = encoder.MTEncoderUniRNN(p)
+      batch = py_utils.NestedMap()
+      batch.ids = tf.transpose(tf.reshape(tf.range(0, 8, 1), [4, 2]))
+      batch.paddings = tf.zeros([2, 4])
+      enc_out = mt_enc.FPropDefaultTheta(batch)
+
+      tf.global_variables_initializer().run()
+      actual_enc_out = enc_out[0].eval()
+      expected_enc_out = [[[-1.74790625e-06, -5.04228524e-07], [
+          2.04836829e-06, 1.48639378e-06
+      ]], [[-1.10486064e-06, -5.77133278e-07],
+           [4.66779238e-06,
+            3.72350723e-06]], [[-5.65139544e-07, -1.84634030e-06],
+                               [3.99908731e-06, 1.90148887e-06]],
+                          [[7.14102157e-07, -2.31352783e-06],
+                           [7.05981620e-06, 2.68004328e-06]]]
+      self.assertAllClose(expected_enc_out, actual_enc_out)
 
   def testBiEncoderForwardPass(self):
     with self.session(use_gpu=False):
