@@ -100,7 +100,7 @@ class LayerBaseTest(tf.test.TestCase):
       layer.accumulators.notexist
 
   def testGetUpdateAccumulator(self):
-    with self.test_session():
+    with self.session():
       layer_p = base_layer.LayerBase.Params()
       layer_p.name = 'test'
       layer = layer_p.cls(layer_p)
@@ -120,7 +120,7 @@ class LayerBaseTest(tf.test.TestCase):
       self.assertEqual(0.0, layer.accumulators.acc1.GetValue().eval())
 
   def testAccumulatorDisableEnable(self):
-    with self.test_session():
+    with self.session():
       layer_p = base_layer.LayerBase.Params()
       layer_p.name = 'test'
       layer = layer_p.cls(layer_p)
@@ -139,7 +139,7 @@ class LayerBaseTest(tf.test.TestCase):
       self.assertEqual(1.0, layer.accumulators.acc1.GetValue().eval())
 
   def testGetSetAccumulatorValues(self):
-    with self.test_session():
+    with self.session():
       layer_p = base_layer.LayerBase.Params()
       layer_p.name = 'test'
       layer1 = layer_p.cls(layer_p)

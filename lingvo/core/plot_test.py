@@ -41,7 +41,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
   DEFAULT_DATA = tf.ones((5, 4))
 
   def setUp(self):
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary('DEFAULT', self.FIGSIZE, max_outputs=1)
       batched_data = tf.expand_dims(self.DEFAULT_DATA, 0)  # Batch size 1.
       fig.AddSubplot([batched_data])
@@ -51,7 +51,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
     self.default_encoded_image = summary.value[0].image.encoded_image_string
 
   def testBasic(self):
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary(
           'matplotlib_figure', self.FIGSIZE, max_outputs=1)
       batched_data = tf.expand_dims(self.DEFAULT_DATA, 0)  # Batch size 1.
@@ -69,7 +69,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
                      self.default_encoded_image)
 
   def testUnicodeText(self):
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary(
           'matplotlib_uni', self.FIGSIZE, max_outputs=1)
       batched_data = tf.expand_dims(self.DEFAULT_DATA, 0)  # Batch size 1.
@@ -87,7 +87,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
   def testMultipleSubplots(self):
     batch_size = 4
     tensors = [tf.ones((batch_size, 3, 5)), tf.ones((batch_size, 2, 2))]
-    with self.test_session() as s:
+    with self.session() as s:
       max_outputs = 3
       fig = plot.MatplotlibFigureSummary('fig', self.FIGSIZE, max_outputs)
       for t in tensors:
@@ -113,7 +113,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
     def TrimAndAddImage(fig, axes, data, trim, title, **kwargs):
       plot.AddImage(fig, axes, data[:trim[0], :trim[1]], title=title, **kwargs)
 
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary(
           'fig_custom_plotfunc',
           max_outputs=batch_size,
@@ -133,7 +133,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
 
   def testDoesNotDieOnMatplotlibError(self):
     invalid_dim_data = tf.ones((5,))
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary('summary', self.FIGSIZE, max_outputs=1)
       fig.AddSubplot([invalid_dim_data])
       im = fig.Finalize()
@@ -148,7 +148,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
   def testLargerBatch(self):
     batch_size = 4
     tensors = [tf.ones((batch_size, 3, 5)), tf.ones((batch_size, 2, 2))]
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary(
           'larger_batch', self.FIGSIZE, max_outputs=batch_size)
       for t in tensors:
@@ -167,7 +167,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
 
   def testCanChangeFigsize(self):
     figsize = (self.FIGSIZE[0], 2 * self.FIGSIZE[1])
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary('summary', figsize, max_outputs=1)
       batched_data = tf.expand_dims(self.DEFAULT_DATA, 0)  # Batch size 1.
       fig.AddSubplot([batched_data])
@@ -186,7 +186,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
   def testEnforcesConsistentBatchSize(self):
     batch_size = 4
     tensors = [tf.ones((batch_size, 3, 5)), tf.ones((batch_size - 2, 2, 2))]
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary('summary', self.FIGSIZE, max_outputs=1)
       for t in tensors:
         fig.AddSubplot([t])
@@ -197,7 +197,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
   def testOnlyPlotsFirstMaxOutputImages(self):
     batch_size = 4
     tensors = [tf.ones((batch_size, 3, 5)), tf.ones((batch_size, 2, 2))]
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary('summary', self.FIGSIZE, max_outputs=2)
       for t in tensors:
         fig.AddSubplot([t])
@@ -209,7 +209,7 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
   def testLimitsOutputImagesIfBatchIsSmall(self):
     batch_size = 1
     tensors = [tf.zeros((batch_size, 3, 5)), tf.ones((batch_size, 2, 2))]
-    with self.test_session() as s:
+    with self.session() as s:
       fig = plot.MatplotlibFigureSummary('summary', self.FIGSIZE, max_outputs=3)
       for t in tensors:
         fig.AddSubplot([t])

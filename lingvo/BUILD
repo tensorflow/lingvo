@@ -13,7 +13,7 @@ config_setting(
 
 load(
     "//lingvo:lingvo.bzl",
-    "lingvo_pkg_tar",
+    "lingvo_py_binary",
 )
 
 py_library(
@@ -123,7 +123,7 @@ py_library(
     ],
 )
 
-py_binary(
+lingvo_py_binary(
     name = "trainer",
     srcs = [":trainer_lib"],
     deps = [
@@ -156,12 +156,4 @@ py_test(
         "//lingvo/tasks/image:input_generator",
         "//lingvo/tasks/image/params:mnist",
     ],
-)
-
-lingvo_pkg_tar(
-    name = "lingvo_trainer_pkg",
-    srcs = [":trainer"],
-    include_runfiles = True,
-    mode = "0644",
-    strip_prefix = "/",
 )

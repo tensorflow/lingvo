@@ -103,10 +103,12 @@ py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
     deps = [
+        # Implicit six dependency.
         # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_layer",
         "//lingvo/core:py_utils",
+        "//lingvo/core:tokenizers",
         "//lingvo/core/ops:py_x_ops",
     ],
 )
@@ -122,6 +124,47 @@ py_test(
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
+        "//lingvo/core:py_utils",
+        "//lingvo/core:test_helper",
+    ],
+)
+
+py_library(
+    name = "model",
+    srcs = ["model.py"],
+    deps = [
+        ":decoder",
+        ":encoder",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_layer",
+        "//lingvo/core:base_model",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:metrics",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:summary_utils",
+    ],
+)
+
+py_test(
+    name = "model_test",
+    srcs = ["model_test.py"],
+    data = [
+        "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
+    ],
+    shard_count = 20,
+    deps = [
+        ":decoder",
+        ":encoder",
+        ":input_generator",
+        ":model",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_input_generator",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:lr_schedule",
+        "//lingvo/core:optimizer",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
     ],

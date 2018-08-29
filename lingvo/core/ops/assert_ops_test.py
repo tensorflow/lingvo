@@ -26,7 +26,7 @@ from lingvo.core.ops import py_x_ops
 class AssertOpsTest(tf.test.TestCase):
 
   def testBasic(self):
-    with self.test_session():
+    with self.session():
       py_x_ops.assert_shape_match([10, 20, 30, 40], [-1, -1, -1, -1]).run()
       py_x_ops.assert_shape_match([10, 20, 30, 40], [-1, 20, -1, -1]).run()
       py_x_ops.assert_shape_match([10, 20, 30, 40], [-1, 20, -1, 40]).run()
@@ -45,7 +45,7 @@ class AssertOpsTest(tf.test.TestCase):
     def t(*args):
       return tf.zeros(shape=args, dtype=tf.float32)
 
-    with self.test_session():
+    with self.session():
       py_x_ops.assert_same_dim0([t(2, 3, 4), t(2, 3, 4)]).run()
       py_x_ops.assert_same_dim0([t(2, 3), t(2, 8)]).run()
       py_x_ops.assert_same_dim0([t(2, 3)]).run()

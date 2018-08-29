@@ -49,7 +49,7 @@ class LayersTest(tf.test.TestCase):
     # time = 2,
     batch = 3
     tf.flags.FLAGS.tpu_compatible = True
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       params = self._TransformerParams(layer=layer)
       params.dtype = dtype
       params.fprop_dtype = fprop_dtype
@@ -79,7 +79,7 @@ class LayersTest(tf.test.TestCase):
 
   def testTransformerStackFPropWithPackedInputs(self):
     # batch = 2. time = 2, depth = 2
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       with tf.variable_scope('packing_test', reuse=tf.AUTO_REUSE):
         params = self._TransformerParams()
         xformer = mt_layers.TransformerStack(params)
@@ -111,7 +111,7 @@ class LayersTest(tf.test.TestCase):
 
   def testTransparentTransformerStackTrainFProp(self):
     # time = 2, batch = 1
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       params = self._TransformerParams()
       params.is_transparent = True
       params.num_transparent_outputs = 2
@@ -143,7 +143,7 @@ class LayersTest(tf.test.TestCase):
 
   def testTransparentTransformerStackEvalFProp(self):
     # time = 2, batch = 1
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       params = self._TransformerParams(is_eval=True)
       params.is_transparent = True
       params.num_transparent_outputs = 2
@@ -248,7 +248,7 @@ class LayersTest(tf.test.TestCase):
         query_vec, aux_paddings, aux_vecs)
 
     expected_ctx, expected_probs = self._ExpectedSingleSourceResults()
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       tf.global_variables_initializer().run()
       actual_ctx_ref, actual_probs_ref = sess.run([ctx_ref, probs_ref])
       tf.logging.info(np.array_repr(actual_ctx_ref))

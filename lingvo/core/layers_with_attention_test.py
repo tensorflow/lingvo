@@ -31,7 +31,7 @@ from lingvo.core.test_utils import CompareToGoldenSingleFloat
 class LayersWithAttentionTest(tf.test.TestCase):
 
   def testTransformerFeedForwardLayer(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       tf.set_random_seed(3980847392)
       inputs = tf.random_normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
@@ -63,7 +63,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testTransformerFeedForwardLayerSpecOutDim(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       tf.set_random_seed(3980847392)
       inputs = tf.random_normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
@@ -109,7 +109,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
     return (source_vecs, source_padding, aux_source_vecs, aux_source_paddings)
 
   def testTransformerAttentionLayerCase1(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -155,7 +155,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
   def testTransformerAttentionLayerCase2(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -202,7 +202,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_probs, actual_probs)
 
   def testTransformerAttentionLayerDeterministicDropout(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       # Needed to generate a seed pair.
       py_utils.ResetStepSeed()
       py_utils.GetOrCreateGlobalStep()
@@ -263,7 +263,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
   def testTransformerAttentionLayerStepByStep(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -305,7 +305,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(probs1_v, probs2_v)
 
   def testTransformerAttentionLayerCase3(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -362,7 +362,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
     _ = layers_with_attention.TransformerLayer(p)
 
   def testTransformerLayerFProp(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayer.Params()
@@ -416,7 +416,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_prob_output, actual_prob_output)
 
   def testTransformerLayerWithInputPackingFProp(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       with tf.variable_scope('transformer_packed_test', reuse=tf.AUTO_REUSE):
         np.random.seed(6348575)
         depth = 4
@@ -477,7 +477,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
         self.assertAllClose(actual_layer, p_layer)
 
   def testTransformerLayerExtendStep(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayer.Params()
@@ -520,7 +520,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(probs1_v, probs2_v)
 
   def testMergerLayerMean(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       np.random.seed(505837249)
       depth = 4
       batch = 5
@@ -546,7 +546,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerAdditiveAttention(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       np.random.seed(505837249)
       depth = 4
       batch = 5
@@ -589,7 +589,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerDotProductAttention(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       np.random.seed(505837249)
       depth = 4
       batch = 5
@@ -632,7 +632,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerConcat(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       np.random.seed(505837249)
       depth = 4
       batch = 5
@@ -675,7 +675,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerWeightedSum(self):
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       np.random.seed(505837249)
       depth = 4
       batch = 2
@@ -705,7 +705,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testStyleLayer(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       p = layers_with_attention.StyleLayer.Params().Set(
           name='style_layer',
           input_dim=10,
@@ -724,7 +724,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       CompareToGoldenSingleFloat(self, 2.0, np.sum(atten_probs_v))
 
   def testStyleLayerWithFeedinAttenProbs(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       p = layers_with_attention.StyleLayer.Params().Set(
           name='style_layer',
           input_dim=10,
@@ -746,7 +746,7 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertAllClose(latent_p, latent_l)
 
   def testStyleLayer02(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       p = layers_with_attention.StyleLayer.Params().Set(
           name='style_layer',
           input_dim=10,

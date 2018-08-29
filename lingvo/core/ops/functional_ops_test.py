@@ -47,7 +47,7 @@ class FunctionalOpsTest(tf.test.TestCase):
       _ = MyFn.name
       u, v = py_x_ops.cached_call(MyFn, [tf.float32, tf.float32])
 
-    with self.test_session(graph=g) as sess:
+    with self.session(graph=g) as sess:
       for _ in range(10):
         x, y = sess.run([u, v])
         self.assertAllEqual(x, [[0, 1], [1, 0]])

@@ -29,7 +29,7 @@ class BeamSearchHelperTest(tf.test.TestCase):
 
   # TODO(yonghui): Add more thorough tests.
   def testBeamSearchHelper(self):
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       np.random.seed(9384758)
       tf.set_random_seed(8274758)
       vocab_size = 12

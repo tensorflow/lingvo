@@ -29,28 +29,6 @@ from lingvo.core import hyperparams
 from lingvo.core import py_utils
 
 
-def _ListDevices(job_spec):
-  """Lists devices in the job.
-
-  Args:
-    job_spec: A param object specifying a job in a training cluster.
-
-  Returns:
-    Returns a 2D np string array. ret[i, j] is the i-th replica's j-th
-    devices.
-  """
-  if not job_spec.gpus_per_replica:
-    ret = np.empty((job_spec.replicas, 1), np.object)
-    for i in range(job_spec.replicas):
-      ret[i, 0] = '%s/replica:%d/task:0/device:CPU:0' % (job_spec.name, i)
-  else:
-    ret = np.empty((job_spec.replicas, job_spec.gpus_per_replica), np.object)
-    for i in range(job_spec.replicas):
-      for j in range(job_spec.gpus_per_replica):
-        ret[i, j] = '%s/replica:%d/task:0/device:GPU:%d' % (job_spec.name, i, j)
-  return ret
-
-
 class _LocalClusterStack(threading.local):
 
   def __init__(self):
@@ -121,6 +99,33 @@ class _Cluster(object):
     p.Define('evaler', cls._JobSpec(0), 'The evaler job.')
     p.Define('decoder', cls._JobSpec(0), 'The decoder job.')
     return p
+
+  @classmethod
+  def _MakeDeviceString(_, job_name, task_id, device_name, device_id):
+    return '%s/replica:0/task:%d/device:%s:%d' % (job_name, task_id,
+                                                  device_name, device_id)
+
+  @classmethod
+  def ListDevices(cls, job_spec):
+    """Lists devices in the job.
+
+    Args:
+      job_spec: A param object specifying a job in a training cluster.
+
+    Returns:
+      Returns a 2D np string array. ret[i, j] is the i-th replica's j-th
+      devices.
+    """
+    if not job_spec.gpus_per_replica:
+      ret = np.empty((job_spec.replicas, 1), np.object)
+      for i in range(job_spec.replicas):
+        ret[i, 0] = cls._MakeDeviceString(job_spec.name, i, 'CPU', 0)
+    else:
+      ret = np.empty((job_spec.replicas, job_spec.gpus_per_replica), np.object)
+      for i in range(job_spec.replicas):
+        for j in range(job_spec.gpus_per_replica):
+          ret[i, j] = cls._MakeDeviceString(job_spec.name, i, 'GPU', j)
+    return ret
 
   @staticmethod
   def _cluster_stack():
@@ -276,17 +281,17 @@ class _Cluster(object):
 
     if self.job == 'trainer' and self.async:
       # In async mode, each trainer task can only use its own devices.
-      return _ListDevices(self._job_spec)[self.task:(self.task + 1), :]
+      return self.ListDevices(self._job_spec)[self.task:(self.task + 1), :]
 
     if self.job == 'trainer_client' and self.sync:
       # In async mode, trainer_client can use every device.
-      return _ListDevices(self._job_spec)
+      return self.ListDevices(self._job_spec)
 
     if (self.job == 'controller') or (self.job == 'evaler') or (
         self.job == 'decoder'):
       # Our current policy is that each controller/evaler/decoder task
       # only uses 1 replica.
-      return _ListDevices(self._job_spec)[self.task:(self.task + 1), :]
+      return self.ListDevices(self._job_spec)[self.task:(self.task + 1), :]
 
     assert False, (self.job, self.mode)
 
@@ -297,7 +302,7 @@ class _Cluster(object):
     if self.sync and self.job == 'trainer_client' and p.input.replicas > 0:
       # Uses a separate job for input processing.
       assert p.input.replicas == 1
-      return _ListDevices(p.input)[0, 0]
+      return self.ListDevices(p.input)[0, 0]
     else:
       return ''
 
@@ -336,7 +341,7 @@ class _Cluster(object):
     """
     if self.job == 'evaler' or self.job == 'decoder':
       # Currently, we only support evaler/decoder uses 1 accelerator.
-      return _ListDevices(self.job_spec)[self.task, 0]
+      return self.ListDevices(self.job_spec)[self.task, 0]
     elif strategy is None:
       return _LeastLoadedPlacer(self).DeviceFunction
     raise ValueError('Unsupported placement policy: ', strategy)
@@ -354,7 +359,7 @@ class VarPlacer(object):
 
   def __init__(self, cluster):
     self._cluster = cluster
-    self._devices = _ListDevices(cluster.job_spec)
+    self._devices = cluster.ListDevices(cluster.job_spec)
 
   def _AssignVar(self, _):
     raise ValueError('Unimplemented')
@@ -395,7 +400,7 @@ class _LeastLoadedPlacer(VarPlacer):
   def __init__(self, cluster):
     super(_LeastLoadedPlacer, self).__init__(cluster)
     # A min heap of (size, device)
-    var_devices = _ListDevices(cluster.params.ps).flatten().tolist()
+    var_devices = cluster.ListDevices(cluster.params.ps).flatten().tolist()
     tf.logging.info('_LeastLoadedPlacer : %s', var_devices)
     self._var_space_pq = [(0, d) for d in var_devices]
 

@@ -228,6 +228,8 @@ class TransformerLearningRateSchedule(BaseLearningRateSchedule):
         'model_dim', 512, 'Model dimension that applies to embedding '
         'layers and all Transformer layers.')
     p.Define('worker_replicas', 1, 'Number of worker replicas.')
+    p.Define('decay_end', None, 'Ends the learning rate decay at '
+             'decay_end-th step.')
     return p
 
   @base_layer.initializer
@@ -239,6 +241,9 @@ class TransformerLearningRateSchedule(BaseLearningRateSchedule):
     p = self.params
     current_step = tf.to_float(current_step)
     warmup_steps = tf.to_float(p.warmup_steps * p.worker_replicas)
+    if p.decay_end is not None:
+      current_step = tf.where(current_step < p.decay_end, current_step,
+                              tf.to_float(p.decay_end))
     return p.model_dim**-0.5 * tf.minimum(
         (current_step + 1) * warmup_steps**-1.5, (current_step + 1)**-0.5)
 
@@ -256,6 +261,8 @@ class TransformerLearningRateScheduleNoWarmUp(BaseLearningRateSchedule):
   def Params(cls):
     p = super(TransformerLearningRateScheduleNoWarmUp, cls).Params()
     p.Define('decay_start', 4000, 'It is used to estimate peak-lr.')
+    p.Define('decay_end', None, 'Ends the learning rate decay at '
+             'decay_end-th step.')
     p.Define(
         'model_dim', 512, 'Model dimension that applies to embedding '
         'layers and all Transformer layers.')
@@ -272,8 +279,11 @@ class TransformerLearningRateScheduleNoWarmUp(BaseLearningRateSchedule):
   def FProp(self, theta, current_step):
     """Returns the current learning rate decay."""
     params = self.params
-    current_step = tf.to_float(current_step)
     warmup_steps = tf.to_float(params.decay_start * params.worker_replicas)
+    current_step = tf.to_float(current_step)
+    if params.decay_end is not None:
+      current_step = tf.where(current_step < params.decay_end, current_step,
+                              tf.to_float(p.decay_end))
     peak_learning_rate = (warmup_steps**-0.5)
     return (params.model_dim**-0.5) * tf.minimum(
         tf.minimum((current_step + 1),

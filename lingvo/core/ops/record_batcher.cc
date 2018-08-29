@@ -145,15 +145,17 @@ void RecordBatcher::ProcessorLoop() {
     // Figure out which bucket it belongs to.
     auto iter = std::lower_bound(opts_.bucket_upper_bound.begin(),
                                  opts_.bucket_upper_bound.end(), bucket);
+
+    MutexLock l(&mu_);
+
     if (iter == opts_.bucket_upper_bound.end()) {
       VLOG(1) << "Skip. bucket out-of-range " << bucket;
+      ++total_records_skipped_;
       continue;
     }
     const int id = iter - opts_.bucket_upper_bound.begin();
 
     // Figure out which buckets we should return to the consumer.
-    MutexLock l(&mu_);
-
     // A bucket (id-th) is full.
     const int64 batch_limit = opts_.bucket_batch_limit[id];
     if (buckets_[id].size() >= batch_limit) {
@@ -187,9 +189,18 @@ void RecordBatcher::ProcessorLoop() {
     }
 
     ++records_yielded_;
+    ++total_records_yielded_;
     if (current_epoch != yielder_->current_epoch()) {
-      VLOG(1) << "Past end of epoch " << current_epoch
-              << ". Total records yielded: " << records_yielded_;
+      if (current_epoch < 10) {
+        LOG(INFO) << "Past end of epoch " << current_epoch
+                  << ". Total records yielded: " << total_records_yielded_
+                  << ". Total records skipped: " << total_records_skipped_
+                  << ". Only logging first 10 epochs to INFO.";
+      } else {
+        VLOG(1) << "Past end of epoch " << current_epoch
+                << ". Total records yielded: " << total_records_yielded_
+                << ". Total records skipped: " << total_records_skipped_ << ".";
+      }
       current_epoch = yielder_->current_epoch();
     }
     buckets_[id].push_back(std::move(sample));

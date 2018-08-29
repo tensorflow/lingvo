@@ -324,6 +324,10 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
              'If True, input tensors will be padded to max_length.')
     p.Define('tokenizer', tokenizers.SimpleTokenizer.Params(),
              'Tokenizer params.')
+    p.Define(
+        'tokenizer_dict', {},
+        'If multiple tokenizers are required, they can be accessed through '
+        'this dict via a key.')
     return p
 
   @base_layer.initializer
@@ -334,9 +338,19 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     self._input_batch_size = None
 
     if p.tokenizer:
-      self.CreateChild('tokenizer', p.tokenizer)
-    else:
-      self.tokenizer = None
+      assert 'default' not in p.tokenizer_dict
+      p.tokenizer_dict['default'] = p.tokenizer
+
+    self.tokenizer_dict = {}
+    for k, p in six.iteritems(p.tokenizer_dict):
+      if p:
+        name = '_tokenizer_' + k
+        self.CreateChild(name, p)
+        self.tokenizer_dict[k] = self.children[name]
+      else:
+        self.tokenizer_dict[k] = None
+
+    self.tokenizer = self.tokenizer_dict['default']
 
   @property  # Adjust batch size according to the cluster spec.
   def scaled_bucket_batch_limit(self):
@@ -382,7 +396,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
       external_append_eos: Bool or None. If None, will be ignored and
         params.append_eos will be used. If bool, will determine if an eos
         symbol will be added to tokens.
-      key: A string key in case the model has multiple vocabularies.
+      key: A string key in case the model has multiple tokenizers.
 
     Returns:
       (ids, labels, paddings): Tensors with the same shape [batch, maxlen].
@@ -402,7 +416,9 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     else:
       maxlen = p.target_max_length
 
-    return self.tokenizer.StringsToIds(strs, maxlen, external_append_eos, key)
+    key = key or 'default'
+    return self.tokenizer_dict[key].StringsToIds(strs, maxlen,
+                                                 external_append_eos)
 
   def IdsToStrings(self, ids, lens, key=None):
     """Converts ids back to strings.
@@ -413,7 +429,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
       lens: A vector of shape [batch]. lens[i] is the sequence length of the
         i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
         tokens for the i-th sequence.
-      key: A string key in case the model has multiple vocabularies.
+      key: A string key in case the model has multiple tokenizers.
 
     Returns:
       sequences: A vector of shape [batch]. The converted string sequence.
@@ -421,7 +437,8 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     Raises:
       ValueError: If unknown token type.
     """
-    return self.tokenizer.IdsToStrings(ids, lens, key)
+    key = key or 'default'
+    return self.tokenizer_dict[key].IdsToStrings(ids, lens)
 
 
 class BaseTinyDatasetInput(BaseInputGenerator):

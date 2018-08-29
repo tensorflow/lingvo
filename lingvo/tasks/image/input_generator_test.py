@@ -47,7 +47,7 @@ class InputGeneratorTest(tf.test.TestCase):
 
   def testMnistTrain(self):
     p = self._trainInput()
-    with self.test_session() as sess:
+    with self.session() as sess:
       inp = p.cls(p)
       inp_batch = inp.InputBatch()
       for _ in range(10):
@@ -59,7 +59,7 @@ class InputGeneratorTest(tf.test.TestCase):
 
   def testMnistTest(self):
     p = self._testInput()
-    with self.test_session() as sess:
+    with self.session() as sess:
       inp = p.cls(p)
       inp_batch = inp.InputBatch()
       ids = []
@@ -93,7 +93,7 @@ class InputGeneratorTest(tf.test.TestCase):
 
   def testMnistTrainRandomness(self):
     p = self._trainInput()
-    with self.test_session() as sess:
+    with self.session() as sess:
       inp = p.cls(p)
       batch = inp.InputBatch()
       epoch0 = self._GetIds(sess, p, batch.sample_ids)

@@ -10,6 +10,7 @@ py_library(
     deps = [
         "//lingvo/tasks/image/params",
         "//lingvo/tasks/lm/params",
+        "//lingvo/tasks/mt/params",
     ],
     # LINT.ThenChange(../model_imports.py:task_dirs)
 )

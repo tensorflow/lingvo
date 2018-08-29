@@ -46,7 +46,7 @@ class CuDNNRNNUtilsTest(tf.test.TestCase):
     dtypes = [tf.float32, tf.float64]
     for direction, input_dim, cell_dim, dtype in itertools.product(
         dirs, input_nodes, cell_nodes, dtypes):
-      with self.test_session(use_gpu=True, graph=tf.Graph()):
+      with self.session(use_gpu=True, graph=tf.Graph()):
         base_init = tf.ones_initializer()
         cudnn_initializer = cudnn_rnn_utils.CuDNNLSTMInitializer(
             input_dim, cell_dim, direction)
@@ -95,13 +95,13 @@ class CuDNNLSTMSaveableTest(tf.test.TestCase):
                                       cur_scope_name)
       canonical_wts, canonical_bs = saveable._OpaqueParamsToCanonical()
       saver = saver_lib.Saver()
-    with self.test_session(use_gpu=True) as sess:
+    with self.session(use_gpu=True) as sess:
       sess.run(tf.global_variables_initializer())
       save_path = os.path.join(self.get_temp_dir(), 'save-restore-unidi')
       saver.save(sess, save_path)
       canonical_wts_v, canonical_bs_v = sess.run([canonical_wts, canonical_bs])
 
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       sess.run(reset_params_op)
       saver.restore(sess, save_path)
       canonical_wts_v_restored, canonical_bs_v_restored = sess.run(

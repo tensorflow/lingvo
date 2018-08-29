@@ -28,7 +28,7 @@ FLAGS = tf.flags.FLAGS
 class RandomOpsTest(tf.test.TestCase):
 
   def testRandomPermutationSequenceRepeat(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       out = py_x_ops.random_permutation_sequence(num=20, batch=7, repeat=True)
 
       remaining = list(range(20))
@@ -48,7 +48,7 @@ class RandomOpsTest(tf.test.TestCase):
         remaining = list(set(range(20)) - set(vals))
 
   def testRandomPermutationSequenceNoRepeat(self):
-    with self.test_session() as sess:
+    with self.session() as sess:
       out = py_x_ops.random_permutation_sequence(num=20, batch=7, repeat=False)
 
       # Each epoch takes exactly 3 steps.

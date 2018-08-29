@@ -280,11 +280,6 @@ def SessionConfig(soft_placement=True, inline=True):
   return session_config
 
 
-def SetNameIfNone(params, name):
-  if not params.name:
-    params.name = name
-
-
 _NAME_PATTERN = re.compile('[A-Za-z_][A-Za-z0-9_]*')
 
 

@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-r"""Trainer.
+"""Trainer.
 
 To run locally:
 $ bazel build -c opt lingvo:trainer
-$ bazel-bin/lingvo/trainer \
-   --logtostderr \
-   --model=image.mnist.LeNet5 \
-   --mode=sync \
-   --logdir=/tmp/lenet5 \
-   --run_locally=cpu
+$ bazel-bin/lingvo/trainer --logtostderr --model=image.mnist.LeNet5 --mode=sync
+--logdir=/tmp/lenet5 --run_locally=cpu
 
 To use GPU, add --config=cuda to build command and set --run_locally=gpu.
 """
@@ -67,6 +63,10 @@ tf.flags.DEFINE_string(
     'in the single process.')
 
 tf.flags.DEFINE_string('tf_master', '', 'TF runtime.')
+tf.flags.DEFINE_string(
+    'cluster_spec', '', 'A tf.train.ClusterSpec to override the master. '
+    'The dict is specified as: job=host1:port1,host2:port2,'
+    'host3:port3@job2=host3:port4,...')
 
 tf.flags.DEFINE_string(
     'mode', 'async', 'How this trainer binary is used. '
@@ -164,7 +164,9 @@ class Controller(base_runner.BaseRunner):
     assert not self._model_task_name, 'Controller needs all tasks!'
     self._save_path = os.path.join(self._train_dir, 'ckpt')
     tf.gfile.MakeDirs(self._train_dir)
-    self._summary_writer = self._CreateSummaryWriter(self._train_dir)
+    self._control_dir = os.path.join(self._logdir, 'control')
+    tf.gfile.MakeDirs(self._control_dir)
+    self._summary_writer = self._CreateSummaryWriter(self._control_dir)
     self._time_steps = []  # A short history of (timestamp, global_step)
 
     with self._graph.as_default(), tf.container(self._container_id):
@@ -181,11 +183,14 @@ class Controller(base_runner.BaseRunner):
         self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
         self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
 
-    self._WriteToLog(self.params.ToText(), self._train_dir, 'params.txt')
     self._ExportMetrics(params=self.params)
-    model_analysis, self._total_num_params = _ModelAnalysis(self._model)
-    tf.logging.error(model_analysis)
-    self._WriteToLog(model_analysis, self._train_dir, 'model_analysis.txt')
+    self._model_analysis, self._total_num_params = _ModelAnalysis(self._model)
+    tf.logging.error(self._model_analysis)
+    self._WriteToLog(self._model_analysis, self._control_dir,
+                     'model_analysis.txt')
+    self._WriteToLog(self.params.ToText(), self._control_dir, 'params.txt')
+    tf.train.write_graph(self._graph.as_graph_def(), self._control_dir,
+                         'train.pbtxt')
 
   def Start(self):
     self._RunLoop('controller', self._Loop)
@@ -370,7 +375,10 @@ class Trainer(base_runner.BaseRunner):
       self._task_probs_summary_writers = []
 
     # Saves the graph def.
-    if self.params.cluster.task == 0:
+    if self.params.cluster.task > 0:
+      self._summary_writer = None
+    else:
+      self._summary_writer = self._CreateSummaryWriter(self._train_dir)
       tf.train.write_graph(self._graph.as_graph_def(), self._train_dir,
                            'train.pbtxt')
     worker_id = self.params.cluster.task
@@ -378,7 +386,8 @@ class Trainer(base_runner.BaseRunner):
                                   self.params.train.start_up_delay_steps)
 
   def _SummarizeValue(self, steps, tag, value, writer):
-    writer.add_summary(metrics.CreateScalarSummary(tag, value), steps)
+    if writer:
+      writer.add_summary(metrics.CreateScalarSummary(tag, value), steps)
 
   def Start(self):
     self._RunLoop('trainer', self._Loop)
@@ -452,9 +461,10 @@ class Trainer(base_runner.BaseRunner):
             self._model.global_step,
             model_task.eval_metrics,
         ])
-        msg = 'step:%6d %s' % (global_step, ' '.join(
-            '%s:%.8g' % (key, val)
-            for key, (val, _) in sorted(six.iteritems(eval_metrics))))
+        msg = 'step:%6d' % (global_step)
+        for key, (val, _) in sorted(six.iteritems(eval_metrics)):
+          msg += ' %s:%.8g' % (key, val)
+          self._SummarizeValue(global_step, key, val, self._summary_writer)
         if global_step >= next_status_step:
           self._SetStatusMessage(msg)
           next_status_step = global_step + status_interval_steps
@@ -727,12 +737,79 @@ class Decoder(base_runner.BaseRunner):
 class RunnerManager(object):
   """Helper class for managing runners."""
 
+  # This is a hack so these classes can be overridded with internal
+  # non-public implementations.
+  Controller = Controller
+  Trainer = Trainer
+  Evaler = Evaler
+  Decoder = Decoder
+
+  @classmethod
+  def LaunchTensorFlow(cls):
+    """Starts TF machinary in this process."""
+    tf.logging.info('Launching tensorflow.')
+
+    target = FLAGS.tf_master
+    if not target.startswith('localhost'):
+      # E.g., train_client is configured w/ FLAGS.tf_master pointing to
+      # another job. In that case, start a local server.
+      target = tf.train.Server.create_local_server().target
+    with tf.Session(target).as_default():
+      value = (tf.constant(1.) + tf.constant(1.)).eval()
+    assert value == 2.0, 'Something is really wrong.'
+    tf.logging.info('Launched tensorflow.')
+
   @classmethod
   def GetParamsForDataset(cls, model_name, job_name, dataset_name):
     """Returns params for `model_name` on the dataset `dataset_name`."""
-    cfg = base_runner.GetParams(model_name, dataset_name)
+    try:
+      cfg = base_runner.GetParams(model_name, dataset_name)
+    except AttributeError:
+      cfg = base_runner.GetParams(model_name, dataset_name.title())
     cls.UpdateClusterParamsFromFlags(cfg, job_name)
     return cfg
+
+  @classmethod
+  def MaybeConfigRunDistributed(cls):
+    """If given a FLAGS.cluster_spec, create a server and update flags."""
+    if not FLAGS.cluster_spec:
+      return
+    job_specs = FLAGS.cluster_spec.split('@')
+    cluster_spec_dict = {}
+    for job_spec in job_specs:
+      # ps_host=worker1:1231,worker2:1234
+      job_machines = job_spec.split('=')
+      if len(job_machines) != 2:
+        raise ValueError('Invalid job specification: %s', job_spec)
+      cluster_spec_dict[job_machines[0]] = job_machines[1].split(',')
+    start_server = True
+    for role in sorted(cluster_spec_dict.keys()):
+      if role.startswith('decoder_'):
+        assert len(job_specs) == 1, 'Decoder jobs must run on their own'
+        assert ',' not in job_specs[0], 'Only single machine supported'
+        FLAGS.decoder_job = '/job:localhost'
+        FLAGS.decoder_replicas = 1
+        start_server = False
+      elif role.startswith('evaler_'):
+        assert len(job_specs) == 1, 'Evaler jobs must run on their own'
+        assert ',' not in job_specs[0], 'Only single machine supported'
+        FLAGS.evaler_job = '/job:localhost'
+        FLAGS.evaler_replicas = 1
+        start_server = False
+      elif role == 'worker':
+        assert FLAGS.mode == 'sync', (
+            '\'worker\' jobs should only be in sync mode')
+        FLAGS.worker_job = '/job:worker'
+        FLAGS.worker_replicas = len(cluster_spec_dict['worker'])
+        FLAGS.ps_job = '/job:worker'
+        FLAGS.ps_replicas = FLAGS.worker_replicas
+    if start_server:
+      cluster = tf.train.ClusterSpec(cluster_spec_dict)
+      server = tf.train.Server(
+          cluster, job_name=FLAGS.job, task_index=FLAGS.task)
+      FLAGS.tf_master = server.target
+      # TODO(drpng): properly join all processes.
+      cls._server = server
 
   @classmethod
   def UpdateClusterParamsFromFlags(cls, cfg, job_name):
@@ -775,24 +852,28 @@ class RunnerManager(object):
     common_args = (model_task_name, logdir, tf_master, trial)
     if job == 'controller':
       cfg = cls.GetParamsForDataset(model_name, 'controller', 'Train')
-      return Controller(cfg, *common_args)
+      return cls.Controller(cfg, *common_args)
     elif job == 'trainer':
       cfg = cls.GetParamsForDataset(model_name, 'trainer', 'Train')
-      return Trainer(cfg, *common_args)
+      return cls.Trainer(cfg, *common_args)
     elif job == 'trainer_client':
       cfg = cls.GetParamsForDataset(model_name, 'trainer_client', 'Train')
       if py_utils.use_tpu():
         raise ValueError('TPU training is not supported.')
       else:
-        return Trainer(cfg, *common_args)
+        return cls.Trainer(cfg, *common_args)
     elif job.startswith(evaler_job_name_prefix):
       dataset_name = job[len(evaler_job_name_prefix):]
-      cfg = cls.GetParamsForDataset(model_name, 'evaler', dataset_name.title())
-      return Evaler(dataset_name.lower(), cfg, *common_args)
+      cfg = cls.GetParamsForDataset(model_name, 'evaler', dataset_name)
+      return cls.Evaler(dataset_name.lower(), cfg, *common_args)
     elif job.startswith(decoder_job_name_prefix):
       dataset_name = job[len(decoder_job_name_prefix):]
-      cfg = cls.GetParamsForDataset(model_name, 'decoder', dataset_name.title())
-      return Decoder(dataset_name.lower(), cfg, *common_args)
+      cfg = cls.GetParamsForDataset(model_name, 'decoder', dataset_name)
+      return cls.Decoder(dataset_name.lower(), cfg, *common_args)
+    # TODO(drpng): make a tf_server.
+    elif job == 'ps' or 'worker' or 'input':
+      if cls._server:
+        cls._server.join()
     else:
       raise ValueError('job %s is not supported' % job)
 
@@ -986,6 +1067,11 @@ def InspectDecoder():
 def main(unused_argv):
   tf.logging.set_verbosity(tf.logging.INFO)
   RunnerManager.MaybeConfigRunLocally()
+  RunnerManager.MaybeConfigRunDistributed()
+
+  if not (FLAGS.run_locally or FLAGS.mode == 'inspect_evaler' or
+          FLAGS.mode == 'inspect_decoder'):
+    RunnerManager.LaunchTensorFlow()
 
   # pylint: disable=g-import-not-at-top
   # pylint: disable=unused-variable

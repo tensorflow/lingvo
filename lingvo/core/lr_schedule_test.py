@@ -33,7 +33,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
 
   def testPiecewiseConstant(self):
     cls = lr_schedule.PiecewiseConstantLearningRateSchedule
-    with self.test_session(use_gpu=False):
+    with self.session(use_gpu=False):
       bs = [300000, 400000, 500000]
       vs = [1.0, 0.1, 0.01, 0.001]
       x_ins = [tf.constant(x) for x in [299999, 399999, 499999, 599999]]
@@ -49,7 +49,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
     p.half_life_steps = 100
     p.min = 0.1
     decay = p.cls(p)
-    with self.test_session():
+    with self.session():
       self.assertAllClose(decay.Value(0).eval(), 1.0)
       self.assertAllClose(decay.Value(500).eval(), 1.0)
       self.assertAllClose(decay.Value(1000).eval(), 1.0)
@@ -75,7 +75,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
     p.start_step = 1000
     p.half_life_steps = 100
     decay = p.cls(p)
-    with self.test_session():
+    with self.session():
       self.assertAllClose(decay.Value(0).eval(), 2.0)
       self.assertAllClose(decay.Value(1000).eval(), 2.0)
       self.assertAllClose(decay.Value(1100).eval(), 1.0)
@@ -87,7 +87,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
     p.warmup_steps = 4000
     p.model_dim = 512
     lrs = p.cls(p)
-    with self.test_session():
+    with self.session():
       print(lrs.Value(0).eval())
       print(lrs.Value(1000).eval())
       print(lrs.Value(2000).eval())
@@ -112,6 +112,36 @@ class LearningRateScheduleTest(tf.test.TestCase):
             lrs.Value(step).eval() * 2.,
             lrs.Value(step + 10).eval() + lrs.Value(step - 10).eval())
 
+  def testTransformerLearningRateScheduleWithDecayEnd(self):
+    p = lr_schedule.TransformerLearningRateSchedule.Params()
+    p.warmup_steps = 4000
+    p.model_dim = 512
+    p.decay_end = 5000
+    lrs = p.cls(p)
+    with self.session():
+      self.assertAllClose(lrs.Value(0).eval(), 1.74693e-07)
+      self.assertAllClose(lrs.Value(3000).eval(), 0.000524253)
+      self.assertAllClose(lrs.Value(5000).eval(), 0.000624937)
+
+      # Tests that the schedule peaks at 4000 steps.
+      self.assertGreater(lrs.Value(4000).eval(), lrs.Value(3990).eval())
+      self.assertGreater(lrs.Value(4000).eval(), lrs.Value(4010).eval())
+
+      # Tests that the schedule increases linearly before 4000 steps.
+      for step in range(300, 4000, 200):
+        self.assertAllClose(
+            lrs.Value(step).eval() * 2.,
+            lrs.Value(step + 10).eval() + lrs.Value(step - 10).eval())
+
+      print(lrs.Value(4999).eval())
+      print(lrs.Value(5000).eval())
+      print(lrs.Value(5001).eval())
+      print(lrs.Value(6000).eval())
+      # Tests that the schedule is fixed after decay end steps.
+      self.assertGreater(lrs.Value(4999).eval(), lrs.Value(5000).eval())
+      self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(5001).eval())
+      self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(6000).eval())
+
   def testTransformerLearningRateScheduleNoWarmUp(self):
     params = lr_schedule.TransformerLearningRateScheduleNoWarmUp.Params().Set(
         decay_start=4000, model_dim=512)
@@ -121,7 +151,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
         warmup_steps=4000, model_dim=512)
     base_lrs = base_params.cls(base_params)
 
-    with self.test_session():
+    with self.session():
 
       # Tests that the schedule is flat up until 4000 steps.
       self.assertAllClose(lrs.Value(0).eval(), 0.000698684)
@@ -146,7 +176,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
         lr_schedule.ExponentialLearningRateSchedule.Params().Set(
             start=(4000000., 8.), limit=(8000000, 0.5))
     ])
-    with self.test_session():
+    with self.session():
       lrs = p.cls(p)
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
       self.assertAllClose(
@@ -171,7 +201,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
     p = lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
     ).Set(
         warmup=250000, decay_start=32000000, decay_end=64000000, min=0.5)
-    with self.test_session(), cluster_factory.ForTestingWorker(
+    with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
       lrs = p.cls(p)
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
@@ -201,7 +231,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
         decay_start=32000000,
         decay_end=64000000,
         min=0.5)
-    with self.test_session(), cluster_factory.ForTestingWorker(
+    with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
       lrs = p.cls(p)
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
@@ -231,7 +261,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
         decay_end=64000000,
         min=0.5,
         max=5.0)
-    with self.test_session(), cluster_factory.ForTestingWorker(
+    with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
       lrs = p.cls(p)
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
@@ -264,7 +294,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
         max=5.0,
         num_splits=8)
     # Increases the number of splits to 32.
-    with self.test_session(), cluster_factory.ForTestingWorker(
+    with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8, split_size=4):
       lrs = p.cls(p)
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
@@ -302,7 +332,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
     lrs = p.cls(p)
     mh = lrs._metric_history
     mh.params.local_filesystem = True
-    with self.test_session():
+    with self.session():
       tf.global_variables_initializer().run()
       mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 1, 10.0)
       # best = 1
@@ -337,7 +367,7 @@ class LearningRateScheduleTest(tf.test.TestCase):
         boundaries=[40, 64, 80, 96],
         lrs=[1.0, 0.1, 0.01, 0.001],
     )
-    with self.test_session(), cluster_factory.ForTestingWorker(
+    with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', tpus=8):
       lrs = p.cls(p)
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 15, 1)]

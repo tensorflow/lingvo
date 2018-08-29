@@ -34,6 +34,7 @@ _TASK_ROOT = 'lingvo.tasks'
 _TASK_DIRS = [
     'image',
     'lm',
+    'mt',
 ]
 # LINT.ThenChange(tasks/BUILD:task_dirs)
 

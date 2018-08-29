@@ -42,7 +42,7 @@ class InputGeneratorTest(tf.test.TestCase):
   def testLmInputGen(self):
     p = self._InputParams()
 
-    with self.test_session(use_gpu=False) as sess:
+    with self.session(use_gpu=False) as sess:
       inp = p.cls(p)
       inp_batch = sess.run(inp.InputBatch())
       print(inp_batch)

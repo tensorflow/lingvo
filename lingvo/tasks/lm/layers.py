@@ -944,7 +944,6 @@ class TransformerLm(TransformerLmNoEmbedding):
     super(TransformerLm, self).__init__(params)
     p = self.params
 
-    py_utils.SetNameIfNone(p.emb, 'emb')
     assert p.emb.vocab_size == p.vocab_size, ('{} vs. {}'.format(
         p.emb.vocab_size, p.vocab_size))
     assert p.emb.embedding_dim == p.position_emb.embedding_dim, (

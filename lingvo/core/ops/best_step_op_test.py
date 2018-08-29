@@ -37,7 +37,7 @@ class BestStepOp(tf.test.TestCase):
     g = tf.Graph()
     with g.as_default():
       output = py_x_ops.best_step(self._HistFile())
-    with self.test_session(graph=g) as sess:
+    with self.session(graph=g) as sess:
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 42122)
       self.assertEqual(last_step, 42792)
@@ -46,7 +46,7 @@ class BestStepOp(tf.test.TestCase):
     g = tf.Graph()
     with g.as_default():
       output = py_x_ops.best_step(self._HistFile(), 0.1)
-    with self.test_session(graph=g) as sess:
+    with self.session(graph=g) as sess:
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 37553)
       self.assertEqual(last_step, 42792)
@@ -55,7 +55,7 @@ class BestStepOp(tf.test.TestCase):
     g = tf.Graph()
     with g.as_default():
       output = py_x_ops.best_step('')
-    with self.test_session(graph=g) as sess:
+    with self.session(graph=g) as sess:
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 0)
       self.assertEqual(last_step, 0)
@@ -64,7 +64,7 @@ class BestStepOp(tf.test.TestCase):
     g = tf.Graph()
     with g.as_default():
       output = py_x_ops.best_step(self._BleuFile(), 0.0, False)
-    with self.test_session(graph=g) as sess:
+    with self.session(graph=g) as sess:
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 41500)
       self.assertEqual(last_step, 46800)

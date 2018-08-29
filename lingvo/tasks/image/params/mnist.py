@@ -29,7 +29,7 @@ class Base(base_model_params.SingleTaskModelParams):
 
   @classmethod
   def _Path(cls):
-    return '/tmp/mnist'
+    return '/tmp/mnist/mnist'
 
   @classmethod
   def Train(cls):

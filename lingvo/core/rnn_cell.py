@@ -44,7 +44,7 @@ def _FPropDtype(params):
   return params.fprop_dtype if params.fprop_dtype is not None else params.dtype
 
 
-class RNNCell(base_layer.LayerBase):
+class RNNCell(quant_utils.QuantizableLayer):
   """RNN cells.
 
   RNNCell represents recurrent state in a NestedMap.
@@ -171,7 +171,7 @@ def ZoneOut(prev_v, cur_v, padding_v, zo_prob, is_eval, random_uniform):
   padding_v = tf.convert_to_tensor(padding_v)
   if zo_prob == 0.0:
     # Special case for when ZoneOut is not enabled.
-    return prev_v * padding_v + cur_v * (1.0 - padding_v)
+    return py_utils.ApplyPadding(padding_v, cur_v, prev_v)
 
   if is_eval:
     # We take expectation in the eval mode.
@@ -224,14 +224,19 @@ class LSTMCellSimple(RNNCell):
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
     p.Define('random_seed', None, 'Random seed. Useful for unittests.')
-    p.Define('trainable_zero_state', False,
-             'If true the zero_states are trainable variables.')
+    p.Define('enable_lstm_bias', True, 'Enable the LSTM Cell bias.')
     p.Define(
         'couple_input_forget_gates', False,
         'Whether to couple the input and forget gates. Just like '
         'tf.contrib.rnn.CoupledInputForgetGateLSTMCell')
     p.Define('apply_pruning', False, 'Whether to prune the weights while '
              'training')
+
+    # Non-default quantization behaviour.
+    p.qdomain.Define('c_state', None, 'Quantization for the c-state.')
+    p.qdomain.Define('m_state', None, 'Quantization for the m-state.')
+    p.qdomain.Define('fullyconnected', None,
+                     'Quantization for fully connected node.')
     return p
 
   @base_layer.initializer
@@ -242,6 +247,19 @@ class LSTMCellSimple(RNNCell):
     p = self.params
     assert isinstance(p.cell_value_cap,
                       (int, float)) or p.cell_value_cap is None
+
+    assert p.cell_value_cap is None or p.qdomain.default is None
+    self.TrackQTensor(
+        'zero_m', 'm_output', 'm_output_projection', domain='m_state')
+    self.TrackQTensor(
+        'zero_c',
+        'mixed',
+        'c_add_bias',
+        'c_input_gate',
+        'c_forget_gate',
+        'c_output_gate',
+        domain='c_state')
+    self.TrackQTensor('fc', domain='fullyconnected')
 
     with tf.variable_scope(p.name) as scope:
       # Define weights.
@@ -280,21 +298,11 @@ class LSTMCellSimple(RNNCell):
         w_proj.shape = [self.hidden_size, self.output_size]
         self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
 
-      bias_pc = wm_pc.Copy()
-      bias_pc.shape = [self.num_gates * self.hidden_size]
-      bias_pc.init = py_utils.WeightInit.Constant(0.0)
-      self.CreateVariable('b', bias_pc, self.AddGlobalVN)
-
-      if p.trainable_zero_state:
-        zs_m_pc = py_utils.WeightParams(
-            shape=[1, p.num_output_nodes],
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('zero_state_m', zs_m_pc)
-        zs_c_pc = zs_m_pc.Copy()
-        zs_c_pc.shape = [1, self.hidden_size]
-        self.CreateVariable('zero_state_c', zs_c_pc)
+      if p.enable_lstm_bias:
+        bias_pc = wm_pc.Copy()
+        bias_pc.shape = [self.num_gates * self.hidden_size]
+        bias_pc.init = py_utils.WeightInit.Constant(0.0)
+        self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
       # Collect some stats.
       w = self.vars.wm
@@ -328,12 +336,11 @@ class LSTMCellSimple(RNNCell):
 
   def zero_state(self, batch_size):
     p = self.params
-    if p.trainable_zero_state:
-      zero_m = tf.tile(self.theta.zero_state_m, [batch_size, 1])
-      zero_c = tf.tile(self.theta.zero_state_c, [batch_size, 1])
-    else:
-      zero_m = tf.zeros((batch_size, self.output_size), dtype=_FPropDtype(p))
-      zero_c = tf.zeros((batch_size, self.hidden_size), dtype=_FPropDtype(p))
+    zero_m = tf.zeros((batch_size, self.output_size), dtype=_FPropDtype(p))
+    zero_c = tf.zeros((batch_size, self.hidden_size), dtype=_FPropDtype(p))
+    if p.is_inference:
+      zero_m = self.QTensor('zero_m', zero_m)
+      zero_c = self.QTensor('zero_c', zero_c)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def _ResetState(self, state, inputs):
@@ -346,33 +353,51 @@ class LSTMCellSimple(RNNCell):
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
-    return py_utils.Matmul(tf.concat(inputs.act + [state0.m], 1), theta.wm)
+    fns = self.fns
+    wm = self.QWeight(theta.wm)
+    mixed = fns.qmatmul(tf.concat(inputs.act + [state0.m], 1), wm, qt='fc')
+    return mixed
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
     p = self.params
+    fns = self.fns
+    if p.enable_lstm_bias:
+      b = self.QWeight(tf.expand_dims(theta.b, 0), domain='c_state')
+      xmw = fns.qadd(xmw, b, qt='c_add_bias')
+
     if not p.couple_input_forget_gates:
-      i_i, i_g, f_g, o_g = tf.split(
-          value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
+      i_i, i_g, f_g, o_g = tf.split(value=xmw, num_or_size_splits=4, axis=1)
       if p.forget_gate_bias != 0.0:
         f_g += p.forget_gate_bias
-      new_c = tf.sigmoid(f_g) * state0.c + tf.sigmoid(i_g) * tf.tanh(i_i)
+      forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
+      # Sigmoid / tanh calls are not quantized under the assumption they share
+      # the range with c_input_gate and c_forget_gate.
+      input_gate = fns.qmultiply(
+          tf.sigmoid(i_g), tf.tanh(i_i), qt='c_forget_gate')
+      output_gate = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
+      new_c = output_gate
     else:
-      i_i, f_g, o_g = tf.split(
-          value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=3, axis=1)
+      i_i, f_g, o_g = tf.split(value=xmw, num_or_size_splits=3, axis=1)
       if p.forget_gate_bias != 0.0:
         f_g += p.forget_gate_bias
-      new_c = (
-          tf.sigmoid(f_g) * state0.c + (1.0 - tf.sigmoid(f_g)) * tf.tanh(i_i))
+      # Sigmoid / tanh calls are not quantized under the assumption they share
+      # the range with c_input_gate and c_forget_gate.
+      forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
+      input_gate = fns.qmultiply(
+          1.0 - tf.sigmoid(f_g), tf.tanh(i_i), qt='c_forget_gate')
+      output_gate = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
+      new_c = output_gate
     # Clip the cell states to reasonable value.
     if p.cell_value_cap is not None:
       new_c = tf.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
     if p.output_nonlinearity:
-      new_m = tf.sigmoid(o_g) * tf.tanh(new_c)
+      new_m = fns.qmultiply(tf.sigmoid(o_g), tf.tanh(new_c), qt='m_output')
     else:
-      new_m = tf.sigmoid(o_g) * new_c
+      new_m = fns.qmultiply(tf.sigmoid(o_g), new_c, qt='m_output')
     if p.num_hidden_nodes:
-      new_m = tf.matmul(new_m, theta.w_proj)
+      w_proj = self.QWeight(theta.w_proj, domain='m_state')
+      new_m = fns.qmatmul(new_m, w_proj, qt='m_output_projection')
 
     # Apply Zoneout.
     return self._ApplyZoneOut(state0, inputs, new_c, new_m)
@@ -390,10 +415,10 @@ class LSTMCellSimple(RNNCell):
       c_random_uniform = None
       m_random_uniform = None
 
-    new_c = ZoneOut(state0.c, new_c, inputs.padding, p.zo_prob, p.is_eval,
-                    c_random_uniform)
-    new_m = ZoneOut(state0.m, new_m, inputs.padding, p.zo_prob, p.is_eval,
-                    m_random_uniform)
+    new_c = ZoneOut(state0.c, new_c, self.QRPadding(inputs.padding), p.zo_prob,
+                    p.is_eval, c_random_uniform)
+    new_m = ZoneOut(state0.m, new_m, self.QRPadding(inputs.padding), p.zo_prob,
+                    p.is_eval, m_random_uniform)
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=new_m, c=new_c)
@@ -560,7 +585,6 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
     super(LSTMCellSimpleDeterministic, self).__init__(params)
     p = self.params
     assert p.name
-    assert not p.trainable_zero_state
     with tf.variable_scope(p.name):
       _, self._step_counter = py_utils.CreateVariable(
           name='lstm_step_counter',
@@ -575,8 +599,6 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
 
   def zero_state(self, batch_size):
     p = self.params
-    # We don't support trainable zero_state.
-    assert not p.trainable_zero_state
     zero_m = tf.zeros((batch_size, self.output_size), dtype=p.dtype)
     zero_c = tf.zeros((batch_size, self.hidden_size), dtype=p.dtype)
     # The first random seed changes for different layers and training steps.
@@ -727,189 +749,6 @@ class QuantizedLSTMCell(RNNCell):
     return py_utils.NestedMap(m=new_m, c=new_c)
 
 
-class FakeQuantizedLSTMCell(RNNCell):
-  """Simplified LSTM cell used for quantized training.
-
-  Performs quantized training for downstream inference by a reduced bit
-  depth inference engine (i.e. tfmini/tflite). This works by using a schedule
-  to implement warm-up periods for unclipped, full-precision training. Then
-  clipping is gradually introduced. Finally, simulated quantization is
-  introduced (i.e. "fake quant") to the weights and activations.
-
-  Note that this cell has a subset of features of LSTMCellSimple. Features
-  are added as needed for models actually being productionalized. It may be
-  appropriate at some point to merge the clipping/quantization here with
-  LSTMCellSimple, but they are kept separate so that experimentation with that
-  implementation is not impeded.
-
-  See for the general procedure: https://arxiv.org/abs/1712.05877
-
-  This implementation deviates from the paper in key ways as described
-  in the implementation of the tflite reference LSTM op:
-      https://github.com/tensorflow/tensorflow/blob/69f229a56652f076454ce9f3cb99bba285604ebe/tensorflow/contrib/lite/kernels/internal/reference/reference_ops.h#L2009
-  Changes include:
-    - Ranges are not learned but derived from the clip schedule.
-    - Activations are clipped from -1..1
-    - Output of the hidden layer MatMul is clipped to -8..8 because it is
-      the input to a TANH and benefits from the additional range.
-    - Key outputs that are the result of state accumulation are quantized
-      to 16bit.
-    - In order to guarantee that zero is zero, ranges are actually adjusted
-      to -cap..cap*((dt_max-1)/dt_max).
-
-  theta:
-    wm: the parameter weight matrix. All gates combined.
-    cap: the cell value cap.
-
-  state:
-    m: the lstm output. [batch, cell_nodes]
-    c: the lstm cell state. [batch, cell_nodes]
-
-  inputs:
-    act: a list of input activations. [batch, input_nodes]
-    padding: the padding. [batch, 1].
-    reset_mask: optional 0/1 float input to support packed input training. [batch, 1]
-  """
-
-  @classmethod
-  def Params(cls):
-    p = super(FakeQuantizedLSTMCell, cls).Params()
-    p.Define(
-        'num_hidden_nodes', 0, 'Number of projection hidden nodes '
-        '(see https://arxiv.org/abs/1603.08042). '
-        'Set to 0 to disable projection.')
-    p.Define('random_seed', None, 'Random seed. Useful for unittests.')
-    p.Define('cc_schedule', quant_utils.FakeQuantizationSchedule.Params(),
-             'Fake quantization clipping schedule.')
-    p.Define('fc_start_cap', 64.0,
-             'Clipping start cap for fully connected MatMul.')
-    p.Define('fc_end_cap', 8.0,
-             'Clipping end cap for the output of the fully connected MatMul.')
-    p.Define('fc_bits', 16,
-             'Quantized bit depth of fully connected components.')
-    return p
-
-  @base_layer.initializer
-  def __init__(self, params):
-    """Initializes FakeQuantizedLSTMCell."""
-    super(FakeQuantizedLSTMCell, self).__init__(params)
-    assert isinstance(params, hyperparams.Params)
-    p = self.params
-
-    num_gates = 4
-    with tf.variable_scope(p.name) as scope:
-      # Define weights.
-      wm_pc = py_utils.WeightParams(
-          shape=[
-              p.num_input_nodes + self.output_size, num_gates * self.hidden_size
-          ],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
-      self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
-
-      if p.num_hidden_nodes:
-        w_proj = wm_pc.Copy()
-        w_proj.shape = [self.hidden_size, self.output_size]
-        self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
-
-      self.CreateChild('cc_schedule', p.cc_schedule)
-      assert isinstance(
-          self.cc_schedule, quant_utils.FakeQuantizationSchedule), (
-              'FakeQuantizedLSTMCell requires a FakeQuantizationSchedule '
-              'cc_schedule')
-
-      # Collect some stats
-      i_i, i_g, f_g, o_g = tf.split(
-          value=self.vars.wm, num_or_size_splits=4, axis=1)
-      _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
-      _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
-      _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
-      _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
-
-      self._timestep = -1
-
-  @property
-  def output_size(self):
-    return self.params.num_output_nodes
-
-  @property
-  def hidden_size(self):
-    return self.params.num_hidden_nodes or self.params.num_output_nodes
-
-  def batch_size(self, inputs):
-    return tf.shape(inputs.act[0])[0]
-
-  def zero_state(self, batch_size):
-    p = self.params
-    zero_m = tf.zeros((batch_size, self.output_size), dtype=p.dtype)
-    zero_c = tf.zeros((batch_size, self.hidden_size), dtype=p.dtype)
-    if p.is_inference:
-      # Toco needs fake quants applied to these so that it knows the ranges
-      # in the case that they are used as standalone values.
-      # Note that since this is inference-only, we can use the default theta.
-      zero_m = self.cc_schedule.ApplyClipping(self.cc_schedule.theta, zero_m)
-      zero_c = self.cc_schedule.ApplyClipping(
-          self.cc_schedule.theta, zero_c, bits=16)
-    return py_utils.NestedMap(m=zero_m, c=zero_c)
-
-  def GetOutput(self, state):
-    return state.m
-
-  def _ResetState(self, state, inputs):
-    reset_mask = tf.cast(inputs.reset_mask, dtype=state.m.dtype)
-    state.m = reset_mask * state.m
-    state.c = reset_mask * state.c
-    return state
-
-  def _Mix(self, theta, state0, inputs):
-    p = self.params
-    assert isinstance(inputs.act, list)
-    act = inputs.act
-    m = state0.m
-    wm = self.cc_schedule.ApplyClipping(theta.cc_schedule, theta.wm)
-    mixed = py_utils.Matmul(tf.concat(act + [m], 1), wm)
-    mixed = self.cc_schedule.ApplyClipping(
-        theta.cc_schedule,
-        mixed,
-        start_cap=p.fc_start_cap,
-        end_cap=p.fc_end_cap,
-        bits=16)
-    return mixed
-
-  def _Gates(self, xmw, theta, state0, inputs):
-    """Compute the new state."""
-
-    def Clip(x):
-      return self.cc_schedule.ApplyClipping(theta.cc_schedule, x, bits=8)
-
-    def Clip16(x):
-      return self.cc_schedule.ApplyClipping(theta.cc_schedule, x, bits=16)
-
-    p = self.params
-    i_i, i_g, f_g, o_g = tf.split(value=xmw, num_or_size_splits=4, axis=1)
-
-    orig_c = state0.c
-    new_c = (
-        Clip16(tf.sigmoid(f_g) * orig_c) + Clip16(
-            tf.sigmoid(i_g) * tf.tanh(i_i)))
-    new_c = Clip16(new_c)
-
-    orig_m = state0.m
-    new_m = Clip(tf.sigmoid(o_g) * new_c)
-    if p.num_hidden_nodes:
-      w_proj = Clip(theta.w_proj)
-      new_m = Clip(tf.matmul(new_m, w_proj))
-
-    # Respect padding.
-    new_m = py_utils.ApplyPadding(inputs.padding, new_m, orig_m)
-    new_c = py_utils.ApplyPadding(inputs.padding, new_c, orig_c)
-
-    new_m.set_shape(state0.m.shape)
-    new_c.set_shape(state0.c.shape)
-    return py_utils.NestedMap(m=new_m, c=new_c)
-
-
 class LSTMCellCuDNNCompliant(RNNCell):
   """LSTMCell compliant with variables with CuDNN-LSTM layout.
 
@@ -1049,8 +888,6 @@ class LayerNormalizedLSTMCell(RNNCell):
              'If > 0, applies ZoneOut regularization with the given prob.')
     p.Define('random_seed', None, 'Random seed. Useful for unittests.')
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
-    p.Define('trainable_zero_state', False,
-             'If true the zero_states are trainable variables.')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
     return p
@@ -1063,8 +900,6 @@ class LayerNormalizedLSTMCell(RNNCell):
     """Initializes LayerNormalizedLSTMCell."""
     super(LayerNormalizedLSTMCell, self).__init__(params)
     params = self.params
-    if params.trainable_zero_state:
-      raise ValueError('Trainable inital state is not supported!')
     if not isinstance(params.cell_value_cap, (int, float)):
       raise ValueError('Cell value cap must of type int or float!')
 
@@ -1455,8 +1290,6 @@ class SRUCell(RNNCell):
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
     p.Define('random_seed', None, 'Random seed. Useful for unittests.')
-    p.Define('trainable_zero_state', False,
-             'If true the zero_states are trainable variables.')
     return p
 
   @base_layer.initializer
@@ -1483,15 +1316,6 @@ class SRUCell(RNNCell):
       bias_pc.init = py_utils.WeightInit.Constant(0.0)
       self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
-      if p.trainable_zero_state:
-        zs_pc = py_utils.WeightParams(
-            shape=[1, p.num_output_nodes],
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('zero_state_m', zs_pc)
-        self.CreateVariable('zero_state_c', zs_pc)
-
       # Collect some stats
       x_t2, resized, f_t, r_t = tf.split(
           value=self.vars.wm, num_or_size_splits=4, axis=1)
@@ -1507,12 +1331,8 @@ class SRUCell(RNNCell):
 
   def zero_state(self, batch_size):
     p = self.params
-    if p.trainable_zero_state:
-      zero_m = tf.tile(self.theta.zero_state_m, [batch_size, 1])
-      zero_c = tf.tile(self.theta.zero_state_c, [batch_size, 1])
-    else:
-      zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
-      zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
+    zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
+    zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def GetOutput(self, state):
@@ -1582,8 +1402,6 @@ class QRNNPoolingCell(RNNCell):
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
     p.Define('random_seed', None, 'Random seed. Useful for unittests.')
-    p.Define('trainable_zero_state', False,
-             'If true the zero_states are trainable variables.')
     p.Define('pooling_formula', 'INVALID',
              'Options: quasi_ifo, sru. Which pooling math to use')
     return p
@@ -1600,29 +1418,15 @@ class QRNNPoolingCell(RNNCell):
     assert isinstance(p.cell_value_cap,
                       (int, float)) or p.cell_value_cap is None
 
-    with tf.variable_scope(p.name):
-      if p.trainable_zero_state:
-        zs_pc = py_utils.WeightParams(
-            shape=[1, p.num_output_nodes],
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('zero_state_m', zs_pc)
-        self.CreateVariable('zero_state_c', zs_pc)
-
-      self._timestep = -1
+    self._timestep = -1
 
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
   def zero_state(self, batch_size):
     p = self.params
-    if p.trainable_zero_state:
-      zero_m = tf.tile(self.theta.zero_state_m, [batch_size, 1])
-      zero_c = tf.tile(self.theta.zero_state_c, [batch_size, 1])
-    else:
-      zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
-      zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
+    zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
+    zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def GetOutput(self, state):

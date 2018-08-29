@@ -30,6 +30,7 @@ class BaseTokenizer(base_layer.LayerBase):
   def Params(cls):
     """Defaults params for tokenizers."""
     p = super(BaseTokenizer, cls).Params()
+    p.name = 'tokenizer'
     p.Define('vocab_size', 64, 'The size of the vocabuary.')
     p.Define(
         'append_eos', True, 'Whether to append </s> at the end and treat '
@@ -43,7 +44,6 @@ class BaseTokenizer(base_layer.LayerBase):
 
   @base_layer.initializer
   def __init__(self, params):
-    py_utils.SetNameIfNone(params, 'tokenizer')
     super(BaseTokenizer, self).__init__(params)
     p = self.params
 
@@ -51,7 +51,7 @@ class BaseTokenizer(base_layer.LayerBase):
     self.eos_id = p.target_eos_id  # </S>
     self.unk_id = p.target_unk_id  # <UNK>
 
-  def StringsToIds(self, strs, max_length, external_append_eos=None, key=None):
+  def StringsToIds(self, strs, max_length, external_append_eos=None):
     """Tokenize strs into vocab ids.
 
     Args:
@@ -60,7 +60,6 @@ class BaseTokenizer(base_layer.LayerBase):
       external_append_eos: Bool or None. If None, will be ignored and
         params.append_eos will be used. If bool, will determine if an eos
         symbol will be added to tokens.
-      key: A string key in case the model has multiple vocabularies.
 
     Returns:
       (ids, labels, paddings): Tensors with the same shape [batch, maxlen].
@@ -78,8 +77,7 @@ class BaseTokenizer(base_layer.LayerBase):
     else:
       append_eos = external_append_eos
 
-    ids, labels, paddings = self._StringsToIdsImpl(strs, max_length, append_eos,
-                                                   key)
+    ids, labels, paddings = self._StringsToIdsImpl(strs, max_length, append_eos)
     if py_utils.use_tpu():
       batch_size = strs.shape[0]
       ids.set_shape([batch_size, max_length])
@@ -87,10 +85,10 @@ class BaseTokenizer(base_layer.LayerBase):
       paddings.set_shape([batch_size, max_length])
     return ids, labels, paddings
 
-  def _StringsToIdsImpl(self, strs, max_length, append_eos, key):
+  def _StringsToIdsImpl(self, strs, max_length, append_eos):
     raise NotImplementedError('Abstract method.')
 
-  def IdsToStrings(self, ids, lens, key=None):
+  def IdsToStrings(self, ids, lens):
     """Converts ids back to strings.
 
     Args:
@@ -99,7 +97,6 @@ class BaseTokenizer(base_layer.LayerBase):
       lens: A vector of shape [batch]. lens[i] is the sequence length of the
         i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
         tokens for the i-th sequence.
-      key: A string key in case the model has multiple vocabularies.
 
     Returns:
       sequences: A vector of shape [batch]. The converted string sequence.
@@ -117,11 +114,11 @@ class SimpleTokenizer(BaseTokenizer):
   and punctuation symbols.
   """
 
-  def _StringsToIdsImpl(self, strs, max_length, append_eos, key):
+  def _StringsToIdsImpl(self, strs, max_length, append_eos):
     return py_x_ops.label_to_token_id(
         strs, maxlen=max_length, append_eos=append_eos)
 
-  def IdsToStrings(self, ids, lens, key=None):
+  def IdsToStrings(self, ids, lens):
     return py_x_ops.id_to_token(ids, lens)
 
 
@@ -150,7 +147,7 @@ class VocabFileTokenizer(BaseTokenizer):
     if num_params_specified != 1:
       raise ValueError('Exactly one vocab file should be specified!')
 
-  def _StringsToIdsImpl(self, strs, max_length, append_eos, key):
+  def _StringsToIdsImpl(self, strs, max_length, append_eos):
     self._CheckParams()
     p = self.params
 
@@ -163,7 +160,7 @@ class VocabFileTokenizer(BaseTokenizer):
     elif p.ngram_vocab_filepath:
       raise NotImplementedError('ngram vocab StringsToIds is not supported.')
 
-  def IdsToStrings(self, ids, lens, key=None):
+  def IdsToStrings(self, ids, lens):
     self._CheckParams()
     p = self.params
 

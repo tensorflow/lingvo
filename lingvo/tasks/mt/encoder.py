@@ -204,6 +204,153 @@ class MTEncoderV1(base_encoder.BaseEncoder):
       return xs, tf.squeeze(ps, [2]), src_segment_id
 
 
+class MTEncoderUniRNN(base_encoder.BaseEncoder):
+  """MT encoder that consists of a stack of uni-directional RNN layers."""
+
+  @classmethod
+  def Params(cls):
+    """Configs for MTEncoderUniRNN."""
+    p = super(MTEncoderUniRNN, cls).Params()
+    p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
+    p.Define('lstm_tpl', rnn_cell.LSTMCellSimple.Params(),
+             'Configs template for the RNN layer.')
+    p.Define('lstm_cell_size', 512, 'LSTM cell size for the RNN layer.')
+    p.Define('num_lstm_layers', 8, 'Number of rnn layers to create')
+    p.Define('dropout_prob', 0.0, 'Prob at which we do dropout.')
+    p.Define('residual_start', 2,
+             'Layer at which we start residual connections.')
+    p.Define(
+        'unidi_rnn_type', 'func', 'Options: func, native_cudnn. '
+        'func: FRNN, native_cudnn: CuDNNLSTM.')
+    p.Define(
+        'random_seed', None,
+        'If set, this decides the random seed to apply in various random'
+        ' ops such that this encoder is deterministic. Set this'
+        ' random_seed only for unittests.')
+    p.Define('cc_schedule', None, 'Clipping cap schedule.')
+
+    p.Define('is_transparent', False,
+             'If set, outputs a merger of layer outputs.')
+    p.Define(
+        'transparent_merger_tpl',
+        layers.WeightedSumLayer.Params().Set(add_weight_summaries=True),
+        'Merger op for layer outputs.')
+
+    disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
+    default_params_init = py_utils.WeightInit.Uniform(0.04)
+
+    # Default config for the embedding.
+    p.emb.vn = disable_vn
+    p.emb.vocab_size = 32000
+    p.emb.embedding_dim = 1024
+    p.emb.max_num_shards = 16
+    p.emb.params_init = default_params_init
+
+    p.lstm_tpl.vn = disable_vn
+    p.lstm_tpl.params_init = default_params_init
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(MTEncoderUniRNN, self).__init__(params)
+    p = self.params
+    assert p.packed_input is False, ('Packed inputs are not yet supported for '
+                                     'MTEncoderUniRNN.')
+
+    with tf.variable_scope(p.name):
+      if p.cc_schedule is None:
+        self.cc_schedule = None
+      else:
+        self.CreateChild('cc_schedule', p.cc_schedule)
+
+      self.CreateChild('emb', p.emb)
+
+      rnn_layers_params = []
+
+      num_input_nodes = p.emb.embedding_dim
+      for i in range(p.num_lstm_layers):
+        cell = p.lstm_tpl.Copy()
+        cell.name = 'L%d_rnn' % i
+        cell.num_input_nodes = num_input_nodes
+        cell.num_output_nodes = p.lstm_cell_size
+        params = model_helper.CreateUnidirectionalRNNParams(self.params, cell)
+        params.name = 'L%d' % i
+        rnn_layers_params.append(params)
+        num_input_nodes = cell.num_output_nodes
+
+      self.CreateChildren('rnn', rnn_layers_params)
+
+      dropout_p = layers.DropoutLayer.Params().Set(
+          name='dropout_layer',
+          keep_prob=1.0 - p.dropout_prob,
+          seed=p.random_seed + 827366448 if p.random_seed else None)
+      self.CreateChild('dropout', dropout_p)
+
+      if p.is_transparent:
+        transparent_params = p.transparent_merger_tpl.Copy()
+        transparent_params.name = 'transparent'
+        transparent_params.num_sources = p.num_lstm_layers
+        transparent_params.random_seed = p.random_seed
+        self.CreateChild('transparent_merger', transparent_params)
+
+  def ApplyClipping(self, theta, x):
+    if self.cc_schedule:
+      return self.cc_schedule.ApplyClipping(theta.cc_schedule, x)
+    else:
+      return x
+
+  def FProp(self, theta, input_batch):
+    """Encodes source as represented by 'inputs' and 'paddings'.
+
+    Args:
+      theta: Named tuple with the weights for all the encoder layers.
+      input_batch: A NestedMap with fields:
+        ids - The inputs tensor. It is expected to be of shape [batch, time]
+        paddings - The paddings tensor. It is expected to be of shape
+             [batch, time].
+
+    Returns:
+      (outputs, out_paddings, src_segment_id) pair.
+      Outputs is of the shape [time, batch, depth], and out_paddings is of the
+      shape [time, batch]. src_segment_id should have the shape
+      [time, batch] if packed inputs are supported by the model (and all
+      layers), or None otherwise.
+    """
+    p = self.params
+    src_segment_id = None
+    with tf.name_scope(p.name):
+      inputs = py_utils.with_dependencies([
+          py_utils.assert_shape_match(tf.shape(input_batch.ids), [-1, -1]),
+          py_utils.assert_shape_match(
+              tf.shape(input_batch.ids), tf.shape(input_batch.paddings))
+      ], tf.transpose(input_batch.ids))
+      paddings = tf.expand_dims(tf.transpose(input_batch.paddings), 2)
+      xs = self.emb.EmbLookup(theta.emb, inputs)
+      xs = self.ApplyClipping(theta, xs)
+      summary_utils.histogram(p, 'input_emb', xs)
+      xs = self.dropout.FProp(theta.dropout, xs)
+      ps = paddings
+      # Now the rnn layers.
+      outputs_list = []
+      for i in range(0, p.num_lstm_layers):
+        layer = self.rnn[i]
+        ys, _ = layer.FProp(theta.rnn[i], xs, ps)
+        ys = self.dropout.FProp(theta.dropout, ys)
+        if i >= p.residual_start:
+          xs += ys  # Residual skip
+          xs = self.ApplyClipping(theta, xs)
+        else:
+          xs = ys
+        outputs_list.append(xs)
+        summary_utils.histogram(p, 'layer_out_%s' % i, xs)
+
+      if p.is_transparent:
+        xs = self.transparent_merger.FProp(theta.transparent_merger,
+                                           outputs_list)
+
+      return xs, tf.squeeze(ps, [2]), src_segment_id
+
+
 class MTEncoderBiRNN(base_encoder.BaseEncoder):
   """MT encoder that consists of a stack of bi-directional RNN layers."""
 
@@ -463,14 +610,8 @@ class TransformerEncoder(base_encoder.BaseEncoder):
       dropout_tpl.seed = p.random_seed
       self.CreateChild('input_dropout', dropout_tpl)
 
-    # Note: this call is out of tf.variable_scope context, this allows for
-    # checkpoint backward compatibility.
-    py_utils.SetNameIfNone(p.transformer_stack, p.name)
-
+    p.transformer_stack.name = p.name
     p.transformer_stack.random_seed = p.random_seed
-
-    if p.transformer_stack.name != p.name:
-      raise ValueError('%s != %s' % (p.transformer_stack.name, p.name))
     self.CreateChild('transformer_stack', p.transformer_stack)
 
   def FProp(self, theta, input_batch):
