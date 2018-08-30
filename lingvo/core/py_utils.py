@@ -1990,3 +1990,29 @@ def UpdateFpropDtype(params, fprop_dtype):
       UpdateFpropDtype(val, fprop_dtype)
     elif key == 'fprop_dtype':
       params.fprop_dtype = fprop_dtype
+
+
+def NameScopeDecorator(name_scope):
+  """Decorates a python function to introduce a tf.name_scope.
+
+  Example:
+    @py_utils.NameScopeDecorator('foobar')
+    def MyFoobarMethod(self):
+      # ... Do TF things
+
+  Args:
+    name_scope: The name scope to introduce.
+
+  Returns:
+    A function decorator.
+  """
+
+  def Decorator(f):
+
+    def Wrapped(*args, **kwargs):
+      with tf.name_scope(name_scope):
+        return f(*args, **kwargs)
+
+    return Wrapped
+
+  return Decorator

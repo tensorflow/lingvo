@@ -414,6 +414,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     else:
       return x
 
+  @py_utils.NameScopeDecorator('MTDecoderV1/ComputePredictions')
   def ComputePredictions(self, theta, source_encs, source_paddings, targets,
                          src_segment_id):
     """Decodes 'targets' given encoded source.
@@ -496,6 +497,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
                               tf.transpose(targets.weights),
                               tf.transpose(targets.paddings), segment_id)
 
+  @py_utils.NameScopeDecorator('MTDecoderV1/InitDecoder')
   def _InitDecoder(self, theta, source_encs, source_paddings, num_hyps):
     """Returns initial decoder states.
 
@@ -539,6 +541,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     assert atten_states is not None
     return rnn_states, atten_context, atten_probs, atten_states
 
+  @py_utils.NameScopeDecorator('MTDecoderV1/DecodeStep')
   def _DecodeStep(self, theta, embs, step_paddings, prev_atten_context,
                   rnn_states, prev_atten_states):
     """Decode one step."""
@@ -644,6 +647,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'atten_states': atten_states,
     })
 
+  @py_utils.NameScopeDecorator('MTDecoderV1/PreBeamSearchStepCallback')
   def _PreBeamSearchStepCallback(self,
                                  source_encs,
                                  source_paddings,

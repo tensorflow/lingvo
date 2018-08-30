@@ -23,7 +23,7 @@ py_library(
         ":base_trial",
         ":model_registry",
         # Implicit tensorflow dependency.
-        # Implicit tensorflow py proto dependency.,
+        # Implicit tensorflow py proto dependency.
         "//lingvo/core:cluster_factory",
         "//lingvo/core:early_stop",
         "//lingvo/core:py_utils",
@@ -113,8 +113,8 @@ py_library(
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow py proto dependency.,
-        # Implicit tensorflow grpc dependency.,
+        # Implicit tensorflow py proto dependency.
+        # Implicit tensorflow grpc dependency.
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
         "//lingvo/core:cluster_factory",

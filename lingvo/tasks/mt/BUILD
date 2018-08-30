@@ -65,7 +65,7 @@ py_library(
     deps = [
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow python framework_for_generated_wrappers dependency.,
+        # Implicit tensorflow python framework_for_generated_wrappers dependency.
         "//lingvo/core:attention",
         "//lingvo/core:base_decoder",
         "//lingvo/core:base_layer",

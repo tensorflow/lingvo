@@ -26,6 +26,7 @@ from tensorflow.python.framework import function
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import py_utils
+from lingvo.core import quant_utils
 
 
 def _ApplyAttentionDropout(params, x, step_state=None, prng_seed=None):
@@ -1015,7 +1016,7 @@ def _RecursiveReshape(x, shape):
     return tf.reshape(x, shape) if x.shape.ndims == 2 else x
 
 
-class MultiHeadedAttention(BaseAttentionLayer):
+class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
   """Attention with multiple attention heads.
 
   Conceptually, the algorithm works as follows:
@@ -1060,6 +1061,14 @@ class MultiHeadedAttention(BaseAttentionLayer):
         'If True, computed context is post projected into'
         ' ctx_post_proj_dim.')
     p.Define('ctx_post_proj_dim', 0, 'Number of post projection nodes.')
+
+    # Often the attention context output needs to be concated
+    # with tensors from another layer. This allows them to share
+    # quantization parameters. By convention, all attention layers
+    # need to include their context output vectors in this domain.
+    p.qdomain.Define('atten_context', None,
+                     'Quantization domain for attention context.')
+
     p.params_init = py_utils.WeightInit.Xavier(scale=1.0)
 
     return p
@@ -1070,6 +1079,16 @@ class MultiHeadedAttention(BaseAttentionLayer):
     super(MultiHeadedAttention, self).__init__(params)
     p = self.params
     assert p.hidden_dim % p.num_attention_heads == 0
+
+    self.TrackQTensor('source_proj_matmul', 'source_proj_add',
+                      'query_proj_matmul', 'query_proj_add',
+                      'ctx_pre_proj_matmul', 'ctx_pre_proj_add')
+    # TODO: Remove the p.is_eval check below once brop quant within defun is
+    # fixed on the training side. This is less than ideal as-is because
+    # training will just trend to match downstream quant constraints vs force
+    # alignment.
+    self.TrackQTensor(
+        'ctx_post_proj_matmul', 'ctx_post_proj_add', domain='atten_context')
 
     pc_bias = py_utils.WeightParams(
         shape=[p.hidden_dim],
@@ -1172,6 +1191,7 @@ class MultiHeadedAttention(BaseAttentionLayer):
     return (self._concated_source_vecs, self._concated_source_contexts,
             self._source_padding, self._source_segment_id)
 
+  @py_utils.NameScopeDecorator('MultiHeadedAttention/PackSource')
   def PackSource(self,
                  theta,
                  source_vecs,
@@ -1200,6 +1220,7 @@ class MultiHeadedAttention(BaseAttentionLayer):
     """
 
     p = self.params
+    fns = self.fns
     if not p.enable_source_proj:
       assert p.source_dim == p.hidden_dim
     if not p.enable_query_proj:
@@ -1215,10 +1236,14 @@ class MultiHeadedAttention(BaseAttentionLayer):
       with tf.name_scope('init__0b'):
         if p.enable_source_proj:
           source_projected = (
-              tf.matmul(
+              fns.qbatchmatmul(
                   tf.reshape(source_vecs, [-1, source_vec_depth]),
-                  theta.source_proj))
-          source_projected += theta.source_proj_b
+                  fns.qweight(theta.source_proj),
+                  qt='source_proj_matmul'))
+          source_projected = fns.qadd(
+              source_projected,
+              fns.qweight(theta.source_proj_b),
+              qt='source_proj_add')
         else:
           source_projected = tf.reshape(source_vecs, [-1, source_vec_depth])
     with tf.name_scope('init__1'):
@@ -1233,10 +1258,14 @@ class MultiHeadedAttention(BaseAttentionLayer):
       else:
         if p.enable_ctx_pre_proj:
           source_context_depth = tf.shape(source_contexts)[2]
-          source_contexts_projected = tf.matmul(
+          source_contexts_projected = fns.qbatchmatmul(
               tf.reshape(source_contexts, [-1, source_context_depth]),
-              theta.ctx_proj)
-          source_contexts_projected += theta.ctx_proj_b
+              fns.qweight(theta.ctx_proj),
+              qt='ctx_pre_proj_matmul')
+          source_contexts_projected = fns.qadd(
+              source_contexts_projected,
+              fns.qweight(theta.ctx_proj_b),
+              qt='ctx_pre_proj_add')
         else:
           source_contexts_projected = source_contexts
         source_contexts_reshaped = tf.reshape(
@@ -1262,6 +1291,7 @@ class MultiHeadedAttention(BaseAttentionLayer):
       return (concated_source_vecs, concated_source_contexts, source_padding,
               source_segment_id)
 
+  @py_utils.NameScopeDecorator('MultiHeadedAttention/ExtendSourcePacked')
   def ExtendSourcePacked(self, theta, new_source_vecs, new_source_contexts,
                          new_source_paddings, new_source_segment_ids,
                          cached_prev_source_vecs, cached_prev_source_contexts,
@@ -1343,6 +1373,7 @@ class MultiHeadedAttention(BaseAttentionLayer):
     return (cached_source_vecs, cached_source_contexts, cached_source_paddings,
             cached_source_segment_ids)
 
+  @py_utils.NameScopeDecorator('MultiHeadedAttention/ZeroAttentionState')
   def ZeroAttentionState(self, source_seq_length, decoder_batch_size):
     zero_att_state = self.atten.ZeroAttentionState(
         source_seq_length, decoder_batch_size * self.params.num_attention_heads)
@@ -1350,6 +1381,8 @@ class MultiHeadedAttention(BaseAttentionLayer):
     zero_att_state = _RecursiveReshape(zero_att_state, [decoder_batch_size, -1])
     return zero_att_state
 
+  @py_utils.NameScopeDecorator(
+      'MultiHeadedAttention/ComputeContextVectorWithSource')
   def ComputeContextVectorWithSource(self,
                                      theta,
                                      concated_source_vecs,
@@ -1396,13 +1429,18 @@ class MultiHeadedAttention(BaseAttentionLayer):
         dimensions [target_batch....]
     """
     p = self.params
+    fns = self.fns
     source_seq_len = tf.shape(source_padding)[0]
     num_heads = p.num_attention_heads
     batch_size = tf.shape(query_vec)[0]
 
     if p.enable_query_proj:
-      query_vec_projected = tf.matmul(query_vec, theta.query_proj)
-      query_vec_projected += theta.query_proj_b
+      query_vec_projected = fns.qbatchmatmul(
+          query_vec, fns.qweight(theta.query_proj), qt='query_proj_matmul')
+      query_vec_projected = fns.qadd(
+          query_vec_projected,
+          fns.qweight(theta.query_proj_b),
+          qt='query_proj_add')
       query_vec_projected = tf.reshape(
           query_vec_projected,
           [batch_size * num_heads, p.hidden_dim // num_heads])
@@ -1435,13 +1473,20 @@ class MultiHeadedAttention(BaseAttentionLayer):
         per_step_source_padding, step_state, query_segment_id)
     ctx_vec = tf.reshape(ctx_vec, [batch_size, -1])
     if p.enable_ctx_post_proj:
-      ctx_vec = tf.matmul(ctx_vec, theta.ctx_post_proj)
-      ctx_vec += theta.ctx_post_proj_b
-    prob = tf.reduce_mean(tf.reshape(prob, [batch_size, num_heads, -1]), 1)
+      ctx_vec = fns.qbatchmatmul(
+          ctx_vec, fns.qweight(theta.ctx_post_proj), qt='ctx_post_proj_matmul')
+      ctx_vec = fns.qadd(
+          ctx_vec, fns.qweight(theta.ctx_post_proj_b), qt='ctx_post_proj_add')
+    # TODO(laurenzo): Use a better named range function (we want to represent
+    # 0..1 probs).
+    prob = self.QRSoftmax(
+        tf.reduce_mean(tf.reshape(prob, [batch_size, num_heads, -1]), 1))
     att_state = _RecursiveReshape(att_state, [batch_size, -1])
 
     return ctx_vec, prob, att_state
 
+  @py_utils.NameScopeDecorator(
+      'MultiHeadedAttention/ComputeContextVectorWithAttenProbs')
   def ComputeContextVectorWithAttenProbs(self, theta, packed_context,
                                          atten_probs):
     """Computes the context vector given the attention probailities.
@@ -1478,6 +1523,8 @@ class MultiHeadedAttention(BaseAttentionLayer):
       ctx_vec_proj = ctx_vec
     return ctx_vec_proj, ctx_vec
 
+  @py_utils.NameScopeDecorator(
+      'MultiHeadedAttention/ComputeContextVectorWithCachedSource')
   def ComputeContextVectorWithCachedSource(self,
                                            theta,
                                            concated_source_vecs,

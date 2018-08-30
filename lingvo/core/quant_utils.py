@@ -950,6 +950,8 @@ class PassiveAsymQDomain(QDomain):
              'Default minimum value (so initial graphs are valid).')
     p.Define('default_max', 1.0,
              'Default maximum value (so initial graphs are valid).')
+    p.Define('quantize_weight_epsilon', 0.0,
+             'Default epsilon for weight quantization to prevent zero range.')
     return p
 
   @base_layer.initializer
@@ -979,9 +981,11 @@ class PassiveAsymQDomain(QDomain):
   def QuantizeWeight(self, w):
     p = self.params
     w_min = tf.reduce_min(w)
-    w_min = tf.minimum(w_min, 0.0)
     w_max = tf.reduce_max(w)
-    w_max = tf.maximum(w_max, 0.0)
+    # NOTE: We force a small, non-zero range because otherwise, zero weights
+    # can cause downstream inference engines to blow up.
+    w_min = tf.minimum(w_min, -p.quantize_weight_epsilon)
+    w_max = tf.maximum(w_max, p.quantize_weight_epsilon)
     quant_w = self._FakeQuantWithMinMaxVars(w, w_min, w_max, num_bits=p.bits)
     if p.is_eval:
       return quant_w

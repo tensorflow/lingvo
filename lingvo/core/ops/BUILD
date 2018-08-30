@@ -204,7 +204,7 @@ py_test(
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow python framework_for_generated_wrappers dependency.,
+        # Implicit tensorflow python framework_for_generated_wrappers dependency.
     ],
 )
 
