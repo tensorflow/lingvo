@@ -296,7 +296,7 @@ class TransformerModelTest(tf.test.TestCase):
       for _ in range(2):
         sess.run((py_utils.GetOrCreateGlobalStep(), loss, logp, mdl.train_op))
 
-      expected = sess.run(mdl.decoder.softmax.vars['weight_0'])
+      expected = sess.run(mdl.dec.softmax.vars['weight_0'])
 
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
@@ -314,7 +314,7 @@ class TransformerModelTest(tf.test.TestCase):
 
       sess.run((py_utils.GetOrCreateGlobalStep(), loss, logp, mdl.train_op))
 
-      actual = sess.run(mdl.decoder.softmax.vars['weight_0'])
+      actual = sess.run(mdl.dec.softmax.vars['weight_0'])
 
     self.assertAllClose(expected, actual, rtol=1e-2, atol=1e-2)
 
