@@ -58,12 +58,14 @@ conversion scripts will be used.
 On a typical 100Mbit connection, the second step, `wmt14.02.download_train.sh`,
 will take roughly half an hour to complete. It will download the following
 into the `${ROOT}/raw` directory:
+
 * `training-parallel-europarl-v7.tgz`: `628M`
 * `training-parallel-commoncrawl.tgz`: `876M`
 * `training-parallel-nc-v9.tgz`: `77M`
 
 ### Downloading the dev set
 The step `wmt14.03.download_devtest.sh` will result in `${ROOT}/raw`:
+
 * `dev.tgz`: `17M`
 * `test-filtered.tgz`: `3.2M`
 
@@ -104,14 +106,13 @@ on a relatively recent machine.
 
 ## Setting up your cluster
 We provide a script running a docker fleet as an debugging example
-(`lingvo/run_distributed.py`). Please take a look at the script to
+(`lingvo/docker/run_distributed.py`). Please take a look at the script to
 see the cluster configuration.
 
 ### Shared filesystem
 You will need a cluster with a distributed filesystem, such as `HDFS`,
 `NFS`, `sshfs`, or Google [filestore](https://cloud.google.com/filestore/).
-The filesystem will be used to store the checkpoints and the tarball
-containing the source.
+The filesystem will be used to store the checkpoints and the trainer binary.
 
 The shared filesystem must mount the data and the log directory, possibly
 in two different directories.

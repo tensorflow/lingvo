@@ -70,12 +70,14 @@ INFO:tensorflow:step:   100 accuracy:0.85546875 log_pplx:0.46025506 loss:0.46025
 ```
 
 The artifacts will be produced in `/tmp/mnist/log/control`:
+
 * `params.txt`: hyper-parameters.
 * `model_analysis.txt`: model sizes for each layer.
 * `train.pbtxt`: the training `tf.GraphDef`.
 * `events.*`: a tensorboard events file.
 
 In the `/tmp/mnist/log/train` directory, one will obtain:
+
 * `ckpt-*`: the checkpoint files.
 * `checkpoint`: a text file containing information about the checkpoint files.
 
