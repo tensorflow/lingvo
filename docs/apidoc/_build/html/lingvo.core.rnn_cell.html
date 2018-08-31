@@ -1,0 +1,844 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.rnn_cell module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.rnn_cell_test module" href="lingvo.core.rnn_cell_test.html" />
+    <link rel="prev" title="lingvo.core.retry_test module" href="lingvo.core.retry_test.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.rnn_cell module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.rnn_cell.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.rnn_cell">
+<span id="lingvo-core-rnn-cell-module"></span><h1>lingvo.core.rnn_cell module<a class="headerlink" href="#module-lingvo.core.rnn_cell" title="Permalink to this headline">¶</a></h1>
+<p>RNN cells (e.g., LSTM, GRU) that the Lingvo model uses.</p>
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.ConvLSTMCell">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">ConvLSTMCell</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<p>Convolution LSTM cells.</p>
+<dl class="docutils">
+<dt>theta:</dt>
+<dd>wm: the parameter weight matrix. All gates combined.
+b: the combined bias vector.</dd>
+<dt>state:</dt>
+<dd>m: the lstm output. cell_shape
+c: the lstm cell state. cell_shape</dd>
+<dt>inputs:</dt>
+<dd>act: a list of input activations. input_shape.
+padding: the padding. [batch].</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.ConvLSTMCell.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.ConvLSTMCell.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.ConvLSTMCell.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.ConvLSTMCell.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.LSTMCellCuDNNCompliant">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">LSTMCellCuDNNCompliant</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellCuDNNCompliant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<p>LSTMCell compliant with variables with CuDNN-LSTM layout.</p>
+<dl class="docutils">
+<dt>theta:</dt>
+<dd>wb: the cudnn LSTM weight.</dd>
+<dt>state:</dt>
+<dd>m: the lstm output. [batch, cell_nodes]
+c: the lstm cell state. [batch, cell_nodes]</dd>
+<dt>inputs:</dt>
+<dd><p class="first">act: a list of input activations. [batch, input_nodes]
+padding: the padding. [batch, 1].
+reset_mask: optional 0/1 float input to support packed input training.</p>
+<blockquote class="last">
+<div>Shape [batch, 1]</div></blockquote>
+</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellCuDNNCompliant.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellCuDNNCompliant.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellCuDNNCompliant.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellCuDNNCompliant.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.LSTMCellGrouped">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">LSTMCellGrouped</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellGrouped"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellGrouped" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<p>LSTM cell with groups.</p>
+<dl class="docutils">
+<dt>Grouping: based on “Factorization tricks for LSTM networks”:</dt>
+<dd><a class="reference external" href="https://arxiv.org/abs/1703.10722">https://arxiv.org/abs/1703.10722</a>.</dd>
+<dt>Shuffling: adapted from “ShuffleNet: An Extremely Efficient Convolutional</dt>
+<dd>Neural Network for Mobile Devices”: <a class="reference external" href="https://arxiv.org/abs/1707.01083">https://arxiv.org/abs/1707.01083</a>.</dd>
+<dt>theta:</dt>
+<dd>groups: a list of child LSTM cells.</dd>
+<dt>state:</dt>
+<dd><dl class="first last docutils">
+<dt>A NestedMap containing ‘groups’, a list of NestedMaps, each with:</dt>
+<dd>m: the lstm output. [batch, cell_nodes // num_groups]
+c: the lstm cell state. [batch, cell_nodes // num_groups]</dd>
+</dl>
+</dd>
+<dt>inputs:</dt>
+<dd><p class="first">act: a list of input activations. [batch, input_nodes]
+padding: the padding. [batch, 1].
+reset_mask: optional 0/1 float input to support packed input training.</p>
+<blockquote class="last">
+<div>Shape [batch, 1]</div></blockquote>
+</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellGrouped.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellGrouped.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellGrouped.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward function.</p>
+<p>Splits state0 and inputs into N groups (N=num_groups), runs child
+LSTM cells on each group, and concatenates the outputs with optional
+shuffling between groups.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A nested map object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>state0</strong> – The previous recurrent state. A NestedMap.</li>
+<li><strong>inputs</strong> – The inputs to the cell. A NestedMap.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The next recurrent state. A list.
+extras: An empty NestedMap.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">state1</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellGrouped.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellGrouped.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellGrouped.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.LSTMCellGrouped.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><em>child_cell_cls=&lt;class 'lingvo.core.rnn_cell.LSTMCellSimple'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellGrouped.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellGrouped.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellGrouped.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellGrouped.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellGrouped.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellGrouped.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellGrouped.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellGrouped.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimple">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">LSTMCellSimple</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<p>Simple LSTM cell.</p>
+<dl class="docutils">
+<dt>theta:</dt>
+<dd>wm: the parameter weight matrix. All gates combined.
+b: the combined bias vector.</dd>
+<dt>state:</dt>
+<dd>m: the lstm output. [batch, cell_nodes]
+c: the lstm cell state. [batch, cell_nodes]</dd>
+<dt>inputs:</dt>
+<dd><p class="first">act: a list of input activations. [batch, input_nodes]
+padding: the padding. [batch, 1].
+reset_mask: optional 0/1 float input to support packed input training.</p>
+<blockquote class="last">
+<div>Shape [batch, 1]</div></blockquote>
+</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimple.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimple.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimple.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimple.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimple.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimple.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimple.hidden_size">
+<code class="descname">hidden_size</code><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple.hidden_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimple.num_gates">
+<code class="descname">num_gates</code><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple.num_gates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimple.output_size">
+<code class="descname">output_size</code><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimple.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimple.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">LSTMCellSimpleDeterministic</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LSTMCellSimple</span></code></a></p>
+<p>Same as LSTMCellSimple, except this cell is completely deterministic.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.PostTrainingStepUpdate">
+<code class="descname">PostTrainingStepUpdate</code><span class="sig-paren">(</span><em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic.PostTrainingStepUpdate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the global_step value.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">LayerNormalizedLSTMCell</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<p>DEPRECATED: use LayerNormalizedLSTMCellSimple instead.</p>
+<p>Simple LSTM cell with layer normalization.</p>
+<p>Implements normalization scheme as described in
+<a class="reference external" href="https://arxiv.org/pdf/1607.06450.pdf">https://arxiv.org/pdf/1607.06450.pdf</a></p>
+<dl class="docutils">
+<dt>theta:</dt>
+<dd>wm: the parameter weight matrix. All gates combined.
+b: the combined bias vector.</dd>
+<dt>state:</dt>
+<dd>m: the lstm output. [batch, cell_nodes]
+c: the lstm cell state. [batch, cell_nodes]</dd>
+<dt>inputs:</dt>
+<dd><p class="first">act: a list of input activations. [batch, input_nodes]
+padding: the padding. [batch, 1].
+reset_mask: optional 0/1 float input to support packed input training.</p>
+<blockquote class="last">
+<div>Shape [batch, 1]</div></blockquote>
+</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCell.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCell.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCell.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell.hidden_size">
+<code class="descname">hidden_size</code><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.hidden_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell.output_size">
+<code class="descname">output_size</code><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">LayerNormalizedLSTMCellSimple</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCellSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LSTMCellSimple</span></code></a></p>
+<p>An implementation of layer normalized LSTM based on LSTMCellSimple.</p>
+<p>Implements normalization scheme as described in
+<a class="reference external" href="https://arxiv.org/pdf/1607.06450.pdf">https://arxiv.org/pdf/1607.06450.pdf</a></p>
+<dl class="docutils">
+<dt>theta:</dt>
+<dd>wm: the parameter weight matrix. All gates combined.
+b: the combined bias vector.</dd>
+<dt>state:</dt>
+<dd>m: the lstm output. [batch, cell_nodes]
+c: the lstm cell state. [batch, cell_nodes]</dd>
+<dt>inputs:</dt>
+<dd><p class="first">act: a list of input activations. [batch, input_nodes]
+padding: the padding. [batch, 1].
+reset_mask: optional 0/1 float input to support packed input training.</p>
+<blockquote class="last">
+<div>Shape [batch, 1]</div></blockquote>
+</dd>
+</dl>
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCellSimple.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.QRNNPoolingCell">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">QRNNPoolingCell</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QRNNPoolingCell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QRNNPoolingCell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<p>This implements just the “pooling” part of a quasi-RNN or SRU.</p>
+<dl class="docutils">
+<dt>From these papers:</dt>
+<dd><a class="reference external" href="https://arxiv.org/abs/1611.01576">https://arxiv.org/abs/1611.01576</a>
+<a class="reference external" href="https://arxiv.org/abs/1709.02755">https://arxiv.org/abs/1709.02755</a></dd>
+</dl>
+<p>The pooling part implements gates for recurrence. These architectures split
+the transform (conv or FC) from the gating/recurrent part. This cell can
+do either the quasi-RNN style or SRU style pooling operation based on params.</p>
+<p>If you want all of the functionality in one RNN cell, use “SRUCell” instead.</p>
+<dl class="docutils">
+<dt>theta:</dt>
+<dd>Has the trainable zero state. Other weights are done outside the recurrent
+loop.</dd>
+<dt>state:</dt>
+<dd>m: the qrnn output. [batch, cell_nodes]
+c: the qrnn cell state. [batch, cell_nodes]</dd>
+<dt>inputs:</dt>
+<dd>act: a list of input activations. [batch, input_nodes * num_rnn_matrices]
+padding: the padding. [batch, 1].</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.QRNNPoolingCell.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QRNNPoolingCell.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QRNNPoolingCell.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.QRNNPoolingCell.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QRNNPoolingCell.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QRNNPoolingCell.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.QRNNPoolingCell.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QRNNPoolingCell.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QRNNPoolingCell.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.QRNNPoolingCell.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QRNNPoolingCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QRNNPoolingCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.QuantizedLSTMCell">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">QuantizedLSTMCell</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<p>Simplified LSTM cell used for quantized training.</p>
+<p>There is no forget_gate_bias, no output_nonlinearity and no bias. Right now
+only clipping is performed.</p>
+<dl class="docutils">
+<dt>theta:</dt>
+<dd>wm: the parameter weight matrix. All gates combined.
+cap: the cell value cap.</dd>
+<dt>state:</dt>
+<dd>m: the lstm output. [batch, cell_nodes]
+c: the lstm cell state. [batch, cell_nodes]</dd>
+<dt>inputs:</dt>
+<dd>act: a list of input activations. [batch, input_nodes]
+padding: the padding. [batch, 1].
+reset_mask: optional 0/1 float input to support packed input training.
+[batch, 1]</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.QuantizedLSTMCell.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.QuantizedLSTMCell.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.QuantizedLSTMCell.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.QuantizedLSTMCell.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.RNNCell">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">RNNCell</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
+<p>RNN cells.</p>
+<p>RNNCell represents recurrent state in a NestedMap.</p>
+<p>zero_state(batch_size) returns the initial state, which is defined
+by each subclass.  From the state, each subclass defines GetOutput()
+to extract the output tensor.</p>
+<dl class="docutils">
+<dt>RNNCell.FProp defines the forward function:</dt>
+<dd>(theta, state0, inputs) -&gt; state1, extras</dd>
+</dl>
+<p>All arguments and return values are NestedMap. Each subclass defines
+what fields these NestedMap are expected to have.  ‘extras’ is a
+NestedMap containing some intermediate results FProp computes to
+facilitate the backprop.</p>
+<p>zero_state(batch_size), state0 and state1 are all compatible
+NestedMaps (see NestedMap.IsCompatible). I.e., they have the same
+keys recursively. Furthermore, the corresponding tensors in these
+NestedMaps have the same shape and dtype.</p>
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.RNNCell.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward function.</p>
+<p>The default implementation here assumes the cell forward
+function is composed of two functions:</p>
+<blockquote>
+<div>_Gates(_Mix(theta, state0, inputs), theta, state0, inputs)</div></blockquote>
+<p>The result of _Mix is stashed in extras to facilitate backprop.</p>
+<p>_ResetState is optionally applied if reset_cell_state is True. The RNN
+Layer should provide reset_mask inputs in addition to other inputs.
+reset_mask inputs are expected to be 0 at timesteps where state0 should be
+reset to default (zeros) before running _Mix() and _Gates(), and 1
+otherwise. This is meant to support use cases like packed inputs, where
+multiple samples are fed in a single input example sequence, and need to be
+masked from each other. For example, if the two examples packed together
+are [‘good’, ‘day’] -&gt; [‘guten-tag’] and [‘thanks’] -&gt; [‘danke’]
+to produce [‘good’, ‘day’, ‘thanks’] -&gt; [‘guten-tag’, ‘danke’], the
+source reset_masks would be [1, 1, 0] and target reset masks would be
+[1, 0]. These ids are meant to enable masking computations for
+different examples from each other.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A nested map object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>state0</strong> – The previous recurrent state. A NestedMap.</li>
+<li><strong>inputs</strong> – The inputs to the cell. A NestedMap.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The next recurrent state. A NestedMap.
+extras: Intermediate results to faciliate backprop. A NestedMap.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">state1</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.RNNCell.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.RNNCell.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.RNNCell.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.RNNCell.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_cell.SRUCell">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">SRUCell</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<p>SRU cell.</p>
+<p>From this paper: <a class="reference external" href="https://arxiv.org/abs/1709.02755">https://arxiv.org/abs/1709.02755</a>
+This is a simple implementation that can be used as a drop-in replacement for
+another RNN. It doesn’t do the performance tricks that an SRU is capable of,
+like unrolling matrix computations over time. This is just a basic
+implementation. It does the 4-matrix implementation found in appendix C.</p>
+<dl class="docutils">
+<dt>theta:</dt>
+<dd>wm: the parameter weight matrix. All gates combined.
+b: the combined bias vector.</dd>
+<dt>state:</dt>
+<dd>m: the sru output. [batch, cell_nodes]
+c: the sru cell state. [batch, cell_nodes]</dd>
+<dt>inputs:</dt>
+<dd>act: a list of input activations. [batch, input_nodes]
+padding: the padding. [batch, 1].</dd>
+</dl>
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.SRUCell.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.SRUCell.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.SRUCell.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.SRUCell.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.rnn_cell.ZoneOut">
+<code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">ZoneOut</code><span class="sig-paren">(</span><em>prev_v</em>, <em>cur_v</em>, <em>padding_v</em>, <em>zo_prob</em>, <em>is_eval</em>, <em>random_uniform</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ZoneOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ZoneOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply ZoneOut regularlization to cur_v.</p>
+<p>Implements ZoneOut regularization as described in
+<a class="reference external" href="https://arxiv.org/abs/1606.01305">https://arxiv.org/abs/1606.01305</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>prev_v</strong> – A tensor, values from the previous timestep.</li>
+<li><strong>cur_v</strong> – A tensor, values from the current timestep.</li>
+<li><strong>padding_v</strong> – A tensor, the paddings vector for the cur timestep.</li>
+<li><strong>zo_prob</strong> – A float, probability at which to apply ZoneOut regularization.</li>
+<li><strong>is_eval</strong> – A bool, whether or not in eval mode.</li>
+<li><strong>random_uniform</strong> – a tensor of random uniform numbers. This can be None if
+zo_prob=0.0</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">cur_v after ZoneOut regularization has been applied.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.rnn_cell_test.html" class="btn btn-neutral float-right" title="lingvo.core.rnn_cell_test module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.retry_test.html" class="btn btn-neutral" title="lingvo.core.retry_test module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

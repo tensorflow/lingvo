@@ -1,0 +1,332 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.recurrent module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.recurrent_test module" href="lingvo.core.recurrent_test.html" />
+    <link rel="prev" title="lingvo.core.quant_utils_test module" href="lingvo.core.quant_utils_test.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.recurrent module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.recurrent.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.recurrent">
+<span id="lingvo-core-recurrent-module"></span><h1>lingvo.core.recurrent module<a class="headerlink" href="#module-lingvo.core.recurrent" title="Permalink to this headline">¶</a></h1>
+<p>Recurrent neural nets.</p>
+<p>The main interface of this module is Recurrent().
+This expects the caller to describe the recurrent neural net by specifying:</p>
+<blockquote>
+<div><p>theta: the “weights” each RNN uses.
+state0: the initial state of each RNN.
+cell_fn: A python function describing RNN cell. It must has the following</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>signature:</dt>
+<dd>cell_fn: (theta, state0, inputs) -&gt; (state1, extras)</dd>
+</dl>
+<p>state1 is the next RNN state, extras are computed by cell_fn
+and the library forwards extras to cell_fn’s gradient function.</p>
+</div></blockquote>
+<dl class="docutils">
+<dt>cell_grad: A python function describing the backprop gradient function</dt>
+<dd><dl class="first docutils">
+<dt>for the RNN cell. It must has the following signature:</dt>
+<dd><dl class="first last docutils">
+<dt>cell_grad: (theta, state0, inputs, extras, dstate1) -&gt; (</dt>
+<dd>dtheta, dstate0, dinputs)</dd>
+</dl>
+</dd>
+</dl>
+<p class="last">dstate1 is what the backprop algorithm provides representing
+gradients of state1 w.r.t. the final loss.</p>
+</dd>
+</dl>
+</div></blockquote>
+<p>All of theta, state0, inputs, extras and dstate1 are
+py_utils.NestedMap so that they can carry a bunch of tensors around.</p>
+<dl class="function">
+<dt id="lingvo.core.recurrent.Recurrent">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">Recurrent</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>inputs</em>, <em>cell_fn</em>, <em>cell_grad=None</em>, <em>extras=None</em>, <em>check_stateful_ops=False</em>, <em>accumulator_layer=None</em>, <em>allow_implicit_capture=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#Recurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.Recurrent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute a recurrent neural net.</p>
+<dl class="docutils">
+<dt>Roughly, Recurrent() computes the following:</dt>
+<dd><p class="first">state = state0
+for t in inputs’ sequence length:</p>
+<blockquote>
+<div>state = cell_fn(theta, state, inputs[t, :])
+accumulate_state[t, :] = state</div></blockquote>
+<p class="last">return accumulate_state, state</p>
+</dd>
+</dl>
+<p>theta, state, inputs are all NestedMap objects.</p>
+<p>inputs[t, :] means taking a slice out from every tensor in the
+NestedMap inputs.</p>
+<p>accumulate_state[t, :] = state means that we stash every tensor in
+‘state’ into a slice of the corresponding tensor in
+accumulate_state.</p>
+<p>cell_fn is a python callable computing (building up a TensorFlow
+graph) the recurrent neural network’s one forward step. cell_fn must not
+contain any stateful op. Two calls of cell_fn must describe two identical
+computations.</p>
+<p>By construction, Recurrent()’s backward computation does not access
+any intermediate values computed by cell_fn during forward
+computation. We may extend Recurrent() to support that by taking a
+customized backward function of cell_fn.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – weights. A NestedMap.</li>
+<li><strong>state0</strong> – initial state. A NestedMap.</li>
+<li><strong>inputs</strong> – inputs. A NestedMap.</li>
+<li><strong>cell_fn</strong> – A python function, which computes:
+state1, extras = cell_fn(theta, state0, inputs[t, :])</li>
+<li><strong>cell_grad</strong> – <p>A python function which computes:
+dtheta, dstate0, dinputs[t, :], dcaptured = cell_grad(</p>
+<blockquote>
+<div>theta, state0, inputs[t, :], extras, dstate1)</div></blockquote>
+<p>If there are no captured tensors in cell_fn, dcaptured can be returned
+as None. Captured tensors with custom cell_grad is currently unsupported,
+so this return value is reserved for future expansion.</p>
+</li>
+<li><strong>extras</strong> – A NestedMap of Tensors. The 2nd return value of every
+invocation of cell_fn is a NestedMap with matching keys and shapes
+of  this ‘extras’.</li>
+<li><strong>check_stateful_ops</strong> – if True, raise a ValueError if cell_fn is stateful.</li>
+<li><strong>accumulator_layer</strong> – If provided, then accumulators on this layer will be
+managed such that they carry to the final state in FProp and are
+disabled for gradients. Uses the state key ‘accumulators’.</li>
+<li><strong>allow_implicit_capture</strong> – Whether to allow the cell_fn to implicitly
+capture tensors. Only allowed if an explicit cell_grad is not given.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">accumulate_state and the final state.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.recurrent_test.html" class="btn btn-neutral float-right" title="lingvo.core.recurrent_test module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.quant_utils_test.html" class="btn btn-neutral" title="lingvo.core.quant_utils_test module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

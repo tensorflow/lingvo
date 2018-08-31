@@ -1,0 +1,314 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.lm.model_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.lm.model_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.lm.model_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for lm.model.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">test_helper</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">test_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.lm</span> <span class="k">import</span> <span class="n">input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.lm</span> <span class="k">import</span> <span class="n">model</span>
+
+
+<div class="viewcode-block" id="ModelTest"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model_test.html#lingvo.tasks.lm.model_test.ModelTest">[docs]</a><span class="k">class</span> <span class="nc">ModelTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">_InputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">for_training</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">LmInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">test_helper</span><span class="o">.</span><span class="n">test_src_dir_path</span><span class="p">(</span>
+        <span class="s1">&#39;tasks/lm/testdata/lm1b_100.txt&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">for_training</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">10000</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">50</span><span class="p">]</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">64</span><span class="p">]</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="mi">1000</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">31415</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">]</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="mi">20</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">76</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+  <span class="k">def</span> <span class="nf">_Params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">LanguageModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;lm_test&#39;</span>
+    <span class="n">vocab</span><span class="p">,</span> <span class="n">dims</span> <span class="o">=</span> <span class="mi">76</span><span class="p">,</span> <span class="mi">64</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">dims</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">dims</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">dims</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">dims</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">vocab</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<div class="viewcode-block" id="ModelTest.testLmFprop"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model_test.html#lingvo.tasks.lm.model_test.ModelTest.testLmFprop">[docs]</a>  <span class="k">def</span> <span class="nf">testLmFprop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">93820986</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InputParams</span><span class="p">(</span><span class="n">for_training</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">logp</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;log_pplx&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">logp_per_word</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;log_pplx_per_word&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">accuracy</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+      <span class="n">loss</span><span class="p">,</span> <span class="n">logp</span><span class="p">,</span> <span class="n">logp_per_word</span><span class="p">,</span> <span class="n">accuracy</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">loss</span><span class="p">,</span> <span class="n">logp</span><span class="p">,</span> <span class="n">logp_per_word</span><span class="p">,</span> <span class="n">accuracy</span><span class="p">])</span>
+      <span class="n">test_utils</span><span class="o">.</span><span class="n">CompareToGoldenSingleFloat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mf">4.329850</span><span class="p">,</span> <span class="n">loss</span><span class="p">)</span>
+      <span class="n">test_utils</span><span class="o">.</span><span class="n">CompareToGoldenSingleFloat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mf">4.329850</span><span class="p">,</span> <span class="n">logp</span><span class="p">)</span>
+      <span class="n">test_utils</span><span class="o">.</span><span class="n">CompareToGoldenSingleFloat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mf">6.185500</span><span class="p">,</span> <span class="n">logp_per_word</span><span class="p">)</span>
+      <span class="n">test_utils</span><span class="o">.</span><span class="n">CompareToGoldenSingleFloat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="mf">0.025000</span><span class="p">,</span> <span class="n">accuracy</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelTest.testLmTrain"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model_test.html#lingvo.tasks.lm.model_test.ModelTest.testLmTrain">[docs]</a>  <span class="k">def</span> <span class="nf">testLmTrain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InputParams</span><span class="p">(</span><span class="n">for_training</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">3e-3</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+      <span class="c1"># Run some steps and we expect the loss goes down.</span>
+      <span class="n">loss_val</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">loss</span><span class="p">,</span> <span class="n">mdl</span><span class="o">.</span><span class="n">train_op</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">loss_val</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">loss_val</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">loss</span><span class="p">,</span> <span class="n">mdl</span><span class="o">.</span><span class="n">train_op</span><span class="p">])</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> loss = </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">loss_val</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertLess</span><span class="p">(</span><span class="n">loss_val</span><span class="p">,</span> <span class="mf">3.8</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

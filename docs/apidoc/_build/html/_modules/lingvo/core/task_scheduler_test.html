@@ -1,0 +1,367 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.task_scheduler_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.task_scheduler_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.task_scheduler_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for task_scheduler.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">early_stop</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">task_scheduler</span>
+
+<span class="n">_NUMPY_RANDOM_SEED</span> <span class="o">=</span> <span class="mi">9885784</span>
+
+
+<div class="viewcode-block" id="SchedulerTests"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler_test.html#lingvo.core.task_scheduler_test.SchedulerTests">[docs]</a><span class="k">class</span> <span class="nc">SchedulerTests</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">_TestSchedulerHelper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">schedule</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">count_a</span><span class="p">):</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">_NUMPY_RANDOM_SEED</span><span class="p">)</span>
+
+    <span class="n">task_counts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+      <span class="n">task</span> <span class="o">=</span> <span class="n">schedule</span><span class="o">.</span><span class="n">Sample</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+      <span class="n">task_counts</span><span class="p">[</span><span class="n">task</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">task_counts</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">],</span> <span class="n">count_a</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">task_counts</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">],</span> <span class="mi">100</span> <span class="o">-</span> <span class="n">count_a</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SchedulerTests.testConstantScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler_test.html#lingvo.core.task_scheduler_test.SchedulerTests.testConstantScheduler">[docs]</a>  <span class="k">def</span> <span class="nf">testConstantScheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Approximate expected probabilities: (a:0.8, b:0.2).&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">ConstantScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)]</span>
+
+    <span class="n">schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TestSchedulerHelper</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">83</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SchedulerTests.testExponentialScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler_test.html#lingvo.core.task_scheduler_test.SchedulerTests.testExponentialScheduler">[docs]</a>  <span class="k">def</span> <span class="nf">testExponentialScheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test exponential scheduler.</span>
+
+<span class="sd">    Approximate probabilities:</span>
+<span class="sd">      t=0: (a:0, b:1)</span>
+<span class="sd">      t=1e5: (a:0.63, b:0.37)</span>
+<span class="sd">      t=1e10: (a:1, b:0)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">ExponentialScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">1e-5</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))]</span>
+
+    <span class="n">schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TestSchedulerHelper</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">count_a</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TestSchedulerHelper</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="mf">1e5</span><span class="p">,</span> <span class="n">count_a</span><span class="o">=</span><span class="mi">63</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TestSchedulerHelper</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="mf">1e10</span><span class="p">,</span> <span class="n">count_a</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SchedulerTests.testSigmoidScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler_test.html#lingvo.core.task_scheduler_test.SchedulerTests.testSigmoidScheduler">[docs]</a>  <span class="k">def</span> <span class="nf">testSigmoidScheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test sigmoid scheduler.</span>
+
+<span class="sd">    Approximate probabilities:</span>
+<span class="sd">      t=0: (a:0.5, b:0.5)</span>
+<span class="sd">      t=1e5: (a:0.73, b:0.27)</span>
+<span class="sd">      t=1e10: (a:1, b:0)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">SigmoidScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">alpha</span> <span class="o">=</span> <span class="mf">1e-5</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mi">0</span><span class="p">))]</span>
+
+    <span class="n">schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TestSchedulerHelper</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">count_a</span><span class="o">=</span><span class="mi">54</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TestSchedulerHelper</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="mf">1e5</span><span class="p">,</span> <span class="n">count_a</span><span class="o">=</span><span class="mi">73</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TestSchedulerHelper</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="mf">1e10</span><span class="p">,</span> <span class="n">count_a</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">_setupTestAdaptiveScheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="n">logdir</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;decoder_dev_a&#39;</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;decoder_dev_b&#39;</span><span class="p">))</span>
+
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">logdir</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">=</span> <span class="mf">0.05</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">expected</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+
+    <span class="n">mh_a</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">mh_a</span><span class="o">.</span><span class="n">jobname</span> <span class="o">=</span> <span class="s1">&#39;decoder_dev_a&#39;</span>
+    <span class="n">mh_a</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;corpus_bleu&#39;</span>
+    <span class="n">mh_a</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+    <span class="n">mh_a</span><span class="o">.</span><span class="n">local_filesystem</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">mh_b</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">mh_b</span><span class="o">.</span><span class="n">jobname</span> <span class="o">=</span> <span class="s1">&#39;decoder_dev_b&#39;</span>
+    <span class="n">mh_b</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;corpus_bleu&#39;</span>
+    <span class="n">mh_b</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+    <span class="n">mh_b</span><span class="o">.</span><span class="n">local_filesystem</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">mh_a</span> <span class="o">=</span> <span class="n">mh_a</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">mh_b</span> <span class="o">=</span> <span class="n">mh_b</span>
+
+    <span class="n">schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">mh_a</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">mh_a</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+                                               <span class="mf">0.05</span><span class="p">)</span>
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">mh_b</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">mh_b</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+                                               <span class="mf">0.25</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">schedule</span>
+
+<div class="viewcode-block" id="SchedulerTests.testSimpleAdaptiveScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler_test.html#lingvo.core.task_scheduler_test.SchedulerTests.testSimpleAdaptiveScheduler">[docs]</a>  <span class="k">def</span> <span class="nf">testSimpleAdaptiveScheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test simple adaptive schedule.</span>
+
+<span class="sd">    Probability of task a:</span>
+<span class="sd">      (1.05 - 0.05/0.3) / ((1.05 - 0.05/0.3) + (1.05 - 0.25/0.5)) /approx 0.616</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">_NUMPY_RANDOM_SEED</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">SimpleAdaptiveScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">schedule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setupTestAdaptiveScheduler</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TestSchedulerHelper</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">63</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SchedulerTests.testInverseRatioAdaptiveScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler_test.html#lingvo.core.task_scheduler_test.SchedulerTests.testInverseRatioAdaptiveScheduler">[docs]</a>  <span class="k">def</span> <span class="nf">testInverseRatioAdaptiveScheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test simple adaptive schedule.</span>
+
+<span class="sd">    Probability of task a:</span>
+<span class="sd">      1.05/(13/60.) / (1.05/(13/60.) + 1.05/(11/20.)) /approx 0.717</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">_NUMPY_RANDOM_SEED</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">InverseRatioAdaptiveScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">schedule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setupTestAdaptiveScheduler</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_TestSchedulerHelper</span><span class="p">(</span><span class="n">schedule</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">71</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SchedulerTests.testRoundRobinScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler_test.html#lingvo.core.task_scheduler_test.SchedulerTests.testRoundRobinScheduler">[docs]</a>  <span class="k">def</span> <span class="nf">testRoundRobinScheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Test round-robin scheduler.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">RoundRobinScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">]</span>
+
+    <span class="n">schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">global_step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">20</span><span class="p">):</span>
+      <span class="n">task</span> <span class="o">=</span> <span class="n">schedule</span><span class="o">.</span><span class="n">Sample</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">global_step</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">task</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

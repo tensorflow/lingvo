@@ -1,0 +1,1012 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.py_utils_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.py_utils_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.py_utils_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for py_utils.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">itertools</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">test_helper</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.image.params</span> <span class="k">import</span> <span class="n">mnist</span>  <span class="c1"># pylint: disable=unused-import</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="PyUtilsTest"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest">[docs]</a><span class="k">class</span> <span class="nc">PyUtilsTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="PyUtilsTest.testIsDefaultParamInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testIsDefaultParamInit">[docs]</a>  <span class="k">def</span> <span class="nf">testIsDefaultParamInit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultParamInit</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">IsDefaultParamInit</span><span class="p">(</span><span class="n">p</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testCreateVariableBasics"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testCreateVariableBasics">[docs]</a>  <span class="k">def</span> <span class="nf">testCreateVariableBasics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()):</span>
+      <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">TruncatedGaussian</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">GaussianSqrtDim</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformSqrtDim</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformUnitScaling</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">TruncatedGaussianSqrtDim</span><span class="p">,</span>
+      <span class="p">]</span>
+      <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float64</span><span class="p">]</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="p">[[],</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]]</span>
+      <span class="n">collections</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;col1&#39;</span><span class="p">,</span> <span class="s1">&#39;col2&#39;</span><span class="p">]</span>
+
+      <span class="n">all_vars</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+          <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">methods</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">,</span> <span class="n">shapes</span><span class="p">)):</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">m</span><span class="p">(),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">collections</span><span class="p">)</span>
+        <span class="n">all_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+      <span class="c1"># To reuse existing variables</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span><span class="o">.</span><span class="n">reuse_variables</span><span class="p">()</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">all_variables</span><span class="p">()),</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_vars</span><span class="p">))</span>
+
+      <span class="n">all_vars_copy</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+          <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">methods</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">,</span> <span class="n">shapes</span><span class="p">)):</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">m</span><span class="p">(),</span> <span class="n">dt</span><span class="p">,</span> <span class="n">collections</span><span class="p">)</span>
+        <span class="n">all_vars_copy</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">v1</span><span class="p">,</span> <span class="n">v2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">all_vars_copy</span><span class="p">):</span>
+        <span class="n">v1_v</span> <span class="o">=</span> <span class="n">v1</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="n">v2_v</span> <span class="o">=</span> <span class="n">v2</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">v1_v</span><span class="p">,</span> <span class="n">v2_v</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testCreateVariableUniform"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testCreateVariableUniform">[docs]</a>  <span class="k">def</span> <span class="nf">testCreateVariableUniform</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">12345678</span><span class="p">)</span>
+      <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformSqrtDim</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformUnitScaling</span><span class="p">,</span>
+      <span class="p">]</span>
+      <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">]</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
+      <span class="n">all_vars</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+          <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">methods</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">,</span> <span class="n">shapes</span><span class="p">)):</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">m</span><span class="p">(</span><span class="mf">0.1</span><span class="p">),</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="n">all_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+      <span class="n">v1_v_expted</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.069674</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.072278</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.021777</span><span class="p">],</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.052155</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.050274</span><span class="p">,</span> <span class="mf">0.086218</span><span class="p">]]</span>
+      <span class="n">v2_v_expted</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">0.005361</span><span class="p">,</span> <span class="mf">0.036109</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.036575</span><span class="p">],</span>
+                     <span class="p">[</span><span class="mf">0.058314</span><span class="p">,</span> <span class="mf">0.031438</span><span class="p">,</span> <span class="mf">0.049196</span><span class="p">]]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">v1_v</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="n">v2_v</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v1_v_expted</span><span class="p">,</span> <span class="n">v1_v</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v2_v_expted</span><span class="p">,</span> <span class="n">v2_v</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testCreateVariableNormal"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testCreateVariableNormal">[docs]</a>  <span class="k">def</span> <span class="nf">testCreateVariableNormal</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">832124</span><span class="p">)</span>
+      <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">GaussianSqrtDim</span><span class="p">,</span>
+      <span class="p">]</span>
+      <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">]</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
+      <span class="n">all_vars</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+          <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">methods</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">,</span> <span class="n">shapes</span><span class="p">)):</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">m</span><span class="p">(),</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="n">all_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+      <span class="n">v1_v_expted</span> <span class="o">=</span> <span class="p">[[</span><span class="o">-</span><span class="mf">1.472208</span><span class="p">,</span> <span class="mf">0.960204</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.192588</span><span class="p">],</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.461884</span><span class="p">,</span> <span class="mf">1.018134</span><span class="p">,</span> <span class="mf">0.063719</span><span class="p">]]</span>
+      <span class="n">v2_v_expted</span> <span class="o">=</span> <span class="p">[[</span><span class="o">-</span><span class="mf">0.862255</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.688153</span><span class="p">,</span> <span class="mf">0.82515</span><span class="p">],</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.07671</span><span class="p">,</span> <span class="mf">0.613031</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.020327</span><span class="p">]]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">v1_v</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="n">v2_v</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v1_v_expted</span><span class="p">,</span> <span class="n">v1_v</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v2_v_expted</span><span class="p">,</span> <span class="n">v2_v</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testCreateVariableException"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testCreateVariableException">[docs]</a>  <span class="k">def</span> <span class="nf">testCreateVariableException</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">832124</span><span class="p">)</span>
+      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">())</span>
+      <span class="n">var1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span><span class="o">.</span><span class="n">reuse_variables</span><span class="p">()</span>
+      <span class="c1"># Reuses an existing variable.</span>
+      <span class="n">var2</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+      <span class="c1"># An exception should be thrown in this case.</span>
+      <span class="n">pc</span><span class="o">.</span><span class="n">init</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="mf">2.0</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">):</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">var1</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">var2</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testCreateVariableDifferentSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testCreateVariableDifferentSeed">[docs]</a>  <span class="k">def</span> <span class="nf">testCreateVariableDifferentSeed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">3251343</span><span class="p">)</span>
+      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">())</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;layer0&#39;</span><span class="p">):</span>
+        <span class="n">w0</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;layer1&#39;</span><span class="p">):</span>
+        <span class="n">w1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">())</span>
+
+      <span class="c1"># w0_val, w1_val should be sufficient different.</span>
+      <span class="n">w0_val</span><span class="p">,</span> <span class="n">w1_val</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">w0</span><span class="p">,</span> <span class="n">w1</span><span class="p">])</span>
+      <span class="nb">print</span><span class="p">([</span><span class="s1">&#39;diff = &#39;</span><span class="p">,</span> <span class="n">w0_val</span> <span class="o">-</span> <span class="n">w1_val</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">w0_val</span> <span class="o">-</span> <span class="n">w1_val</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">0.1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testXavier"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testXavier">[docs]</a>  <span class="k">def</span> <span class="nf">testXavier</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">1618</span><span class="p">)</span>
+      <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">]</span>
+      <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float16</span><span class="p">]</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]]</span>
+      <span class="n">all_vars</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+          <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">methods</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">,</span> <span class="n">shapes</span><span class="p">)):</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">m</span><span class="p">(),</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="n">all_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+      <span class="n">v1_v_expted</span> <span class="o">=</span> <span class="p">[[</span><span class="mf">1.051236</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.959198</span><span class="p">,</span> <span class="mf">0.796091</span><span class="p">],</span>
+                     <span class="p">[</span><span class="o">-</span><span class="mf">0.685691</span><span class="p">,</span> <span class="mf">0.230933</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.006293</span><span class="p">]]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">v1_v</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v1_v_expted</span><span class="p">,</span> <span class="n">v1_v</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testXavier1D"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testXavier1D">[docs]</a>  <span class="k">def</span> <span class="nf">testXavier1D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">1618</span><span class="p">)</span>
+      <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">]</span>
+      <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float16</span><span class="p">]</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">2</span><span class="p">]]</span>
+      <span class="n">all_vars</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+          <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">methods</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">,</span> <span class="n">shapes</span><span class="p">)):</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">m</span><span class="p">(),</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="n">all_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+      <span class="n">v1_v_expted</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.175317</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.072416</span><span class="p">]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">v1_v</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v1_v_expted</span><span class="p">,</span> <span class="n">v1_v</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testXavier3D"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testXavier3D">[docs]</a>  <span class="k">def</span> <span class="nf">testXavier3D</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">1618</span><span class="p">)</span>
+      <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">]</span>
+      <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float16</span><span class="p">]</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]]</span>
+      <span class="n">all_vars</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+          <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">methods</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">,</span> <span class="n">shapes</span><span class="p">)):</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">m</span><span class="p">(),</span> <span class="n">dt</span><span class="p">)</span>
+        <span class="n">all_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+      <span class="n">v1_v_expted</span> <span class="o">=</span> <span class="p">[[[</span><span class="mf">1.357139</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.23832</span><span class="p">]]]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">v1_v</span> <span class="o">=</span> <span class="n">all_vars</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v1_v_expted</span><span class="p">,</span> <span class="n">v1_v</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testCheckNumerics"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testCheckNumerics">[docs]</a>  <span class="k">def</span> <span class="nf">testCheckNumerics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">xv</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]]</span>
+    <span class="n">yv</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">xv</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">yv</span><span class="p">)</span>
+      <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">xv</span><span class="p">,</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">yv</span><span class="p">,</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">y</span><span class="p">)))</span>
+      <span class="n">actual_xv</span><span class="p">,</span> <span class="n">actual_yv</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">]))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">xv</span><span class="p">,</span> <span class="n">actual_xv</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">yv</span><span class="p">,</span> <span class="n">actual_yv</span><span class="p">)</span>
+      <span class="n">actual_xv</span><span class="p">,</span> <span class="n">actual_yv</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">xv</span><span class="p">,</span> <span class="n">actual_xv</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">yv</span><span class="p">,</span> <span class="n">actual_yv</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">,</span> <span class="s1">&#39;NaN&#39;</span><span class="p">):</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">z</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testGetShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testGetShape">[docs]</a>  <span class="k">def</span> <span class="nf">testGetShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">a</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">c</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">c</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">c</span><span class="p">)[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">c</span><span class="p">)[</span><span class="mi">3</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">d</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsInstance</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">d</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+
+    <span class="n">e</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">d</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">d</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">d</span><span class="p">)[</span><span class="mi">1</span><span class="p">]])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">e</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsInstance</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">e</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsInstance</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">e</span><span class="p">)[</span><span class="mi">2</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Identity</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+    <span class="n">f</span> <span class="o">=</span> <span class="n">Identity</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    <span class="c1"># Function return value does not have shape info.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNone</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">)</span>
+    <span class="c1"># GetShape() will return a Tensor.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsInstance</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">f</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testRenamingRules"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testRenamingRules">[docs]</a>  <span class="k">def</span> <span class="nf">testRenamingRules</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;model&#39;</span><span class="p">):</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">v1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">([(</span><span class="s1">&#39;model/(.*)&#39;</span><span class="p">,</span> <span class="s1">&#39;data/</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">)]):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">v2</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v2&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">v3</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v3&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">v1</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;model/v1/var:0&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">v2</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;data/v2/var:0&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">v3</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;model/v3/var:0&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testOpportunisticReuse"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testOpportunisticReuse">[docs]</a>  <span class="k">def</span> <span class="nf">testOpportunisticReuse</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">v1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+      <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">v2</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">x1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;x1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+          <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">v3</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+      <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v1&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="p">[</span><span class="n">v2</span><span class="p">,</span> <span class="n">v3</span><span class="p">]:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">v1</span> <span class="ow">is</span> <span class="n">v</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">v1</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">x1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testGetOrCreateGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testGetOrCreateGlobalStep">[docs]</a>  <span class="k">def</span> <span class="nf">testGetOrCreateGlobalStep</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;s1&#39;</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;s2&#39;</span><span class="p">):</span>
+        <span class="n">gs1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">()</span>
+        <span class="n">gs2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_global_step</span><span class="p">()</span>
+      <span class="n">gs3</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">()</span>
+      <span class="n">gs4</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_global_step</span><span class="p">()</span>
+    <span class="n">gs5</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">()</span>
+    <span class="n">gs6</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_global_step</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">gs</span> <span class="ow">in</span> <span class="p">[</span><span class="n">gs2</span><span class="p">,</span> <span class="n">gs3</span><span class="p">,</span> <span class="n">gs4</span><span class="p">,</span> <span class="n">gs5</span><span class="p">,</span> <span class="n">gs6</span><span class="p">]:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">gs1</span> <span class="ow">is</span> <span class="n">gs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">gs1</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;global_step:0&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testCreateLocalTheta"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testCreateLocalTheta">[docs]</a>  <span class="k">def</span> <span class="nf">testCreateLocalTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">methods</span> <span class="o">=</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">]</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">]</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">]]</span>
+
+    <span class="n">test_vars</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">dt</span><span class="p">,</span> <span class="n">sp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">methods</span><span class="p">,</span> <span class="n">dtypes</span><span class="p">,</span> <span class="n">shapes</span><span class="p">)):</span>
+      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">m</span><span class="p">(),</span> <span class="n">dt</span><span class="p">,</span> <span class="s1">&#39;col1&#39;</span><span class="p">)</span>
+      <span class="n">test_vars</span><span class="p">[</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="n">test_devices</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;/job:worker/replica:0/device:GPU:0&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;/job:worker/replica:0/device:GPU:1&#39;</span>
+    <span class="p">]</span>
+
+    <span class="n">sharded_local_vars</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateLocalTheta</span><span class="p">(</span><span class="n">test_vars</span><span class="p">,</span> <span class="n">test_devices</span><span class="p">)</span>
+    <span class="n">sharded_local_vars_list</span> <span class="o">=</span> <span class="n">sharded_local_vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+    <span class="c1"># assert the name is now Identity*</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">sharded_local_vars_list</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="s1">&#39;Identity&#39;</span> <span class="ow">in</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="c1"># assert proper device placement</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">sharded_local_vars_list</span><span class="p">):</span>
+      <span class="n">expected_device</span> <span class="o">=</span> <span class="n">test_devices</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">test_devices</span><span class="p">)]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">expected_device</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testComputeGradient"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testComputeGradient">[docs]</a>  <span class="k">def</span> <span class="nf">testComputeGradient</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="p">[])</span>
+      <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="n">c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="p">[])</span>
+      <span class="n">e</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;e&#39;</span><span class="p">,</span> <span class="p">[])</span>
+      <span class="n">l</span> <span class="o">=</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+      <span class="n">vmap</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">a</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">c</span><span class="p">,</span> <span class="n">d</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">aa</span><span class="o">=</span><span class="n">a</span><span class="p">,</span> <span class="n">e</span><span class="o">=</span><span class="n">e</span><span class="p">))</span>
+      <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">vmap</span><span class="p">)</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;var_grads = &#39;</span><span class="p">,</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
+      <span class="c1"># Only &#39;a&#39; matters. b is not trainable; c has stop_gradient; d</span>
+      <span class="c1"># is None; e is not computed by l and aa is a duplicated.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">([</span><span class="n">_</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()],</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">var_grads</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;a:0&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testAdjustGradientsWithL2Loss"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testAdjustGradientsWithL2Loss">[docs]</a>  <span class="k">def</span> <span class="nf">testAdjustGradientsWithL2Loss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">emb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
+          <span class="s1">&#39;emb&#39;</span><span class="p">,</span>
+          <span class="n">initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+      <span class="n">act</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">emb</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+      <span class="n">weight</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
+          <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+      <span class="n">bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mf">0.217</span><span class="p">]))</span>
+      <span class="n">pred</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">bias</span><span class="p">)</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">pred</span><span class="p">)</span>
+      <span class="n">vmap</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">emb</span><span class="o">=</span><span class="n">emb</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">weight</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">)</span>
+      <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">var_grads</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="p">[</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">])</span>
+      <span class="n">l2_loss</span><span class="p">,</span> <span class="n">var_grads_with_l2</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AdjustGradientsWithL2Loss</span><span class="p">(</span>
+          <span class="n">var_grads</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">())</span>
+      <span class="n">var_grads_vals</span><span class="p">,</span> <span class="n">l2_loss_val</span><span class="p">,</span> <span class="n">var_grads_with_l2_vals</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">l2_loss</span><span class="p">,</span> <span class="n">var_grads_with_l2</span><span class="p">])</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;var_grads_vals = &#39;</span><span class="p">,</span> <span class="n">var_grads_vals</span><span class="p">)</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;var_grads_with_l2_vals = &#39;</span><span class="p">,</span> <span class="n">var_grads_with_l2_vals</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">var_grads_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">var_grads_with_l2_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">var_grads_vals</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                          <span class="n">var_grads_with_l2_vals</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span>
+          <span class="n">l2_loss_val</span><span class="p">,</span>
+          <span class="mf">0.5</span> <span class="o">*</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">var_grads_vals</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+              <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">var_grads_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">2</span><span class="p">,</span> <span class="p">:]))</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span>
+                  <span class="n">np</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">var_grads_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">5</span><span class="p">,</span> <span class="p">:]))))</span>
+
+      <span class="c1"># With l2, gradients of emb and weight are adjusted.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">var_grads_with_l2_vals</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+          <span class="n">var_grads_vals</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">var_grads_vals</span><span class="o">.</span><span class="n">weight</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">var_grads_with_l2_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span>
+                          <span class="n">var_grads_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">var_grads_with_l2_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span>
+                          <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">var_grads_with_l2_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">,</span> <span class="n">var_grads_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">+</span>
+          <span class="mf">0.1</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">3.</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">3.</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">3.</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span> <span class="o">/</span> <span class="mf">2.</span><span class="p">]</span>
+                         <span class="p">])</span> <span class="o">*</span> <span class="n">var_grads_vals</span><span class="o">.</span><span class="n">emb</span><span class="p">[</span><span class="mi">0</span><span class="p">][[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">5</span><span class="p">],</span> <span class="p">:])</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testFindNeeded"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testFindNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">testFindNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">phs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="s1">&#39;float32&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;p</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">,</span> <span class="n">p4</span> <span class="o">=</span> <span class="n">phs</span>
+
+    <span class="n">z1</span> <span class="o">=</span> <span class="n">p1</span> <span class="o">+</span> <span class="n">p2</span>
+    <span class="n">z2</span> <span class="o">=</span> <span class="n">z1</span> <span class="o">*</span> <span class="n">p3</span>
+
+    <span class="n">z1_needed</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FindNeededInList</span><span class="p">(</span><span class="n">phs</span><span class="p">,</span> <span class="n">z1</span><span class="p">))</span>
+    <span class="n">z2_needed</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FindNeededInList</span><span class="p">(</span><span class="n">phs</span><span class="p">,</span> <span class="p">[</span><span class="n">z2</span><span class="p">]))</span>
+    <span class="n">z2_p4_needed</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FindNeededInList</span><span class="p">(</span><span class="n">phs</span><span class="p">,</span> <span class="p">[</span><span class="n">z2</span><span class="p">,</span> <span class="n">p4</span><span class="p">]))</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">])</span> <span class="o">==</span> <span class="n">z1_needed</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">])</span> <span class="o">==</span> <span class="n">z2_needed</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">p1</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="n">p3</span><span class="p">,</span> <span class="n">p4</span><span class="p">])</span> <span class="o">==</span> <span class="n">z2_p4_needed</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testStatsCounter"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testStatsCounter">[docs]</a>  <span class="k">def</span> <span class="nf">testStatsCounter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">foo</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">StatsCounter</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">)</span>
+      <span class="n">val</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">inc</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">IncBy</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">val</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">inc</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">val</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">200</span><span class="p">],</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">val</span><span class="p">,</span> <span class="n">inc</span><span class="p">]))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">([</span><span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">],</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">val</span><span class="p">,</span> <span class="n">inc</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testModelSplit"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testModelSplit">[docs]</a>  <span class="k">def</span> <span class="nf">testModelSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ModelSplit</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetModelSplit</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ModelSplit</span><span class="p">(</span><span class="mi">3</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetModelSplit</span><span class="p">()</span> <span class="o">==</span> <span class="mi">3</span>
+    <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetModelSplit</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testPiecewiseConstant"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testPiecewiseConstant">[docs]</a>  <span class="k">def</span> <span class="nf">testPiecewiseConstant</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">boundaries</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">2000</span><span class="p">,</span> <span class="mi">3000</span><span class="p">)</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1e-3</span><span class="p">,</span> <span class="mf">2e-4</span><span class="p">,</span> <span class="mf">3e-5</span><span class="p">,</span> <span class="mf">4e-6</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Eval</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PiecewiseConstant</span><span class="p">(</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">boundaries</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">vdtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">_Eval</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mf">1e-3</span><span class="p">,</span> <span class="n">_Eval</span><span class="p">(</span><span class="mi">1000</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mf">2e-4</span><span class="p">,</span> <span class="n">_Eval</span><span class="p">(</span><span class="mi">1001</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mf">2e-4</span><span class="p">,</span> <span class="n">_Eval</span><span class="p">(</span><span class="mi">2000</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mf">3e-5</span><span class="p">,</span> <span class="n">_Eval</span><span class="p">(</span><span class="mi">3000</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAlmostEqual</span><span class="p">(</span><span class="mf">4e-6</span><span class="p">,</span> <span class="n">_Eval</span><span class="p">(</span><span class="mi">4000</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="PyUtilsTest.testStackTensorsRecursively"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.PyUtilsTest.testStackTensorsRecursively">[docs]</a>  <span class="k">def</span> <span class="nf">testStackTensorsRecursively</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()):</span>
+      <span class="n">stacked</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">StackTensorsRecursively</span><span class="p">([</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+              <span class="n">x</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
+              <span class="n">y</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span>
+              <span class="n">z</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),),</span>
+          <span class="p">),</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+              <span class="n">x</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]),</span>
+              <span class="n">y</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(),</span>
+              <span class="n">z</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">]),),</span>
+          <span class="p">),</span>
+      <span class="p">])</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">stacked</span><span class="o">.</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]]))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">stacked</span><span class="o">.</span><span class="n">z</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">]]))</span></div></div>
+
+
+<div class="viewcode-block" id="WeightedAvgTest"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.WeightedAvgTest">[docs]</a><span class="k">class</span> <span class="nc">WeightedAvgTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="WeightedAvgTest.testWeightedAvg"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.WeightedAvgTest.testWeightedAvg">[docs]</a>  <span class="k">def</span> <span class="nf">testWeightedAvg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">losses</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mf">5.6</span><span class="p">,</span> <span class="mf">4.6</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mf">3.4</span><span class="p">])</span>
+      <span class="n">weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">8</span><span class="p">])</span>
+      <span class="n">loss</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvg</span><span class="p">(</span><span class="n">losses</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+      <span class="n">expected</span> <span class="o">=</span> <span class="p">[</span><span class="mf">4.4</span><span class="p">,</span> <span class="mi">29</span><span class="p">]</span>
+      <span class="n">actual</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">loss</span><span class="p">,</span> <span class="n">weight</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">actual</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WeightedAvgTest.testWeightedAvgOfMetrics"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.WeightedAvgTest.testWeightedAvgOfMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">testWeightedAvgOfMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">metrics</span> <span class="o">=</span> <span class="p">[{</span>
+          <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">2.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+          <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)</span>
+      <span class="p">},</span> <span class="p">{</span>
+          <span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">9.0</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">),</span>
+          <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">)</span>
+      <span class="p">}]</span>
+      <span class="n">expected</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">8.0</span><span class="p">,</span> <span class="mf">3.5</span><span class="p">),</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="p">(</span><span class="mf">4.75</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)}</span>
+      <span class="n">weighted_avg</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvgOfMetrics</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
+      <span class="n">actual</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">weighted_avg</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertDictEqual</span><span class="p">(</span><span class="n">actual</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WeightedAvgTest.testCombineMetrics"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.WeightedAvgTest.testCombineMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">testCombineMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">a</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">a</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">b</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">c</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
+    <span class="n">combined</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CombineMetrics</span><span class="p">([(</span><span class="n">a</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">),</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">),</span> <span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">combined</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">],</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">combined</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">],</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="n">total_loss</span> <span class="o">=</span> <span class="n">combined</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">combined</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">total_loss</span><span class="p">,</span> <span class="mi">100</span> <span class="o">*</span> <span class="mi">10</span> <span class="o">*</span> <span class="mf">0.7</span> <span class="o">+</span> <span class="mi">50</span> <span class="o">*</span> <span class="mi">20</span> <span class="o">*</span> <span class="mf">0.3</span> <span class="o">+</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">15</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WeightedAvgTest.testCombineMetricsKeyNotInAllMetrics"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.WeightedAvgTest.testCombineMetricsKeyNotInAllMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">testCombineMetricsKeyNotInAllMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">a</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">b</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">50</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">c</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">60</span><span class="p">,</span> <span class="mi">15</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">CombineMetrics</span><span class="p">([(</span><span class="n">a</span><span class="p">,</span> <span class="mf">0.7</span><span class="p">),</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">),</span> <span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">)])</span></div></div>
+
+
+<div class="viewcode-block" id="OverrideVarsFromCheckpointsTest"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.OverrideVarsFromCheckpointsTest">[docs]</a><span class="k">class</span> <span class="nc">OverrideVarsFromCheckpointsTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">_GetLeNetVarsFirstVal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;lenet5&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+      <span class="n">conv0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;conv0/w/var&#39;</span><span class="p">)</span>
+      <span class="n">conv1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;conv1/w/var&#39;</span><span class="p">)</span>
+      <span class="n">fc_bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;fc/b/var&#39;</span><span class="p">)</span>
+    <span class="n">conv0_val</span><span class="p">,</span> <span class="n">conv1_val</span><span class="p">,</span> <span class="n">fc_bias_val</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">conv0</span><span class="p">,</span> <span class="n">conv1</span><span class="p">,</span> <span class="n">fc_bias</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">conv0_val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">conv1_val</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">fc_bias_val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+<div class="viewcode-block" id="OverrideVarsFromCheckpointsTest.testOverrideVarsFromCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.OverrideVarsFromCheckpointsTest.testOverrideVarsFromCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">testOverrideVarsFromCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;image.mnist.LeNet5&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">ForTestingWorker</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">):</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="c1"># These are initialized values before overriding with checkpoint.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_GetLeNetVarsFirstVal</span><span class="p">(</span><span class="n">sess</span><span class="p">),</span>
+          <span class="p">[</span><span class="o">-</span><span class="mf">0.005945</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.036722</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+      <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">test_helper</span><span class="o">.</span><span class="n">test_src_dir_path</span><span class="p">(</span>
+          <span class="s1">&#39;core/testdata/lenet_test_model&#39;</span><span class="p">)</span>
+      <span class="n">variable_loading_rules</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;lenet5/conv0/w/var&#39;</span><span class="p">,</span> <span class="s1">&#39;lenet5/conv0/w/var&#39;</span><span class="p">),</span>
+                                <span class="p">(</span><span class="s1">&#39;lenet5/conv1/w/var&#39;</span><span class="p">,</span> <span class="s1">&#39;lenet5/conv1/w/var&#39;</span><span class="p">)]</span>
+      <span class="n">variable_ignore_rules</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">_OverrideVarsFromCheckpoint</span><span class="p">(</span>
+          <span class="n">sess</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">all_variables</span><span class="p">(),</span> <span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span>
+          <span class="n">variable_ignore_rules</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="c1"># Now conv weights have been overwritten but fc bias has not.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_GetLeNetVarsFirstVal</span><span class="p">(</span><span class="n">sess</span><span class="p">),</span>
+          <span class="p">[</span><span class="mf">0.043092</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.024082</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="OverrideVarsFromCheckpointsTest.testOverrideVarsFromCheckpointWithIgnoreRules"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.OverrideVarsFromCheckpointsTest.testOverrideVarsFromCheckpointWithIgnoreRules">[docs]</a>  <span class="k">def</span> <span class="nf">testOverrideVarsFromCheckpointWithIgnoreRules</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;image.mnist.LeNet5&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">ForTestingWorker</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">):</span>
+        <span class="n">cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="c1"># These are initialized values before overriding with checkpoint.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_GetLeNetVarsFirstVal</span><span class="p">(</span><span class="n">sess</span><span class="p">),</span>
+          <span class="p">[</span><span class="o">-</span><span class="mf">0.005945</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.036722</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+      <span class="n">checkpoint_path</span> <span class="o">=</span> <span class="n">test_helper</span><span class="o">.</span><span class="n">test_src_dir_path</span><span class="p">(</span>
+          <span class="s1">&#39;core/testdata/lenet_test_model&#39;</span><span class="p">)</span>
+      <span class="n">variable_loading_rules</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;lenet5/conv0/w/var&#39;</span><span class="p">,</span> <span class="s1">&#39;lenet5/conv0/w/var&#39;</span><span class="p">),</span>
+                                <span class="p">(</span><span class="s1">&#39;lenet5/conv1/w/var&#39;</span><span class="p">,</span> <span class="s1">&#39;lenet5/conv1/w/var&#39;</span><span class="p">)]</span>
+      <span class="n">variable_ignore_rules</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;lenet5/conv1/w/var&#39;</span><span class="p">]</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">_OverrideVarsFromCheckpoint</span><span class="p">(</span>
+          <span class="n">sess</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">all_variables</span><span class="p">(),</span> <span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span>
+          <span class="n">variable_ignore_rules</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="c1"># Now only conv0 weights have been overridden.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_GetLeNetVarsFirstVal</span><span class="p">(</span><span class="n">sess</span><span class="p">),</span>
+          <span class="p">[</span><span class="mf">0.043092</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.036722</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="NestedMapTest"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest">[docs]</a><span class="k">class</span> <span class="nc">NestedMapTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="NestedMapTest.testBasic"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest.testBasic">[docs]</a>  <span class="k">def</span> <span class="nf">testBasic</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+    <span class="n">x</span><span class="p">[</span><span class="s1">&#39;foo&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">foo</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;foo&#39;</span><span class="p">])</span>
+    <span class="n">x</span><span class="o">.</span><span class="n">bar</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span><span class="s1">&#39;baz&#39;</span><span class="p">:</span> <span class="mi">200</span><span class="p">})</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">baz</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="s1">&#39;flatten&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NestedMapTest.testPrint"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest.testPrint">[docs]</a>  <span class="k">def</span> <span class="nf">testPrint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">foo</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">foo</span><span class="o">.</span><span class="n">bar</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="s1">&#39;abc&#39;</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">lst</span> <span class="o">=</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span><span class="s1">&#39;l&#39;</span><span class="p">:</span> <span class="n">i</span><span class="p">})</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+        <span class="s1">&#39;foo.bar     100&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;lst[0].l    0&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;lst[1].l    1&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;x.y.z       abc&#39;</span><span class="p">]))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
+<div class="viewcode-block" id="NestedMapTest.testTransform"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest.testTransform">[docs]</a>  <span class="k">def</span> <span class="nf">testTransform</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">foo</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">32</span><span class="p">]</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">bar</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">201</span><span class="p">]</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">z</span> <span class="o">=</span> <span class="p">(</span><span class="mi">123</span><span class="p">,</span> <span class="mi">321</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">[</span><span class="s1">&#39;bar.x       101&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;bar.y[0]    201&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;bar.y[1]    202&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;foo[0]      2&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;foo[1]      21&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;foo[2]      33&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;z           (123, 321)&#39;</span><span class="p">]))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
+<div class="viewcode-block" id="NestedMapTest.testPack"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest.testPack">[docs]</a>  <span class="k">def</span> <span class="nf">testPack</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">foo</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">32</span><span class="p">]</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">bar</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">bar</span><span class="o">.</span><span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">201</span><span class="p">]</span>
+    <span class="n">m</span><span class="o">.</span><span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="mi">123</span><span class="p">,</span> <span class="mi">321</span><span class="p">)</span>
+    <span class="n">n</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">7</span><span class="p">)))</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">n</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+        <span class="p">[</span><span class="s1">&#39;bar.x       0&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;bar.y[0]    1&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;bar.y[1]    2&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;foo[0]      3&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;foo[1]      4&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;foo[2]      5&#39;</span><span class="p">,</span>
+         <span class="s1">&#39;x           6&#39;</span><span class="p">]))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
+<div class="viewcode-block" id="NestedMapTest.testEmpty"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest.testEmpty">[docs]</a>  <span class="k">def</span> <span class="nf">testEmpty</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="p">[])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">m1</span> <span class="o">=</span> <span class="n">m</span><span class="o">.</span><span class="n">Pack</span><span class="p">([])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">m1</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="p">[])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">m1</span><span class="o">.</span><span class="n">DebugString</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NestedMapTest.testIsCompatible"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest.testIsCompatible">[docs]</a>  <span class="k">def</span> <span class="nf">testIsCompatible</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">a</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">e</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]))</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">e</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">]))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+    <span class="n">z</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">a</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">e</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;z&#39;</span><span class="p">]))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">z</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="NestedMapTest.testFlattenItems"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest.testFlattenItems">[docs]</a>  <span class="k">def</span> <span class="nf">testFlattenItems</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">a</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">e</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]))</span>
+    <span class="n">flat_x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;a&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;c.d&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;c.e&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;c.e&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+                <span class="p">(</span><span class="s1">&#39;c.e&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">)]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">flat_x</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NestedMapTest.testFilter"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest.testFilter">[docs]</a>  <span class="k">def</span> <span class="nf">testFilter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">a</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
+        <span class="n">b</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span>
+        <span class="n">d</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="mi">38</span><span class="p">,</span> <span class="n">bar</span><span class="o">=</span><span class="mi">192</span><span class="p">,</span> <span class="n">ok</span><span class="o">=</span><span class="p">[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">],</span> <span class="n">ko</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">]))</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="mi">150</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">(),</span> <span class="p">[(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;d.bar&#39;</span><span class="p">,</span> <span class="mi">192</span><span class="p">),</span>
+                                        <span class="p">(</span><span class="s1">&#39;d.ok&#39;</span><span class="p">,</span> <span class="mi">200</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;d.ok&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">)])</span></div>
+
+<div class="viewcode-block" id="NestedMapTest.testCopy"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.NestedMapTest.testCopy">[docs]</a>  <span class="k">def</span> <span class="nf">testCopy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># This is not a copy.</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">a</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">e</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]))</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">x</span>
+    <span class="n">y</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+
+    <span class="c1"># This is a (shallow) copy.</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">a</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">e</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]))</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertNotEqual</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">id</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+    <span class="n">y</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span>
+    <span class="n">y</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="s1">&#39;z&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">d</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">d</span><span class="p">)</span>
+
+    <span class="c1"># This is also a (shallow) copy.</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">a</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="n">e</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">]))</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertNotEqual</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="nb">id</span><span class="p">(</span><span class="n">y</span><span class="p">))</span>
+    <span class="n">y</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="s1">&#39;y&#39;</span>
+    <span class="n">y</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="s1">&#39;z&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">a</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="n">y</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">d</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;z&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">d</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ReadOnlyAttrDictViewTest"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.ReadOnlyAttrDictViewTest">[docs]</a><span class="k">class</span> <span class="nc">ReadOnlyAttrDictViewTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ReadOnlyAttrDictViewTest.testWrapping"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.ReadOnlyAttrDictViewTest.testWrapping">[docs]</a>  <span class="k">def</span> <span class="nf">testWrapping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">backing</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">view</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ReadOnlyAttrDictView</span><span class="p">(</span><span class="n">backing</span><span class="p">)</span>
+    <span class="n">backing</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">view</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">view</span><span class="o">.</span><span class="n">test</span><span class="p">)</span>
+    <span class="c1"># Item assign.</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+      <span class="n">view</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">view</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">])</span>
+    <span class="c1"># Attr assign.</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+      <span class="n">view</span><span class="o">.</span><span class="n">test</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">view</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">])</span>
+    <span class="c1"># Delete attr.</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+      <span class="k">del</span> <span class="n">view</span><span class="o">.</span><span class="n">test</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">view</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">])</span>
+    <span class="c1"># Delete item.</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+      <span class="k">del</span> <span class="n">view</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEquals</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">view</span><span class="p">[</span><span class="s1">&#39;test&#39;</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="ApplyPaddingTest"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.ApplyPaddingTest">[docs]</a><span class="k">class</span> <span class="nc">ApplyPaddingTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ApplyPaddingTest.testApplyPaddingToZeroWithBroadcast"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.ApplyPaddingTest.testApplyPaddingToZeroWithBroadcast">[docs]</a>  <span class="k">def</span> <span class="nf">testApplyPaddingToZeroWithBroadcast</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]],</span>
+                                <span class="p">[[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="p">[[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span></div>
+
+<div class="viewcode-block" id="ApplyPaddingTest.testApplyPaddingToConstWithBroadcast"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.ApplyPaddingTest.testApplyPaddingToConstWithBroadcast">[docs]</a>  <span class="k">def</span> <span class="nf">testApplyPaddingToConstWithBroadcast</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]],</span>
+                                <span class="p">[[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]],</span>
+                                <span class="p">[[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">9.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="p">[[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">9.0</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span></div>
+
+<div class="viewcode-block" id="ApplyPaddingTest.testApplyPaddingToZeroWithoutBroadcast"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.ApplyPaddingTest.testApplyPaddingToZeroWithoutBroadcast">[docs]</a>  <span class="k">def</span> <span class="nf">testApplyPaddingToZeroWithoutBroadcast</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">([[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]],</span>
+                                <span class="p">[[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">3.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">6.0</span><span class="p">]])</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="p">[[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span> <span class="p">[</span><span class="mf">5.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">]])</span></div></div>
+
+
+<div class="viewcode-block" id="MixByWeightTest"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.MixByWeightTest">[docs]</a><span class="k">class</span> <span class="nc">MixByWeightTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="MixByWeightTest.testMixByWeight"><a class="viewcode-back" href="../../../lingvo.core.py_utils_test.html#lingvo.core.py_utils_test.MixByWeightTest.testMixByWeight">[docs]</a>  <span class="k">def</span> <span class="nf">testMixByWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">var_a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">var_b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">initializer</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">())</span>
+
+      <span class="k">def</span> <span class="nf">_AddFn</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
+
+        <span class="k">def</span> <span class="nf">_Fn</span><span class="p">():</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">_Fn</span>
+
+      <span class="n">op</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MixByWeight</span><span class="p">([(</span><span class="n">_AddFn</span><span class="p">(</span><span class="n">var_a</span><span class="p">),</span> <span class="mf">0.7</span><span class="p">),</span> <span class="p">(</span><span class="n">_AddFn</span><span class="p">(</span><span class="n">var_b</span><span class="p">),</span> <span class="mf">0.3</span><span class="p">)])</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">op</span><span class="p">)</span>
+      <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">var_a</span><span class="p">,</span> <span class="n">var_b</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">a</span> <span class="o">+</span> <span class="n">b</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertLess</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

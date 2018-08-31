@@ -1,0 +1,392 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.early_stop_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.early_stop_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.early_stop_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for early_stop.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">early_stop</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+
+
+<div class="viewcode-block" id="MetricHistoryTest"><a class="viewcode-back" href="../../../lingvo.core.early_stop_test.html#lingvo.core.early_stop_test.MetricHistoryTest">[docs]</a><span class="k">class</span> <span class="nc">MetricHistoryTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="MetricHistoryTest.setUp"><a class="viewcode-back" href="../../../lingvo.core.early_stop_test.html#lingvo.core.early_stop_test.MetricHistoryTest.setUp">[docs]</a>  <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">_metric_histories_map</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="MetricHistoryTest.testSetLogdirInMetricHistories"><a class="viewcode-back" href="../../../lingvo.core.early_stop_test.html#lingvo.core.early_stop_test.MetricHistoryTest.testSetLogdirInMetricHistories">[docs]</a>  <span class="k">def</span> <span class="nf">testSetLogdirInMetricHistories</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;testparams&#39;</span><span class="p">,</span> <span class="s1">&#39;test params&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;logdir&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;dummy logdir&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mh1&#39;</span><span class="p">,</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;history1&#39;</span><span class="p">)</span>
+    <span class="n">p2</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p2</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mh2&#39;</span><span class="p">,</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;history2&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;subparams&#39;</span><span class="p">,</span> <span class="n">p2</span><span class="p">,</span> <span class="s1">&#39;subparams&#39;</span><span class="p">)</span>
+
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;dir&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">mh1</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;dir&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">subparams</span><span class="o">.</span><span class="n">mh2</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;dir&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertNotEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;dir&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MetricHistoryTest.testMetricHistoriesMapUniqueness"><a class="viewcode-back" href="../../../lingvo.core.early_stop_test.html#lingvo.core.early_stop_test.MetricHistoryTest.testMetricHistoriesMapUniqueness">[docs]</a>  <span class="k">def</span> <span class="nf">testMetricHistoriesMapUniqueness</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># pylint: disable=unused-variable</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">mh1</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">jobname</span><span class="o">=</span><span class="s1">&#39;job1&#39;</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;m1&#39;</span><span class="p">))</span>
+    <span class="n">mh2</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">jobname</span><span class="o">=</span><span class="s1">&#39;job2&#39;</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;m2&#39;</span><span class="p">))</span>
+    <span class="n">mh3</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">jobname</span><span class="o">=</span><span class="s1">&#39;job1&#39;</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;m1&#39;</span><span class="p">))</span>
+
+    <span class="n">m</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">_metric_histories_map</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">m</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">_Key</span><span class="p">(</span><span class="s1">&#39;job1&#39;</span><span class="p">,</span> <span class="s1">&#39;m1&#39;</span><span class="p">)],</span> <span class="n">mh3</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">m</span><span class="p">[</span><span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">_Key</span><span class="p">(</span><span class="s1">&#39;job2&#39;</span><span class="p">,</span> <span class="s1">&#39;m2&#39;</span><span class="p">)],</span> <span class="n">mh2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MetricHistoryTest.testMetricHistoriesFiles"><a class="viewcode-back" href="../../../lingvo.core.early_stop_test.html#lingvo.core.early_stop_test.MetricHistoryTest.testMetricHistoriesFiles">[docs]</a>  <span class="k">def</span> <span class="nf">testMetricHistoriesFiles</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">logdir</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;job1&#39;</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;job2&#39;</span><span class="p">))</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">logdir</span><span class="o">=</span><span class="n">logdir</span><span class="p">)</span>
+    <span class="n">mh1</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">jobname</span><span class="o">=</span><span class="s1">&#39;job1&#39;</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;m1&#39;</span><span class="p">,</span> <span class="n">local_filesystem</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+    <span class="n">mh2</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">jobname</span><span class="o">=</span><span class="s1">&#39;job2&#39;</span><span class="p">,</span> <span class="n">metric</span><span class="o">=</span><span class="s1">&#39;m2&#39;</span><span class="p">,</span> <span class="n">local_filesystem</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="s1">&#39;job1&#39;</span><span class="p">,</span> <span class="s1">&#39;m1&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="s1">&#39;job1&#39;</span><span class="p">,</span> <span class="s1">&#39;m2&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="s1">&#39;job2&#39;</span><span class="p">,</span> <span class="s1">&#39;m2&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="s1">&#39;job1&#39;</span><span class="p">,</span> <span class="s1">&#39;m1&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">mh1</span><span class="o">.</span><span class="n">hist_file</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">mh2</span><span class="o">.</span><span class="n">hist_file</span><span class="p">))</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">FastGFile</span><span class="p">(</span><span class="n">mh1</span><span class="o">.</span><span class="n">hist_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span> <span class="s1">&#39;1 10.000000&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span> <span class="s1">&#39;2 5.000000&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">FastGFile</span><span class="p">(</span><span class="n">mh2</span><span class="o">.</span><span class="n">hist_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lines</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">lines</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(),</span> <span class="s1">&#39;1 10.000000&#39;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="EarlyStopTest"><a class="viewcode-back" href="../../../lingvo.core.early_stop_test.html#lingvo.core.early_stop_test.EarlyStopTest">[docs]</a><span class="k">class</span> <span class="nc">EarlyStopTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="EarlyStopTest.testEarlyStopDefaultIsNoOp"><a class="viewcode-back" href="../../../lingvo.core.early_stop_test.html#lingvo.core.early_stop_test.EarlyStopTest.testEarlyStopDefaultIsNoOp">[docs]</a>  <span class="k">def</span> <span class="nf">testEarlyStopDefaultIsNoOp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">es</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">es</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">mh</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span>
+                             <span class="n">es</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNone</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">_node</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">_metric_histories_map</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EarlyStopTest.testEarlyStopping"><a class="viewcode-back" href="../../../lingvo.core.early_stop_test.html#lingvo.core.early_stop_test.EarlyStopTest.testEarlyStopping">[docs]</a>  <span class="k">def</span> <span class="nf">testEarlyStopping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">logdir</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;eval_dev&#39;</span><span class="p">))</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">local_filesystem</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">logdir</span><span class="p">)</span>
+
+    <span class="n">es</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">es</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">jobname</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span>
+      <span class="n">metric</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric</span>
+      <span class="n">mh</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">best_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">last_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">best_step</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">last_step</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">best_step</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">last_step</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">best_step</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">last_step</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EarlyStopTest.testEarlyStoppingAscendingMetric"><a class="viewcode-back" href="../../../lingvo.core.early_stop_test.html#lingvo.core.early_stop_test.EarlyStopTest.testEarlyStoppingAscendingMetric">[docs]</a>  <span class="k">def</span> <span class="nf">testEarlyStoppingAscendingMetric</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">logdir</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;decoder_dev&#39;</span><span class="p">))</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">local_filesystem</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">minimize</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">metric</span> <span class="o">=</span> <span class="s1">&#39;canonical_bleu&#39;</span>
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">logdir</span><span class="p">)</span>
+
+    <span class="n">es</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">es</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">jobname</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span>
+      <span class="n">metric</span> <span class="o">=</span> <span class="n">es</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric</span>
+      <span class="n">mh</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">best_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">last_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">best_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">last_step</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mf">2.5</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">best_step</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">last_step</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">best_step</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">last_step</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">best_step</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">es</span><span class="o">.</span><span class="n">last_step</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

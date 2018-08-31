@@ -1,0 +1,567 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.cluster_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.cluster_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.cluster_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for cluster.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+
+
+<div class="viewcode-block" id="ClusterTest"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest">[docs]</a><span class="k">class</span> <span class="nc">ClusterTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ClusterTest.testDefaultParams"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testDefaultParams">[docs]</a>  <span class="k">def</span> <span class="nf">testDefaultParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+          <span class="n">vs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;x</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)))</span>
+        <span class="n">sum_all</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+          <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+          <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+              <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+              <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+              <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span>
+              <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="n">sum_all</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testDefaultParamsWithDynamicShape"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testDefaultParamsWithDynamicShape">[docs]</a>  <span class="k">def</span> <span class="nf">testDefaultParamsWithDynamicShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+          <span class="n">dyn_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+          <span class="n">dyn_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder_with_default</span><span class="p">(</span><span class="n">dyn_shape</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">])</span>
+          <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
+              <span class="s1">&#39;x</span><span class="si">%d</span><span class="s1">_wb/var&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span>
+              <span class="n">initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span><span class="n">dyn_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float64</span><span class="p">),</span>
+              <span class="n">validate_shape</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+          <span class="n">vs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">sum_all</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+          <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+          <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+              <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+              <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+              <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span>
+              <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="n">sum_all</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testNoPS"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testNoPS">[docs]</a>  <span class="k">def</span> <span class="nf">testNoPS</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+          <span class="n">vs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;x</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)))</span>
+        <span class="n">sum_all</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+          <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+          <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+              <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span>
+              <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+              <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span>
+              <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="n">sum_all</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span> <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testNoPSWithGPUs"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testNoPSWithGPUs">[docs]</a>  <span class="k">def</span> <span class="nf">testNoPSWithGPUs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">4</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+          <span class="n">vs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;x</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)))</span>
+        <span class="n">sum_all</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vs</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+          <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+          <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+              <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span>
+              <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+              <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+              <span class="n">device_id</span><span class="o">=</span><span class="n">i</span> <span class="o">%</span> <span class="mi">4</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+          <span class="n">sum_all</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+          <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+              <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span>
+              <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+              <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+              <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testPS"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testPS">[docs]</a>  <span class="k">def</span> <span class="nf">testPS</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:ps&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+          <span class="n">vs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;x</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)))</span>
+        <span class="n">sum_all</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vs</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+          <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+          <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+              <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:ps&#39;</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="n">i</span> <span class="o">%</span> <span class="mi">4</span><span class="p">,</span> <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span>
+              <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="n">sum_all</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span> <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testPSWithGPUs"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testPSWithGPUs">[docs]</a>  <span class="k">def</span> <span class="nf">testPSWithGPUs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:ps&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+          <span class="n">vs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;x</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">10</span><span class="p">)))</span>
+        <span class="n">sum_all</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">vs</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+          <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+          <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+              <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:ps&#39;</span><span class="p">,</span>
+              <span class="n">task_id</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">%</span> <span class="mi">4</span><span class="p">,</span>
+              <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+              <span class="n">device_id</span><span class="o">=</span><span class="n">i</span> <span class="o">%</span> <span class="mi">2</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="n">sum_all</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span> <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testPSRandomSize"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testPSRandomSize">[docs]</a>  <span class="k">def</span> <span class="nf">testPSRandomSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:ps&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">301</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+        <span class="c1"># Creates 200 variables with different sizes.</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">200</span><span class="p">):</span>
+          <span class="k">if</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">13</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">10000</span><span class="p">)</span>
+          <span class="k">elif</span> <span class="n">i</span> <span class="o">%</span> <span class="mi">7</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">size</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+          <span class="n">vs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;x</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">size</span><span class="p">)))</span>
+        <span class="n">sum_all</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">])</span>
+    <span class="c1"># Computes the total size of variables placed on each device.</span>
+    <span class="n">total_size</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># device name -&gt; size</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vs</span><span class="p">:</span>
+      <span class="n">size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">get_attr</span><span class="p">(</span><span class="s1">&#39;shape&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">device</span> <span class="ow">in</span> <span class="n">total_size</span><span class="p">:</span>
+        <span class="n">total_size</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">+=</span> <span class="n">size</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">total_size</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="n">size</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">allocated</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+        <span class="nb">sorted</span><span class="p">(</span><span class="n">total_size</span><span class="p">),</span>
+        <span class="p">[</span><span class="mi">91701</span><span class="p">,</span> <span class="mi">91361</span><span class="p">,</span> <span class="mi">90346</span><span class="p">,</span> <span class="mi">88738</span><span class="p">,</span> <span class="mi">87240</span><span class="p">,</span> <span class="mi">89265</span><span class="p">,</span> <span class="mi">91944</span><span class="p">,</span> <span class="mi">92472</span><span class="p">,</span> <span class="mi">88051</span><span class="p">,</span> <span class="mi">95053</span><span class="p">]):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">total_size</span><span class="p">[</span><span class="n">device</span><span class="p">],</span> <span class="n">allocated</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="n">sum_all</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span> <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testDeviceListOneReplicaGpu"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testDeviceListOneReplicaGpu">[docs]</a>  <span class="k">def</span> <span class="nf">testDeviceListOneReplicaGpu</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;async&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">gpu_devices</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">available_devices</span>
+    <span class="n">expected_gpu_devices</span> <span class="o">=</span> <span class="p">[[</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">]]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">gpu_devices</span><span class="p">,</span> <span class="n">expected_gpu_devices</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testDeviceListMultiReplicaNoSyncSgd"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testDeviceListMultiReplicaNoSyncSgd">[docs]</a>  <span class="k">def</span> <span class="nf">testDeviceListMultiReplicaNoSyncSgd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;async&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">gpu_devices</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">available_devices</span>
+    <span class="n">expected_gpu_devices</span> <span class="o">=</span> <span class="p">[[</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">]]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">gpu_devices</span><span class="p">,</span> <span class="n">expected_gpu_devices</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testDeviceListMultiReplicaSyncSgd"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testDeviceListMultiReplicaSyncSgd">[docs]</a>  <span class="k">def</span> <span class="nf">testDeviceListMultiReplicaSyncSgd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:localhost&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">gpu_devices</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">available_devices</span>
+    <span class="n">expected_gpu_devices</span> <span class="o">=</span> <span class="p">[[</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">],</span> <span class="p">[</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+            <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
+            <span class="n">task_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span>
+            <span class="n">device_id</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+    <span class="p">]]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">gpu_devices</span><span class="p">,</span> <span class="n">expected_gpu_devices</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testInputDevice"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testInputDevice">[docs]</a>  <span class="k">def</span> <span class="nf">testInputDevice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:input&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">input_device</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">input_device</span>
+    <span class="n">expected_device</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+        <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:input&#39;</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;CPU&#39;</span><span class="p">,</span> <span class="n">device_id</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">input_device</span><span class="p">,</span> <span class="n">expected_device</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testWorkerDeviceInModelSplitSync"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testWorkerDeviceInModelSplitSync">[docs]</a>  <span class="k">def</span> <span class="nf">testWorkerDeviceInModelSplitSync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ModelSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+      <span class="n">d</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">expected_device</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+        <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span> <span class="n">device_id</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">expected_device</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ClusterTest.testWorkerDeviceInModelSplit"><a class="viewcode-back" href="../../../lingvo.core.cluster_test.html#lingvo.core.cluster_test.ClusterTest.testWorkerDeviceInModelSplit">[docs]</a>  <span class="k">def</span> <span class="nf">testWorkerDeviceInModelSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;async&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ModelSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+      <span class="n">d</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">expected_device</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span>
+        <span class="n">job_name</span><span class="o">=</span><span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span> <span class="n">task_id</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">device_name</span><span class="o">=</span><span class="s1">&#39;GPU&#39;</span><span class="p">,</span> <span class="n">device_id</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">expected_device</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
