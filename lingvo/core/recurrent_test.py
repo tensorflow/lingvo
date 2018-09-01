@@ -39,18 +39,19 @@ def _ApplyPadding(padding, v_no_pad, v_pad):
 
 
 def _ReferenceStaticUnroll(theta, state0, inputs, cell_fn):
-  """Statically unrolls a cell_fn wrt inputs as recurrent.Recurrent() does.
+  """Statically unrolls a `cell_fn` wrt inputs as `recurrent.Recurrent()` does.
 
   This is not a complete implementation but should work reasonably for
   calls that do not have a custom cell_grad, extras or accumulators and
   can help check expectations.
 
   Args:
-    theta: weights. A NestedMap.
-    state0: initial state. A NestedMap.
-    inputs: inputs. A NestedMap. Tensors must have static shape.
-    cell_fn: A python function, which computes:
+    theta: weights. A `.NestedMap`.
+    state0: initial state. A `.NestedMap`.
+    inputs: inputs. A `.NestedMap`. Tensors must have static shape.
+    cell_fn: A python function, which computes::
       state1, extras = cell_fn(theta, state0, inputs[t, :])
+
   Returns:
     accumulate and final state.
   """

@@ -202,7 +202,7 @@ class ShiftedExponentialScheduler(TaskScheduler):
   def Sample(self, current_step):
     """Sample a task.
 
-    Given an input `[a, b]` and a rate `alpha`, the unnormalized
+    Given an input [a, b] and a rate `alpha`, the unnormalized
     score of eack task is a + b * exp(-alpha * t).
 
     Args:

@@ -124,6 +124,7 @@ def _StitchWeights(w_i, w_f, w_c, w_o,
 
   LSTMCellSimple uses a single weight Tensor of shape [input_dim, 4 * cell_dim].
   This method puts the weight tensors together.
+
   Args:
     w_i:
     w_f:
@@ -137,6 +138,7 @@ def _StitchWeights(w_i, w_f, w_c, w_o,
       weights applied on recurrent input.
     input_dim: an int, LSTM input dim.
     cell_dim: an int, LSTM cell dim.
+
   Returns:
     A weight Tensor.
   """
@@ -164,6 +166,7 @@ def _StitchBiases(b_wi, b_wf, b_wc, b_wo,
 
   LSTMCellSimple uses a single bias Tensor of shape [4 * cell_dim]. This method
   puts the bias tensors together.
+
   Args:
     b_wi:
     b_wf:
@@ -175,8 +178,9 @@ def _StitchBiases(b_wi, b_wf, b_wc, b_wo,
     b_rc:
     b_ro:
       biases applied on recurrent input.
+
   Returns:
-   A bias Tensor.
+    A bias Tensor.
   """
   return (
       tf.concat([b_wc, b_wi, b_wf, b_wo], axis=0) +
@@ -196,9 +200,9 @@ def _CuDNNParamsToCanonical(cudnn_params, input_dim, cell_dim, direction):
       cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION.
   Returns:
     A list of weight Tensor and a list of bias Tensor, in the order they appear
-    in input \'cudnn_params\', described above.
+    in input `cudnn_params`, described above.
   Raises:
-    ValueError: for invalid \'direction\'.
+    ValueError: for invalid `direction`.
   """
   if direction not in (UNI_RNN, BI_RNN):
     raise ValueError('\'direction\' must be %s or %s, receive %s.',
@@ -228,7 +232,7 @@ def RecoverLSTMCellSimpleWeightsFromCuDNN(cudnn_params, input_dim, cell_dim,
   Returns:
     A list of weight Tensor and a list of bias Tensor.
   Raises:
-    ValueError: for invalid \'direction\'.
+    ValueError: for invalid `direction`.
   """
   if direction not in (cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION,
                        cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION):
@@ -279,33 +283,39 @@ class CuDNNLSTMSaveable(tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
   checkpoints can be used by both CuDNN and platform-independent RNN cells.
 
   CuDNN LSTM equation:
-    i_t = σ(w_i * x_t + r_i * h_(t-1) + b_wi + b_ri)
-    f_t = σ(w_f * x_t + r_f * h_(t-1) + b_wf + b_rf)
-    o_t = σ(w_o * x_t + r_o h_(t-1) + b_wo + b_ro)
-    c'_t = tanh(w_c * x_t + r_c * h_(t-1) + b_wc + b_rc)
-    c_t = f_t ◦ c_(t-1) + i_t ◦ c'_t
-    h_t = o_t ◦ tanh(c_t)
+
+      | i_t = σ(w_i * x_t + r_i * h_(t-1) + b_wi + b_ri)
+      | f_t = σ(w_f * x_t + r_f * h_(t-1) + b_wf + b_rf)
+      | o_t = σ(w_o * x_t + r_o h_(t-1) + b_wo + b_ro)
+      | c'_t = tanh(w_c * x_t + r_c * h_(t-1) + b_wc + b_rc)
+      | c_t = f_t ◦ c_(t-1) + i_t ◦ c'_t
+      | h_t = o_t ◦ tanh(c_t)
 
   When saving, the opaque param is first transformed into a list of tensors
   in CuDNN canonical format, then further processed to be in the format of
   LSTMCellSimple vars.
+
   When recovering from a CuDNN graph, the restored tensors go through the
   reverse of the aforementioned process.
+
   When recovering from graphs built with LSTMCellSimple, the tensors in the
   checkpoints are ready to use, with the right shapes and names.
 
   Specifically the tensors are saved in the following order:
-  ------------------------------------------------------------
-  | weights                    | biases                      |
-  ------------------------------------------------------------
-   \                             \
-    -------------------------------
-    | layer1     |layer2     |... |
-    -------------------------------
-    \             \
-     ---------------
-     |fwd   |bak   |
-     ---------------
+
+  .. code-block:: none
+
+      ------------------------------------------------------------
+      | weights                    | biases                      |
+      ------------------------------------------------------------
+       \                             \
+        -------------------------------
+        | layer1     |layer2     |... |
+        -------------------------------
+        \             \
+         ---------------
+         |fwd   |bak   |
+         ---------------
   """
 
   def __init__(self,
@@ -343,21 +353,27 @@ class CuDNNLSTMSaveable(tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
     r"""Transform single layer Cudnn canonicals to tf canonicals.
 
     The elements of cu_weights, cu_biases are laid out in the following order:
-    -------------------------------------------------
-    | w_i | w_f | w_c | w_o | r_i | r_f | r_c | r_o |
-    -------------------------------------------------
-    ---------------------------------------------------------
-    | b_wi | b_wf | b_wc | b_wo | b_ri | b_rf | b_rc | b_ro |
-    ---------------------------------------------------------
+
+    .. code-block:: none
+
+        -------------------------------------------------
+        | w_i | w_f | w_c | w_o | r_i | r_f | r_c | r_o |
+        -------------------------------------------------
+        ---------------------------------------------------------
+        | b_wi | b_wf | b_wc | b_wo | b_ri | b_rf | b_rc | b_ro |
+        ---------------------------------------------------------
 
     The transformed canonicals are in the following format and order:
-    -----------------------------
-    | w_c' | w_i' | w_f' | w_o' |
-    | r_c' | r_i' | r_f' | r_o' |
-    -----------------------------
-    ---------------------------------------------------------
-    | b_wc + b_rc | b_wi + b_ri | b_wf + b_rf | b_wo + b_ro |
-    ---------------------------------------------------------
+
+    .. code-block:: none
+
+        -----------------------------
+        | w_c' | w_i' | w_f' | w_o' |
+        | r_c' | r_i' | r_f' | r_o' |
+        -----------------------------
+        ---------------------------------------------------------
+        | b_wc + b_rc | b_wi + b_ri | b_wf + b_rf | b_wo + b_ro |
+        ---------------------------------------------------------
 
     The shapes of each element before transpose is reflected by
     `CuDNNLSTMInitializer.{weight_shapes, biase_shapes}`.

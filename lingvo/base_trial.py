@@ -57,16 +57,16 @@ class Trial(object):
     raise NotImplementedError('Abstract method')
 
   def OverrideModelParams(self, model_params):
-    """Modifies 'model_params' according to trial params.
+    """Modifies `model_params` according to trial params.
 
-    Through this method a Trial may tweak model hyperparams (e.g., learning
+    Through this method a `Trial` may tweak model hyperparams (e.g., learning
     rate, shape, depth, or width of networks).
 
     Args:
       model_params: the original model hyperparams.
 
     Returns:
-      The modified model_params.
+      The modified `model_params`.
     """
     raise NotImplementedError('Abstract method')
 
@@ -120,4 +120,3 @@ class NoOpTrial(Trial):
   def ReportEvalMeasure(self, global_step, is_final, metrics_dict):
     del global_step, is_final, metrics_dict  # Unused
     return False
-

@@ -94,9 +94,9 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     """Computes cross-entropy loss given the softmax input, labels and weights.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
-      softmax_input: A tensor of shape [time, batch, params.softmax.input_dim].
+      softmax_input: A tensor of shape [time, batch, p.softmax.input_dim].
       target_labels: A matrix of tf.int32. [time, batch].
       target_weights: A matrix of params.dtype. [time, batch].
       target_paddings: A matrix of params.dtype. [time, batch].
@@ -417,15 +417,15 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
   @py_utils.NameScopeDecorator('MTDecoderV1/ComputePredictions')
   def ComputePredictions(self, theta, source_encs, source_paddings, targets,
                          src_segment_id):
-    """Decodes 'targets' given encoded source.
+    """Decodes `targets` given encoded source.
 
     Args:
-      theta: A nested map object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       source_encs: source encoding, of shape [time, batch, depth].
       source_paddings: source encoding's padding, of shape [time, batch].
       targets: A dict of string to tensors representing the targets one try to
-          predict. Each tensor in targets is of shape [batch, time].
+        predict. Each tensor in targets is of shape [batch, time].
       src_segment_id: source segment id, of shape [time, batch].
 
     Returns:
@@ -502,7 +502,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     """Returns initial decoder states.
 
     Args:
-      theta: A nested map object containing weights' values of this layer and
+      theta: A `.NestedMap` object containing weights' values of this layer and
           its children layers.
       source_encs: source encoding, of shape [time, batch, depth].
       source_paddings: source encoding's padding, of shape [time, batch].
@@ -592,11 +592,11 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
   def _GetAttentionInitState(self):
     """Gets the attention initialization state.
 
-    It is valid to call this after _DecoderInit(). Inference subclasses use
+    It is valid to call this after `_DecoderInit()`. Inference subclasses use
     this to split computation across subgraph boundaries.
 
     Returns:
-      NestedMap of attention source states.
+      `.NestedMap` of attention source states.
     """
     return self._atten.GetInitializationSourceState()
 
@@ -604,8 +604,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     """Sets the attention initialization state.
 
     Args:
-      new_init_state: NestedMap compatible with that returned from
-      _GetAttentionSourceState.
+      new_init_state: `.NestedMap` compatible with that returned from
+        `_GetAttentionSourceState`.
     """
     self._atten.SetInitializationSourceState(new_init_state)
 
@@ -620,16 +620,20 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       source_encs: A tensor of shape [src_len, src_batch, source_dim].
       source_paddings: A tensor of shape [src_len, src_batch].
       num_hyps_per_beam: An int, number hyps to keep for source sentence.
-      additional_source_info: a NestedMap of tensors containing extra context
+      additional_source_info: a `.NestedMap` of tensors containing extra context
           information about the source that may be useful for decoding.
     Returns:
-      initial_results: a NestedMap of initial results.
-          atten_probs: The initial attention probs, of shape [tgt_batch,
-              src_len].
-      states: a NestedMap of initial model states.
-          rnn_states: Initial state of the RNN.
-          atten_context: Initial attention context vector.
-          atten_states: Initial attention state.
+      A tuple (initial_results, states).
+        initial_results: a `.NestedMap` of initial results.
+          atten_probs:
+            The initial attention probs, of shape [tgt_batch, src_len].
+        states: a `.NestedMap` of initial model states.
+          rnn_states:
+            Initial state of the RNN.
+          atten_context:
+            Initial attention context vector.
+          atten_states:
+            Initial attention state.
     """
     # additional_source_info is currently not used.
     del additional_source_info
@@ -661,21 +665,26 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       source_encs: A tensor of shape [src_len, src_batch, source_dim].
       source_paddings: A tensor of shape [src_len, src_batch].
       step_ids: A tensor of shape [tgt_batch, 1].
-      states: A NestedMap of tensors representing states that the clients
+      states: A `.NestedMap` of tensors representing states that the clients
           would like to keep track of for each of the active hyps.
       num_hyps_per_beam: Beam size.
-      additional_source_info: a NestedMap of tensors containing extra context
+      additional_source_info: a `.NestedMap` of tensors containing extra context
           information about the source that may be useful for decoding.
     Returns:
-      results: A NestedMap of beam search results.
-          atten_probs: The updated attention probs, of shape [tgt_batch,
-              src_len].
-          log_probs: Log prob for each of the tokens in the target vocab. This
-              is of shape [tgt_batch, vocab_size].
-      out_states: A NestedMap. The updated states.
-          rnn_states: Last state of the RNN.
-          atten_context: Updated attention context vector.
-          atten_states: Updates attention states.
+      A tuple (results, out_states).
+      results: A `.NestedMap` of beam search results.
+        atten_probs:
+          The updated attention probs, of shape [tgt_batch, src_len].
+        log_probs:
+          Log prob for each of the tokens in the target vocab. This is of shape
+          [tgt_batch, vocab_size].
+      out_states: A `.NestedMap`. The updated states.
+        rnn_states:
+          Last state of the RNN.
+        atten_context:
+          Updated attention context vector.
+        atten_states:
+          Updates attention states.
     """
     p = self.params
     # additional_source_info is currently not used.
@@ -736,12 +745,12 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       source_paddings: source encoding's padding, of shape [time, batch].
       num_hyps_per_beam_override: If set to a value <= 0, this parameter is
         ignored. If set to a value > 0, then this value will be used to
-        override p.num_hyps_per_beam.
-      additional_source_info: a NestedMap of tensors containing extra context
+        override `p.num_hyps_per_beam`.
+      additional_source_info: a `.NestedMap` of tensors containing extra context
           information about the source that may be useful for decoding.
 
     Returns:
-      BeamSearchDecodeOutput, a namedtuple containing the decode results
+      BeamSearchDecodeOutput, a namedtuple containing the decode results.
     """
     del additional_source_info  # Unused.
     return self.beam_search.BeamSearchDecode(
@@ -842,23 +851,23 @@ class TransformerDecoder(MTBaseDecoder):
 
   def _FProp(self, theta, source_encs, source_paddings, targets,
              src_segment_id):
-    """Decodes 'targets' given encoded source.
+    """Decodes `targets` given encoded source.
 
     Args:
-      theta: A nested map object containing weights' values of this
-          layer and its children layers.
-      source_encs: source encoding. When p.is_transparent is False, it is a
-          tensor of shape [time, batch, depth]. When p.is_transparent is True,
-          it is a tensor of shape [time, batch, depth, num_trans_layers] if
-          p.is_eval is True, and a list of num_trans_layers tensors of shape
-          [time, batch, depth] if p.is_eval is False.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      source_encs: source encoding. When `p.is_transparent` is False, it is a
+        tensor of shape [time, batch, depth]. When `p.is_transparent` is True,
+        it is a tensor of shape [time, batch, depth, num_trans_layers] if
+        `p.is_eval` is True, and a list of `num_trans_layers` tensors of shape
+        [time, batch, depth] if `p.is_eval` is False.
       source_paddings: source encoding's padding, of shape [time, batch].
       targets: A dict of string to tensors representing the targets one try to
-          predict. Each tensor in targets is of shape [batch, time].
+        predict. Each tensor in targets is of shape [batch, time].
       src_segment_id: source segment id, of shape [time, batch].
 
     Returns:
-      Output of the last decoder layer: [target_time, target_batch, source_dim]
+      Output of last decoder layer, [target_time, target_batch, source_dim].
     """
     p = self.params
     time, batch = py_utils.GetShape(source_paddings, 2)
@@ -932,26 +941,26 @@ class TransformerDecoder(MTBaseDecoder):
 
   def ExtendStep(self, theta, source_encs, source_paddings, new_ids,
                  t, prefix_states):
-    """Extend prefix as represeted by 'prefix_states' by one more step.
+    """Extend prefix as represeted by `prefix_states` by one more step.
 
     This function is expected to be called during fast decoding of Transformer
     models.
 
     Args:
-      theta: A nested map object containing weights' values of this
-          layer and its children layers.
-      source_encs: source encoding, of shape [time, batch, depth].
-          Can be [time, bs, depth, num_trans_layers] if is_transparent is set.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      source_encs: source encoding, of shape [time, batch, depth]. Can be [time,
+        bs, depth, num_trans_layers] if is_transparent is set.
       source_paddings: source encoding's padding, of shape [time, batch].
-      new_ids: new input ids, of shape [batch]
+      new_ids: new input ids, of shape [batch].
       t: a scalar, the current time step, 0-based.
-      prefix_states: a NestedMap representing the prefix that has already been
-          decoded.
+      prefix_states: a `.NestedMap` representing the prefix that has already
+        been decoded.
 
     Returns:
       A pair (last_decoder_out, prefix_states), where last_decoder_out is the
-      output of the last decoder layer. It is a tensor of shape [batch,
-      model_dim], and prefix_states is the update prefix states.
+      output of the last decoder layer of shape [batch, model_dim], and
+      `prefix_states` is the update prefix states.
     """
     p = self.params
     time, batch = py_utils.GetShape(source_paddings, 2)
@@ -991,16 +1000,16 @@ class TransformerDecoder(MTBaseDecoder):
 
   def ComputePredictions(self, theta, source_encs, source_paddings, targets,
                          src_segment_id):
-    """Decodes 'targets' given encoded source.
+    """Decodes `targets` given encoded source.
 
     Args:
-      theta: A nested map object containing weights' values of this
-          layer and its children layers.
-      source_encs: source encoding, of shape [time, batch, depth].
-          Can be [time, batch, depth, num_layers] if is_transparent is set.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      source_encs: source encoding, of shape [time, batch, depth]. Can be [time,
+        batch, depth, num_layers] if is_transparent is set.
       source_paddings: source encoding's padding, of shape [time, batch].
       targets: A dict of string to tensors representing the targets one try to
-          predict. Each tensor in targets is of shape [batch, time].
+        predict. Each tensor in targets is of shape [batch, time].
       src_segment_id: source segment id, of shape [time, batch].
 
     Returns:
@@ -1021,16 +1030,20 @@ class TransformerDecoder(MTBaseDecoder):
           Can be [time, batch, depth, num_layers] if is_transparent is set.
       source_paddings: A tensor of shape [src_len, src_batch].
       num_hyps_per_beam: An int, number hyps to keep for source sentence.
-      additional_source_info: a NestedMap of tensors containing extra context
+      additional_source_info: a `.NestedMap` of tensors containing extra context
           information about the source that may be useful for decoding.
     Returns:
-      initial_results: a NestedMap of initial results.
-          atten_probs: The initial attention probs, of shape [tgt_batch,
-              src_len].
-      states: a NestedMap of initial model states.
-          source_encs: A tensor of shape [src_batch, src_len, source_dim].
-          source_paddings: A tensor of shape [src_batch, src_len].
-          target_ids: Initial empty list of decoded ids. [num_hyps, 0]
+      A tuple (initial_results, states).
+        initial_results: a `.NestedMap` of initial results.
+          atten_probs:
+            The initial attention probs, of shape [tgt_batch, src_len].
+        states: a `.NestedMap` of initial model states.
+          source_encs:
+            A tensor of shape [src_batch, src_len, source_dim].
+          source_paddings:
+            A tensor of shape [src_batch, src_len].
+          target_ids:
+            Initial empty list of decoded ids. [num_hyps, 0].
     """
     p = self.params
     # additional_source_info is currently not used.
@@ -1074,21 +1087,26 @@ class TransformerDecoder(MTBaseDecoder):
           Can be [time, batch, depth, num_layers] if is_transparent is set.
       source_paddings: A tensor of shape [src_len, src_batch].
       step_ids: A tensor of shape [tgt_batch, 1].
-      states: A NestedMap of tensors representing states that the clients
+      states: A `.NestedMap` of tensors representing states that the clients
           would like to keep track of for each of the active hyps.
       num_hyps_per_beam: Beam size.
-      additional_source_info: a NestedMap of tensors containing extra context
+      additional_source_info: a `.NestedMap` of tensors containing extra context
           information about the source that may be useful for decoding.
     Returns:
-      results: A NestedMap of beam search results.
-          atten_probs: The updated attention probs, of shape [tgt_batch,
-              src_len].
-          log_probs: Log prob for each of the tokens in the target vocab. This
-              is of shape [tgt_batch, vocab_size].
-      out_states: A NestedMap. The updated states.
-         source_encs: A tensor of shape [src_batch, src_len, source_dim].
-         source_paddings: A tensor of shape [src_batch, src_len].
-         target_ids: Updated list of decoded ids. [num_hyps, Num of decoded ids]
+      A tuple (results, out_states).
+        results: A `.NestedMap` of beam search results.
+          atten_probs:
+            The updated attention probs, of shape [tgt_batch, src_len].
+          log_probs:
+            Log prob for each of the tokens in the target vocab. This is of
+            shape [tgt_batch, vocab_size].
+        out_states: A `.NestedMap`. The updated states.
+           source_encs:
+             A tensor of shape [src_batch, src_len, source_dim].
+           source_paddings:
+             A tensor of shape [src_batch, src_len].
+           target_ids:
+             Updated list of decoded ids. [num_hyps, Num of decoded ids].
     """
     p = self.params
     # additional_source_info is currently not used.

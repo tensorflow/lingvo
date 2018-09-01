@@ -37,18 +37,26 @@ release = u''
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autodoc', 'sphinx.ext.mathjax', 'sphinx.ext.napoleon',
-    'sphinx.ext.todo', 'sphinx.ext.viewcode'
+    'sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon', 'sphinx.ext.todo', 'sphinx.ext.viewcode'
 ]
 
-autodoc_default_flags = ['members', 'undoc-members', 'show-inheritance']
+autodoc_default_flags = [
+    'members', 'undoc-members', 'private-members', 'show-inheritance'
+]
+autodoc_member_order = 'bysource'
 napoleon_google_docstring = True
+default_role = 'py:obj'
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/2.7', None),
+    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
 # The suffix(es) of source filenames.
-# You can specify multiple suffix as a list of string:\
+# You can specify multiple suffix as a list of string:
 from recommonmark.parser import CommonMarkParser
 source_parsers = {
     '.md': CommonMarkParser,

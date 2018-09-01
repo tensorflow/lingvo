@@ -286,11 +286,12 @@ _NAME_PATTERN = re.compile('[A-Za-z_][A-Za-z0-9_]*')
 class NestedMap(dict):
   """A simpler helper to maintain a dict.
 
-  E.g.
-    foo = NestedMap()
-    foo['x'] = 10
-    foo.y = 20
-    assert foo.x * 2 == foo.y
+  E.g.::
+
+      >>> foo = NestedMap()
+      >>> foo['x'] = 10
+      >>> foo.y = 20
+      >>> assert foo.x * 2 == foo.y
   """
 
   # Disable pytype attribute checking.
@@ -434,8 +435,8 @@ class NestedMap(dict):
     Args:
       other: Another NestedMap.
 
-    If x and y are two compatible NestedMap, x.Pack(y.Flatten())
-    produces y and y.Pack(x.Flatten()) produces x.
+    If x and y are two compatible `.NestedMap`, `x.Pack(y.Flatten())`
+    produces y and `y.Pack(x.Flatten())` produces x.
     """
 
     def DoCompare(x, y):
@@ -501,7 +502,7 @@ class _Unique(object):
 
 
 def ToUniqueList(nmap):
-  """Returns the flattened nmap with duplicates removed."""
+  """Returns the flattened `nmap` with duplicates removed."""
   return nmap.Filter(_Unique()).Flatten()
 
 
@@ -569,7 +570,7 @@ class WeightInit(object):
 
   @staticmethod
   def Xavier(scale=1.0, seed=None):
-    """Xavier initialization (`x = sqrt(6. / (in + out)); [-x, x]`)."""
+    """Xavier initialization (x = sqrt(6. / (in + out)); [-x, x])."""
     return WeightInit._Params('xavier', scale, seed)
 
   @staticmethod
@@ -833,7 +834,7 @@ def CreateVariable(name,
   elif method in ['xavier']:
     # pylint: disable=unused-argument
     def XavierUniform(shape, dtype, partition_info):
-      """Xavier initialization (`x = sqrt(6. / (in + out)); scale*[-x, x]`)."""
+      """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
       if not shape:
         raise ValueError(
             '\'shape\' must not be \'None\' or 0 for XavierUniform')
@@ -961,7 +962,7 @@ def CreateLocalTheta(theta, device_list=None, label=None):
     label: Logging label.
 
   Returns:
-    A NestedMap of identity() wrapped theta
+    A `.NestedMap` of identity() wrapped theta
   """
 
   class AddIdentity(object):
@@ -1122,10 +1123,10 @@ def ComputeGradients(loss, vmap):
 
   Args:
     loss: A scalar Tensor.
-    vmap: A NestedMap of variables.
+    vmap: A `.NestedMap` of variables.
 
   Returns:
-    var_grad: a NestedMap of (variable, gradient). You can view
+    var_grad - a NestedMap of (variable, gradient). You can view
     var_grad as an ordered list of (key, (var, grad)) tuples. Every
     key of var_grad exists in vmap. Every variable in vmap that
     contributes to loss must exist in var_grad. Every var of var_grad
@@ -1176,12 +1177,12 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
   """Scale gradients by grad_scale on same device as corresponding variables.
 
   Args:
-    vs_gs_scale: A NestedMap of (variable, gradient, scale).
+    vs_gs_scale: A `.NestedMap` of (variable, gradient, scale).
     grad_scale: If None, each vs_gs entry has the scale. Otherwise,
       grad_scale applies to every entry.
 
   Returns:
-    A NestedMap of (variable, gradient * grad_scale). In particular, if
+    A `.NestedMap` of (variable, gradient * grad_scale). In particular, if
     grad_scale is 0, the result gradient is always 0, even if the input
     gradient is inf or nan.
   """
@@ -1218,8 +1219,10 @@ def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
     l2_regularizer_weight: L2 regularization weight.
 
   Returns:
-    l2_loss: A scalar. The l2 loss.
-    var_grads: a NestedMap of (variable, gradient) regulated by L2.
+    A tuple (l2_loss, var_grads).
+
+    - l2_loss: A scalar. The l2 loss.
+    - var_grads: a NestedMap of (variable, gradient) regulated by L2.
   """
 
   def GetVar(item):
@@ -1283,13 +1286,14 @@ def SplitRecursively(x, num_splits, axis=-1):
     axis: the split axis.
 
   Returns:
-    A list of split values of length 'num_splits':
+    A list of split values of length 'num_splits'.
+
     - If 'x' is a Tensor, a list of split Tensors.
     - If 'x' is a list, a list of lists, where each sublist has the same length
       as 'x' and the k'th element in each sublist corresponds to a split of the
       k'th element from 'x'.
-    - If 'x' is a NestedMap, a list of NestedMaps, where each field correspends
-      to a split from the same field of 'x'.
+    - If 'x' is a NestedMap, a list of `.NestedMap`, where each field
+      corresponds to a split from the same field of 'x'.
   """
   if isinstance(x, tf.Tensor):
     return tf.split(x, num_splits, axis=axis)
@@ -1315,18 +1319,19 @@ def ConcatRecursively(splits, axis=-1):
 
   Args:
     splits: a list of splits to concatenate, where elements can be Tensors,
-      lists, or NestedMaps. The elements must share the same type and structure.
-      For example, list elements must have the same length; NestedMaps must have
-      the same set of fields.
+      lists, or `.NestedMap`. The elements must share the same type and
+      structure.  For example, list elements must have the same length;
+      `.NestedMap` must have the same set of fields.
     axis: the concatenation axis.
 
   Returns:
     Concatenated data.
+
     - If input 'splits' are Tensors, returns a concatenated Tensor.
     - If input 'splits' are lists, returns a list of the same length where the
       k'th element represents concatenated data of the k'th element from each
       split.
-    - If input 'splits' are NestedMaps, returns a NestedMap with each field
+    - If input 'splits' are `.NestedMap`, returns a NestedMap with each field
       concatenated from corresponding fields of input splits.
 
   Raises:
@@ -1382,8 +1387,10 @@ def WeightedAvg(values, weights, sum_reduction_fn=tf.reduce_sum):
     sum_reduction_fn: called to reduce the values and weights to single value.
 
   Returns:
-    avg: weighted average value
-    total_weight: sum of all weights
+    A tuple (avg, total_weight).
+
+    - avg: weighted average value
+    - total_weight: sum of all weights
   """
   values = with_dependencies([
       assert_equal(
@@ -1404,7 +1411,7 @@ def WeightedAvgOfMetrics(metrics):
     metrics: list of dictionaries of metrics
 
   Returns:
-    ret_dict: dictionary of weighted averages of each metrics
+    ret_dict - dictionary of weighted averages of each metrics.
   """
   ret_dict = {}
   lists_of_metrics = {}
@@ -1588,7 +1595,7 @@ def GetOpSeedPair(op_seed=None, graph=None):
 
 
 def DeterministicDropout(x, keep_prob, seeds, name=None):
-  """Similar to tf.nn.dropout(), but fully deterministic.
+  """Similar to `tf.nn.dropout()`, but fully deterministic.
 
   Args:
     x: A float Tensor on which to apply dropout.
@@ -1712,9 +1719,10 @@ _SAMPLE_STEP_KEY = 'sample_step'
 def SampleStep(step):
   """A context for a sample step during decoding.
 
-  Example usage:
-    with py_utils.SampleStep(step):
-      sample = self.DecodeOneStep()
+  Example usage::
+
+      with py_utils.SampleStep(step):
+        sample = self.DecodeOneStep()
 
   Args:
     step: the step tensor.
@@ -1738,7 +1746,7 @@ def _GetSampleStep():
 def AddDebugTensor(tensor, summarize=None, name=None):
   """Adds `tensor` to the debug collection.
 
-  Prints the tensor if --print_debug_tensors is True.
+  Prints the tensor if `--print_debug_tensors` is True.
 
   Args:
     tensor: A tensor.
@@ -1821,10 +1829,10 @@ def PiecewiseConstant(x_in, boundaries, values, vdtype):
 
 
 def PadSequenceDimension(x, length, pad_val, shape=None):
-  """Pads x to 'length' using pad_val along the second dim.
+  """Pads x to `length` using `pad_val` along the second dim.
 
-  Assumes 'x' is a tensor with rank >= 2, and it only pads 'x' to 'length'
-  along the second dim. Explicitly sets the returned tensor shape to 'shape' if
+  Assumes `x` is a tensor with rank >= 2, and it only pads `x` to `length`
+  along the second dim. Explicitly sets the returned tensor shape to `shape` if
   given. Raises runtime errors if x.shape[1] > length or x.shape[i] != shape[i]
   where i != 1.
 
@@ -1857,11 +1865,12 @@ def ApplyPadding(padding, x, padded=None, broadcast=True):
   """Applies padding to a tensor.
 
   This is preferable to using arithmetic means for masking out padded values
-  such as:
-    # Equiv to ApplyPadding(padding, x))
-    x *= 1.0 - padding
-    # Equiv to ApplyPadding(padding, new, old)
-    new = old * padding + new * (1 - padding)
+  such as::
+
+      # Equiv to ApplyPadding(padding, x))
+      x *= 1.0 - padding
+      # Equiv to ApplyPadding(padding, new, old)
+      new = old * padding + new * (1 - padding)
 
   Aside from just being easier to read and reason about, using this function
   is friendly to quantized representations because it does not mix arithmetic
@@ -1925,13 +1934,13 @@ def PadOrTrimTo(x, shape):
 
 
 def StackTensorsRecursively(values):
-  """Recursively stacks Tensors in a list of NestedMaps.
+  """Recursively stacks Tensors in a list of `.NestedMap`.
 
   Args:
-    values: a list of NestedMaps or Tensors to stacks.
+    values: a list of `.NestedMap` or Tensors to stacks.
 
   Returns:
-    A NestedMap with stacked values or a stacked Tensor.
+    A `.NestedMap` with stacked values or a stacked Tensor.
   """
   flatten = [w.Flatten() for w in values]
   stacked = []
@@ -1995,10 +2004,11 @@ def UpdateFpropDtype(params, fprop_dtype):
 def NameScopeDecorator(name_scope):
   """Decorates a python function to introduce a tf.name_scope.
 
-  Example:
-    @py_utils.NameScopeDecorator('foobar')
-    def MyFoobarMethod(self):
-      # ... Do TF things
+  Example::
+
+      @py_utils.NameScopeDecorator('foobar')
+      def MyFoobarMethod(self):
+        # ... Do TF things
 
   Args:
     name_scope: The name scope to introduce.

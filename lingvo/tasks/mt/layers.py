@@ -109,7 +109,7 @@ class TransformerStack(base_layer.LayerBase):
     """Transforms source sequence of Tensors with Transformers layers.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       transformer_input: A sequence of input Tensors of [time, batch, dim]
         shape.
@@ -119,12 +119,13 @@ class TransformerStack(base_layer.LayerBase):
          [time, batch] shape.
 
     Returns:
-      (outputs, out_paddings, segment_ids) pair. Outputs is of the shape [time,
-      batch, depth], and out_paddings is of the shape [time, batch].  If
+      (outputs, out_paddings, segment_ids) tuple. `outputs` is of the shape
+      [time, batch, depth], and `out_paddings` has shape [time, batch]. If
       is_transparent is True, can return a list of num_transformer_layers
-      tensors of shape [time, batch, depth] if p.is_eval is False, and a [time,
-      batch, depth, num_transparent_outputs] tensor if p.is_eval is True.
-      If packed_input is True, also returns segment_id, otherwise returns None.
+      tensors of shape [time, batch, depth] if `p.is_eval` is False, and a
+      [time, batch, depth, num_transparent_outputs] tensor if `p.is_eval` is
+      True. If packed_input is True, also returns segment_id, otherwise returns
+      None.
     """
     p = self.params
     if p.packed_input:

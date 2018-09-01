@@ -77,7 +77,7 @@ def _GeneratePackedInputResetMask(segment_id, is_reverse=False):
       segment_id: A tensor of shape [time, batch_size, 1]
       is_reverse: True if inputs are fed to the RNN in reverse order.
     Returns:
-      reset_mask: a tensor of shape [time, batch_size, 1]. Set to 0 for samples
+      reset_mask - a tensor of shape [time, batch_size, 1]. Set to 0 for samples
       where state needs to be reset (at example boundaries), and 1 otherwise.
   """
   segment_id_left = segment_id[:-1]
@@ -124,7 +124,7 @@ class RNN(base_layer.LayerBase):
     """Compute RNN forward pass.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A single tensor or a tuple of tensors with cardinality equal to
           rnn_cell.inputs_arity. For every input tensor, the first dimension is
@@ -243,7 +243,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase):
     """Compute RNN forward pass.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A single tensor of shape [time, batch, dims].
       paddings: A single tensor of shape [time, batch, 1].
@@ -301,7 +301,7 @@ class FRNN(base_layer.LayerBase):
     """Compute RNN forward pass.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A single tensor or a tuple of tensors with cardinality equal to
           rnn_cell.inputs_arity. For every input tensor, the first dimension is
@@ -411,14 +411,14 @@ class BidirectionalFRNN(base_layer.LayerBase):
   def FProp(self, theta, inputs, paddings, segment_id=None):
     """Compute bidi-RNN forward pass.
 
-    rcell_forward unroll the sequence in the forward direction and
-    rcell_backward unroll the sequence in the backward direction. The
+    `rcell_forward` unroll the sequence in the forward direction and
+    `rcell_backward` unroll the sequence in the backward direction. The
     outputs are concatenated in the last output dim.
 
-    See FRNN.FProp for more details.
+    See `FRNN.FProp` for more details.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A single tensor or a tuple of tensors with cardinality equal to
           rnn_cell.inputs_arity. For every input tensor, the first dimension is
@@ -504,14 +504,14 @@ class BidirectionalRNN(base_layer.LayerBase):
   def FProp(self, theta, inputs, paddings):
     """Compute bidi-RNN forward pass.
 
-    rcell_forward is responsible for unrolling the sequence in the forward
-    direction and rcell_backward in the backward direction. Output from forward
-    and backward rnns are concatenated on the last output dim.
+    `rcell_forward` is responsible for unrolling the sequence in the forward
+    direction and `rcell_backward` in the backward direction. Output from
+    forward and backward rnns are concatenated on the last output dim.
 
-    See RNN.FProp() for more details.
+    See `RNN.FProp()` for more details.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A single tensor or a tuple of tensors with cardinality equal to
           rnn_cell.inputs_arity. For every input tensor, the first dimension is
@@ -576,7 +576,7 @@ class BidirectionalRNNV2(base_layer.LayerBase):
     See RNN.FProp() for more details.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A single tensor or a tuple of tensors with cardinality equal to
           rnn_cell.inputs_arity. For every input tensor, the first dimension is
@@ -615,7 +615,7 @@ class CuDNNLSTM(base_layer.LayerBase):
   """A single layer of unidirectional LSTM with Cudnn impl.
 
   Runs training with CuDNN on GPU, and eval using a FRNN with properly
-  configured LSTMCellSimple cell.
+  configured `LSTMCellSimple` cell.
   """
 
   @classmethod
@@ -689,7 +689,7 @@ class CuDNNLSTM(base_layer.LayerBase):
     compatible with different hardwares.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A tensor of [seq_length, batch_size, num_input_nodes]
       paddings: A tensor of [seq_length, batch_size, 1]
@@ -810,14 +810,14 @@ class BidirectionalNativeCuDNNLSTM(base_layer.LayerBase):
     compatible with different hardwares.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A tensor of [seq_length, batch_size, num_input_nodes]
       paddings: A tensor of [seq_length, batch_size, 1]
     Returns:
       A tensor of [seq_length, batch_size, 2 * num_output_nodes]
 
-    See DRNN.FProp() for more details.
+    See `DRNN.FProp()` for more details.
     """
     p = self.params
     if p.is_eval:
@@ -906,7 +906,7 @@ class FRNNWithAttention(base_layer.LayerBase):
     """A wrapper of InitForSourcePacked of child attention layer.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       src_encs: A tensor of shape [source_seq_length, batch_size, source_dim].
       src_paddings: A tensor of shape [source_seq_length, batch_size].
@@ -920,7 +920,7 @@ class FRNNWithAttention(base_layer.LayerBase):
         support packed inputs.
 
     Returns:
-      packed_src: A NestedMap containing packed source.
+      packed_src - A `.NestedMap` containing packed source.
     """
     atten = self.atten
 
@@ -953,15 +953,15 @@ class FRNNWithAttention(base_layer.LayerBase):
     """Initial state of this layer.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       src_encs: A tensor of shape [source_seq_length, batch_size, source_dim].
-      packed_src: A NestedMap containing packed source.
+      packed_src: A `.NestedMap` containing packed source.
       batch_size: Batch size.
       atten_state_dim: Attention state dim when using zero_atten_state
 
     Returns:
-      state0: A NestedMap containing initial states of RNN and attention.
+      state0 - A `.NestedMap` containing initial states of RNN and attention.
     """
 
     p = self.params
@@ -1016,7 +1016,7 @@ class FRNNWithAttention(base_layer.LayerBase):
     """Forward propagate through a rnn layer with attention.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       src_encs: A tensor of shape [source_seq_length, batch_size, source_dim].
       src_paddings: A tensor of shape [source_seq_length, batch_size].
@@ -1035,10 +1035,12 @@ class FRNNWithAttention(base_layer.LayerBase):
       segment_id: A tensor of [time, batch, 1].
 
     Returns:
-      atten_context: a tensor of [time, batch, attention.hidden_dim].
-      rnn_output: a tensor of [time, batch, rcell.num_output_nodes].
-      atten_probs: a tensor of [time, batch, source_seq_length].
-      final_state: The final recurrent state.
+      A tuple (atten_context, rnn_output, atten_probs, final_state).
+
+      - atten_context: a tensor of [time, batch, attention.hidden_dim].
+      - rnn_output: a tensor of [time, batch, rcell.num_output_nodes].
+      - atten_probs: a tensor of [time, batch, source_seq_length].
+      - final_state: The final recurrent state.
     """
     p = self.params
     dtype = p.dtype
@@ -1136,10 +1138,6 @@ class MultiSourceFRNNWithAttention(base_layer.LayerBase):
   """RNN layer intertwined with an attention layer for multiple sources.
 
   Allows different attention params per source, if attention is not shared.
-
-  Attributes:
-    rnn_cell: Reference to the RNN cell of this layer.
-    attention: Reference to the attention layer(s) of this layer.
   """
 
   @classmethod
@@ -1171,10 +1169,12 @@ class MultiSourceFRNNWithAttention(base_layer.LayerBase):
 
   @property
   def rnn_cell(self):
+    """Reference to the RNN cell of this layer."""
     return self.cell
 
   @property
   def attention(self):
+    """Reference to the attention layer(s) of this layer."""
     return self.attentions
 
   @base_layer.initializer
@@ -1223,19 +1223,20 @@ class MultiSourceFRNNWithAttention(base_layer.LayerBase):
     """Computes initial states for attention layer(s).
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
-      src_encs: A nested map object containing source encoding tensors,
+      src_encs: A `.NestedMap` object containing source encoding tensors,
         each of shape [source_seq_length, batch_size, source_dim]. Children
         names of the nested map is defined by source_names.
-      src_paddings: A nested map object contraining source padding tensors,
+      src_paddings: A `.NestedMap` object contraining source padding tensors,
         each of shape [source_seq_length, batch_size]. Children names of the
         nested map is defined by source_names.
       batch_size: Scalar Tensor of type int, for initial state shape.
 
     Returns:
-      state0: Initial attention-rnn state in a NestedMap. Zeros for the rnn
+      state0 - Initial attention-rnn state in a NestedMap. Zeros for the rnn
       initial state, and merger output for attention initial state.
+
       Transformed source vectors and transposed source vectors.
     """
     p = self._params
@@ -1282,20 +1283,22 @@ class MultiSourceFRNNWithAttention(base_layer.LayerBase):
     """Forward propagate through a RNN layer with attention(s).
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
-      src_encs: A nested map object containing source encoding tensors,
+      src_encs: A `.NestedMap` object containing source encoding tensors,
         each of shape [source_seq_length, batch_size, source_dim]. Children
         names of the nested map is defined by source_names.
-      src_paddings: A nested map object contraining source padding tensors,
+      src_paddings: A `.NestedMap` object contraining source padding tensors,
         each of shape [source_seq_length, batch_size]. Children names of the
         nested map is defined by source_names.
       inputs: A tensor of [time, batch, dims].
       paddings: A tensor of [time, batch, 1].
 
     Returns:
-      atten_context: a tensor of [time, batch, attention.hidden_dim].
-      rnn_output: a tensor of [time, batch, p.cell.num_output_nodes].
+      A tuple (atten_context, rnn_output)
+
+      - atten_context: a tensor of [time, batch, attention.hidden_dim].
+      - rnn_output: a tensor of [time, batch, p.cell.num_output_nodes].
 
     Raises:
       ValueError: dtype mismatch of attention layers.
@@ -1422,10 +1425,10 @@ class BidirectionalFRNNQuasi(base_layer.LayerBase):
     bak_rnn unroll the sequence in the backward direction. The
     outputs are concatenated in the last output dim.
 
-    See FRNN.FProp for more details.
+    See `FRNN.FProp` for more details.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A list of the fwd and bak tensors. Each item in the list should be
         A single tensor or a tuple of tensors with cardinality equal to

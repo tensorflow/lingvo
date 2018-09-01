@@ -41,12 +41,14 @@ class QuantizableLayer(base_layer.LayerBase):
   "fake quantization" category, where we add various constraints in the
   forward propagation to quantify and simulate the effect of quantization.
   Within that, we have two major approaches:
+
     - Active clipping: Usually via a schedule, tensors are actively
       clipped to fall into ranges that we know apriori that the model should
       be able to deal with.
     - Passive tracking and simulation: Passively track the min/max ranges
       of tensors and insert special ops at training and eval time that
       constrain to those ranges.
+
   The tensors of interest for both approaches are top-level inputs (or
   embeddings), outputs of arithmetic operations (add, mul, tanh, etc) and
   weights. While the actual process of quantizing can be quite complex and
@@ -58,19 +60,20 @@ class QuantizableLayer(base_layer.LayerBase):
   type system but given the loose typing, it is just an honor system).
 
   The "decorators" are:
-    - QWeight: Tags a tensor (typically a var) as a weight quantized type.
-    - QR* (QRTanh, QRSigmoid, QRSoftmax, etc): Tags a tensor as the result
-      of a fixed activation function with a known output range (the range
-      is implied in the name).
-    - QRPadding: Tags a tensor as containing a padding value (as we define
-      them as 0..1). While such values are numeric, they generally exist with
-      very different ranges from the rest of the graph and should not be
-      arithmetically combined with tensors that may have a different/variable
-      range.
-    - QTensor: Tags a tensor as a generic quantized intermediate value.
-      These are also tagged with a layer-unique name. All QTensors with the
-      same name will be considered the same from a numerical range/precision
-      perspective.
+
+  - QWeight: Tags a tensor (typically a var) as a weight quantized type.
+  - QR* (QRTanh, QRSigmoid, QRSoftmax, etc): Tags a tensor as the result
+    of a fixed activation function with a known output range (the range
+    is implied in the name).
+  - QRPadding: Tags a tensor as containing a padding value (as we define
+    them as 0..1). While such values are numeric, they generally exist with
+    very different ranges from the rest of the graph and should not be
+    arithmetically combined with tensors that may have a different/variable
+    range.
+  - QTensor: Tags a tensor as a generic quantized intermediate value.
+    These are also tagged with a layer-unique name. All QTensors with the
+    same name will be considered the same from a numerical range/precision
+    perspective.
 
   Tagging things in this way allows us to, via hyperparameters, associate
   one or more quantization domains (QDomain) with the layer that will
@@ -87,30 +90,34 @@ class QuantizableLayer(base_layer.LayerBase):
   RNN cell that uses 8bit quantization for inputs/outputs and 16bit
   quantization for internal state arithmetic). Such uses should be rare.
 
-  Convenience functions:
-  ----------------------
+
+  **Convenience functions:**
+
   The layer adds a number of convenience functions to the layer's 'fns'
   function library. These mirror similarly named functions in TensorFlow but
   automatically add the necessary annotations. All such functions take the
   following named parameters:
-    qt: Name of the QTensor (setup with TrackQTensor) for dynamic range
-        tracking.
-    qmin/qmax/qdomain: Constant min/max range plus optional QDomain name to
-        resolve against. Typically, only qmin/qmax are used.
+
+    - qt: Name of QTensor (setup with TrackQTensor) for dynamic range tracking.
+    - qmin/qmax/qdomain: Constant min/max range plus optional QDomain name to
+      resolve against. Typically, only qmin/qmax are used.
+
   Functions that have a natural output range will have default values for
   qmin/qmax so that they just work. Functions that do not have a natural
   output range must have either qt or qmin/qmax specified manually.
 
-  Natural range functions:
-    qtanh
-    qsigmoid
-    qsoftmax
+  Natural range functions
+
+  - qtanh
+  - qsigmoid
+  - qsoftmax
 
   Dynamic range functions:
-    qadd
-    qmultiply
-    qmatmul (defers to py_utils.Matmul and only accepts rank-2 tensors)
-    qbatchmatmul (defers to tf.matmul directly)
+
+  - qadd
+  - qmultiply
+  - qmatmul (defers to `.py_utils.Matmul` and only accepts rank-2 tensors)
+  - qbatchmatmul (defers to `tf.matmul` directly)
   """
 
   @classmethod
@@ -175,7 +182,7 @@ class QuantizableLayer(base_layer.LayerBase):
     return qd.QuantizeConstantRange(t, 0.0, 1.0) if qd else t
 
   def TrackQTensor(self, *t_names, **kwargs):
-    """Creates one or more QTensors for later use.
+    r"""Creates one or more QTensors for later use.
 
     Any tensor that will later be quantized must be created first, preferably
     in __init__.
@@ -185,14 +192,13 @@ class QuantizableLayer(base_layer.LayerBase):
     domain (QDomain), typically 'default'. However, additional QDomains can
     be defined as parameters to control fine grained aspects of quantization.
 
-    If no explicit domain is passed, then the domain ('tensor_' + t_name) is
+    If no explicit domain is passed, then the domain ('tensor\_' + t_name) is
     tried. If that is not defined, then 'default'.
 
     Args:
-      *t_names: Positional parameters are taken to be QTensor names to
-          create.
+      *t_names: Positional parameters are taken to be QTensor names to create.
       **kwargs: Can contain an explicit 'domain'. Written this way due to
-          python2 limitations.
+        python2 limitations.
     """
     domain_override = kwargs['domain'] if 'domain' in kwargs else None
     for t_name in t_names:

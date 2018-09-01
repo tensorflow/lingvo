@@ -19,6 +19,6 @@ bazel build -c opt lingvo:trainer lingvo/core/ops:hyps_py_pb2
 cp -f bazel-bin/lingvo/core/ops/x_ops.so lingvo/core/ops
 cp -f bazel-genfiles/lingvo/core/ops/hyps_pb2.py lingvo/core/ops
 rm -f docs/apidoc/lingvo.*.rst
-sphinx-apidoc -o docs/apidoc -efPM --implicit-namespaces lingvo/
+sphinx-apidoc -o docs/apidoc -efPM --implicit-namespaces lingvo/ $(find . -name '*_test.py')
 (cd docs/apidoc && PYTHONPATH=../.. sphinx-build -M html . _build)
 rm -f lingvo/core/ops/{x_ops.so,hyps_pb2.py}

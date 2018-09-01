@@ -31,8 +31,7 @@ REGISTER_OP("AssertShapeMatch")
     .Doc(R"doc(
 Asserts that shape vector x and y matches.
 
-i-th dimension matches if and only if
-  x[i] == y[i] || x[i] == -1 || y[i] == -1.
+The i-th dimension matches iff x[i] == y[i] || x[i] == -1 || y[i] == -1.
 
 x: A shape vector.
 y: A shape vector.
@@ -65,11 +64,11 @@ Generate random samples from [0..num-1] without replacements.
 
 num: The number of ids.
 batch: Each output is a vector of size up to batch. Right now,
-  the last batch from one epoch is the only one that can be
-  smaller than a full batch.
+    the last batch from one epoch is the only one that can be
+    smaller than a full batch.
 repeat: If true, this op keep generating random samples after one
-  epoch. If false, this op errors with tf.errors.OutOfRangeError when an epoch
-  finishes.
+    epoch. If false, this op errors with `tf.errors.OutOfRangeError` when an
+    epoch finishes.
 seed: The random seed.
 out: Each output is a vector of size up to batch.
 )doc");
@@ -139,23 +138,29 @@ maximum decoding steps.
 The following data structures are allocated before the first decoding step and
 are passed along from cur step to the next step:
 
-in_scores: A tensor of shape [t, b * k]. in_scores[i, j] is the local
+in_scores
+    A tensor of shape [t, b * k]. in_scores[i, j] is the local
     score of the j-th hyp at the i-th decoding step.
-in_hyps: A tensor of shape [t, b * k]. "in_hyps[i, j]" is the token id of the
+in_hyps
+    A tensor of shape [t, b * k]. in_hyps[i, j] is the token id of the
     j-th hyp at the i-th decoding step.
-in_prev_hyps: A tensor of shape [t, b * k]. "in_prev_hyps[i, j]" stores a
+in_prev_hyps
+    A tensor of shape [t, b * k]. in_prev_hyps[i, j] stores a
     pointer of the j-th hyp at time step i to the hyp at previous timestep
-    (i - 1).  0 <= in_prev_hyps[i, j] < b * k.
-in_done_hyps: A tensor of shape [t, b * k]. in_done_hyps[i, j] can be either an
+    (i - 1). 0 <= in_prev_hyps[i, j] < b * k.
+in_done_hyps
+    A tensor of shape [t, b * k]. in_done_hyps[i, j] can be either an
     empty string, or a serialized Hypothesis proto. Terminated hyps are removed
     from the beam and are moved to the corresponding in_done_hyps slot.
-in_atten_probs: A tensor of shape [t, b * k, s_len]. "in_atten_probs[i, j, ...]
+in_atten_probs
+    A tensor of shape [t, b * k, s_len]. in_atten_probs[i, j, ...]
     is the attention probs over the source words for the j-th hyp at the i-th
     timestep.
 
 Those tensors are modified (with content for the cur_step timestep being filled
 in) within this op invocation and are passed to the corresponding output
 tensors.
+
 is_last_chunk: A tensor of shape [b * k]. Used by neural transducer, determine
     whether the current hypothesis reaches the last chunk and should treat the
     next end-of-chunk symbol as end-of-sentence.
@@ -178,32 +183,40 @@ lm_log_probs: A matrix of shape [b * k, vocab_size], where b is the number of
     active beams, and k is the number of hyps in each beam. Local scores for the
     current timestep according to a language model.  These scores will be used
     to adjust scores of the top k hyps if lm_weight is nonzero (see
-    'lm_weight' below).
-out_best_scores: Updated best scores for each of the beams.
-out_cumulative_scores: A vector of size [b * k]. The cumulative score of the new
-    hyps after the current decoding step.
-out_scores: As explained above.
-out_hyps: As explained above.
-out_prev_hyps: As explained above.
-out_done_hyps: As explained above.
-out_atten_probs: As explained above.
-all_done: A scalar, whether decoding should terminate for all beams.
+    `lm_weight` below).
+out_best_scores:
+    Updated best scores for each of the beams.
+out_cumulative_scores:
+    A vector of size [b * k]. The cumulative score of the new hyps after the
+    current decoding step.
+out_scores:
+    As explained above.
+out_hyps:
+    As explained above.
+out_prev_hyps:
+    As explained above.
+out_done_hyps:
+    As explained above.
+out_atten_probs:
+    As explained above.
+all_done:
+    A scalar, whether decoding should terminate for all beams.
 eoc_id: Token id of the special end of chunk token.
 eos_id: Token id of the special end of sequence token.
 beam_size: Search terminates if the delta between the scores of the active hyps
     in a beam and the best scores exceeds this threashold.
 num_hyps_per_beam: Number of hyps in a beam.
 valid_eos_max_logit_delta: We allow </s> to terminate a hyp only if its logit
-    is no more than 'valid_eos_max_logit_delta' away from the logit of the best
+    is no more than `valid_eos_max_logit_delta` away from the logit of the best
     candidate.
-lm_weight: A scalar specifying how much weight to place on 'lm_log_probs' when
+lm_weight: A scalar specifying how much weight to place on `lm_log_probs` when
     determining the scores of the top k hyps.  If lm_weight is zero, the local
-    score of each hyp is the score of the chosen word according to 'scores'.
+    score of each hyp is the score of the chosen word according to `scores`.
     Otherwise, the local score is a linear combination of the chosen word
-    according to 'scores' and 'lm_log_probs', with:
-    effective score = 'scores' + ('lm_log_probs' * lm_ weight).
+    according to `scores` and `lm_log_probs`, with:
+    effective score = scores + (lm_log_probs * lm_weight).
     Note that this rescoring is done only after the top k hyps have been chosen
-    using 'scores' alone, such that 'lm_log_probs' do not actually change what
+    using `scores` alone, such that `lm_log_probs` do not actually change what
     the top k hyps are, in a given step.  Global score remains the sum of local
     scores.
 merge_paths: If true, hyps which are identical when epsilons are removed will
@@ -241,24 +254,25 @@ Compute the top k terminated hyps based on normalized score for each beam.
 Let "b" be the number of beams, "h" be the number hyps in each beam, "t" be the
 maximum decoding steps.
 
-in_done_hyps: A tensor of shape [t, b * h]. in_done_hyps[i, j] can be either an
-    empty string, or a serialized Hypothesis proto. The non-empty hyps in
+in_done_hyps: A tensor of shape [t, b * h]. in_done_hyps[i, j] can be either
+    an empty string, or a serialized Hypothesis proto. The non-empty hyps in
     in_done_hyps are terminated hyps.
 src_seq_lengths: A tensor of shape [b] of the src sequence lengths.
-out_topk_hyps: A string tensor of shape [b, k]. topk_hyps[i: ] contains top k
-    terminated hyp for beam 'i', each hyp could be either an empty string or
-    a serialized Hypothesis proto.
+out_topk_hyps:
+    A string tensor of shape [b, k]. topk_hyps[i: ] contains
+    top k terminated hyp for beam 'i', each hyp could be either an empty string
+    or a serialized `Hypothesis` proto.
 k: number of highest scoring hyps to be returned for each beam.
-num_hyps_per_beam: Number of hyps per beam in the input 'in_done_hyps'.
+num_hyps_per_beam: Number of hyps per beam in the input `in_done_hyps`.
 length_normalization: The length normalization ratio.
 coverage_penalty: The alpha value for coverage penalty.
 target_seq_length_ratio: Ratio of the average target sequence length
     over the average source sequence length.
-eoc_id: Token id of the special end of chunk or blank (epsilon) token.  -1 means
+eoc_id: Token id of the special end of chunk or blank (epsilon) token. -1 means
     this model does not use epsilon.
 merge_paths: If true, hyps which are identical when epsilons are removed will
-    be combined into a single hyp.  The probability for that combined hyp will
-    be the sum of the probabilities of the component hyps.  This can only be
+    be combined into a single hyp. The probability for that combined hyp will
+    be the sum of the probabilities of the component hyps. This can only be
     applied for epsilon-emitting models (RNN-T and NT).
 )doc");
 
@@ -284,12 +298,14 @@ REGISTER_OP("UnpackHyp")
     .Doc(R"doc(
 Unpacks hyps into tensors of ids, seq_len and scores.
 
-in_hyps: A vector of serialized Hypothesis protos.
-out_ids: Output sequences, a matrix of shape (batch_size, max_seq_length).
+in_hyps: A vector of serialized `Hypothesis` protos.
+out_ids:
+    Output sequences, a matrix of shape (batch_size, max_seq_length).
     Sequences shorter than max_seq_length are padded with 0s.
-out_seq_lens: Length of each of the output sequence, a vector of size
-    batch_size.
-out_scores: Scores for each of the output sequence, a vector of batch_size.
+out_seq_lens:
+    Length of each of the output sequence, a vector of size `batch_size`.
+out_scores:
+    Scores for each of the output sequence, a vector of `batch_size`.
 )doc");
 
 REGISTER_OP("HypsFromBeamSearchOuts")
@@ -309,24 +325,24 @@ REGISTER_OP("HypsFromBeamSearchOuts")
     })
     .Doc(R"doc(
 
-Generates Hypothesis protos from output of a beam search step.
+Generates `Hypothesis` protos from output of a beam search step.
 
 hyps: A tensor of shape [t, b * k] with ids of the token selected.
 prev_hyps: A tensor of shape [t, b * k] with index to the previous hyps which
-  was selected.
+    was selected.
 done_hyps: A boolean tensor of shape [t, b * k] where value indicates if hyps
-  was terminated.
-scores: A tensor of shape [t, b * k]. in_scores[i, j] is the local score of the
-  j-th hyp at the i-th decoding step.
-atten_probs:  A tensor of shape [t, b * k, s_len]. "atten_probs[i, j, ...]
-  is the attention probs over the source words for the j-th hyp at the i-th
-  timestep.
-eos_scores: A tensor of shape [t, b * k]. in_scores[i, j] is the local score of
-  the EOS token at the j-th hyp at the i-th decoding step.
-eos_atten_probs:  A tensor of shape [t, b * k, s_len].
-  "eos_atten_probs[i, j, ...] is the attention probs over the source words for
-  the j-th terminated hyp at the i-th timestep.
-out_hyps: A tensor of shape [t, b * k] with terminated Hyps.
+    was terminated.
+scores: A tensor of shape [t, b * k]. in_scores[i, j] is the local score of
+    the j-th hyp at the i-th decoding step.
+atten_probs:  A tensor of shape [t, b * k, s_len]. atten_probs[i, j, ...]
+    is the attention probs over the source words for the j-th hyp at the i-th
+    timestep.
+eos_scores: A tensor of shape [t, b * k]. eos_scores[i, j] is the local
+    score of the EOS token at the j-th hyp at the i-th decoding step.
+eos_atten_probs: A tensor of shape [t, b * k, s_len].
+    eos_atten_probs[i, j, ...] is the attention probs over the source words
+    for the j-th terminated hyp at the i-th timestep.
+out_hyps: A tensor of shape [t, b * k] with terminated hyps.
 eos_id: Token id of the special end of sequence token.
 num_hyps_per_beam: Number of hyps per beam.
 )doc");
@@ -414,9 +430,9 @@ REGISTER_OP("IdToToken")
 Converts sequences from token ids to actual tokens.
 
 token_ids: A matrix of shape [batch, seq_len].
-seq_lengths: A vector of shape [batch]. seq_lengths[i] is the length of the i-th
-    sequence. Only the first seq_lengths[i] tokens in token_ids[i] are valid
-    tokens for the i-th sequence.
+seq_lengths: A vector of shape [batch]. seq_lengths[i] is the length of the
+    i-th sequence. Only the first seq_lengths[i] tokens in token_ids[i] are
+    valid tokens for the i-th sequence.
 sequence: A vector of shape [batch]. The converted string sequence.
 )doc");
 
@@ -430,9 +446,9 @@ REGISTER_OP("NgramIdToToken")
 Converts sequences from token ids to actual tokens.
 
 token_ids: A matrix of shape [batch, seq_len].
-seq_lengths: A vector of shape [batch]. seq_lengths[i] is the length of the i-th
-    sequence. Only the first seq_lengths[i] tokens in token_ids[i] are valid
-    tokens for the i-th sequence.
+seq_lengths: A vector of shape [batch]. seq_lengths[i] is the length of the
+    i-th sequence. Only the first seq_lengths[i] tokens in token_ids[i] are
+    valid tokens for the i-th sequence.
 sequences: A vector of shape [batch]. The converted string sequence.
 ngram_vocab_filepath: filepath to the ngram vocab file.
 ngram_separator: separator to use when joining ngrams into string.
@@ -448,25 +464,24 @@ REGISTER_OP("GenericInput")
     .Doc(R"doc(
 Produces examples from processed from records.
 
-out: A list of tensors of the given types. The 1st dimension
-  of every tensor is the batch dimension.
+out: The 1st dimension of every tensor is the batch dimension.
 )doc" INPUT_DOCS
          R"doc(
 out_types: A list of tensor types.
 processor: A function that processes a string (one record) and returns
-  a list of tensors. The last tensor must be a int32 scalar, which is
-  used in conjunction with bucket_upper_bound to bucket all the
-  samples.  The other tensors belongs to one sample. They have the
-  respective out_types.  These tensors' first dimension are _not_ the
-  batch dimension. Instead, when multiple samples are merged into a
-  batch, GenericInput's implementation expand the batch dimension (dim
-  0) and concatenate the corresponding tensors into one tensor.
+    a list of tensors. The last tensor must be a int32 scalar, which is
+    used in conjunction with `bucket_upper_bound` to bucket all the
+    samples.  The other tensors belongs to one sample. They have the
+    respective `out_types`.  These tensors' first dimension are _not_ the
+    batch dimension. Instead, when multiple samples are merged into a
+    batch, GenericInput's implementation expand the batch dimension (dim
+    0) and concatenate the corresponding tensors into one tensor.
 dynamic_padding_dimensions: If not empty, must be the same length as out.
-  Specifies the 0-indexed dimension to use for dynamic padding for each output.
-  The output is padded to the longest tensor in the batch along that dimension.
-  The first (0-th) dimension is _not_ the batch dimension.
-dynamic_padding_constants: Must be set if dynamic_padding_dimension is provided.
-  The constant value to use for padding.
+    Specifies the 0-indexed dimension to pad dynamically for each output.
+    The output is padded to the longest tensor in the batch along the dimension.
+    The first (0-th) dimension is _not_ the batch dimension.
+dynamic_padding_constants: Must be set if `dynamic_padding_dimension` is
+    provided. The constant value to use for padding.
 )doc");
 
 }  // namespace

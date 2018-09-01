@@ -22,36 +22,13 @@ import tensorflow as tf
 
 from lingvo import model_imports  # pylint: disable=unused-import
 from lingvo import model_registry
+# pylint: disable=unused-import
+# Import DummyModel
+from lingvo import model_registry_test
+# pylint: enable=unused-import
 from lingvo.core import base_model
 from lingvo.core import base_input_generator
 from lingvo.core import base_model_params
-
-
-@model_registry.RegisterSingleTaskModel
-class DummyModel(base_model_params.SingleTaskModelParams):
-
-  @classmethod
-  def Train(cls):
-    p = base_input_generator.BaseInputGenerator.Params()
-    p.name = 'Train'
-    return p
-
-  @classmethod
-  def Dev(cls):
-    p = base_input_generator.BaseInputGenerator.Params()
-    p.name = 'Dev'
-    return p
-
-  @classmethod
-  def Test(cls):
-    p = base_input_generator.BaseInputGenerator.Params()
-    p.name = 'Test'
-    return p
-
-  @classmethod
-  def Task(cls):
-    p = base_model.BaseTask.Params()
-    return p
 
 
 class ModelsTest(tf.test.TestCase):

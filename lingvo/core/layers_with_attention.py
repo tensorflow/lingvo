@@ -38,22 +38,21 @@ class TransformerAttentionLayer(base_layer.LayerBase):
   output is normalized using Layer Normalization.
 
   Layer can be used in three scenarios:
+
   1. Multi-Headed Self-Attention, where attention keys (source vectors),
-  attention values (context vectors) and queries come from the same previous
-  layer output, `query_vec`. This is the general use case for encoder
-  Transformer Layers.
-
+     attention values (context vectors) and queries come from the same previous
+     layer output, `query_vec`. This is the general use case for encoder
+     Transformer Layers.
   2. Masked Multi-Headed Self-Attention, where attention keys, attention values
-  and queries all come from the same previous layer output, but rightward
-  activations are masked to prevent information flow from future. This is the
-  use case for decoder self-attention Transformer Layers. Can be activated by
-  setting is_masked flag of this layer.
-
+     and queries all come from the same previous layer output, but rightward
+     activations are masked to prevent information flow from future. This is the
+     use case for decoder self-attention Transformer Layers. Can be activated by
+     setting is_masked flag of this layer.
   3. Multi-Headed Attention, where attention keys and attention values
-  `source_vecs`, are coming from a different source (output of the encoder) and
-  queries `query_vec`, coming from the previous layer outputs (decoder). This
-  corresponds to the standard attention mechanism, decoder attending the encoder
-  outputs.
+     `source_vecs`, are coming from a different source (output of the encoder)
+     and queries `query_vec`, coming from the previous layer outputs (decoder).
+     This corresponds to the standard attention mechanism, decoder attending the
+     encoder outputs.
   """
 
   @classmethod
@@ -132,7 +131,7 @@ class TransformerAttentionLayer(base_layer.LayerBase):
     """Transformer attention, residual and normalization layer.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       query_vec: [target_time, target_batch, dim]
       source_paddings: [source_time, source_batch]
@@ -140,7 +139,7 @@ class TransformerAttentionLayer(base_layer.LayerBase):
       query_segment_id: [target_time, target_batch]
       source_segment_id: [source_time, source_batch]
     Returns:
-      (output, atten_probs): output is of shape [target_time, target_batch,
+      (output, atten_probs). output is of shape [target_time, target_batch,
       source_dim], atten_probs is of shape [target_time, target_batch,
       source_time].
     """
@@ -204,7 +203,7 @@ class TransformerAttentionLayer(base_layer.LayerBase):
     Transformer model.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       query_vec: [target_batch, dim]
       prefix_state: dict, containing tensors which are the results of previous
@@ -322,7 +321,7 @@ class TransformerFeedForwardLayer(base_layer.LayerBase):
     """Feed-forward, residual and layer-norm.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: [time, batch, dim].
       paddings: [time, batch]
@@ -448,7 +447,7 @@ class TransformerLayer(base_layer.LayerBase):
     coming from the activations of layer below, in particular `source_vecs`.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: [source_time, source_batch, dim].
       source_paddings: [source_time, source_batch]
@@ -457,9 +456,10 @@ class TransformerLayer(base_layer.LayerBase):
       source_segment_id: [source_time, source_batch]
       aux_segment_id: [aux_time, aux_batch]
     Returns:
-      The attention context vector:     [source_time, source_batch, dim].
-      The attention probability vector: [source_time, source_batch, source_time]
-        if is_decoder is False, otherwise [source_time, source_batch, aux_time].
+      The attention context vector, [source_time, source_batch, dim].
+
+      The attention probability vector, [source_time, source_batch, source_time]
+      if is_decoder is False, otherwise [source_time, source_batch, aux_time].
     """
     p = self.params
     if p.packed_input:
@@ -496,7 +496,7 @@ class TransformerLayer(base_layer.LayerBase):
     models.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: [source_batch, dim].
       prefix_states: dict, containing tensors which are the results of previous
@@ -504,8 +504,10 @@ class TransformerLayer(base_layer.LayerBase):
       aux_vecs: [aux_time, aux_batch, dim]
       aux_paddings: [aux_time, aux_batch]
     Returns:
-      The attention context vector:     [target_batch, source_dim]
-      The attention probability vector: [source_time, target_batch]
+      The attention context vector, [target_batch, source_dim]
+
+      The attention probability vector, [source_time, target_batch]
+
       Updated prefix states
     """
     p = self.params
@@ -537,6 +539,7 @@ class MergerLayer(base_layer.LayerBase):
 
   Implements a merger/combiner operator given a list of tensors. The merger
   operator outputs a single tensor with the following options (merger_op):
+
   - atten: Applies attention over the set of input tensors given query vector.
   - mean: Takes the mean of input tensors.
   - concat: Concatenates the input tensors over the last dimension.
@@ -622,7 +625,7 @@ class MergerLayer(base_layer.LayerBase):
     """Combines the list of input tensors into a single tensor.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A list of tensors of shape [..., hidden_dim] or
           [..., [pre_proj_input_dims[i]]] if pre_proj_input_dims is specified.
@@ -769,8 +772,8 @@ class StyleLayer(base_layer.LayerBase):
       ids: A rank-N int32 tensor.
 
     Returns:
-      embs: A rank-(N+1) params.dtype tensor. embs[indices, :] is the
-        embedding vector for ids[indices].
+      embs, A rank-(N+1) params.dtype tensor.
+      embs[indices, :] is the embedding vector for ids[indices].
     """
     p = self.params
     # TODO(ngyuzh): call this function for virsualize big discrete table,
@@ -787,7 +790,7 @@ class StyleLayer(base_layer.LayerBase):
       inp: attention probabilities of shape [batch_size, num_styles].
 
     Returns:
-      style_emb: weighted combined style embedding based on inp.
+      style_emb - weighted combined style embedding based on inp.
     """
     p = self.params
     b_size = tf.shape(inp)[0]

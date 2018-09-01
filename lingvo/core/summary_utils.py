@@ -43,7 +43,7 @@ def SequenceLength(padding):
     padding: A tensor of binary paddings shaped [batch, seqlen].
 
   Returns:
-    seq_lens: A tensor of shape [batch] containing the non-padded length of each
+    seq_lens, A tensor of shape [batch] containing the non-padded length of each
       element of plot_tensor along the batch dimension.
   """
   seq_lens = tf.cast(tf.reduce_sum(1 - padding, axis=1), tf.int32)
@@ -151,7 +151,7 @@ def AddNormSummary(params, name, vs_gs):
   Args:
     params: A layer hyperparams.
     name: A name string for summary.
-    vs_gs: A NestedMap or a list of NestedMap of (variable, gradient).
+    vs_gs: A `.NestedMap` or a list of `.NestedMap` of (variable, gradient).
 
   Returns:
     norm of variables, and norm of gradients.

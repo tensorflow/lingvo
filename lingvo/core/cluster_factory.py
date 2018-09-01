@@ -26,7 +26,8 @@ Cluster = cluster._Cluster
 def Current():
   """Returns the current cluster specification.
 
-  E.g.,
+  E.g.::
+
     with Cluster(cluster_params) as foo:
       model = p.cls(p)
       model.FProp()  # FProp can access foo through cluster_factory.Current().

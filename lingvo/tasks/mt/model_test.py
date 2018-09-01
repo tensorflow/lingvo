@@ -45,7 +45,6 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
 
   @classmethod
   def Params(cls):
-    """Defaults params for NmtInput."""
     p = super(TestInputGenerator, cls).Params()
     p.Define('split', True, '')
     return p

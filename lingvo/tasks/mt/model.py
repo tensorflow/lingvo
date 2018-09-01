@@ -118,7 +118,7 @@ class MTBaseModel(base_model.BaseTask):
       return ret_dict
 
   def _PostProcessBeamSearchDecodeOut(self, dec_out_dict, dec_metrics_dict):
-    """Post processes the output from _BeamSearchDecode."""
+    """Post processes the output from `_BeamSearchDecode`."""
     p = self.params
     topk_scores = dec_out_dict['topk_scores']
     topk_decoded = dec_out_dict['topk_decoded']

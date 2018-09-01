@@ -32,13 +32,13 @@ from lingvo.core import quant_utils
 def _ApplyAttentionDropout(params, x, step_state=None, prng_seed=None):
   """Apply attention dropout according to the given parameters.
 
-  If params.atten_dropout_deterministic is set to True, the dropout will be
-  fully deterministic (requires for `step_state` and `prng_seed`).
+  If `params.atten_dropout_deterministic` is set to True, the dropout will be
+  fully deterministic (requires `step_state` and `prng_seed`).
 
   Args:
     params: The parameters of attention layer.
     x: A float Tensor on which to apply dropout.
-    step_state: (Optional) A NestedMap contains 'global_step' and 'time_step'.
+    step_state: (Optional) A `.NestedMap` with `global_step` and `time_step`.
       Required for deterministic dropout.
     prng_seed: (Optional) An int seed for pseudo random number generator.
       Required for deterministic dropout.
@@ -108,31 +108,32 @@ class BaseAttentionLayer(base_layer.LayerBase):
                           source_segment_id=None):
     """Initialize attention for the given source vectors.
 
-    Must set _source_init_done to True in the function.
+    Must set `_source_init_done` to True in the function.
+
+    Note: `source_segment_id`, if present, should always have the same shape as
+    `source_padding`.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A single tensor of shape [time, batch_size, source_dim].
       source_contexts: A single tensor of shape [time, batch_size, some_dim].
       source_padding: A tensor of shape [time, batch_size].
       source_segment_id: A tensor of shape [time, batch_size].
-          source_segment_id is not None for packed inputs where one training
-          example may pack multiple sequences.
-
-    Note: source_segment_id, if present, should always have the same shape as
-    source_padding.
+        source_segment_id is not None for packed inputs where one training
+        example may pack multiple sequences.
 
     Returns:
       A tuple (concated_source_vecs, concated_source_contexts, source_padding,
-               source_segment_id),
-      where concated_source_vecs is a tensor of shape [time, batch_size,
-      hidden_dim], concated_source_contexts is a tensor of shape [batch_size,
-      time, some_dim], source_padding is a tensor of shape [time,
-      batch_size], source_segment_id is a tensor of shape [time, batch_size].
-      Note the mismatch between concated_source_vecs and
-      concated_source_contexts. In concated_source_vecs, time is the first dim,
-      while it is the second dim in concated_source_contexts.
+      source_segment_id), where `concated_source_vecs` is a tensor of shape
+      [time, batch_size, hidden_dim], `concated_source_contexts` is a tensor
+      of shape [batch_size, time, some_dim], `source_padding` is a tensor of
+      shape [time, batch_size], `source_segment_id` is a tensor of shape
+      [time, batch_size].
+
+      Note the mismatch between `concated_source_vecs` and
+      `concated_source_contexts`. In `concated_source_vecs`, time is the first
+      dim, while it is the second dim in `concated_source_contexts`.
     """
     raise NotImplementedError('Abstract method.')
 
@@ -149,36 +150,38 @@ class BaseAttentionLayer(base_layer.LayerBase):
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
 
+    Note: `concated_source_vecs` are the vectors that are used to compute the
+    attention score between the `query_vec` and each `concated_source_vec`.
+    The `concated_source_contexts` are the vectors that compose the result.
+    The attention context vector is computed as a weighted average of the
+    `concated_source_contexts`, using the scores that were computed using
+    `concated_source_vecs`.
+
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
-      concated_source_vecs: Concated source vectors with shape [time,
-        batch_size, hidden_dim].
-      concated_source_contexts: Concated source contexts with shape [
-        batch_size, time, context_dim].
+      concated_source_vecs: Concated source vectors with shape
+        [time, batch_size, hidden_dim].
+      concated_source_contexts: Concated source contexts with shape
+        [ batch_size, time, context_dim].
       source_padding: Source padding with shape [time, batch_size].
       source_segment_id: Source segment ids with shape [time, batch_size].
       query_vec: a tensor of shape [batch_size, query_dim].
       attention_state: previous attention state.
-      per_step_source_padding: Source sequence padding to apply at this step.
-        If not None, it should be of shape [target_batch_size,
-        source_seq_length].
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      per_step_source_padding: Source sequence padding to apply at this step. If
+        not None, it should have shape [target_batch_size, source_seq_length].
+      step_state: A `.NestedMap` containing `global_step` and `time_step`.
         Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size].
 
-    Note: concated_source_vecs are the vectors that are used to compute the
-    attention score between the query_vec and each concated_source_vec.
-    The concated_source_contexts are the vectors that compose the result.
-    The attention context vector is computed as a weighted average of the
-    concated_source_contexts, using the scores that were computed using
-    concated_source_vecs.
-
     Returns:
-      The attention context vector:     [batch_size, context_dim]
-      The attention probability vector: [batch_size, time]
-      The new attention mechanism state: possibly nested tuple of tensors with
-        dimensions [target_batch....]
+      A tuple of 3 elements.
+        The attention context vector:
+          [batch_size, context_dim]
+        The attention probability vector:
+          [batch_size, time]
+        The new attention mechanism state:
+          possibly nested tuple of tensors with dimensions [target_batch, ...]
     """
     raise NotImplementedError('Abstract method.')
 
@@ -191,27 +194,29 @@ class BaseAttentionLayer(base_layer.LayerBase):
                            query_segment_id=None):
     """Computes the context vector given the current query output.
 
-    Unlike ComputeContextVectorWithSource, which explicitly asks for the source
+    Unlike `ComputeContextVectorWithSource` which explicitly asks for the source
     tensors (concated_source_vecs, concated_source_contexts, source_padding),
-    ComputeContextVector uses the class' internal variables.
+    `ComputeContextVector` uses the class' internal variables.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       query_vec: a tensor of shape [batch_size, query_dim].
       attention_state: previous attention state.
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      step_state: A `.NestedMap` containing `global_step` and `time_step`.
         Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size].
 
     Returns:
-      The attention context vector.
-      The attention probability vector.
-      The new attention mechanism state: possibly nested tuple of tensors with
-        dimensions [target_batch....]
+      A tuple of 3 elements.
+
+      * The attention context vector.
+      * The attention probability vector.
+      * The new attention mechanism state: possibly nested tuple of tensors with
+        dimensions [target_batch, ...]
     """
     assert self._source_init_done
     return self.ComputeContextVectorWithSource(
@@ -222,16 +227,16 @@ class BaseAttentionLayer(base_layer.LayerBase):
   def GetInitializationSourceState(self):
     """Gets the attention initialization state.
 
-    The base class only preserves the concated_source_vecs,
-    concated_source_contexts and source_padding. If subclasses use more
+    The base class only preserves the `concated_source_vecs`,
+    `concated_source_contexts` and `source_padding`. If subclasses use more
     state than this and need to interact with inference code that must
-    fetch and reload state, this and SetInitializationSourceState must
+    fetch and reload state, this and `SetInitializationSourceState` must
     be overridden.
 
     Returns:
-      A NestedMap of Tensors that can be preserved and reset via
-      SetInitializationSourceState() at a later point. This allows, for example,
-      for attention computations to span session runs.
+      A `.NestedMap` of Tensors that can be preserved and reset via
+      `SetInitializationSourceState()` at a later point. This allows, for
+      example, for attention computations to span session runs.
     """
     assert self._source_init_done
     return py_utils.NestedMap(
@@ -243,8 +248,8 @@ class BaseAttentionLayer(base_layer.LayerBase):
     """Sets the attention initialization state.
 
     Args:
-      new_init_state: A NestedMap matching what was returned from
-      GetInitializationSourceState, which will return this layer to that
+      new_init_state: A `.NestedMap` matching what was returned from
+      `GetInitializationSourceState`, which will return this layer to that
       initialization state.
     """
     self._source_init_done = True
@@ -256,8 +261,8 @@ class BaseAttentionLayer(base_layer.LayerBase):
     """Performs a softmax as if padding were applied after exponentiation.
 
     The default implementation uses numerical techniques to approximate this
-    with a standard tf.nn.softmax (using large negative logits for padded
-    values). It defers to a Defun that may be replaced on low-range
+    with a standard `tf.nn.softmax` (using large negative logits for padded
+    values). It defers to a `Defun` that may be replaced on low-range
     implementations with a version that is numerically correct.
 
     Args:
@@ -280,12 +285,12 @@ class BaseAttentionLayer(base_layer.LayerBase):
 
     This creates a mask that removes invalid attention, where the query vector
     might assign some weight to neighboring sequences in a packed input example.
-    Assumes n = target_batch // source_batch.
+    Assumes `n = target_batch // source_batch`.
 
     Args:
       padding: Padding for logits, a tensor of shape [time, n, source_batch].
-      source_segment_ids: a tensor of shape [time, source_batch]
-      query_segment_ids: a tensor of shape [target_batch]
+      source_segment_ids: a tensor of shape [time, source_batch].
+      query_segment_ids: a tensor of shape [target_batch].
 
     Returns:
       Logits with mask applied.
@@ -312,7 +317,7 @@ class AdditiveAttention(BaseAttentionLayer):
 
   @classmethod
   def Params(cls):
-    """Params for this AdditiveAttention class."""
+    """Params for this `AdditiveAttention` class."""
     p = super(AdditiveAttention, cls).Params()
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
@@ -327,7 +332,7 @@ class AdditiveAttention(BaseAttentionLayer):
 
   @base_layer.initializer
   def __init__(self, params):
-    """Constructs an AdditiveAttention object."""
+    """Constructs an `AdditiveAttention` object."""
     super(AdditiveAttention, self).__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
@@ -555,7 +560,7 @@ class AdditiveAttention(BaseAttentionLayer):
     """Packs source vectors. Does not change attention state.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A single tensor of shape [time, batch_size, source_dim].
       source_contexts: A single tensor of shape [time, batch_size, some_dim].
@@ -583,7 +588,7 @@ class AdditiveAttention(BaseAttentionLayer):
     """Initialize attention for the given source vectors.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A single tensor of shape [time, batch_size, source_dim].
       source_contexts: A single tensor of shape [time, batch_size, some_dim].
@@ -621,38 +626,41 @@ class AdditiveAttention(BaseAttentionLayer):
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
 
+    Note: `concated_source_vecs` are the vectors that are used to compute the
+    attention score between the `query_vec` and each `concated_source_vec`.
+    The `concated_source_contexts` are the vectors that compose the result.
+    The attention context vector is computed as a weighted average of the
+    `concated_source_contexts`, using the scores that were computed using
+    `concated_source_vecs`.
+
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       concated_source_vecs: Concated source vectors with shape [time,
         batch_size, hidden_dim].
-      concated_source_contexts: Concated source contexts with shape [
-        batch_size, time, context_dim].
+      concated_source_contexts: Concated source contexts with shape o
+        [batch_size, time, context_dim].
       source_padding: Source padding with shape [time, batch_size].
       source_segment_id: Tensor of source segment ids, with shape [time,
         batch_size].
       query_vec: a tensor of shape [batch_size, query_dim].
       attention_state: previous attention state. It is not used in
-          AdditiveAttention, and is simply passed through.
+          `AdditiveAttention`, and is simply passed through.
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      step_state: A `.NestedMap` containing `global_step` and `time_step`.
         Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size]
 
-    Note: concated_source_vecs are the vectors that are used to compute the
-    attention score between the query_vec and each concated_source_vec.
-    The concated_source_contexts are the vectors that compose the result.
-    The attention context vector is computed as a weighted average of the
-    concated_source_contexts, using the scores that were computed using
-    concated_source_vecs.
-
     Returns:
-      The attention context vector:     [batch_size, context_dim]
-      The attention probability vector: [batch_size, time]
-      The new attention mechanism state: possibly nested tuple of tensors with
-        dimensions [target_batch....]
+      A tuple of 3 elements.
+        The attention context vector:
+          [batch_size, context_dim]
+        The attention probability vector:
+          [batch_size, time]
+        The new attention mechanism state:
+          possibly nested tuple of tensors with dimensions [target_batch, ...]
     """
     p = self.params
     query_batch_size = py_utils.GetShape(query_vec)[0]
@@ -692,7 +700,7 @@ class DotProductAttention(BaseAttentionLayer):
 
   @classmethod
   def Params(cls):
-    """Params for DotProductAttention."""
+    """Params for `DotProductAttention`."""
     p = super(DotProductAttention, cls).Params()
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
@@ -879,7 +887,7 @@ class DotProductAttention(BaseAttentionLayer):
     """Packs source vectors. Does not change attention state.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A tensor of shape [time, source_batch, source_dim].
       source_contexts: A tensor of shape [time, source_batch, context_dim].
@@ -887,13 +895,15 @@ class DotProductAttention(BaseAttentionLayer):
       source_segment_id: A tensor of shape [time, source_batch].
 
     Returns:
-      A tuple (concated_source_vecs, concated_source_contexts, source_padding),
-      where concated_source_vecs is a tensor of shape [time, batch_size,
-      hidden_dim], concated_source_contexts is a tensor of shape [batch_size,
-      time, some_dim] and source_padding is a tensor of shape [time,
-      batch_size]. Note the mismatch between concated_source_vecs and
-      concated_source_contexts. In concated_source_vecs, time is the first dim,
-      while it is the second dim in concated_source_contexts.
+      A tuple (concated_source_vecs, concated_source_contexts, source_padding)
+      where `concated_source_vecs` is a tensor of shape [time, batch_size,
+      hidden_dim], `concated_source_contexts` is a tensor of shape
+      [batch_size, time, some_dim] and `source_padding` is a tensor of shape
+      [time, batch_size].
+
+      Note the mismatch between `concated_source_vecs` and
+      `concated_source_contexts`. In `concated_source_vecs`, time is the first
+      dim, while it is the second dim in `concated_source_contexts`.
     """
     concated_source_vecs = tf.identity(source_vecs)
     concated_source_contexts = tf.transpose(source_contexts, [1, 0, 2])
@@ -911,7 +921,7 @@ class DotProductAttention(BaseAttentionLayer):
     """Initialize attention for the given source vectors.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A tensor of shape [time, source_batch, source_dim].
       source_contexts: A tensor of shape [time, source_batch, context_dim].
@@ -953,7 +963,7 @@ class DotProductAttention(BaseAttentionLayer):
     """Computes the context vector given the current query output.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       concated_source_vecs: Concated source vectors with shape [time,
         source_batch, hidden_dim].
@@ -981,10 +991,13 @@ class DotProductAttention(BaseAttentionLayer):
     concated_source_vecs.
 
     Returns:
-      The attention context vector:     [target_batch, context_dim]
-      The attention probability vector: [target_batch, time]
-      The new attention mechanism state: possibly nested tuple of tensors with
-        dimensions [target_batch....]
+      A tuple of 3 elements.
+        The attention context vector:
+          [batch_size, context_dim]
+        The attention probability vector:
+          [batch_size, time]
+        The new attention mechanism state:
+          possibly nested tuple of tensors with dimensions [target_batch, ...]
     """
     query_batch_size = tf.shape(query_vec)[0]
     source_sequence_length = tf.shape(source_padding)[0]
@@ -1020,17 +1033,18 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
   """Attention with multiple attention heads.
 
   Conceptually, the algorithm works as follows:
-    1. Source vectors (attention keys) are first projected to vectors of dim
-    p.hidden_dim.
-    2. Query vectors are projected to vectors of dim p.hidden_dim as well.
-    3. Context vectors (attention values) are not projected.
-    4. Source vectors, query vectors and context vectors are all split into
-    p.num_attention_heads chunks.
-    5. The inner atten mechanism is computed separately on each of the chunks.
-    6. Attention contexts from each of the chunk are concatenated to form the
-    final context.
-    7. Attention probs from each of the chunk are averaged to form the final
-    attention prob.
+
+  1. Source vectors (attention keys) are first projected to vectors of dim
+     p.hidden_dim.
+  2. Query vectors are projected to vectors of dim p.hidden_dim as well.
+  3. Context vectors (attention values) are not projected.
+  4. Source vectors, query vectors and context vectors are all split into
+     p.num_attention_heads chunks.
+  5. The inner atten mechanism is computed separately on each of the chunks.
+  6. Attention contexts from each of the chunk are concatenated to form the
+     final context.
+  7. Attention probs from each of the chunk are averaged to form the final
+     attention prob.
   """
 
   @classmethod
@@ -1167,7 +1181,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     """Initialize attention for the given source vectors.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A tensor of shape [time, source_batch, source_dim].
       source_contexts: A tensor of shape [time, source_batch, context_dim].
@@ -1201,7 +1215,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     """Packs source vectors. Does not change attention state.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A tensor of shape [time, source_batch, source_dim].
       source_contexts: A tensor of shape [time, source_batch, context_dim].
@@ -1300,7 +1314,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     """Extend cached source_vecs and source_contexts by one more timestep.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       new_source_vecs: A tensor of shape [source_batch, source_dim].
       new_source_contexts: A tensor of shape [source_batch, context_dim].
@@ -1397,7 +1411,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     """Computes the context vector given the current query output.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       concated_source_vecs: Concated source vectors with shape [time,
         batch_size, hidden_dim].
@@ -1423,10 +1437,13 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     concated_source_vecs.
 
     Returns:
-      The attention context vector:     [target_batch, context_dim]
-      The attention probability vector: [target_batch, time]
-      The new attention mechanism state: possibly nested tuple of tensors with
-        dimensions [target_batch....]
+      A tuple of 3 elements.
+        The attention context vector:
+          [batch_size, context_dim]
+        The attention probability vector:
+          [batch_size, time]
+        The new attention mechanism state:
+          possibly nested tuple of tensors with dimensions [target_batch, ...]
     """
     p = self.params
     fns = self.fns
@@ -1492,7 +1509,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     """Computes the context vector given the attention probailities.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       packed_context: Concated source contexts with shape [
         batch_size * num_heads, time, context_dim // num_heads].
@@ -1541,7 +1558,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     in source_vecs, source_contexts and source_padding are ordered differently.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       concated_source_vecs: Concated source vectors with shape [source_batch,
         time, hidden_dim].
@@ -1879,7 +1896,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     """Initialize attention for the given source vectors.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A single tensor of shape [time, batch_size, source_dim].
       source_contexts: A single tensor of shape [time, batch_size, some_dim].
@@ -1930,7 +1947,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     """Computes the context vector given the current query output.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       concated_source_vecs: Concated source vectors with shape [time,
         batch_size, hidden_dim].
@@ -1939,16 +1956,17 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       source_padding: Source padding with shape [time, batch_size].
       source_segment_id: Source segment id with shape [time, batch_size].
       query_vec: a tensor of shape [batch_size, query_dim].
-      attention_state: If params().location_features == ['PREV_PROBS',
-                                                         'CUMULATIVE_PROBS'],
-        then attention_state is a tensor of shape [batch_size, src_len * 2]:
-          attention_state[:, :, 0] contains previous attention probabilities
-          attention_state[:, :, 1] contains a sum over previous timesteps of
+      attention_state: If
+        `params().location_features == ['PREV_PROBS', 'CUMULATIVE_PROBS']`,
+        then `attention_state` is a tensor of shape [batch_size, src_len * 2].
+
+        - attention_state[:, :, 0] contains previous attention probabilities
+        - attention_state[:, :, 1] contains a sum over previous timesteps of
           attention probabilities.
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      step_state: A `.NestedMap` containing 'global_step' and 'time_step'.
         Required for deterministic dropout.
       query_segment_id: Query segment id with shape [batch_size].
 
@@ -1960,10 +1978,13 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     concated_source_vecs.
 
     Returns:
-      The attention context vector:     [batch_size, context_dim]
-      The attention probability vector: [batch_size, time]
-      The new attention mechanism state: possibly nested tuple of tensors with
-        dimensions [target_batch....]
+      A tuple of 3 elements.
+        The attention context vector:
+          [batch_size, context_dim]
+        The attention probability vector:
+          [batch_size, time]
+        The new attention mechanism state:
+          possibly nested tuple of tensors with dimensions [target_batch, ...]
     """
     del source_segment_id
     del query_segment_id
@@ -2037,11 +2058,12 @@ def MergeSourcePaddingWithPerStepSourcePadding(source_padding,
 class MonotonicAttention(BaseAttentionLayer):
   """An attention mechanism which enforces monotonic alignments.
 
-  This layer implements the monotonic attention mechanism described in ``Online
-  and Linear-Time Attention by Enforcing Mononotonic Alignments''
+  This layer implements the monotonic attention mechanism described in
+  Online and Linear-Time Attention by Enforcing Mononotonic Alignments
   (https://arxiv.org/abs/1704.00784).  It is used in exactly the same way as
   AdditiveAttention, but both the attention distribution and the energy function
   are different.
+
   Rather than using a softmax, this mechanism feeds the attention energy into a
   (hard or soft) sigmoid and treats the output as Bernoulli probabilities
   representing the probability of attending to a given entry in the input
@@ -2052,10 +2074,14 @@ class MonotonicAttention(BaseAttentionLayer):
   test time to allow for online and linear-time decoding.  To encourge the train
   and test-time behavior to be similar, noise can optionally be added to the
   sigmoid activations during training (param pre_sigmoid_noise).  For the energy
-  function, rather than computing
-  energy = dot(v, tanh(dot(W, query) + dot(W, encoder_states)))
-  it computes
-  energy = dot(g*v/||v||, tanh(dot(W, query) + dot(W, encoder_states) + b)) + r
+  function, rather than computing::
+
+    E = dot(v, tanh(dot(W, query) + dot(W, encoder_states)))
+
+  it computes::
+
+    E = dot(g*v/||v||, tanh(dot(W, query) + dot(W, encoder_states) + b)) + r
+
   where g and r are scalars and b is a vector, and ||v|| is the L2 norm of v.
   instead.  These modifications address the fact that the sigmoids in the
   monotonic attention mechanism are sensitive to offset and a bit harder to
@@ -2166,7 +2192,7 @@ class MonotonicAttention(BaseAttentionLayer):
     """Packs source vectors. Does not change attention state.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A single tensor of shape [time, batch_size, source_dim].
       source_contexts: A single tensor of shape [time, batch_size, some_dim].
@@ -2194,7 +2220,7 @@ class MonotonicAttention(BaseAttentionLayer):
     """Initialize attention for the given source vectors.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A single tensor of shape [time, batch_size, source_dim].
       source_contexts: A single tensor of shape [time, batch_size, some_dim].
@@ -2333,7 +2359,7 @@ class MonotonicAttention(BaseAttentionLayer):
     """Computes the context vector given the current query output.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       concated_source_vecs: Concated source vectors with shape [time,
         batch_size, hidden_dim].
@@ -2358,9 +2384,13 @@ class MonotonicAttention(BaseAttentionLayer):
     concated_source_vecs.
 
     Returns:
-      The attention context vector:     [batch_size, context_dim]
-      The attention probability vector: [batch_size, time]
-      The attention probability vector (again, to be interpreted as state).
+      A tuple of 3 elements.
+        The attention context vector:
+          [batch_size, context_dim]
+        The attention probability vector:
+          [batch_size, time]
+        The attention probability vector:
+          (again, to be interpreted as state).
     """
     del source_segment_id
     del query_segment_id
@@ -2511,7 +2541,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     """Initialize attention for the given source vectors.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       source_vecs: A single tensor of shape [time, batch_size, source_dim].
       source_contexts: A single tensor of shape [time, batch_size, some_dim].
@@ -2558,7 +2588,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     """Computes the context vector given the current query output.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       concated_source_vecs: Concated source vectors with shape [time,
         batch_size, hidden_dim].
@@ -2568,12 +2598,13 @@ class GmmMonotonicAttention(BaseAttentionLayer):
       source_segment_id: Tensor of source segment ids, with shape [time,
         batch_size].
       query_vec: a tensor of shape [batch_size, query_dim].
-      attention_state: previous attention state,
-        then attention_state is a tensor of shape [batch_size, num_mixtures, 4]:
-          attention_state[:, :, 0] contains previous location
-          attention_state[:, :, 1] contains previous offset.
-          attention_state[:, :, 2] contains previous variance.
-          attention_state[:, :, 3] contains previous prior.
+      attention_state: previous attention state, a tensor of shape
+        [batch_size, num_mixtures, 4].
+
+        - attention_state[:, :, 0] contains previous location
+        - attention_state[:, :, 1] contains previous offset.
+        - attention_state[:, :, 2] contains previous variance.
+        - attention_state[:, :, 3] contains previous prior.
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
@@ -2589,9 +2620,13 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     concated_source_vecs.
 
     Returns:
-      The attention context vector:     [batch_size, context_dim]
-      The attention probability vector: [batch_size, time]
-      The new attention state vector.
+      A tuple of 3 elements.
+        The attention context vector:
+          [batch_size, context_dim]
+        The attention probability vector:
+          [batch_size, time]
+        The new attention state vector:
+          possibly nested tuple of tensors with dimensions [target_batch, ...]
     """
     del source_segment_id
     del query_segment_id

@@ -45,27 +45,30 @@ def _FPropDtype(params):
 
 
 class RNNCell(quant_utils.QuantizableLayer):
+  # pylint: disable=line-too-long
   """RNN cells.
 
-  RNNCell represents recurrent state in a NestedMap.
+  RNNCell represents recurrent state in a `.NestedMap`.
 
-  zero_state(batch_size) returns the initial state, which is defined
-  by each subclass.  From the state, each subclass defines GetOutput()
+  `zero_state(batch_size)` returns the initial state, which is defined
+  by each subclass. From the state, each subclass defines `GetOutput()`
   to extract the output tensor.
 
-  RNNCell.FProp defines the forward function:
-    (theta, state0, inputs) -> state1, extras
+  `RNNCell.FProp` defines the forward function::
 
-  All arguments and return values are NestedMap. Each subclass defines
-  what fields these NestedMap are expected to have.  'extras' is a
-  NestedMap containing some intermediate results FProp computes to
+      (theta, state0, inputs) -> state1, extras
+
+  All arguments and return values are `.NestedMap`. Each subclass defines
+  what fields these `.NestedMap` are expected to have. `extras` is a
+  `.NestedMap` containing some intermediate results `FProp` computes to
   facilitate the backprop.
 
-  zero_state(batch_size), state0 and state1 are all compatible
-  NestedMaps (see NestedMap.IsCompatible). I.e., they have the same
-  keys recursively. Furthermore, the corresponding tensors in these
-  NestedMaps have the same shape and dtype.
+  `zero_state(batch_size)`, `state0` and `state1` are all compatible
+  `.NestedMap` (see `.NestedMap.IsCompatible`).
+  I.e., they have the same keys recursively. Furthermore, the corresponding
+  tensors in these `.NestedMap` have the same shape and dtype.
   """
+  # pylint: enable=line-too-long
 
   @classmethod
   def Params(cls):
@@ -111,14 +114,16 @@ class RNNCell(quant_utils.QuantizableLayer):
     """Forward function.
 
     The default implementation here assumes the cell forward
-    function is composed of two functions:
-      _Gates(_Mix(theta, state0, inputs), theta, state0, inputs)
-    The result of _Mix is stashed in extras to facilitate backprop.
+    function is composed of two functions::
 
-    _ResetState is optionally applied if reset_cell_state is True. The RNN
-    Layer should provide reset_mask inputs in addition to other inputs.
-    reset_mask inputs are expected to be 0 at timesteps where state0 should be
-    reset to default (zeros) before running _Mix() and _Gates(), and 1
+        _Gates(_Mix(theta, state0, inputs), theta, state0, inputs)
+
+    The result of `_Mix` is stashed in `extras` to facilitate backprop.
+
+    `_ResetState` is optionally applied if `reset_cell_state` is True. The RNN
+    layer should provide `reset_mask` inputs in addition to other inputs.
+    `reset_mask` inputs are expected to be 0 at timesteps where state0 should be
+    reset to default (zeros) before running `_Mix()` and `_Gates()`, and 1
     otherwise. This is meant to support use cases like packed inputs, where
     multiple samples are fed in a single input example sequence, and need to be
     masked from each other. For example, if the two examples packed together
@@ -129,14 +134,15 @@ class RNNCell(quant_utils.QuantizableLayer):
     different examples from each other.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
-      state0: The previous recurrent state. A NestedMap.
-      inputs: The inputs to the cell. A NestedMap.
+      state0: The previous recurrent state. A `.NestedMap`.
+      inputs: The inputs to the cell. A `.NestedMap`.
 
     Returns:
-      state1: The next recurrent state. A NestedMap.
-      extras: Intermediate results to faciliate backprop. A NestedMap.
+      A tuple (state1, extras).
+      - state1: The next recurrent state. A `.NestedMap`.
+      - extras: Intermediate results to faciliate backprop. A `.NestedMap`.
     """
     assert isinstance(inputs.act, list)
     assert self.params.inputs_arity == len(inputs.act)
@@ -193,18 +199,21 @@ class LSTMCellSimple(RNNCell):
   """Simple LSTM cell.
 
   theta:
-    wm: the parameter weight matrix. All gates combined.
-    b: the combined bias vector.
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
 
   state:
-    m: the lstm output. [batch, cell_nodes]
-    c: the lstm cell state. [batch, cell_nodes]
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
 
   inputs:
-    act: a list of input activations. [batch, input_nodes]
-    padding: the padding. [batch, 1].
-    reset_mask: optional 0/1 float input to support packed input training.
-        Shape [batch, 1]
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  - reset_mask: optional 0/1 float input to support packed input training.
+    Shape [batch, 1]
   """
 
   @classmethod
@@ -427,24 +436,29 @@ class LSTMCellSimple(RNNCell):
 class LSTMCellGrouped(RNNCell):
   """LSTM cell with groups.
 
-  Grouping: based on "Factorization tricks for LSTM networks":
-    https://arxiv.org/abs/1703.10722.
+  Grouping: based on "Factorization tricks for LSTM networks".
+  https://arxiv.org/abs/1703.10722.
+
   Shuffling: adapted from "ShuffleNet: An Extremely Efficient Convolutional
-    Neural Network for Mobile Devices": https://arxiv.org/abs/1707.01083.
+  Neural Network for Mobile Devices". https://arxiv.org/abs/1707.01083.
 
   theta:
-    groups: a list of child LSTM cells.
+
+  - groups: a list of child LSTM cells.
 
   state:
-    A NestedMap containing 'groups', a list of NestedMaps, each with:
-      m: the lstm output. [batch, cell_nodes // num_groups]
-      c: the lstm cell state. [batch, cell_nodes // num_groups]
+
+    A `.NestedMap` containing 'groups', a list of `.NestedMap`, each with:
+
+    - m: the lstm output. [batch, cell_nodes // num_groups]
+    - c: the lstm cell state. [batch, cell_nodes // num_groups]
 
   inputs:
-    act: a list of input activations. [batch, input_nodes]
-    padding: the padding. [batch, 1].
-    reset_mask: optional 0/1 float input to support packed input training.
-        Shape [batch, 1]
+
+  -  act: a list of input activations. [batch, input_nodes]
+  -  padding: the padding. [batch, 1].
+  -  reset_mask: optional 0/1 float input to support packed input training.
+     Shape [batch, 1]
   """
 
   @classmethod
@@ -515,14 +529,15 @@ class LSTMCellGrouped(RNNCell):
     shuffling between groups.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
-      state0: The previous recurrent state. A NestedMap.
-      inputs: The inputs to the cell. A NestedMap.
+      state0: The previous recurrent state. A `.NestedMap`.
+      inputs: The inputs to the cell. A `.NestedMap`.
 
     Returns:
-      state1: The next recurrent state. A list.
-      extras: An empty NestedMap.
+      A tuple (state1, extras).
+      - state1: The next recurrent state. A list.
+      - extras: An empty `.NestedMap`.
     """
     p = self.params
     split_inputs_act = py_utils.SplitRecursively(inputs.act, p.num_groups)
@@ -550,14 +565,16 @@ class LSTMCellGrouped(RNNCell):
       scattered across output groups.
 
       For example, if we have 3 groups, each with 4 shards:
-        Group 0: 0_0, 0_1, 0_2, 0_3
-        Group 1: 1_0, 1_1, 1_2, 1_3
-        Group 2: 2_0, 2_1, 2_2, 2_3
+
+      | Group 0: 0_0, 0_1, 0_2, 0_3
+      | Group 1: 1_0, 1_1, 1_2, 1_3
+      | Group 2: 2_0, 2_1, 2_2, 2_3
 
       The shuffled output will be:
-        Group 0: 0_0, 1_1, 2_2, 0_3
-        Group 1: 1_0, 2_1, 0_2, 1_3
-        Group 2: 2_0, 0_1, 1_2, 2_3
+
+      | Group 0: 0_0, 1_1, 2_2, 0_3
+      | Group 1: 1_0, 2_1, 0_2, 1_3
+      | Group 2: 2_0, 0_1, 1_2, 2_3
     """
     p = self.params
     assert len(shards) == (p.num_shuffle_shards * p.num_groups)
@@ -659,17 +676,20 @@ class QuantizedLSTMCell(RNNCell):
   only clipping is performed.
 
   theta:
-    wm: the parameter weight matrix. All gates combined.
-    cap: the cell value cap.
+
+  - wm: the parameter weight matrix. All gates combined.
+  - cap: the cell value cap.
 
   state:
-    m: the lstm output. [batch, cell_nodes]
-    c: the lstm cell state. [batch, cell_nodes]
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
 
   inputs:
-    act: a list of input activations. [batch, input_nodes]
-    padding: the padding. [batch, 1].
-    reset_mask: optional 0/1 float input to support packed input training.
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  - reset_mask: optional 0/1 float input to support packed input training.
     [batch, 1]
   """
 
@@ -753,17 +773,20 @@ class LSTMCellCuDNNCompliant(RNNCell):
   """LSTMCell compliant with variables with CuDNN-LSTM layout.
 
   theta:
-    wb: the cudnn LSTM weight.
+
+  - wb: the cudnn LSTM weight.
 
   state:
-    m: the lstm output. [batch, cell_nodes]
-    c: the lstm cell state. [batch, cell_nodes]
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
 
   inputs:
-    act: a list of input activations. [batch, input_nodes]
-    padding: the padding. [batch, 1].
-    reset_mask: optional 0/1 float input to support packed input training.
-        Shape [batch, 1]
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  - reset_mask: optional 0/1 float input to support packed input training.
+    Shape [batch, 1]
   """
 
   @classmethod
@@ -860,18 +883,21 @@ class LayerNormalizedLSTMCell(RNNCell):
   https://arxiv.org/pdf/1607.06450.pdf
 
   theta:
-    wm: the parameter weight matrix. All gates combined.
-    b: the combined bias vector.
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
 
   state:
-    m: the lstm output. [batch, cell_nodes]
-    c: the lstm cell state. [batch, cell_nodes]
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
 
   inputs:
-    act: a list of input activations. [batch, input_nodes]
-    padding: the padding. [batch, 1].
-    reset_mask: optional 0/1 float input to support packed input training.
-        Shape [batch, 1]
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  - reset_mask: optional 0/1 float input to support packed input training.
+    Shape [batch, 1]
   """
 
   @classmethod
@@ -1048,18 +1074,21 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
   https://arxiv.org/pdf/1607.06450.pdf
 
   theta:
-    wm: the parameter weight matrix. All gates combined.
-    b: the combined bias vector.
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
 
   state:
-    m: the lstm output. [batch, cell_nodes]
-    c: the lstm cell state. [batch, cell_nodes]
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
 
   inputs:
-    act: a list of input activations. [batch, input_nodes]
-    padding: the padding. [batch, 1].
-    reset_mask: optional 0/1 float input to support packed input training.
-        Shape [batch, 1]
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  - reset_mask: optional 0/1 float input to support packed input training.
+    Shape [batch, 1]
   """
 
   @classmethod
@@ -1127,16 +1156,19 @@ class ConvLSTMCell(RNNCell):
   """Convolution LSTM cells.
 
   theta:
-    wm: the parameter weight matrix. All gates combined.
-    b: the combined bias vector.
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
 
   state:
-    m: the lstm output. cell_shape
-    c: the lstm cell state. cell_shape
+
+  - m: the lstm output. cell_shape
+  - c: the lstm cell state. cell_shape
 
   inputs:
-    act: a list of input activations. input_shape.
-    padding: the padding. [batch].
+
+  - act: a list of input activations. input_shape.
+  - padding: the padding. [batch].
   """
 
   @classmethod
@@ -1262,22 +1294,26 @@ class SRUCell(RNNCell):
   """SRU cell.
 
   From this paper: https://arxiv.org/abs/1709.02755
+
   This is a simple implementation that can be used as a drop-in replacement for
   another RNN. It doesn't do the performance tricks that an SRU is capable of,
   like unrolling matrix computations over time. This is just a basic
   implementation. It does the 4-matrix implementation found in appendix C.
 
   theta:
-    wm: the parameter weight matrix. All gates combined.
-    b: the combined bias vector.
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
 
   state:
-    m: the sru output. [batch, cell_nodes]
-    c: the sru cell state. [batch, cell_nodes]
+
+  - m: the sru output. [batch, cell_nodes]
+  - c: the sru cell state. [batch, cell_nodes]
 
   inputs:
-    act: a list of input activations. [batch, input_nodes]
-    padding: the padding. [batch, 1].
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
   """
 
   @classmethod
@@ -1369,26 +1405,30 @@ class QRNNPoolingCell(RNNCell):
   """This implements just the "pooling" part of a quasi-RNN or SRU.
 
   From these papers:
-   https://arxiv.org/abs/1611.01576
-   https://arxiv.org/abs/1709.02755
+
+  - https://arxiv.org/abs/1611.01576
+  - https://arxiv.org/abs/1709.02755
 
   The pooling part implements gates for recurrence. These architectures split
   the transform (conv or FC) from the gating/recurrent part. This cell can
   do either the quasi-RNN style or SRU style pooling operation based on params.
 
-  If you want all of the functionality in one RNN cell, use "SRUCell" instead.
+  If you want all of the functionality in one RNN cell, use `SRUCell` instead.
 
   theta:
+
     Has the trainable zero state. Other weights are done outside the recurrent
     loop.
 
   state:
-    m: the qrnn output. [batch, cell_nodes]
-    c: the qrnn cell state. [batch, cell_nodes]
+
+  - m: the qrnn output. [batch, cell_nodes]
+  - c: the qrnn cell state. [batch, cell_nodes]
 
   inputs:
-    act: a list of input activations. [batch, input_nodes * num_rnn_matrices]
-    padding: the padding. [batch, 1].
+
+  - act: a list of input activations. [batch, input_nodes * num_rnn_matrices]
+  - padding: the padding. [batch, 1].
   """
 
   @classmethod

@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+# pylint: disable=line-too-long
 """Trainer.
 
 To run locally:
-$ bazel build -c opt lingvo:trainer
-$ bazel-bin/lingvo/trainer --logtostderr --model=image.mnist.LeNet5 --mode=sync
---logdir=/tmp/lenet5 --run_locally=cpu
 
-To use GPU, add --config=cuda to build command and set --run_locally=gpu.
+.. code-block:: bash
+
+  $ bazel build -c opt lingvo:trainer
+  $ bazel-bin/lingvo/trainer --logtostderr --model=image.mnist.LeNet5 --mode=sync --logdir=/tmp/lenet5 --run_locally=cpu
+
+To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.
 """
+# pylint: enable=line-too-long
 
 from __future__ import absolute_import
 from __future__ import division
@@ -678,7 +682,7 @@ class Decoder(base_runner.BaseRunner):
     return os.path.join(out_dir, 'decoder_out_%09d' % checkpoint_id)
 
   def DecodeCheckpoint(self, sess, checkpoint_path):
-    """Decodes samples_per_summary examples using params in checkpoint_path."""
+    """Decodes `samples_per_summary` examples using `checkpoint_path`."""
     p = self._model_task.params
     samples_per_summary = p.eval.decoder_samples_per_summary
     if not samples_per_summary:
@@ -771,7 +775,7 @@ class RunnerManager(object):
 
   @classmethod
   def MaybeConfigRunDistributed(cls):
-    """If given a FLAGS.cluster_spec, create a server and update flags."""
+    """If given a `FLAGS.cluster_spec`, create a server and update flags."""
     if not FLAGS.cluster_spec:
       return
     job_specs = FLAGS.cluster_spec.split('@')
@@ -813,7 +817,7 @@ class RunnerManager(object):
 
   @classmethod
   def UpdateClusterParamsFromFlags(cls, cfg, job_name):
-    """Update Params with a training cluster configuration from flags."""
+    """Update `cfg` with a training cluster configuration from flags."""
     cfg.cluster.mode = FLAGS.mode
     cfg.cluster.job = job_name
     cfg.cluster.task = FLAGS.task
@@ -880,17 +884,17 @@ class RunnerManager(object):
   @classmethod
   def CreateRunners(cls, jobs, model_name, logdir,
                     trial=base_trial.NoOpTrial()):
-    """Creates a list of runners based on FLAGS.mode.
+    """Creates a list of runners based on `FLAGS.mode`.
 
     Args:
       jobs: a list of runner jobs.
-      model_name: name of a registered ModelParams class.
+      model_name: name of a registered `ModelParams` class.
       logdir: the directory used for logging, usually on CNS.
-      trial: optional Trial object, used for reporting measures and early
-          stopping.
+      trial: optional `Trial` object, used for reporting measures and early
+        stopping.
 
     Returns:
-      A list of BaseRunners, one per job in 'jobs'.
+      A list of `.BaseRunner`, one per job in `jobs`.
     """
 
     runners = []
@@ -909,10 +913,12 @@ class RunnerManager(object):
 
   @classmethod
   def StartRunners(cls, runners):
-    """Runs 'runners' in parallel threads. Returns when all of them finish.
+    """Runs `runners` in parallel threads.
+
+    Returns when all of them finish.
 
     Args:
-      runners: a list of BaseRunners.
+      runners: a list of `.BaseRunner`.
 
     Returns:
       None.

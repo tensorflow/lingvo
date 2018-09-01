@@ -73,6 +73,7 @@ py_test(
     deps = [
         ":model_imports",
         ":model_registry",
+        ":model_registry_test",
         # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",

@@ -43,13 +43,13 @@ class BaseMetric(object):
     return None
 
   def Summary(self, name):
-    """Converts the current state of this metric to a tf.Summary.
+    """Converts the current state of this metric to a `tf.Summary`.
 
     Args:
       name: A string to use as the summary value tag.
 
     Returns:
-      A tf.Summary proto.
+      A `tf.Summary` proto.
     """
     return CreateScalarSummary(name, self.value)
 

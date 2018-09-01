@@ -68,3 +68,6 @@ def generic_input(processor, *args, **kwargs):
   assert out_types[-1] == tf.int32, ('%s is not expected.' % out_types[-1])
   return gen_x_ops.generic_input(
       processor=processor, out_types=out_types[:-1], *args, **kwargs)
+
+
+generic_input.__doc__ = gen_x_ops.generic_input.__doc__

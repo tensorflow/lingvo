@@ -32,7 +32,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
 
   @classmethod
   def Params(cls):
-    """Defaults params for NmtInput."""
+    """Defaults params for `NmtInput`."""
     p = super(NmtInput, cls).Params()
     p.tokenizer = tokenizers.VocabFileTokenizer.Params()
     p.source_max_length = 300
