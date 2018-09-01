@@ -110,7 +110,7 @@ def SplitDictOfTensors(t_dict, num_splits):
   """
   keys = []
   values = []
-  for k, v in six.iteritems(t_dict):
+  for k, v in sorted(six.iteritems(t_dict)):
     keys.append(k)
     values.append(v)
 
