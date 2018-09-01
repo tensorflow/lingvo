@@ -1,0 +1,500 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.beam_search_helper module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.build_data module" href="lingvo.core.build_data.html" />
+    <link rel="prev" title="lingvo.core.base_model_params module" href="lingvo.core.base_model_params.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.beam_search_helper module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.beam_search_helper.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.beam_search_helper">
+<span id="lingvo-core-beam-search-helper-module"></span><h1>lingvo.core.beam_search_helper module<a class="headerlink" href="#module-lingvo.core.beam_search_helper" title="Permalink to this headline">¶</a></h1>
+<p>Helper class for implementing a beam search decoder.</p>
+<p>Individual models just need to provide a few callback functions.</p>
+<dl class="class">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput">
+<em class="property">class </em><code class="descclassname">lingvo.core.beam_search_helper.</code><code class="descname">BeamSearchDecodeOutput</code><span class="sig-paren">(</span><em>done_hyps</em>, <em>topk_hyps</em>, <em>topk_ids</em>, <em>topk_lens</em>, <em>topk_scores</em>, <em>topk_decoded</em>, <em>other_states</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="method">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput._asdict">
+<code class="descname">_asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._asdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new OrderedDict which maps field names to their values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput._fields">
+<code class="descname">_fields</code><em class="property"> = ('done_hyps', 'topk_hyps', 'topk_ids', 'topk_lens', 'topk_scores', 'topk_decoded', 'other_states')</em><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._fields" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput._make">
+<em class="property">classmethod </em><code class="descname">_make</code><span class="sig-paren">(</span><em>iterable</em>, <em>new=&lt;built-in method __new__ of type object&gt;</em>, <em>len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._make" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a new BeamSearchDecodeOutput object from a sequence or iterable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput._replace">
+<code class="descname">_replace</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput._replace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new BeamSearchDecodeOutput object replacing specified fields with new values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.done_hyps">
+<code class="descname">done_hyps</code><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.done_hyps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.other_states">
+<code class="descname">other_states</code><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.other_states" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 6</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_decoded">
+<code class="descname">topk_decoded</code><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_decoded" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_hyps">
+<code class="descname">topk_hyps</code><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_hyps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_ids">
+<code class="descname">topk_ids</code><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_lens">
+<code class="descname">topk_lens</code><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_lens" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_scores">
+<code class="descname">topk_scores</code><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput.topk_scores" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.beam_search_helper.BeamSearchHelper">
+<em class="property">class </em><code class="descclassname">lingvo.core.beam_search_helper.</code><code class="descname">BeamSearchHelper</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<p>Helper class for performing beam search.</p>
+<p>The user of this helper class needs to implement three callbacks.</p>
+<p>This callback is called once only at the beginning of beam search:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>def InitBeamSearchState(source_encs,
+                        source_paddings,
+                        num_hyps_per_beam,
+                        additional_source_info):
+  Args:
+    source_encs: A tensor of shape [src_len, src_batch, source_dim].
+    source_paddings: A tensor of shape [src_len, src_batch].
+    num_hyps_per_beam: An int, number hyps to keep for source sentence.
+    additional_source_info: a NestedMap of tensors containing extra
+        information about the source that may be useful for decoding.
+  Returns:
+    initial_results: a NestedMap of initial results. It should contain the
+        following tensors at the minimum.
+            atten_probs: The initial attention probs, of shape [tgt_batch,
+                src_len].
+    states: a NestedMap of tensors representing states that the client
+        would like to keep track of for each hyp.
+</pre></div>
+</div>
+<p>This callback is called once every decoding time step before beam_search_step
+is called:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>def PreBeamSearchStepCallback(source_encs,
+                              source_paddings,
+                              step_ids,
+                              in_states,
+                              num_hyps_per_beam,
+                              additional_source_info):
+  Args:
+    source_encs: A tensor of shape [src_len, src_batch, source_dim].
+    source_paddings: A tensor of shape [src_len, src_batch].
+    step_ids: A tensor of shape [tgt_batch, 1].
+    in_states: A NestedMap of tensors representing states that the clients
+        would like to keep track of for each of the active hyps.
+    additional_source_info: a NestedMap of tensors containing extra
+        information about the source that may be useful for decoding.
+  Returns:
+    results: A NestedMap of beam search results. It should contain
+        the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors at the minimal.
+        Optionally it may contain &#39;lm_log_probs&#39; if a LM is used during
+        decoding and &#39;is_last_chunk&#39; if it is decoding a neural transducer
+        model.
+    atten_probs: The updated attention probs, of shape [tgt_batch,
+        src_len].
+    log_probs: Log prob for each of the tokens in the target vocab. This
+        is of shape [tgt_batch, vocab_size].
+    lm_log_probs: Language model prob for each of the tokens in the target
+        vocab.  If not empty, this is of shape [tgt_batch, vocab_size].
+    is_last_chunk: Whether or not each of the hyp is at the end of a
+        chunk. If non-empty, it is of shape [tgt_batch, 1]
+    out_states: A NestedMap. The updated states. This &#39;out_states&#39; should
+        be of the exact same structure as &#39;in_states&#39;
+</pre></div>
+</div>
+<p>This callback is called once every decoding time step after beam_search_step
+is called:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>def PostBeamSearchStepCallback(source_encs,
+                               source_paddings,
+                               new_step_ids,
+                               other_states,
+                               additional_source_info):
+  Args:
+    source_encs: The same as above.
+    source_paddings: The same as above.
+    new_step_ids: Token ids for the next beam search step.
+    other_states: A NestedMap.
+    additional_source_info: a NestedMap of tensors containing extra
+        information about the source that may be useful for decoding.
+  Returns:
+    final_states, A NestedMap.
+</pre></div>
+</div>
+<dl class="classmethod">
+<dt id="lingvo.core.beam_search_helper.BeamSearchHelper.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep">
+<code class="descname">_BeamSearchStep</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>cur_step</em>, <em>step_ids</em>, <em>core_bs_states</em>, <em>other_states</em>, <em>num_hyps_per_beam</em>, <em>pre_beam_search_step_callback</em>, <em>post_beam_search_step_callback</em>, <em>additional_source_info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper._BeamSearchStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend beam search hyps for one step.</p>
+<blockquote>
+<div><div class="line-block">
+<div class="line">num_beams = Number of source sequences to be decoded.</div>
+<div class="line">num_hyps_per_beam = Number of hyps to keep per source sequence.</div>
+<div class="line">num_hyps = num_beams * num_hyps_per_beam</div>
+<div class="line">src_seq_len = Number of time steps in the source sequence.</div>
+<div class="line">tgt_seq_len = Maximum allowed time steps in the target sequence.</div>
+</div>
+</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>source_encs</strong> – A tensor of the shape [time, batch, depth]. The encoding of
+the source.</li>
+<li><strong>source_paddings</strong> – A tensor of the shape [time, batch]. Padding state of
+the source.</li>
+<li><strong>cur_step</strong> – A scalar int tensor, the current time step, 0-based.</li>
+<li><strong>step_ids</strong> – An int tensor of shape [num_hyps, 1]. The input ids to the
+current search step.</li>
+<li><strong>core_bs_states</strong> – A tuple of core beam search states. This list is
+maintained by this helper class.</li>
+<li><strong>other_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of other beam search states. This <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>
+is managed and updated by the client. It is expected that each of its
+member tensors are of rank &gt;= 1. t[i, …] is the state of the i-th
+hyp at the beginning of this search step.</li>
+<li><strong>num_hyps_per_beam</strong> – Num of hyps to keep per beam.</li>
+<li><strong>pre_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PreBeamSearchStepCallback</span></code> callback.
+See class header comments for more details.</li>
+<li><strong>post_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PostBeamSearchStepCallback</span></code> callback.
+See class header comments for more details.</li>
+<li><strong>additional_source_info</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors containing extra context
+information about the source that may be useful for decoding.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tuple of following elements for the next beam search step,
+(next step, all_done, step_ids, core_bs_states, other_states)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.beam_search_helper.BeamSearchHelper.BeamSearchDecode">
+<code class="descname">BeamSearchDecode</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>num_hyps_per_beam_override=0</em>, <em>init_beam_search_state=None</em>, <em>pre_beam_search_step_callback=None</em>, <em>post_beam_search_step_callback=None</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#BeamSearchHelper.BeamSearchDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.beam_search_helper.BeamSearchHelper.BeamSearchDecode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs beam-search based decoding.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>source_encs</strong> – source encoding, of shape [time, batch, depth]. In case of
+multi-source decoding, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing source encoding
+tensors, again each of shape [time, batch, depth].</li>
+<li><strong>source_paddings</strong> – source encoding’s padding, of shape [time, batch]. In
+case of multi-source decoding, A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing source
+padding tensors, each of shape [time, batch].</li>
+<li><strong>num_hyps_per_beam_override</strong> – If set to a value &lt;= 0, this parameter is
+ignored. If set to a value &gt; 0, then this value will be used to
+override <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.num_hyps_per_beam</span></code>.</li>
+<li><strong>additional_source_info</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors containing extra context
+information about the source that may be useful for decoding.</li>
+<li><strong>init_beam_search_state</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">InitBeamSearchState</span></code> callback. Please refer
+to the class header comments for more details.</li>
+<li><strong>pre_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PreBeamSearchStepCallback</span></code> callback.
+Please refer to the class header comments for more details.</li>
+<li><strong>post_beam_search_step_callback</strong> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">PostBeamSearchStepCallback</span></code> callback.
+Please refer to the class header comments for more details.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="lingvo.core.beam_search_helper.BeamSearchDecodeOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code></a>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.beam_search_helper._GetShapes">
+<code class="descclassname">lingvo.core.beam_search_helper.</code><code class="descname">_GetShapes</code><span class="sig-paren">(</span><em>tensors</em>, <em>none_shapes=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/beam_search_helper.html#_GetShapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.beam_search_helper._GetShapes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Util for getting nested structure of shapes from structure of tensors.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>tensors</strong> – Structure of Tensors to get shapes for.</li>
+<li><strong>none_shapes</strong> – Returns None shapes if true.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">The same structure as tensors but of corresponding <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code> objects.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.build_data.html" class="btn btn-neutral float-right" title="lingvo.core.build_data module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.base_model_params.html" class="btn btn-neutral" title="lingvo.core.base_model_params module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

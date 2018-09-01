@@ -1,0 +1,333 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.mt.input_generator &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.mt.input_generator</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.mt.input_generator</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;Machine translation input generator.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tokenizers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
+
+
+<div class="viewcode-block" id="NmtInput"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.NmtInput">[docs]</a><span class="k">class</span> <span class="nc">NmtInput</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generator for NMT.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="NmtInput.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.NmtInput.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defaults params for `NmtInput`.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">NmtInput</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">VocabFileTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="mi">300</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="NmtInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.NmtInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">Proc</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Parses a serialized tf.Example record.&quot;&quot;&quot;</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;source_id&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;source_padding&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;target_id&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;target_padding&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;target_label&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;target_weight&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span>
+      <span class="p">]</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">outputs</span><span class="p">))</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">features</span><span class="p">):</span>
+        <span class="n">features</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">values</span>
+      <span class="n">bucket_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;source_padding&#39;</span><span class="p">]),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;target_padding&#39;</span><span class="p">])))</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">features</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">outputs</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">bucket_key</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
+        <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
+        <span class="n">processor</span><span class="o">=</span><span class="n">Proc</span><span class="p">,</span>
+        <span class="n">dynamic_padding_dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="n">dynamic_padding_constants</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">NmtInput</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_src_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_src_paddings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_paddings</span><span class="p">,</span>
+     <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_weights</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span>
+
+      <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">)</span> <span class="o">==</span> <span class="nb">max</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">):</span>
+        <span class="n">source_shape</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span>
+        <span class="p">]</span>
+        <span class="n">target_shape</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span>
+        <span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">source_shape</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">target_shape</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_src_ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_src_ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">source_shape</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_src_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_src_paddings</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">source_shape</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_paddings</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_labels</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_weights</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">target_shape</span><span class="p">)</span>
+
+    <span class="c1"># TODO(zhifengc): come up more meaningful training sample ids here.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_src_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sample_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NmtInput.InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.NmtInput.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="n">ret</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_src_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_src_paddings</span>
+
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_ids</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tgt_labels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_weights</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_paddings</span>
+
+    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">_Cast</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">v</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">ret</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_Cast</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

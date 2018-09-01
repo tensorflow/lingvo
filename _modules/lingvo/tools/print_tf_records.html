@@ -1,0 +1,311 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tools.print_tf_records &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tools.print_tf_records</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tools.print_tf_records</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Debug print tf records in text format.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">six</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;input_filepattern&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;File pattern of binary tfrecord files.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;input_format&#39;</span><span class="p">,</span> <span class="s1">&#39;tf.Example&#39;</span><span class="p">,</span>
+                       <span class="s1">&#39;Input format: only &quot;tf.Example&quot; supported for now.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;skip_first_n&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Skip first records.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;print_only_n&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+                        <span class="s1">&#39;Only print a certain number of records.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;abbreviated&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Print in abbreviated format.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;bytes_as_utf8&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+                     <span class="s1">&#39;Print byte strings as UTF-8 strings&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;count_only&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                     <span class="s1">&#39;Don</span><span class="se">\&#39;</span><span class="s1">t print, just count number of entries&#39;</span><span class="p">)</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="_CustomShortDebugString"><a class="viewcode-back" href="../../../lingvo.tools.print_tf_records.html#lingvo.tools.print_tf_records._CustomShortDebugString">[docs]</a><span class="k">def</span> <span class="nf">_CustomShortDebugString</span><span class="p">(</span><span class="n">tf_example</span><span class="p">):</span>
+  <span class="n">text</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">tf_example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;bytes_list&#39;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">bytes_as_utf8</span><span class="p">:</span>
+        <span class="n">utf8_values</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">value</span><span class="o">.</span><span class="n">bytes_list</span><span class="o">.</span><span class="n">value</span><span class="p">]</span>
+        <span class="n">value_string</span> <span class="o">=</span> <span class="s1">&#39;[&#39;</span> <span class="o">+</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">utf8_values</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;]&#39;</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">value_string</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">bytes_list</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;float_list&#39;</span><span class="p">):</span>
+      <span class="n">value_string</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;int64_list&#39;</span><span class="p">):</span>
+      <span class="n">value_string</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value_string</span><span class="p">)]</span>
+  <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_PrintHeader"><a class="viewcode-back" href="../../../lingvo.tools.print_tf_records.html#lingvo.tools.print_tf_records._PrintHeader">[docs]</a><span class="k">def</span> <span class="nf">_PrintHeader</span><span class="p">(</span><span class="n">tf_example</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Prints table of contents.&quot;&quot;&quot;</span>
+  <span class="c1"># Typically, tf.Examples have the same features.</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;==== FEATURES ====&#39;</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">tf_example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span><span class="p">)):</span>
+    <span class="n">type_string</span> <span class="o">=</span> <span class="s1">&#39;&lt;empty&gt;&#39;</span>
+    <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;bytes_list&#39;</span><span class="p">):</span>
+      <span class="n">type_string</span> <span class="o">=</span> <span class="s1">&#39;bytes&#39;</span>
+    <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;float_list&#39;</span><span class="p">):</span>
+      <span class="n">type_string</span> <span class="o">=</span> <span class="s1">&#39;float&#39;</span>
+    <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;int64_list&#39;</span><span class="p">):</span>
+      <span class="n">type_string</span> <span class="o">=</span> <span class="s1">&#39;int64&#39;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: [</span><span class="si">%s</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">type_string</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;====&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_PrintFiles"><a class="viewcode-back" href="../../../lingvo.tools.print_tf_records.html#lingvo.tools.print_tf_records._PrintFiles">[docs]</a><span class="k">def</span> <span class="nf">_PrintFiles</span><span class="p">():</span>
+  <span class="n">entry</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">for</span> <span class="n">filepath</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Glob</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">input_filepattern</span><span class="p">):</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">python_io</span><span class="o">.</span><span class="n">tf_record_iterator</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">serialized</span> <span class="ow">in</span> <span class="n">records</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">entry</span> <span class="o">&lt;</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">skip_first_n</span><span class="p">:</span>
+        <span class="n">entry</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">continue</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">print_only_n</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">entry</span> <span class="o">-</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">skip_first_n</span> <span class="o">&gt;</span>
+                                      <span class="n">FLAGS</span><span class="o">.</span><span class="n">print_only_n</span><span class="p">):</span>
+        <span class="k">break</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">count_only</span><span class="p">:</span>
+        <span class="n">entry</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">entry</span> <span class="o">%</span> <span class="mi">100000</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Counted </span><span class="si">%d</span><span class="s1"> entries so far...&#39;</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
+        <span class="k">continue</span>
+      <span class="k">assert</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">input_format</span> <span class="o">==</span> <span class="s1">&#39;tf.Example&#39;</span>
+      <span class="n">ex</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">()</span>
+      <span class="n">ex</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">serialized</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">entry</span> <span class="o">==</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">skip_first_n</span><span class="p">:</span>
+        <span class="n">_PrintHeader</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span>
+      <span class="n">text_format</span> <span class="o">=</span> <span class="n">_CustomShortDebugString</span><span class="p">(</span><span class="n">ex</span><span class="p">)</span> <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">abbreviated</span> <span class="k">else</span> <span class="nb">str</span><span class="p">(</span>
+          <span class="n">ex</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;== Record [</span><span class="si">%d</span><span class="s1">]</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">text_format</span><span class="p">)</span>
+      <span class="n">entry</span> <span class="o">+=</span> <span class="mi">1</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;== Total entries: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../lingvo.tools.print_tf_records.html#lingvo.tools.print_tf_records.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+  <span class="n">_PrintFiles</span><span class="p">()</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

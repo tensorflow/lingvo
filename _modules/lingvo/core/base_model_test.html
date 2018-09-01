@@ -1,0 +1,579 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.base_model_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.base_model_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.base_model_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for base_model.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_decoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_encoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">task_scheduler</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+<span class="n">_NUMPY_RANDOM_SEED</span> <span class="o">=</span> <span class="mi">9885784</span>
+
+
+<div class="viewcode-block" id="BaseTaskTest"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.BaseTaskTest">[docs]</a><span class="k">class</span> <span class="nc">BaseTaskTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="BaseTaskTest.TestParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.BaseTaskTest.TestParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">TestParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;base_mdl&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">base_encoder</span><span class="o">.</span><span class="n">BaseEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;encoder&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">base_decoder</span><span class="o">.</span><span class="n">BaseDecoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;decoder&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="BaseTaskTest.testInit"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.BaseTaskTest.testInit">[docs]</a>  <span class="k">def</span> <span class="nf">testInit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTaskTest.testScaleGradients"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.BaseTaskTest.testScaleGradients">[docs]</a>  <span class="k">def</span> <span class="nf">testScaleGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+        <span class="s1">&#39;a&#39;</span><span class="p">,</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span>
+    <span class="n">var_a</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">a</span>
+    <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="p">(</span><span class="n">var_a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">var_a</span><span class="p">)))</span>
+    <span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">,</span> <span class="n">final_var_grads</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
+
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_check_numerics</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">grad_scale</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="c1"># The final gradient must be finite.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">final_var_grads</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_finite</span><span class="p">(</span><span class="n">final_var_grads</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="BaseTaskTest.testScaleGradientsInf"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.BaseTaskTest.testScaleGradientsInf">[docs]</a>  <span class="k">def</span> <span class="nf">testScaleGradientsInf</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_check_numerics</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+        <span class="s1">&#39;a&#39;</span><span class="p">,</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span>
+    <span class="n">var_a</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">a</span>
+    <span class="c1"># Infinite gradient.</span>
+    <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="p">(</span><span class="n">var_a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">0.</span><span class="p">)))</span>
+    <span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">,</span> <span class="n">final_var_grads</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">grad_scale</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="c1"># The final gradient must be finite.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">final_var_grads</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_finite</span><span class="p">(</span><span class="n">final_var_grads</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="BaseTaskTest.testScaleGradientsNaN"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.BaseTaskTest.testScaleGradientsNaN">[docs]</a>  <span class="k">def</span> <span class="nf">testScaleGradientsNaN</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_check_numerics</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+        <span class="s1">&#39;a&#39;</span><span class="p">,</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span>
+    <span class="n">var_a</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">a</span>
+    <span class="c1"># Make a NaN gradient.</span>
+    <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="p">(</span><span class="n">var_a</span><span class="p">,</span> <span class="mf">0.</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">0.</span><span class="p">)))</span>
+    <span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">,</span> <span class="n">final_var_grads</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">grad_scale</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="c1"># The final gradient must be finite.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">final_var_grads</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_finite</span><span class="p">(</span><span class="n">final_var_grads</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="BaseTaskTest.testScaleGradientsCheckNumerics"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.BaseTaskTest.testScaleGradientsCheckNumerics">[docs]</a>  <span class="k">def</span> <span class="nf">testScaleGradientsCheckNumerics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;ScaleGradients when enable_check_numerics=True.&quot;&quot;&quot;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_check_numerics</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+        <span class="s1">&#39;a&#39;</span><span class="p">,</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span>
+    <span class="n">var_a</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">a</span>
+    <span class="c1"># Make a NaN gradient.</span>
+    <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="p">(</span><span class="n">var_a</span><span class="p">,</span> <span class="mf">0.</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">0.</span><span class="p">)))</span>
+    <span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">,</span> <span class="n">final_var_grads</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">,</span>
+                                   <span class="s1">&#39;is not finite&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">grad_scale</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+        <span class="c1"># The final gradient must be finite.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">final_var_grads</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_finite</span><span class="p">(</span><span class="n">final_var_grads</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span></div></div>
+
+
+<div class="viewcode-block" id="TeacherTask"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.TeacherTask">[docs]</a><span class="k">class</span> <span class="nc">TeacherTask</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TeacherTask</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span>
+                          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                              <span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span>
+
+<div class="viewcode-block" id="TeacherTask.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.TeacherTask.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="StudentTask"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.StudentTask">[docs]</a><span class="k">class</span> <span class="nc">StudentTask</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">StudentTask</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">,</span>
+                          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                              <span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">()))</span>
+
+<div class="viewcode-block" id="StudentTask.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.StudentTask.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">x</span></div></div>
+
+
+<div class="viewcode-block" id="TestInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.TestInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">TestInputGenerator</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TestInputGenerator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TestInputGenerator.InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.TestInputGenerator.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">0</span></div></div>
+
+
+<div class="viewcode-block" id="DistillationTestTask"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.DistillationTestTask">[docs]</a><span class="k">class</span> <span class="nc">DistillationTestTask</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">DistillationTask</span><span class="p">):</span>
+
+<div class="viewcode-block" id="DistillationTestTask.Params"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.DistillationTestTask.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DistillationTestTask</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;distillation_test&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">teacher</span> <span class="o">=</span> <span class="n">TeacherTask</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">student</span> <span class="o">=</span> <span class="n">StudentTask</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">TestInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">1e3</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">teacher</span><span class="o">.</span><span class="n">train</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">teacher</span><span class="o">.</span><span class="n">eval</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">train</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">eval</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">DistillationTestTask</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DistillationTestTask.ComputeLoss"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.DistillationTestTask.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">teacher</span> <span class="o">-</span> <span class="n">predictions</span><span class="o">.</span><span class="n">student</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span></div></div>
+
+
+<div class="viewcode-block" id="DistillationTaskTest"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.DistillationTaskTest">[docs]</a><span class="k">class</span> <span class="nc">DistillationTaskTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="DistillationTaskTest.testFProp"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.DistillationTaskTest.testFProp">[docs]</a>  <span class="k">def</span> <span class="nf">testFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">DistillationTestTask</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">task</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">teacher</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNotNone</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">teacher</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNotNone</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertItemsEqual</span><span class="p">([</span><span class="s1">&#39;loss&#39;</span><span class="p">,</span> <span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">],</span>
+                          <span class="nb">list</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+    <span class="n">task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+    <span class="c1"># Expected side effects of BProp().</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNotNone</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">train_op</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNotNone</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">total_examples</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+      <span class="n">variables</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="n">values_before_training</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="n">values_after_training</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;teacher&#39;</span><span class="p">,</span> <span class="s1">&#39;student&#39;</span><span class="p">):</span>
+        <span class="n">variables</span><span class="p">[</span><span class="n">child</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="n">k</span><span class="p">:</span> <span class="n">v</span>
+            <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">child</span><span class="p">)</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()</span>
+        <span class="p">}</span>
+        <span class="n">values_before_training</span><span class="p">[</span><span class="n">child</span><span class="p">]</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">variables</span><span class="p">[</span><span class="n">child</span><span class="p">])</span>
+
+      <span class="c1"># Train for a few steps.</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">train_op</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;teacher&#39;</span><span class="p">,</span> <span class="s1">&#39;student&#39;</span><span class="p">):</span>
+        <span class="n">values_after_training</span><span class="p">[</span><span class="n">child</span><span class="p">]</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">variables</span><span class="p">[</span><span class="n">child</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">values_after_training</span><span class="p">[</span><span class="n">child</span><span class="p">]):</span>
+          <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Comparing variable </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">k</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">child</span> <span class="o">==</span> <span class="s1">&#39;teacher&#39;</span><span class="p">:</span>
+            <span class="c1"># Teacher vars should not change after training.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">values_before_training</span><span class="p">[</span><span class="n">child</span><span class="p">][</span><span class="n">k</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Student vars should change after training.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assertNotAlmostEqual</span><span class="p">(</span><span class="n">values_before_training</span><span class="p">[</span><span class="n">child</span><span class="p">][</span><span class="n">k</span><span class="p">],</span> <span class="n">v</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SingleTaskModelTest"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.SingleTaskModelTest">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskModelTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="SingleTaskModelTest.testInit"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.SingleTaskModelTest.testInit">[docs]</a>  <span class="k">def</span> <span class="nf">testInit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">BaseTaskTest</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">tasks</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">model</span><span class="o">.</span><span class="n">SampleTask</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="SingleTaskModelTest.testExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.SingleTaskModelTest.testExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">testExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">BaseTaskTest</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">=</span> <span class="mf">0.9</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span>
+                            <span class="n">layers</span><span class="o">.</span><span class="n">BatchNormLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+      <span class="n">beta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;a/beta/var&#39;</span><span class="p">)</span>
+      <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="s1">&#39;a/moving_mean/var&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNotNone</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">beta</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNone</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">mean</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="MultiTaskModelTest"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.MultiTaskModelTest">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskModelTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="MultiTaskModelTest.testInit"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.MultiTaskModelTest.testInit">[docs]</a>  <span class="k">def</span> <span class="nf">testInit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;MultiTaskModel&#39;</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">BaseTaskTest</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">BaseTaskTest</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">MultiTaskModelParams</span><span class="p">()</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span>
+                   <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span>
+                   <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">task_params</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_probs</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_probs</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="n">model</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">tasks</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">task_names</span><span class="p">),</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">})</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">tasks</span><span class="p">),</span> <span class="p">{</span><span class="n">model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">),</span> <span class="n">model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">)})</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">params</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">_setUpTestSampleTask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">_NUMPY_RANDOM_SEED</span><span class="p">)</span>
+
+    <span class="c1"># define and initalize tasks, model and params</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;MultiTaskModel&#39;</span>
+    <span class="n">p0</span> <span class="o">=</span> <span class="n">BaseTaskTest</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+    <span class="n">p1</span> <span class="o">=</span> <span class="n">BaseTaskTest</span><span class="o">.</span><span class="n">TestParams</span><span class="p">()</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">MultiTaskModelParams</span><span class="p">()</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span>
+                   <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span>
+                   <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">task_params</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">p0</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">p1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span>
+
+  <span class="k">def</span> <span class="nf">_testSampleTaskHelper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">task_to_id</span> <span class="o">=</span> <span class="p">{</span><span class="n">model</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]:</span> <span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">model</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]:</span> <span class="s1">&#39;b&#39;</span><span class="p">}</span>
+    <span class="n">task_counts</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+
+    <span class="c1"># initialize tensorflow graph and global step</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
+        <span class="n">task</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">SampleTask</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+        <span class="n">task_counts</span><span class="p">[</span><span class="n">task_to_id</span><span class="p">[</span><span class="n">task</span><span class="p">]]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">task_counts</span><span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">],</span> <span class="mi">83</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">task_counts</span><span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">],</span> <span class="mi">17</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MultiTaskModelTest.testSampleTaskSpecifiedWithoutScheduler"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.MultiTaskModelTest.testSampleTaskSpecifiedWithoutScheduler">[docs]</a>  <span class="k">def</span> <span class="nf">testSampleTaskSpecifiedWithoutScheduler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Expected distribution: &#39;a&#39;: 0.8 , &#39;b&#39;: 0.2.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setUpTestSampleTask</span><span class="p">()</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_probs</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_probs</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_testSampleTaskHelper</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiTaskModelTest.testSampleTask"><a class="viewcode-back" href="../../../lingvo.core.base_model_test.html#lingvo.core.base_model_test.MultiTaskModelTest.testSampleTask">[docs]</a>  <span class="k">def</span> <span class="nf">testSampleTask</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Expected distribution: &#39;a&#39;: 0.8 , &#39;b&#39;: 0.2.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setUpTestSampleTask</span><span class="p">()</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">ConstantScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)]</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_testSampleTaskHelper</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

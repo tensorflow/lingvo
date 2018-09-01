@@ -1,0 +1,1231 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.base_model &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.base_model</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.base_model</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Base model.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">build_data</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">early_stop</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">task_scheduler</span>
+
+
+<div class="viewcode-block" id="BaseTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask">[docs]</a><span class="k">class</span> <span class="nc">BaseTask</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A single encoder/decoder task.</span>
+
+<span class="sd">  One task usually consists of one InputGenerator, one train_op,</span>
+<span class="sd">  a list of eval_metrics, etc.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseTask.Params"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseTask</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Input generator Params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;encoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Encoder Params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;online_encoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Online Encoder Params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Decoder Params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Params to control how this task should be trained.&#39;</span><span class="p">)</span>
+
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;task_global_step&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether or not to create a task-specific global step. &#39;</span>
+        <span class="s1">&#39;When a task specific global step exists, learning rate schedule &#39;</span>
+        <span class="s1">&#39;depends on the task specific global step, instead of the shared &#39;</span>
+        <span class="s1">&#39;global step.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;start_up_delay_steps&#39;</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="s1">&#39;i-th replica starts training after &#39;</span>
+        <span class="s1">&#39;i*(i+1)/2*start_up_delay_steps steps&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Maximum number of training steps.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpu_steps_per_loop&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="s1">&#39;The number of training steps per &#39;</span>
+              <span class="s1">&#39;training loop for TPUs.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;vn_start_step&#39;</span><span class="p">,</span> <span class="mi">200000000</span><span class="p">,</span>
+        <span class="s1">&#39;Step starting from which variational noise is added to &#39;</span>
+        <span class="s1">&#39;params values during training.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vn_std&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Std of the variational noise.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;l2_regularizer_weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If not None, L2 regularization to apply to the weights. &#39;</span>
+        <span class="s1">&#39;Otherwise, disable L2 regularization.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;learning rate to use.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_gradient_norm_to_value&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+              <span class="s1">&#39;Clip gradient norm to this value.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grad_norm_to_clip_to_zero&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+              <span class="s1">&#39;Clip gradient to 0 if its norm exceeds this value.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Params for GradNormTracker.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Params for the optimizer.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span>
+              <span class="n">lr_schedule</span><span class="o">.</span><span class="n">ContinuousLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+              <span class="s1">&#39;Learning rate decay schedule.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;early_stop&#39;</span><span class="p">,</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+              <span class="s1">&#39;Early stopping based on dev-set performance.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;ema_decay&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;If &gt; 0, enable ExponentialMovingAverage during training &#39;</span>
+        <span class="s1">&#39;with the give decay. &#39;</span>
+        <span class="s1">&#39;Must be &lt; 1. Disabled if &lt;= 0.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bprop_variable_filter&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If set, only backprop variables whose names partially match &#39;</span>
+        <span class="s1">&#39;this regexp (re.search).&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;init_from_checkpoint_rules&#39;</span><span class="p">,</span> <span class="p">{},</span>
+        <span class="s1">&#39;If not None, a dictionary with keys corresponding to a checkpoint &#39;</span>
+        <span class="s1">&#39;path and values corresponding to variable loading rules is expected. &#39;</span>
+        <span class="s1">&#39;Each key is expected to be a path to a checkpoint from which to &#39;</span>
+        <span class="s1">&#39;initialize part of the model. Variables are only loaded form this &#39;</span>
+        <span class="s1">&#39;path during initialization and will override values provided by &#39;</span>
+        <span class="s1">&#39;initialization.&#39;</span>
+        <span class="s1">&#39;The corresponding values (loading_rules) are expected to be a tuple &#39;</span>
+        <span class="s1">&#39;consisting of two list: loading rules, and ignore rules, respectively.&#39;</span>
+        <span class="s1">&#39;The first list (loading rules) contains the list of variables &#39;</span>
+        <span class="s1">&#39;which should be initialized from the checkpoint: each element in the &#39;</span>
+        <span class="s1">&#39;list is a pair of strings. The first element is a regex and the &#39;</span>
+        <span class="s1">&#39;second is a python format string. If a variable in the model matches &#39;</span>
+        <span class="s1">&#39;a regex, we rename using the format string to determine the &#39;</span>
+        <span class="s1">&#39;corresponding var in the checkpoint. Note that, it is an error if a &#39;</span>
+        <span class="s1">&#39;model variable matches multiple loading rules, for the same &#39;</span>
+        <span class="s1">&#39;checkpoint or across checkpoints.&#39;</span>
+        <span class="s1">&#39;The second list (ignore rules) is a list of regexes which specify &#39;</span>
+        <span class="s1">&#39;variables in the model which should not be initialized using the &#39;</span>
+        <span class="s1">&#39;loading rules. Thus, if a variable in the model to be trained matches &#39;</span>
+        <span class="s1">&#39;one of the rules in the loading rules, as well as one of the regular &#39;</span>
+        <span class="s1">&#39;expressions in the ignore rules, the variable will not be initialized &#39;</span>
+        <span class="s1">&#39;from the checkpoint, but will instead be initialized from the &#39;</span>
+        <span class="s1">&#39;variable initalizer defined in the graph.&#39;</span>
+        <span class="s1">&#39;Examples:&#39;</span>
+        <span class="s1">&#39;{&quot;checkpoint_path&quot;: ([(&quot;(.*)&quot;, &quot;</span><span class="si">%s</span><span class="s1">&quot;)], [])} will initialize all the &#39;</span>
+        <span class="s1">&#39;model parameters from the checkpoint_path.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Pruning related hyperparameters. A dict &#39;</span>
+        <span class="s1">&#39;with hyperparameter: value pairs. See tf.contrib.model_pruning.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;save_interval_seconds&#39;</span><span class="p">,</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span>
+              <span class="s1">&#39;Generates a checkpoint roughly once every this many seconds.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;summary_interval_steps&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+              <span class="s1">&#39;Generates a checkpoint roughly once every this many steps.&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;eval&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Params to control how this task should be evaled.&#39;</span><span class="p">)</span>
+    <span class="n">ep</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span>
+    <span class="n">ep</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;samples_per_summary&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span>
+        <span class="s1">&#39;If &gt; 0, generates one summary after this many samples, at most. &#39;</span>
+        <span class="s1">&#39;If == 0 or the dataset has fewer examples, evaluate the whole set.&#39;</span><span class="p">)</span>
+    <span class="n">ep</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;decoder_samples_per_summary&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;If &gt; 0, each decoder summary will contain at most this many samples. &#39;</span>
+        <span class="s1">&#39;If == 0, defaults to `samples_per_summary` for &#39;</span>
+        <span class="s1">&#39;backwards compatibility.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">BaseTask</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BaseTask</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">:</span>
+      <span class="c1"># TODO(zhifengc): Consider a simpler way to ensure the input</span>
+      <span class="c1"># generator stops after one epoch.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="p">:</span>
+        <span class="n">seq_inp</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
+                             <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="c1"># Dataset size is unknown. Computes eval summary based on num_samples.</span>
+          <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">&gt;</span> <span class="mi">0</span>
+        <span class="k">elif</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&lt;</span>
+                                                   <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">):</span>
+          <span class="c1"># If we know the dataset size and we want to evaluate the full</span>
+          <span class="c1"># set, we need to coordinate the input generator to flush out</span>
+          <span class="c1"># all samples so the evaler and decoder compute metrics on the</span>
+          <span class="c1"># whole set for each summary step.</span>
+          <span class="k">if</span> <span class="n">seq_inp</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">flush_every_n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
+        <span class="k">if</span> <span class="n">seq_inp</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;input.num_batcher_threads &gt; 1 inside eval mode.  &#39;</span>
+                             <span class="s1">&#39;The input generator may not iterate over exactly &#39;</span>
+                             <span class="s1">&#39;one epoch per run&#39;</span><span class="p">)</span>
+
+      <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">input_device</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_encoder</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_online_encoder</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_decoder</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_num_predictions</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_shared_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">()</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="k">if</span> <span class="n">tp</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">task_global_step</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateTaskGlobalStep</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shared_global_step</span>
+      <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateVnConfig</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BaseTask.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes predictions for `input_batch`.</span>
+
+<span class="sd">    The output can be in the form of probablistic distributions, e.g., softmax</span>
+<span class="sd">    logits for discrete outputs, mixture of logistics for continuous values, or</span>
+<span class="sd">    regression values.</span>
+
+<span class="sd">    For training/evaluation, the output will be used for computing loss and</span>
+<span class="sd">    gradient updates, including comparing predicted distributions between</span>
+<span class="sd">    teacher and student for distillation. During inference the output can be</span>
+<span class="sd">    used to compute final outputs, perhaps with sampling.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Predictions, either a single Tensor, a `.NestedMap`, or a namedtuple.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.ComputeLoss"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes loss and other metrics for the given predictions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
+<span class="sd">      predictions: The output of `ComputePredictions`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dict containing str keys and (metric, weight) pairs as values, where</span>
+<span class="sd">      one of the keys is expected to be &#39;loss&#39;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.FPropTower"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.FPropTower">[docs]</a>  <span class="k">def</span> <span class="nf">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Forward propagation through one tower of the model.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this</span>
+<span class="sd">        task copied to this tower&#39;s devices.</span>
+<span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dict containing metrics pairs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">predicted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predicted</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.FProp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Forward propagation.</span>
+
+<span class="sd">    This default `FProp` implementation here supports batch splitting in</span>
+<span class="sd">    synchronous and asynchronous training when sub-classes implement</span>
+<span class="sd">    `FPropTower`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
+<span class="sd">        layer and its children layers.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dict containing metrics pairs. One of the keys should be &#39;loss&#39; and its</span>
+<span class="sd">      value should be a (loss, num_predictions) pair.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fprop&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">all_fprop_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">CreateTpuFeeds</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tower_0_0&#39;</span><span class="p">):</span>
+          <span class="n">dec_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+        <span class="n">all_fprop_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dec_metrics</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Splits the input batch on the input device.</span>
+        <span class="n">num_splits</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">input_device</span><span class="p">):</span>
+          <span class="n">batches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">SplitInputBatch</span><span class="p">(</span><span class="n">num_splits</span><span class="p">)</span>
+          <span class="k">assert</span> <span class="n">num_splits</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">batches</span><span class="p">)</span>
+
+        <span class="c1"># dev_list_per_replica[i][j] is the i-th worker&#39;s j-th device.</span>
+        <span class="n">dev_list_per_replica</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">available_devices</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+        <span class="c1"># Asserts invariant of the total number of splits w.r.t.,</span>
+        <span class="c1"># splits per worker.</span>
+        <span class="n">splits_per_replica</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_replica</span>
+        <span class="k">assert</span> <span class="n">num_splits</span> <span class="o">==</span> <span class="n">splits_per_replica</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">dev_list_per_replica</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">w_id</span><span class="p">,</span> <span class="n">w_devs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">dev_list_per_replica</span><span class="p">):</span>
+          <span class="c1"># Make local copy of the vars, shard on devices for this worker.</span>
+          <span class="n">theta_local</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateLocalTheta</span><span class="p">(</span>
+              <span class="n">theta</span><span class="p">,</span> <span class="n">w_devs</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;worker </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">w_id</span><span class="p">)</span>
+
+          <span class="k">for</span> <span class="n">s_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">splits_per_replica</span><span class="p">):</span>
+            <span class="c1"># s_id-th split for the w_id-th worker.</span>
+            <span class="n">split_id</span> <span class="o">=</span> <span class="n">splits_per_replica</span> <span class="o">*</span> <span class="n">w_id</span> <span class="o">+</span> <span class="n">s_id</span>
+            <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ModelSplit</span><span class="p">(</span><span class="n">split_id</span><span class="p">):</span>
+              <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+                <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tower_</span><span class="si">%d</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_id</span><span class="p">,</span> <span class="n">s_id</span><span class="p">)):</span>
+                  <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">PreprocessInputBatch</span><span class="p">(</span>
+                      <span class="n">batches</span><span class="p">[</span><span class="n">split_id</span><span class="p">])</span>
+                  <span class="n">dec_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="n">theta_local</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
+            <span class="n">all_fprop_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dec_metrics</span><span class="p">)</span>
+
+      <span class="n">metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvgOfMetrics</span><span class="p">(</span><span class="n">all_fprop_metrics</span><span class="p">)</span>
+
+    <span class="c1"># Adds stats about the input batch.</span>
+    <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">InputBatchSize</span><span class="p">()),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
+    <span class="c1"># Generates summaries.</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+
+    <span class="c1"># Loss.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_predicts</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_loss</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">metrics</span></div>
+
+<div class="viewcode-block" id="BaseTask.FPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.FPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">FPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calls `FProp` with this layer&#39;s parameters.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.AdjustGradients"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.AdjustGradients">[docs]</a>  <span class="k">def</span> <span class="nf">AdjustGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vars_gradients</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Allow for custom gradient manipulation prior to clipping.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">vars_gradients</span></div>
+
+<div class="viewcode-block" id="BaseTask.BProp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.BProp">[docs]</a>  <span class="k">def</span> <span class="nf">BProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the backward graph.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">vs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">bprop_variable_filter</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">VariableFilter</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">bprop_variable_filter</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+          <span class="k">return</span> <span class="kc">True</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;bprop disabled by bprop_variable_filter: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+
+      <span class="n">vs</span> <span class="o">=</span> <span class="n">vs</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">VariableFilter</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Filtered bprop variables: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">vs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_BPropForVariables</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask._HasNanOrInf"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._HasNanOrInf">[docs]</a>  <span class="k">def</span> <span class="nf">_HasNanOrInf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a bool tensor to indicate if `var_grads` contains NaNs or Infs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      var_grads: A `.NestedMap` with (var, grad) tuple as the map value.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A bool scalar tensor to indicate if the `var_grads` contains NaNs or Infs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">HasNanOrInf</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_inf</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">([(</span><span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+        <span class="n">g</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">)</span> <span class="k">else</span> <span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">g</span><span class="p">))</span>
+                          <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span></div>
+
+<div class="viewcode-block" id="BaseTask.ScaleGradients"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ScaleGradients">[docs]</a>  <span class="k">def</span> <span class="nf">ScaleGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Scales gradients according to training params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      var_grads: a `.NestedMap` whose values are (var, grad) pairs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (has_nan_or_inf, grad_scale, final_var_grads).</span>
+
+<span class="sd">      - has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN</span>
+<span class="sd">        or Inf in input gradients.</span>
+<span class="sd">      - grad_scale: the gradient scale. 0 if gradient updates should be skipped</span>
+<span class="sd">        for the step.</span>
+<span class="sd">      - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs, where</span>
+<span class="sd">        gradients have already been scaled.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+
+    <span class="c1"># Computes gradients&#39; norm and adds their summaries. Note that all_grad_norm</span>
+    <span class="c1"># may be nan, which may cause grad_scale to be nan.</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">all_grad_norm</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;all&#39;</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)</span>
+    <span class="n">grad_norm_is_nan_or_inf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">all_grad_norm</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_inf</span><span class="p">(</span><span class="n">all_grad_norm</span><span class="p">))</span>
+
+    <span class="c1"># Optional gradient adjustment. Note that this happens after computing</span>
+    <span class="c1"># all_grad_norm.</span>
+    <span class="n">var_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AdjustGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
+
+    <span class="c1"># Handles NaN/Inf gradients.</span>
+    <span class="n">has_nan_or_inf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_HasNanOrInf</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
+    <span class="c1"># Grad norm can still be inf even if none of the individual grad is inf.</span>
+    <span class="n">has_nan_or_inf</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">grad_norm_is_nan_or_inf</span><span class="p">)</span>
+
+    <span class="c1"># Computes gradient&#39;s scale.</span>
+    <span class="n">grad_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">clip_gradient_norm_to_value</span><span class="p">:</span>
+      <span class="c1"># If all_grad_norm &gt; tp.clip_gradient_norm_to_value, scales</span>
+      <span class="c1"># all_grads so that the norm is 1.0.</span>
+      <span class="n">grad_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span>
+                              <span class="n">tp</span><span class="o">.</span><span class="n">clip_gradient_norm_to_value</span> <span class="o">/</span> <span class="n">all_grad_norm</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_to_clip_to_zero</span><span class="p">:</span>
+      <span class="c1"># If all_grad_norm &gt; tp.grad_norm_to_clip_to_zero, treats</span>
+      <span class="c1"># grad_scale as 0. This way, we ignore this step.</span>
+      <span class="n">grad_scale</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">all_grad_norm</span> <span class="o">&lt;</span> <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_to_clip_to_zero</span><span class="p">,</span>
+                            <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">:</span>
+      <span class="n">grad_scale</span> <span class="o">*=</span> <span class="bp">self</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span>
+          <span class="n">all_grad_norm</span><span class="p">,</span> <span class="n">has_nan_or_inf</span><span class="p">)</span>
+
+    <span class="c1"># Force grad_scale to be 0 if there is any NaN or Inf in gradients.</span>
+    <span class="n">grad_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">)</span>
+
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;grad_scale_all&#39;</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">)</span>
+    <span class="n">final_var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyGradMultiplier</span><span class="p">(</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">,</span> <span class="n">final_var_grads</span></div>
+
+<div class="viewcode-block" id="BaseTask._BPropForVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._BPropForVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the backward graph for the given variables.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      vmap: a `.NestedMap` of variables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+
+    <span class="c1"># Compute gradients.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">)</span>
+
+    <span class="c1"># L2 regularizer.</span>
+    <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">l2_regularizer_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">l2_loss</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AdjustGradientsWithL2Loss</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">l2_regularizer_weight</span><span class="p">)</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;l2_loss&#39;</span><span class="p">,</span> <span class="n">l2_loss</span><span class="p">)</span>
+
+    <span class="c1"># Histogram summary.</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">CollectVarHistogram</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span><span class="p">)</span>
+
+    <span class="c1"># Apply gradient clipping.</span>
+    <span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span><span class="p">)</span>
+
+    <span class="n">lrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">lrs</span><span class="p">)</span>
+    <span class="n">lr</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="n">lrs</span>
+
+    <span class="n">opt</span> <span class="o">=</span> <span class="n">tp</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">add_summary</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">add_summary</span><span class="p">))</span>
+    <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">opt</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span><span class="p">)</span>
+
+    <span class="n">increment_global_step_ops</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shared_global_step</span><span class="p">):</span>
+      <span class="n">increment_global_step_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shared_global_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span><span class="p">):</span>
+        <span class="n">increment_global_step_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">increment_global_step_ops</span><span class="p">)</span>
+
+    <span class="n">relevant_bn_updates</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FindRelevantBatchNormUpdates</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">BATCH_NORM_UPDATES</span><span class="p">))</span>
+    <span class="n">batch_norm_updates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">relevant_bn_updates</span><span class="p">)</span>
+
+    <span class="c1"># Update stats.</span>
+    <span class="n">stats_updates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">IncrementTotalSamples</span><span class="p">(),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">IncrementTotalNans</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">has_nan_or_inf</span><span class="p">)))</span>
+
+    <span class="c1"># Post training step update.</span>
+    <span class="n">post_training_step_updates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">)</span>
+
+    <span class="c1"># Get the op to update the weight masks and thresholds</span>
+    <span class="n">mask_update_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetMaskUpdateOp</span><span class="p">()</span>
+
+    <span class="c1"># TODO(rpang): try to structure _train_op as:</span>
+    <span class="c1">#   tf.cond(skip_step, &lt;only update skip stats&gt;, &lt;all updates&gt;)</span>
+    <span class="c1"># so that we skip all other updates when a step is skipped.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+        <span class="n">var_update_op</span><span class="p">,</span>
+        <span class="n">batch_norm_updates</span><span class="p">,</span>
+        <span class="n">stats_updates</span><span class="p">,</span>
+        <span class="n">post_training_step_updates</span><span class="p">,</span>
+        <span class="n">increment_global_steps</span><span class="p">,</span>
+        <span class="n">mask_update_op</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.ApplyExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ema</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wraps `self.train_op` with an op updating exponential moving average.&quot;&quot;&quot;</span>
+    <span class="c1"># We need to apply EMA to all trainable variables of this Task, not just</span>
+    <span class="c1"># bprop vars, so that we create a shadow &#39;/ExponentialMovingAverage&#39;</span>
+    <span class="c1"># variable for every trainable variable.</span>
+    <span class="n">all_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span><span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;moving_average&#39;</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="n">ema</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">all_vars</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.Decode"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the inference graph for eval decoding.</span>
+
+<span class="sd">    Returns a dict of Tensors as decoder output.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BaseTask.Inference"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the inference graph.</span>
+
+<span class="sd">    Each subgraph represents a public API for a part of the graph which can</span>
+<span class="sd">    be operated independently. By convention, the subgraph named &#39;default&#39;</span>
+<span class="sd">    should perform end to end inference via the input generator.</span>
+
+<span class="sd">    Note that having distinct subgraphs (e.g. &#39;encoder&#39;, &#39;decoder&#39;) is</span>
+<span class="sd">    not just a space optimization: when driving the graph externally in an</span>
+<span class="sd">    online fashion, evaluation often needs to be broken into pieces. In this</span>
+<span class="sd">    case, the graph will be constructed with only those pieces.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An `inference_graph_pb2.InferenceGraph` message.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.CreateDecoderMetrics"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a dict of decoder metrics for `PostProcessDecodeOut` to update.</span>
+
+<span class="sd">    Returns a dict mapping from string keys to `.BaseMetric` objects.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BaseTask.PostProcessDecodeOut"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">decode_metrics_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Post-processes decoder out and updates contents of `decode_metrics_dict`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      decode_out_dict: A dictionary of Tensors fetched.</span>
+<span class="sd">      decode_metrics_dict: A dict mapping from string key to `.BaseMetric`</span>
+<span class="sd">        object as created by `CreateDecoderMetrics`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output_key_value_pairs - a list of (key, value) pairs that can be saved</span>
+<span class="sd">      (i.e. of type str, bytes, or unicode).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">loss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No loss is defined. Call FProp first.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">train_op</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;No train op is defined. Call BProp first.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No global_step is defined.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">input_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">eval_metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the evaluation metrics.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A map from metric name (a python string) to a tuple (value, weight).</span>
+<span class="sd">      Both value and weight are scalar Tensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span>
+
+<div class="viewcode-block" id="BaseTask.AddEvalMetric"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.AddEvalMetric">[docs]</a>  <span class="k">def</span> <span class="nf">AddEvalMetric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds a metric to the eval metrics.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: A python string. The name of the metric.</span>
+<span class="sd">      value: A scalar Tensor.</span>
+<span class="sd">      weight: A scalar Tensor.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if `name` is already defined.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Metric </span><span class="si">%s</span><span class="s1"> has already been defined.&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">total_examples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the total number of training examples processed so far.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BaseTask.IncrementTotalSamples"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.IncrementTotalSamples">[docs]</a>  <span class="k">def</span> <span class="nf">IncrementTotalSamples</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates the total number of training examples with the batch size.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">StatsCounter</span><span class="p">(</span><span class="s1">&#39;total_samples&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">value</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No input generator defined&#39;</span><span class="p">)</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">InputBatchSize</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span><span class="o">.</span><span class="n">IncBy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.IncrementTotalNans"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.IncrementTotalNans">[docs]</a>  <span class="k">def</span> <span class="nf">IncrementTotalNans</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates the total number of NaN/Inf gradients by `value`.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">global_variable_scope</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">StatsCounter</span><span class="p">(</span><span class="s1">&#39;total_nan_gradients&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span><span class="o">.</span><span class="n">IncBy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask._UpdateVnConfig"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._UpdateVnConfig">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateVnConfig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update vn config from the various vn flags.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="k">if</span> <span class="n">tp</span><span class="p">:</span>
+      <span class="n">vn_enabled</span> <span class="o">=</span> <span class="p">((</span><span class="n">tp</span><span class="o">.</span><span class="n">vn_std</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span> <span class="ow">and</span>
+                    <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">global_vn</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="n">vn_enabled</span><span class="p">):</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># vn.scale is dependent on global_step.</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">&gt;</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_start_step</span><span class="p">,</span>
+                             <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_std</span></div>
+
+<div class="viewcode-block" id="BaseTask._GetMaskUpdateOp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._GetMaskUpdateOp">[docs]</a>  <span class="k">def</span> <span class="nf">_GetMaskUpdateOp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns op to update masks and threshold variables for model pruning.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="n">mask_update_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+      <span class="n">pruning_hparams</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">model_pruning</span><span class="o">.</span><span class="n">get_pruning_hparams</span><span class="p">(</span>
+      <span class="p">)</span><span class="o">.</span><span class="n">override_from_dict</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">)</span>
+      <span class="n">pruning_obj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">model_pruning</span><span class="o">.</span><span class="n">Pruning</span><span class="p">(</span>
+          <span class="n">pruning_hparams</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">)</span>
+      <span class="n">pruning_obj</span><span class="o">.</span><span class="n">add_pruning_summaries</span><span class="p">()</span>
+      <span class="n">mask_update_op</span> <span class="o">=</span> <span class="n">pruning_obj</span><span class="o">.</span><span class="n">conditional_mask_update_op</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">mask_update_op</span></div></div>
+
+
+<div class="viewcode-block" id="DistillationTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask">[docs]</a><span class="k">class</span> <span class="nc">DistillationTask</span><span class="p">(</span><span class="n">BaseTask</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A task to distill knowledge from a teacher task to a student task.</span>
+
+<span class="sd">  The training parameters (e.g., learning rate) are determined only by</span>
+<span class="sd">  `DistillationTask.params.train`. Teacher and student task&#39;s training and eval</span>
+<span class="sd">  parameters must be set to None.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DistillationTask.Params"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DistillationTask</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;teacher&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The teacher task params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;student&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The student task params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;distillation_loss_weight&#39;</span><span class="p">,</span>
+        <span class="c1"># Only uses distillation loss by default.</span>
+        <span class="n">lr_schedule</span><span class="o">.</span><span class="n">PiecewiseConstantLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">boundaries</span><span class="o">=</span><span class="p">[],</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">]),</span>
+        <span class="s1">&#39;A schedule of distillation loss weight. &#39;</span>
+        <span class="s1">&#39;The weight determines the fraction of total loss contributed by &#39;</span>
+        <span class="s1">&#39;distillation loss, while the rest loss will be computed against &#39;</span>
+        <span class="s1">&#39;the ground truth. &#39;</span>
+        <span class="s1">&#39;A weight of 0 means to only use ground-truth and ignore teacher &#39;</span>
+        <span class="s1">&#39;predictions, while a weight 1 means to only use teacher &#39;</span>
+        <span class="s1">&#39;predictions and ignore ground truth. &#39;</span>
+        <span class="s1">&#39;The weight is specified as a schedule to allow it to change &#39;</span>
+        <span class="s1">&#39;during training.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;teacher_target_type&#39;</span><span class="p">,</span> <span class="s1">&#39;truth&#39;</span><span class="p">,</span> <span class="s1">&#39;The target type for the teacher. &#39;</span>
+        <span class="s1">&#39;Choices are: &#39;</span>
+        <span class="s1">&#39; &quot;truth&quot;: using the ground-truth target labels &#39;</span>
+        <span class="s1">&#39; &quot;beam&quot;: using the 1-best hypothesis from the beam search.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;beam_search_temperature&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;The temperature to scale the&#39;</span>
+        <span class="s1">&#39;log-prob of each beam search hypothesis. This is used in &#39;</span>
+        <span class="s1">&#39;training only&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">DistillationTask</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">DistillationTask</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># While student does not need its own input generator for training, it</span>
+    <span class="c1"># needs an input generator for inference graphs.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span>
+    <span class="c1"># Teacher also might need an input generator, eg. for waveform_processor.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">teacher</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;teacher&#39;</span><span class="p">,</span> <span class="s1">&#39;student&#39;</span><span class="p">):</span>
+        <span class="n">child_p</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">child</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">child_p</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">BaseTask</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">train</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">eval</span> <span class="ow">is</span> <span class="kc">None</span>
+        <span class="c1"># In theory it&#39;s ok for teacher to be a DistillationTask. In practice</span>
+        <span class="c1"># it probably won&#39;t happen.</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">child_p</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">DistillationTask</span><span class="p">)</span>
+        <span class="n">child_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">child</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">child_p</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;distillation_loss_weight&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">distillation_loss_weight</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DistillationTask.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">teacher_target_type</span> <span class="o">==</span> <span class="s1">&#39;truth&#39;</span><span class="p">:</span>
+        <span class="n">teacher_predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">teacher</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">teacher</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+        <span class="n">student_predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">student</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">teacher</span><span class="o">=</span><span class="n">teacher_predictions</span><span class="p">,</span> <span class="n">student</span><span class="o">=</span><span class="n">student_predictions</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">teacher_target_type</span> <span class="o">==</span> <span class="s1">&#39;beam&#39;</span><span class="p">:</span>
+        <span class="p">(</span><span class="n">teacher_predictions</span><span class="p">,</span> <span class="n">teacher_input_batch</span><span class="p">,</span>
+         <span class="n">teacher_beam_prob</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">teacher</span><span class="o">.</span><span class="n">ComputeBeamPredictions</span><span class="p">(</span>
+             <span class="n">theta</span><span class="o">.</span><span class="n">teacher</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search_temperature</span><span class="p">)</span>
+        <span class="c1"># We use &#39;teacher_input_batch&#39; instead of &#39;input_batch&#39; for &#39;student&#39;</span>
+        <span class="c1"># because the training of student network uses target transcripts for</span>
+        <span class="c1"># the &quot;teacher forcing&quot; mode and here the target transcripts should come</span>
+        <span class="c1"># from the teacher&#39;s beam search.</span>
+        <span class="n">student_predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">student</span><span class="p">,</span> <span class="n">teacher_input_batch</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">teacher</span><span class="o">=</span><span class="n">teacher_predictions</span><span class="p">,</span>
+            <span class="n">student</span><span class="o">=</span><span class="n">student_predictions</span><span class="p">,</span>
+            <span class="n">teacher_beam_prob</span><span class="o">=</span><span class="n">teacher_beam_prob</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;teacher target type not defined properly: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">teacher_target_type</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistillationTask.ComputeLoss"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;groundtruth_loss&#39;</span><span class="p">):</span>
+      <span class="n">groundtruth_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">student</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span>
+                                                  <span class="n">predictions</span><span class="o">.</span><span class="n">student</span><span class="p">)</span>
+      <span class="n">groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;groundtruth_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;distillation_loss&#39;</span><span class="p">):</span>
+      <span class="n">distillation_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeDistillationLoss</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span>
+                                                       <span class="n">predictions</span><span class="p">)</span>
+      <span class="n">distillation_loss</span><span class="p">[</span><span class="s1">&#39;distillation_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">distillation_loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
+
+    <span class="n">distillation_loss_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">distillation_loss_weight</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">distillation_loss_weight</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">)</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CombineMetrics</span><span class="p">([</span>
+        <span class="p">(</span><span class="n">groundtruth_loss</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">distillation_loss_weight</span><span class="p">),</span>
+        <span class="p">(</span><span class="n">distillation_loss</span><span class="p">,</span> <span class="n">distillation_loss_weight</span><span class="p">),</span>
+    <span class="p">])</span>
+    <span class="k">return</span> <span class="n">metrics</span></div>
+
+<div class="viewcode-block" id="DistillationTask.ComputeDistillationLoss"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.ComputeDistillationLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeDistillationLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistillationTask.BProp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.BProp">[docs]</a>  <span class="k">def</span> <span class="nf">BProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Only bprop on student variables.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistillationTask.Decode"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">Decode</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DistillationTask.Inference"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">Inference</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DistillationTask.CreateDecoderMetrics"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DistillationTask.PostProcessDecodeOut"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="BaseModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel">[docs]</a><span class="k">class</span> <span class="nc">BaseModel</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;The abstract model class. All models are sub-class of this class.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseModel.Params"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;model&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Which python function generates the param. It includes &#39;</span>
+        <span class="s1">&#39;the file name and lineno where the function is defined.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;cluster&#39;</span><span class="p">,</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;The training cluster. Individual layer may config differently&#39;</span>
+        <span class="s1">&#39; based on training cluster it is running under.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Input generator Params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;build_data&#39;</span><span class="p">,</span> <span class="n">build_data</span><span class="o">.</span><span class="n">BuildData</span><span class="p">(),</span> <span class="s1">&#39;Build data of this binary.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Params to control how this model should be trained.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;start_up_delay_steps&#39;</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="s1">&#39;i-th replica starts training after &#39;</span>
+        <span class="s1">&#39;i*(i+1)/2*start_up_delay_steps steps&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_steps&#39;</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="mi">10</span><span class="o">**</span><span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Training max of 4M steps.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpu_steps_per_loop&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="s1">&#39;The number of training steps per &#39;</span>
+              <span class="s1">&#39;training loop for TPUs.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;ema_decay&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;If &gt; 0, enable ExponentialMovingAverage during training &#39;</span>
+        <span class="s1">&#39;with the give decay. &#39;</span>
+        <span class="s1">&#39;Must be &lt; 1. Disabled if &lt;= 0.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;init_from_checkpoint_rules&#39;</span><span class="p">,</span> <span class="p">{},</span>
+              <span class="s1">&#39;See BaseTask documentation for details.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;early_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="s1">&#39;Early stopping based on dev-set performance.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;save_interval_seconds&#39;</span><span class="p">,</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span>
+              <span class="s1">&#39;Generates a checkpoint roughly once every this many seconds.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;summary_interval_steps&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
+              <span class="s1">&#39;Generates a checkpoint roughly once every this many steps.&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initializes this Model.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">BaseModel</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">()</span>
+    <span class="c1"># tasks are not yet instantiated.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples_sum</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training parameters for </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">tp</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">(</span>
+          <span class="n">decay</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">,</span> <span class="n">num_updates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No global_step is defined.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">ema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span>
+
+<div class="viewcode-block" id="BaseModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseModel.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a list of all tasks.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseModel.GetTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.GetTask">[docs]</a>  <span class="k">def</span> <span class="nf">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the task associated with &#39;task_name&#39;.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      task_name: string, the name of the model task to be returned.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">      An instance of `BaseTask`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">total_examples</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the total number of training examples processed so far.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples_sum</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">total_examples</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">])</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples_sum</span>
+
+<div class="viewcode-block" id="BaseModel.ModelPostUpdate"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ModelPostUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">ModelPostUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update model based on global step and eval_metrics.&quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span>
+    <span class="k">return</span></div></div>
+
+
+<div class="viewcode-block" id="SingleTaskModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Model that consists of a single task.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SingleTaskModel.Params"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SingleTaskModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Task Params.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">SingleTaskModel</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">task</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>  <span class="c1"># Make a copy to avoid modifying the input.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">input</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">input</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">input</span>
+
+    <span class="nb">super</span><span class="p">(</span><span class="n">SingleTaskModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_task&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">]</span>
+
+<div class="viewcode-block" id="SingleTaskModel.GetTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.GetTask">[docs]</a>  <span class="k">def</span> <span class="nf">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">task_name</span><span class="p">,</span> <span class="s1">&#39;Must not specify &gt;task_name&lt; for single-task model.&#39;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span></div>
+
+<div class="viewcode-block" id="SingleTaskModel.SampleTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.SampleTask">[docs]</a>  <span class="k">def</span> <span class="nf">SampleTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span></div>
+
+<div class="viewcode-block" id="SingleTaskModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage on </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SingleTaskModel.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="MultiTaskModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Model that consists of multiple tasks.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MultiTaskModel.Params"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiTaskModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task_params&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Params object mapping task name to task Params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;task_probs&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Params object mapping task name to the relative likelihood the &#39;</span>
+        <span class="s1">&#39;task will be sampled during training.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task_schedule&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Task schedule.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">MultiTaskModel</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">MultiTaskModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
+
+    <span class="c1"># Pass input params to tasks.</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">))</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">input</span>
+      <span class="n">v</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="c1"># For compatibility with older API (with p.task_probs)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">ConstantScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_probs</span><span class="o">.</span><span class="n">IterParams</span><span class="p">()))</span>
+
+    <span class="c1"># CreateChild copies over global configs in p to individual task params,</span>
+    <span class="c1"># which then gets propagated down to all sub-layers during</span>
+    <span class="c1"># BaseTask._PropagateDownGlobalConfigs(), or through sub-sequent CreateChild</span>
+    <span class="c1"># or CreateChildren calls.</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">sorted_task_params</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+          <span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span>
+      <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">sorted_task_params</span><span class="p">:</span>
+        <span class="c1"># Make sure each task is under its own variable scope.</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;task_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">task_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">sorted_task_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">task_name</span> <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">sorted_task_names</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">]</span>
+
+<div class="viewcode-block" id="MultiTaskModel.GetTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.GetTask">[docs]</a>  <span class="k">def</span> <span class="nf">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">task_name</span><span class="p">,</span> <span class="s1">&#39;Must specify &gt;task_name&lt; for multi-task model.&#39;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">task_name</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MultiTaskModel.SampleTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.SampleTask">[docs]</a>  <span class="k">def</span> <span class="nf">SampleTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sample a task according self.task_schedule.</span>
+
+<span class="sd">    `self.task_schedule.cur_probs` will also be updated.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      global_step: int. Current time step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">sampled_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_schedule</span><span class="o">.</span><span class="n">Sample</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Sampled task: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sampled_task</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">sampled_task</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MultiTaskModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">task_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+          <span class="n">task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiTaskModel.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">task_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

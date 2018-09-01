@@ -1,0 +1,457 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.hyperparams module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.input_generator_helper module" href="lingvo.core.input_generator_helper.html" />
+    <link rel="prev" title="lingvo.core.early_stop module" href="lingvo.core.early_stop.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.hyperparams module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.hyperparams.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.hyperparams">
+<span id="lingvo-core-hyperparams-module"></span><h1>lingvo.core.hyperparams module<a class="headerlink" href="#module-lingvo.core.hyperparams" title="Permalink to this headline">¶</a></h1>
+<p>Defines Params base class, used for defining class/function parameters.</p>
+<dl class="function">
+<dt id="lingvo.core.hyperparams._QuoteString">
+<code class="descclassname">lingvo.core.hyperparams.</code><code class="descname">_QuoteString</code><span class="sig-paren">(</span><em>s</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_QuoteString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams._QuoteString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Quotes a string with appropriate quotes and escaping.</p>
+<p>This performs lite escaping by choosing enclosing quotation marks that would
+escape the least (either single or double quotes) and escaping those quotes
+and the backslash. Note that this does not escape newlines. If the string
+contains embedded newlines, they will be output verbatim.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>s</strong> – String to quote.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Quotes string (possibly multiline).</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.hyperparams._UnquoteString">
+<code class="descclassname">lingvo.core.hyperparams.</code><code class="descname">_UnquoteString</code><span class="sig-paren">(</span><em>quoted</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_UnquoteString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams._UnquoteString" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.hyperparams._EndsWithTerminalQuote">
+<code class="descclassname">lingvo.core.hyperparams.</code><code class="descname">_EndsWithTerminalQuote</code><span class="sig-paren">(</span><em>s</em>, <em>quote_char</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_EndsWithTerminalQuote"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams._EndsWithTerminalQuote" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns whether a string ends with a valid terminal quote.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.hyperparams._SortedDict">
+<em class="property">class </em><code class="descclassname">lingvo.core.hyperparams.</code><code class="descname">_SortedDict</code><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_SortedDict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams._SortedDict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/stdtypes.html#dict" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">dict</span></code></a></p>
+<p>A dict with a __repr__ that is always sorted by key.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.hyperparams._Param">
+<em class="property">class </em><code class="descclassname">lingvo.core.hyperparams.</code><code class="descname">_Param</code><span class="sig-paren">(</span><em>name</em>, <em>default_value</em>, <em>description</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_Param"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams._Param" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Stores data for a single parameter.</p>
+<dl class="method">
+<dt id="lingvo.core.hyperparams._Param.ToString">
+<code class="descname">ToString</code><span class="sig-paren">(</span><em>nested_depth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_Param.ToString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams._Param.ToString" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the parameter as a string.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams._Param.Set">
+<code class="descname">Set</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_Param.Set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams._Param.Set" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams._Param.Get">
+<code class="descname">Get</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_Param.Get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams._Param.Get" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.hyperparams.Params">
+<em class="property">class </em><code class="descclassname">lingvo.core.hyperparams.</code><code class="descname">Params</code><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Stores data for a set of parameters.</p>
+<p>Provides attribute-based API, e.g. “params.foo = 5”.
+Uses internal {‘name’: _Param} dict for storing parameter data.</p>
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params._ToString">
+<code class="descname">_ToString</code><span class="sig-paren">(</span><em>nested_depth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params._ToString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params._ToString" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.Copy">
+<code class="descname">Copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Copy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.Define">
+<code class="descname">Define</code><span class="sig-paren">(</span><em>name</em>, <em>default_value</em>, <em>description</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Define"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Define" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a parameter.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> – The parameter name. Must only contain lowercase letters, numbers,
+and underscores. Must start with lowercase letter.</li>
+<li><strong>default_value</strong> – Default value for this parameter. May be None.</li>
+<li><strong>description</strong> – String description of this parameter.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">AttributeError</span></code> – If parameter ‘name’ is already defined.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params._GetNested">
+<code class="descname">_GetNested</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params._GetNested"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params._GetNested" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns nested param by its name.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.Set">
+<code class="descname">Set</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Set"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Set" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets multiple parameters.</p>
+<p>Dots in names indicate navigation into nested Params objects. We do not
+allow navigation into lists or dicts, and may ban these types altogether in
+favor of string representations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>**kwargs</strong> – Name-value pairs to set.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">self</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.Get">
+<code class="descname">Get</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Get"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Get" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get parameter.</p>
+<p>Dots in names indicate navigation into nested Params objects. We do not
+allow navigation into lists or dicts, and may ban these types altogether in
+favor of string representations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – (str) Name.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">value.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">AttributeError</span></code> – if parameter is not found</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.Delete">
+<code class="descname">Delete</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Delete"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Delete" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deletes multiple parameters.</p>
+<p>Dots in names indicate navigation into nested Params objects. We do not
+allow navigation into lists or dicts, and may ban these types altogether in
+favor of string representations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>*args</strong> – List of names.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">self</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.IterParams">
+<code class="descname">IterParams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.IterParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.IterParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pythonic dict-like iteration.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.ToText">
+<code class="descname">ToText</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.ToText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.ToText" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encodes params into a simple text format.</p>
+<p>Each param is represented as a single line in the output.  The param
+name and value is separated by a “:”.  The nest param name is
+separated by “.”.  For values of non-trivial types (types other than
+int, float, bool, str, and a few, etc.), we just print out the name
+of its type.</p>
+<p>Note that strings are enclosed in appropriate single or double quotes
+(whichever would involve the least escaping) and will have some characters
+backslash escaped. String properties can span multiple lines.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The encoded text.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.hyperparams.Params.FromText">
+<code class="descname">FromText</code><span class="sig-paren">(</span><em>text</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.FromText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.FromText" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merges params specified in ‘text’ into ‘params’.</p>
+<p>‘text’ follows the simple text format as produced by
+ParamsToSimpleText.  For a param specified in both ‘params’ and
+‘text’, overwrites the value in ‘params’ according to ‘text’.
+Params specified in ‘text’ but not in ‘params’ are ignored.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><p class="first"><strong>text</strong> – A text representation of params.</p>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">AttributeError</span></code> – text contains invalid parameter key</li>
+<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – text contains invalid parameter value</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.input_generator_helper.html" class="btn btn-neutral float-right" title="lingvo.core.input_generator_helper module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.early_stop.html" class="btn btn-neutral" title="lingvo.core.early_stop module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,1276 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.recurrent &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.recurrent</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.recurrent</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Recurrent neural nets.</span>
+
+<span class="sd">The main interface of this module is Recurrent().</span>
+<span class="sd">This expects the caller to describe the recurrent neural net by specifying:</span>
+
+<span class="sd">  - theta: the &quot;weights&quot; each RNN uses.</span>
+<span class="sd">  - state0: the initial state of each RNN.</span>
+<span class="sd">  - cell_fn: A python function describing RNN cell. It must has the following</span>
+<span class="sd">    signature::</span>
+
+<span class="sd">        cell_fn: (theta, state0, inputs) -&gt; (state1, extras)</span>
+
+<span class="sd">    state1 is the next RNN state, extras are computed by cell_fn</span>
+<span class="sd">    and the library forwards extras to cell_fn&#39;s gradient function.</span>
+<span class="sd">  - cell_grad: A python function describing the backprop gradient function</span>
+<span class="sd">    for the RNN cell. It must has the following signature::</span>
+
+<span class="sd">        cell_grad: (theta, state0, inputs, extras, dstate1) -&gt;</span>
+<span class="sd">            (dtheta, dstate0, dinputs)</span>
+
+<span class="sd">    dstate1 is what the backprop algorithm provides representing</span>
+<span class="sd">    gradients of state1 w.r.t. the final loss.</span>
+
+<span class="sd">All of `theta`, `state0`, `inputs`, `extras` and `dstate1` are</span>
+<span class="sd">`NestedMap` so that they can carry a bunch of tensors around.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">functional_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">inplace_ops</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+
+
+<div class="viewcode-block" id="_AssertIsCompatible"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._AssertIsCompatible">[docs]</a><span class="k">def</span> <span class="nf">_AssertIsCompatible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+  <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> vs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_AssertSameTensors"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._AssertSameTensors">[docs]</a><span class="k">def</span> <span class="nf">_AssertSameTensors</span><span class="p">(</span><span class="n">list_a</span><span class="p">,</span> <span class="n">list_b</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Asserts that two lists of tensors are the same tensors.&quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_b</span><span class="p">),</span> <span class="p">(</span>
+      <span class="s1">&#39;Expected equal tensor lists but different lengths: </span><span class="si">%r</span><span class="s1"> vs </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">list_a</span><span class="p">,</span>
+                                                                       <span class="n">list_b</span><span class="p">))</span>
+  <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">list_a</span><span class="p">,</span> <span class="n">list_b</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">a</span> <span class="ow">is</span> <span class="n">b</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;Expected equal tensor lists but at least one differs: </span><span class="si">%r</span><span class="s1"> vs </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span>
+        <span class="p">(</span><span class="n">list_a</span><span class="p">,</span> <span class="n">list_b</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_Index"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Index">[docs]</a><span class="k">def</span> <span class="nf">_Index</span><span class="p">(</span><span class="n">nmap</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a `.NestedMap` with x[index, :] for each tensor x in nmap.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    nmap: A `.NestedMap` of tensors.</span>
+<span class="sd">    index: A tf scalar integer. Performance is better if &#39;index&#39; is on the host</span>
+<span class="sd">      memory.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `.NestedMap` of tensors. For each key in nmap::</span>
+
+<span class="sd">      rets.key = nmap.key[index, :]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">index</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+  <span class="n">index</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">assert_has_rank</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_Update"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Update">[docs]</a><span class="k">def</span> <span class="nf">_Update</span><span class="p">(</span><span class="n">nmap_acc</span><span class="p">,</span> <span class="n">nmap_x</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Updates t-th row in accumulators.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    nmap_acc: A `.NestedMap` of tensors. The accumulators.</span>
+<span class="sd">    nmap_x: A `.NestedMap` of tensors. The update values.</span>
+<span class="sd">    t: A scalar integer. Performance is better if &#39;t&#39; is on the device</span>
+<span class="sd">      memory.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `.NestedMap` of tensors. Say, ret is returned. For each key, we have::</span>
+
+<span class="sd">        ret[key] = nmap_acc[key];</span>
+<span class="sd">        ret[key][t, :] = nmap_x[key]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">acc_lst</span> <span class="o">=</span> <span class="n">nmap_acc</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+  <span class="n">x_lst</span> <span class="o">=</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+  <span class="n">t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">([</span><span class="n">t</span><span class="p">])</span>  <span class="c1"># tf.to_int32 casts on-device tensors.</span>
+  <span class="n">lst</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">acc</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">acc_lst</span><span class="p">,</span> <span class="n">x_lst</span><span class="p">):</span>
+    <span class="n">lst</span> <span class="o">+=</span> <span class="p">[</span><span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span><span class="n">acc</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))]</span>
+  <span class="k">return</span> <span class="n">nmap_acc</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_SeqLenDim"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._SeqLenDim">[docs]</a><span class="k">def</span> <span class="nf">_SeqLenDim</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the 0-th dim size of tensors in nmap.</span>
+
+<span class="sd">  This is the max sequence length according to the shape of the inputs.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    nmap: A `.NestedMap` of tensors. Every tensor&#39;s 0-th dim has the same size.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A scalar tensor which is the size of 0-th dim of every tensors in nmap.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">xs</span> <span class="o">=</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+  <span class="k">assert</span> <span class="n">xs</span><span class="p">,</span> <span class="s1">&#39;nmap is empty.&#39;</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
+      <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_same_dim0</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="s1">&#39;recurrent._SeqLen&#39;</span><span class="p">)]):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="_FlattenPadding"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._FlattenPadding">[docs]</a><span class="k">def</span> <span class="nf">_FlattenPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns padding reduced to have only the time dimension.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">padding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">padding</span>
+  <span class="n">r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">padding</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_SeqPaddingLength"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._SeqPaddingLength">[docs]</a><span class="k">def</span> <span class="nf">_SeqPaddingLength</span><span class="p">(</span><span class="n">inputs_nmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the lengths of paddings at the beginning and end of the sequence.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    inputs_nmap: A `.NestedMap` of tensors that may have &#39;padding&#39;</span>
+<span class="sd">                 Every tensor&#39;s 0-th dim has the same size.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    padding length at the beginning, padding length at the end</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">padding</span> <span class="o">=</span> <span class="n">inputs_nmap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;padding&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">padding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+  <span class="n">time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">pad_1d</span> <span class="o">=</span> <span class="n">_FlattenPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">)</span>
+  <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">pad_1d</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>  <span class="c1"># [time], 1s/0s</span>
+  <span class="n">mask_reverse</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">pad_1d</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="mi">0</span><span class="p">))</span>
+  <span class="n">numbers</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">time</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">padding_end</span> <span class="o">=</span> <span class="n">time</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">mask</span> <span class="o">*</span> <span class="n">numbers</span><span class="p">)</span>
+  <span class="n">padding_begin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding_end</span><span class="p">,</span> <span class="n">time</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span>
+      <span class="n">time</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">mask_reverse</span> <span class="o">*</span> <span class="n">numbers</span><span class="p">))</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">padding_begin</span><span class="p">,</span> <span class="n">padding_end</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="_Flatten"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Flatten">[docs]</a><span class="k">def</span> <span class="nf">_Flatten</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Flattens every `.NestedMap` in nmap_list and concatenate them.&quot;&quot;&quot;</span>
+  <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">nmap_list</span><span class="p">:</span>
+    <span class="n">ret</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="_Pack"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Pack">[docs]</a><span class="k">def</span> <span class="nf">_Pack</span><span class="p">(</span><span class="n">flatten</span><span class="p">,</span> <span class="n">nmap_list</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Packs the list of tensors according to nested maps in nmap_list.</span>
+
+<span class="sd">  _Pack is loosely the inverse of _Flatten.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    flatten: A list of tensors.</span>
+<span class="sd">    nmap_list: A list of NestedMap.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of NestedMap, say ret is the returned list. We have</span>
+
+<span class="sd">      1. len(ret) == len(nmap_list);</span>
+<span class="sd">      2. recursively, ret[i] has the same keys as nmap_list[i];</span>
+<span class="sd">      3. _Flatten(ret) == flatten;</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flatten</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+    <span class="n">flatten</span> <span class="o">=</span> <span class="p">[</span><span class="n">flatten</span><span class="p">]</span>
+  <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">nmap_list</span><span class="p">:</span>
+    <span class="c1"># x needs num values from the head of flatten.</span>
+    <span class="n">num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+    <span class="n">ret</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flatten</span><span class="p">[:</span><span class="n">num</span><span class="p">])]</span>
+    <span class="n">flatten</span> <span class="o">=</span> <span class="n">flatten</span><span class="p">[</span><span class="n">num</span><span class="p">:]</span>
+  <span class="k">assert</span> <span class="ow">not</span> <span class="n">flatten</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;flatten does not match nmap_list.&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="_EmptyAcc"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._EmptyAcc">[docs]</a><span class="k">def</span> <span class="nf">_EmptyAcc</span><span class="p">(</span><span class="n">slen</span><span class="p">,</span> <span class="n">nmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a set of accumulators for tensors in nmap.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    slen: A scalar tensor.</span>
+<span class="sd">    nmap: A `.NestedMap` of tensors.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `.NestedMap` with the same keys as nmap. ret.key, a tensor, has the</span>
+<span class="sd">    same dtype as nmap.key. The tensor&#39;s shape has 1 more dimension</span>
+<span class="sd">    than the tensor nmap.key. The extra 0-th dimension is of size</span>
+<span class="sd">    slen. E.g., if slen=10 and nmap.key&#39;s shape is [3, 5], then,</span>
+<span class="sd">    ret.key&#39;s shape is [10, 3, 5].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">Fill</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([[</span><span class="n">slen</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Fill</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_EmptyLike"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._EmptyLike">[docs]</a><span class="k">def</span> <span class="nf">_EmptyLike</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a set of empty initialized tensors.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    nmap: A `.NestedMap` of tensors.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `.NestedMap` of tensors. Each tensor has the same shape and dtype as</span>
+<span class="sd">    its corresponding tensor in nmap. And each tensor is initialized.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_EmptyCaptures"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._EmptyCaptures">[docs]</a><span class="k">def</span> <span class="nf">_EmptyCaptures</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Creates an empty implicit capture map for when capture is not supported.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">captures</span><span class="o">=</span><span class="p">[])</span></div>
+
+
+<div class="viewcode-block" id="_Add"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Add">[docs]</a><span class="k">def</span> <span class="nf">_Add</span><span class="p">(</span><span class="n">nmap_x</span><span class="p">,</span> <span class="n">nmap_y</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Adds tensors in nmap_x with respective tensors in nmap_y.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    nmap_x: A `.NestedMap` of tensors.</span>
+<span class="sd">    nmap_y: A `.NestedMap` of tensors.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `.NestedMap` of tensors. ret.key = nmap_x.key + nmap_y.key for every key.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">x_lst</span> <span class="o">=</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+  <span class="n">y_lst</span> <span class="o">=</span> <span class="n">nmap_y</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+  <span class="n">z</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_lst</span><span class="p">,</span> <span class="n">y_lst</span><span class="p">):</span>
+    <span class="n">z</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
+  <span class="k">return</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">z</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_Dtypes"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Dtypes">[docs]</a><span class="k">def</span> <span class="nf">_Dtypes</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns all tensors&#39; data types in a list.&quot;&quot;&quot;</span>
+  <span class="n">flatten</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">nmap_list</span><span class="p">:</span>
+    <span class="n">flatten</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">flatten</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="_ConvertNoneGradientToZeros"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._ConvertNoneGradientToZeros">[docs]</a><span class="k">def</span> <span class="nf">_ConvertNoneGradientToZeros</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">dxs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sanitize dxs so that None becomes zeros appropriately.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    xs: A list of tensors.</span>
+<span class="sd">    dxs: A list of tensors. dxs[i] corresponds to xs[i]&#39;s gradient.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `.NestedMap` same as dxs with None replaced by a zero tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">xs_lst</span> <span class="o">=</span> <span class="n">_Flatten</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+  <span class="n">dxs_lst</span> <span class="o">=</span> <span class="n">_Flatten</span><span class="p">(</span><span class="n">dxs</span><span class="p">)</span>
+
+  <span class="c1"># If x does not get any backprop-ed gradient, propagate zeros.</span>
+  <span class="n">rets</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs_lst</span><span class="p">,</span> <span class="n">dxs_lst</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">dx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">rets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">rets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dx</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">,</span> <span class="n">dxs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_TransformDType"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._TransformDType">[docs]</a><span class="k">def</span> <span class="nf">_TransformDType</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
+      <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_Recurrent"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Recurrent">[docs]</a><span class="k">class</span> <span class="nc">_Recurrent</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A helper class to construct a recurrent neural net.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">cell_fn</span><span class="p">,</span>
+               <span class="n">cell_grad</span><span class="p">,</span>
+               <span class="n">theta</span><span class="p">,</span>
+               <span class="n">state0</span><span class="p">,</span>
+               <span class="n">inputs</span><span class="p">,</span>
+               <span class="n">extras</span><span class="p">,</span>
+               <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;RNN helper class.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      cell_fn: A python function, which computes:</span>
+<span class="sd">         state1, extras = cell_fn(theta, state0, inputs[t, :])</span>
+<span class="sd">      cell_grad: A python function which computes:</span>
+<span class="sd">         dtheta, dstate0, dinputs[t, :] = cell_grad(</span>
+<span class="sd">           theta, state0, inputs[t, :], extras, dstate1)</span>
+<span class="sd">      theta: weights. A `.NestedMap`.</span>
+<span class="sd">      state0: initial state. A `.NestedMap`.</span>
+<span class="sd">      inputs: inputs. A `.NestedMap`.</span>
+<span class="sd">      extras: A `.NestedMap` of Tensors. The 2nd return value of every</span>
+<span class="sd">        invocation of cell_fn is a `.NestedMap` with matching keys and shapes</span>
+<span class="sd">        of this &#39;extras&#39;.</span>
+<span class="sd">      implicit_captures: A `.NestedMap` corresponding to implicit captures of</span>
+<span class="sd">        the cell_fn. If empty/None, implicit captures are either not present</span>
+<span class="sd">        or disallowed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span> <span class="o">=</span> <span class="n">theta</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state</span> <span class="o">=</span> <span class="n">state0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cell_fn</span> <span class="o">=</span> <span class="n">cell_fn</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cell_grad</span> <span class="o">=</span> <span class="n">cell_grad</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span> <span class="o">=</span> <span class="n">extras</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span> <span class="o">=</span> <span class="n">implicit_captures</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span> <span class="o">=</span> <span class="n">_EmptyCaptures</span><span class="p">()</span>
+
+    <span class="c1"># pylint: disable=unbalanced-tuple-unpacking</span>
+
+    <span class="c1"># NOTE: TF Function (Fwd, Bak, ForwardLoopBody, BackwardLoopBody,</span>
+    <span class="c1"># Forward and Backward defined below) simply takes a list of</span>
+    <span class="c1"># Tensors and returns a list of Tensors. When we pass in a</span>
+    <span class="c1"># structure (a list of NestedMap of Tensors), we use _Flatten to</span>
+    <span class="c1"># convert the structure into a list of tensor. Conversely, the</span>
+    <span class="c1"># following code often uses _Pack to formulate a structure from a</span>
+    <span class="c1"># list of tensors based on a &quot;template&quot;.</span>
+
+    <span class="c1"># Wraps cell_fn in a TF Function:</span>
+    <span class="c1">#    state1 = cell_fn(theta, state0, inputs)</span>
+    <span class="n">fwd_sig</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">]</span>
+
+    <span class="n">compiled</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span>
+    <span class="n">noinline</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">compiled</span>
+    <span class="n">dev_t_type</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span> <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">_Dtypes</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">Fwd</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">)</span>
+      <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+      <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">state1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span>
+      <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">extras</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">_Flatten</span><span class="p">([</span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span><span class="p">])</span>
+
+    <span class="c1"># Wraps cell_fn in a TF Function as a for-loop&#39;s body.</span>
+    <span class="c1">#</span>
+    <span class="c1"># The loop state is composed of:</span>
+    <span class="c1">#  t: The loop variable. Timestep id.</span>
+    <span class="c1">#  dev_t: The loop variable mirrored on the device.</span>
+    <span class="c1">#  theta: the recurrent net&#39;s weights.</span>
+    <span class="c1">#  state0: the previous recurrent state.</span>
+    <span class="c1">#  inputs: inputs to the recurrent net. inputs[t, :] are for the timestep t.</span>
+    <span class="c1">#  acc_state: Each timestep&#39;s computed new state is also stashed into</span>
+    <span class="c1">#    acc_state.</span>
+    <span class="c1">#  acc_extras: Each timestep&#39;s computed extras is stashed into acc_extras</span>
+    <span class="n">fwdloop_sig</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span>
+    <span class="p">]</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">dev_t_type</span><span class="p">,</span> <span class="o">*</span><span class="n">_Dtypes</span><span class="p">(</span><span class="n">fwdloop_sig</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">ForwardLoopBody</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;The body of forward loop.&quot;&quot;&quot;</span>
+      <span class="n">t</span><span class="p">,</span> <span class="n">dev_t</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span>
+          <span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">fwdloop_sig</span><span class="p">)</span>
+      <span class="n">inputs_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>  <span class="c1"># external input at time step t.</span>
+      <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span>
+          <span class="n">Fwd</span><span class="p">(</span><span class="o">*</span><span class="n">_Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">])),</span>
+          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])</span>
+      <span class="c1"># Saves state1 and extras in their accumulators.</span>
+      <span class="n">acc_state</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">dev_t</span><span class="p">)</span>
+      <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">acc_extras</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dev_t</span><span class="p">)</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">dev_t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="n">_Flatten</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">theta</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">Grad</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;The python grad function for the Forward function.</span>
+
+<span class="sd">      Flowchart:</span>
+<span class="sd">      +------------------------------------------------------------+</span>
+<span class="sd">      |  Backward() DEFUN -&gt; [d_fwd..., acc_extras, dcaptured]     |</span>
+<span class="sd">      |                          |                                 |</span>
+<span class="sd">      |                          v                                 |</span>
+<span class="sd">      |                For(BackwardLoopBody())                     |</span>
+<span class="sd">      |                          |                                 |</span>
+<span class="sd">      |                          v                                 |</span>
+<span class="sd">      |                BackwardLoopBody() DEFUN -&gt;                 |</span>
+<span class="sd">      |             ..., d_theta, d_state0, d_inputs,              |</span>
+<span class="sd">      |                 d_acc_state, d_captured                    |</span>
+<span class="sd">      |                          |                                 |</span>
+<span class="sd">      |                          v                                 |</span>
+<span class="sd">      |          Bak(..., inputs[t], extras[t]) DEFUN -&gt;           |</span>
+<span class="sd">      |       d_theta_t, d_state0, d_inputs_t, d_captured_t        |</span>
+<span class="sd">      |                          |                                 |</span>
+<span class="sd">      |                          v                                 |</span>
+<span class="sd">      |      CellGrad(theta, state0, inputs, extras, d_state1) -&gt;  |</span>
+<span class="sd">      |               dtheta, dstate0, dinputs, dcaptured          |</span>
+<span class="sd">      |                                                            |</span>
+<span class="sd">      +------------------------------------------------------------+</span>
+
+<span class="sd">      The key thing is that this function must return a dx value for each of</span>
+<span class="sd">      the inputs to the Fwd function (theta, state0, inputs, captured...).</span>
+<span class="sd">      The tricky part is that implicitly captured inputs are carried through</span>
+<span class="sd">      function boundaries implicitly by the function call as the last</span>
+<span class="sd">      arguments. When assembling gradients, we must account for these implicit</span>
+<span class="sd">      captures even though they are not passed explicitly from function to</span>
+<span class="sd">      function.</span>
+
+<span class="sd">      Args:</span>
+<span class="sd">        op: The forward operation.</span>
+<span class="sd">        *args: Args to the forward operation (includes implicit captures).</span>
+<span class="sd">      Returns:</span>
+<span class="sd">        Tuple of derivitives.</span>
+<span class="sd">      Raises:</span>
+<span class="sd">        ValueError: on argument mismatch issues.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="n">expected_num_inputs</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">for</span> <span class="n">nmap</span> <span class="ow">in</span> <span class="p">[</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">,</span>
+          <span class="c1"># Implicit captured tensors always come last</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span>
+      <span class="p">]:</span>
+        <span class="n">expected_num_inputs</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">nmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">!=</span> <span class="n">expected_num_inputs</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">expected_num_inputs</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+              <span class="p">(</span><span class="s1">&#39;Too many inputs. The most likely cause is that cell_fn &#39;</span>
+               <span class="s1">&#39;captures additional tensors: extra inputs </span><span class="si">%r</span><span class="s1"> vs captures </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span>
+              <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">),</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())))</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="p">(</span><span class="s1">&#39;Mismatched inputs to cell fn: Found </span><span class="si">%d</span><span class="s1"> vs expected </span><span class="si">%d</span><span class="s1">: </span><span class="si">%r</span><span class="s1">&#39;</span>
+             <span class="s1">&#39;. Implicit captures(</span><span class="si">%d</span><span class="s1">) = </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">),</span> <span class="n">expected_num_inputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">),</span>
+             <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">))</span>
+
+      <span class="c1"># NOTE: tf.gradient backprops None for int32/int64 while zeros</span>
+      <span class="c1"># for float32/float64. For consistency, we always backprop</span>
+      <span class="c1"># zeros.</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">dy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">unused_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">],</span>
+          <span class="p">[</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">,</span>
+              <span class="c1"># Implicit captured tensors always come last</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span>
+          <span class="p">])</span>
+      <span class="c1"># acc_state and acc_extras are computed by the Forward pass and</span>
+      <span class="c1"># needed by the Backward pass.</span>
+      <span class="n">acc_state</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">],</span>
+                                       <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])</span>
+
+      <span class="c1"># Forward computes acc_state, the final state and</span>
+      <span class="c1"># acc_extras. tf.gradients gives us their gradients w.r.t. the</span>
+      <span class="c1"># final loss. Because acc_extras are not exposed by Compute(),</span>
+      <span class="c1"># it has no gradients w.r.t. the final loss (i.e., by</span>
+      <span class="c1"># construction, it must be zeros).</span>
+      <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span>
+                                       <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">Backward</span><span class="p">(</span><span class="o">*</span><span class="n">_Flatten</span><span class="p">([</span>
+          <span class="n">theta</span><span class="p">,</span>
+          <span class="n">state0</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="p">,</span>
+          <span class="n">acc_state</span><span class="p">,</span>
+          <span class="n">acc_extras</span><span class="p">,</span>
+          <span class="n">d_acc_state</span><span class="p">,</span>
+          <span class="n">d_state1</span><span class="p">,</span>
+      <span class="p">]))</span>
+
+    <span class="c1"># Forward calls ForwardLoopBody n times. Each time computes one</span>
+    <span class="c1"># time step of the recurrent net.</span>
+    <span class="n">forward_sig</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">]</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
+        <span class="o">*</span><span class="n">_Dtypes</span><span class="p">(</span><span class="n">forward_sig</span><span class="p">),</span> <span class="n">python_grad_func</span><span class="o">=</span><span class="n">Grad</span><span class="p">,</span> <span class="n">noinline</span><span class="o">=</span><span class="n">noinline</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Forward pass of the recurrent net.&quot;&quot;&quot;</span>
+      <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">forward_sig</span><span class="p">)</span>
+
+      <span class="c1"># The sequence length.</span>
+      <span class="n">pad_begin</span><span class="p">,</span> <span class="n">pad_end</span> <span class="o">=</span> <span class="n">_SeqPaddingLength</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="n">slen_dim</span> <span class="o">=</span> <span class="n">_SeqLenDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+      <span class="c1"># Creates accumulators for state0 and extras.</span>
+      <span class="n">acc_state</span> <span class="o">=</span> <span class="n">_EmptyAcc</span><span class="p">(</span><span class="n">slen_dim</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span>
+      <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">_EmptyAcc</span><span class="p">(</span><span class="n">slen_dim</span><span class="p">,</span> <span class="n">extras</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+        <span class="n">dev_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">pad_begin</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">dev_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int64</span><span class="p">(</span><span class="n">pad_begin</span><span class="p">)</span>
+      <span class="n">run</span> <span class="o">=</span> <span class="n">functional_ops</span><span class="o">.</span><span class="n">For</span><span class="p">(</span>
+          <span class="n">start</span><span class="o">=</span><span class="n">pad_begin</span><span class="p">,</span>
+          <span class="n">limit</span><span class="o">=</span><span class="n">slen_dim</span> <span class="o">-</span> <span class="n">pad_end</span><span class="p">,</span>
+          <span class="n">delta</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">dev_t</span><span class="p">]</span> <span class="o">+</span> <span class="n">_Flatten</span><span class="p">(</span>
+              <span class="p">[</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">]),</span>
+          <span class="n">body</span><span class="o">=</span><span class="n">ForwardLoopBody</span><span class="p">,</span>
+          <span class="n">rewrite_with_while</span><span class="o">=</span><span class="n">compiled</span><span class="p">)</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span>
+          <span class="n">run</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
+          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])</span>
+
+      <span class="k">return</span> <span class="n">_Flatten</span><span class="p">([</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">])</span>
+
+    <span class="c1"># The per-step backward computes:</span>
+    <span class="c1">#    d_theta, d_state0, d_inputs = cell_grad(</span>
+    <span class="c1">#        theta, state0, inputs, extras, d_state1)</span>
+    <span class="c1"># where d_state1 is the backprop-ed gradient for state1, and</span>
+    <span class="c1"># extras is the computed by the forward step to facilitate the</span>
+    <span class="c1"># backward step.</span>
+    <span class="n">bak_sig</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">_Dtypes</span><span class="p">(</span><span class="n">bak_sig</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">Bak</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Backward step.&quot;&quot;&quot;</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">bak_sig</span><span class="p">)</span>
+      <span class="p">(</span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cell_grad</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">)</span>
+      <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">dtheta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">)</span>
+      <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">dstate0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span>
+      <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">dinputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">dcaptures</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># NOTE: Custom gradient fns can return None if they do not support</span>
+        <span class="c1"># captured tensors. The return value is reserved for the future when</span>
+        <span class="c1"># that may be supported.</span>
+        <span class="n">dcaptures</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">)</span>
+      <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">dcaptures</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">)</span>
+
+      <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
+      <span class="c1"># cell_fn when reflected on at the beginning. Must come after the call</span>
+      <span class="c1"># to cell_grad() which adds to the captured list.</span>
+      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">(),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+
+      <span class="p">(</span><span class="n">captured</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">(),</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">_Flatten</span><span class="p">(</span>
+          <span class="n">_ConvertNoneGradientToZeros</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">],</span>
+                                      <span class="p">[</span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span><span class="p">]))</span>
+
+    <span class="c1"># Define defuns used by a functional.if in BackwardLoopBody.</span>
+    <span class="n">state_if_sig</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">]</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">_Dtypes</span><span class="p">(</span><span class="n">state_if_sig</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">ReturnOrigState0</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns original state0 from inputs.&quot;&quot;&quot;</span>
+      <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">orig_state0</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">state_if_sig</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">orig_state0</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">_Dtypes</span><span class="p">(</span><span class="n">state_if_sig</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">ReturnAccState</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns acc_state[t-1] from inputs.&quot;&quot;&quot;</span>
+      <span class="p">(</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">state_if_sig</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">acc_state</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+    <span class="c1"># Wraps cell_grad gradient function in a TF Function as a</span>
+    <span class="c1"># for-loop&#39;s body for the Backward pass.</span>
+    <span class="c1">#</span>
+    <span class="c1"># The loop state is composed of:</span>
+    <span class="c1">#  t: The loop variable. Timestep id.</span>
+    <span class="c1">#  state0: the initial state for the entire backward loop.</span>
+    <span class="c1">#  dev_t: The loop variable mirrored on the device.</span>
+    <span class="c1">#  theta: the recurrent net&#39;s weights.</span>
+    <span class="c1">#  inputs: inputs to the recurrent net. inputs[t, :] are for the timestep t.</span>
+    <span class="c1">#  acc_state: Each timestep&#39;s computed new state was stashed into</span>
+    <span class="c1">#    acc_state by the Forward pass.</span>
+    <span class="c1">#  acc_extras: Each timestep&#39;s computed extras was stashed into</span>
+    <span class="c1">#    acc_extras by the Forward pass.</span>
+    <span class="c1">#  d_theta: All timestep&#39;s gradient for theta is accumulated (added) into</span>
+    <span class="c1">#      d_theta.</span>
+    <span class="c1">#  d_state1: The backprop-ed gradient for the new stated computed by</span>
+    <span class="c1">#      timestep t.</span>
+    <span class="c1">#  d_inputs: d_inputs[t, :] is populated by the backward time step t.</span>
+    <span class="c1">#  d_acc_state: The backprop-ed gradient for acc_state.</span>
+    <span class="c1">#  d_captured: All timestep&#39;s gradient for theta is accumulated (added)</span>
+    <span class="c1">#      into d_captured.</span>
+    <span class="n">bakloop_sig</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">,</span>
+        <span class="c1"># End of forward params</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">dev_t_type</span><span class="p">,</span> <span class="o">*</span><span class="n">_Dtypes</span><span class="p">(</span><span class="n">bakloop_sig</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">BackwardLoopBody</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Backward loop body function.&quot;&quot;&quot;</span>
+      <span class="n">t</span><span class="p">,</span> <span class="n">dev_t</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span>
+          <span class="n">orig_state0</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="p">,</span>
+          <span class="n">acc_state</span><span class="p">,</span>
+          <span class="n">acc_extras</span><span class="p">,</span>
+          <span class="c1"># End of forward params</span>
+          <span class="n">d_theta</span><span class="p">,</span>
+          <span class="n">d_state1</span><span class="p">,</span>
+          <span class="n">d_inputs</span><span class="p">,</span>
+          <span class="n">d_acc_state</span><span class="p">,</span>
+          <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">_Pack</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">bakloop_sig</span><span class="p">))</span>
+
+      <span class="c1"># The input recurrent state for time step t is previous time step&#39;s</span>
+      <span class="c1"># output, or the original state0 when on time step 0.</span>
+      <span class="n">state_from_acc</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="n">state0</span> <span class="o">=</span> <span class="n">functional_ops</span><span class="o">.</span><span class="n">If</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+          <span class="n">_Flatten</span><span class="p">([</span><span class="n">state_from_acc</span><span class="p">,</span> <span class="n">orig_state0</span><span class="p">]),</span> <span class="n">ReturnOrigState0</span><span class="p">,</span>
+          <span class="n">ReturnAccState</span><span class="p">)</span>
+      <span class="n">state0</span> <span class="o">=</span> <span class="n">orig_state0</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">state0</span><span class="p">)</span>
+
+      <span class="c1"># The external inputs for time step t.</span>
+      <span class="n">inputs_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+      <span class="c1"># The extras for time step t.</span>
+      <span class="n">extras_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">acc_extras</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+
+      <span class="n">d_state1</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">_Index</span><span class="p">(</span><span class="n">d_acc_state</span><span class="p">,</span> <span class="n">t</span><span class="p">),</span> <span class="n">d_state1</span><span class="p">)</span>
+      <span class="p">(</span><span class="n">d_theta_t</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs_t</span><span class="p">,</span> <span class="n">d_captured_t</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span>
+          <span class="n">Bak</span><span class="p">(</span><span class="o">*</span><span class="n">_Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">,</span> <span class="n">extras_t</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">])),</span>
+          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">])</span>
+      <span class="n">d_theta</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_theta_t</span><span class="p">)</span>
+      <span class="n">d_inputs</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">d_inputs</span><span class="p">,</span> <span class="n">d_inputs_t</span><span class="p">,</span> <span class="n">dev_t</span><span class="p">)</span>
+      <span class="n">d_captured</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">d_captured</span><span class="p">,</span> <span class="n">d_captured_t</span><span class="p">)</span>
+
+      <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
+      <span class="c1"># cell_fn when reflected on at the beginning. Must come after the call</span>
+      <span class="c1"># to Bak() which adds to the captured list.</span>
+      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">(),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+
+      <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">dev_t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">+</span> <span class="n">_Flatten</span><span class="p">([</span>
+          <span class="n">theta</span><span class="p">,</span>
+          <span class="n">orig_state0</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="p">,</span>
+          <span class="n">acc_state</span><span class="p">,</span>
+          <span class="n">acc_extras</span><span class="p">,</span>
+          <span class="c1"># End of forward params</span>
+          <span class="n">d_theta</span><span class="p">,</span>
+          <span class="n">d_state0</span><span class="p">,</span>
+          <span class="n">d_inputs</span><span class="p">,</span>
+          <span class="n">d_acc_state</span><span class="p">,</span>
+          <span class="n">d_captured</span><span class="p">,</span>
+      <span class="p">])</span>
+
+    <span class="c1"># Backward calls BackwardLoopBody n times.  Each time computes the backprop</span>
+    <span class="c1"># for one time step of the recurrent net.</span>
+    <span class="n">backward_sig</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">,</span>
+        <span class="c1"># End of forward params.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
+    <span class="p">]</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">_Dtypes</span><span class="p">(</span><span class="n">backward_sig</span><span class="p">),</span> <span class="n">noinline</span><span class="o">=</span><span class="n">noinline</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Backward pass for the recurrent net.&quot;&quot;&quot;</span>
+      <span class="c1"># theta, state0, inputs are Forward&#39;s inputs.</span>
+      <span class="c1"># acc_state is the accumulated 1st output of Forward.</span>
+      <span class="c1"># acc_extras is the accumulated 2nd output of Forward.</span>
+      <span class="c1"># d_acc_state is the gradient for acc_state.</span>
+      <span class="c1"># d_state1 is the gradient for the final state computed by Forward.</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_acc_state</span><span class="p">,</span>
+       <span class="n">d_state1</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">backward_sig</span><span class="p">)</span>
+
+      <span class="c1"># Accumulators for gradients.</span>
+      <span class="n">d_theta</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+      <span class="n">d_inputs</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="n">d_captured</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">)</span>
+
+      <span class="c1"># The sequence length.</span>
+      <span class="n">pad_begin</span><span class="p">,</span> <span class="n">pad_end</span> <span class="o">=</span> <span class="n">_SeqPaddingLength</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="n">start</span> <span class="o">=</span> <span class="n">_SeqLenDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">-</span> <span class="n">pad_end</span> <span class="o">-</span> <span class="mi">1</span>
+
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+        <span class="n">dev_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">dev_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int64</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+      <span class="n">run</span> <span class="o">=</span> <span class="n">functional_ops</span><span class="o">.</span><span class="n">For</span><span class="p">(</span>
+          <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+          <span class="n">limit</span><span class="o">=</span><span class="n">pad_begin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+          <span class="n">delta</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="p">[</span><span class="n">dev_t</span><span class="p">]</span> <span class="o">+</span> <span class="n">_Flatten</span><span class="p">([</span>
+              <span class="n">theta</span><span class="p">,</span>
+              <span class="n">state0</span><span class="p">,</span>
+              <span class="n">inputs</span><span class="p">,</span>
+              <span class="n">acc_state</span><span class="p">,</span>
+              <span class="n">acc_extras</span><span class="p">,</span>
+              <span class="n">d_theta</span><span class="p">,</span>
+              <span class="n">d_state1</span><span class="p">,</span>
+              <span class="n">d_inputs</span><span class="p">,</span>
+              <span class="n">d_acc_state</span><span class="p">,</span>
+              <span class="n">d_captured</span><span class="p">,</span>
+          <span class="p">]),</span>
+          <span class="n">body</span><span class="o">=</span><span class="n">BackwardLoopBody</span><span class="p">,</span>
+          <span class="n">rewrite_with_while</span><span class="o">=</span><span class="n">compiled</span><span class="p">)</span>
+
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span>
+       <span class="n">d_inputs</span><span class="p">,</span> <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">run</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">bakloop_sig</span><span class="p">)</span>
+
+      <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
+      <span class="c1"># cell_fn when reflected on at the beginning. Must come after the</span>
+      <span class="c1"># call to BackwardLoopBody, which adds to the captured list.</span>
+      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">(),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+
+      <span class="k">return</span> <span class="n">_Flatten</span><span class="p">([</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">])</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="n">Forward</span>
+
+<div class="viewcode-block" id="_Recurrent.Compute"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Recurrent.Compute">[docs]</a>  <span class="k">def</span> <span class="nf">Compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_Pack</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
+            <span class="o">*</span><span class="n">_Flatten</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])),</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])[:</span><span class="mi">2</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="_GetCellGrad"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._GetCellGrad">[docs]</a><span class="k">def</span> <span class="nf">_GetCellGrad</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the gradient function for cell_fn.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    cell_fn: The recurrent neural net&#39;s cell function.</span>
+<span class="sd">    cell_grad: If not None, cell_fn&#39;s gradient function.</span>
+<span class="sd">    implicit_captures: `.NestedMap` of implicit captures that cell_fn</span>
+<span class="sd">        does. If None, then no captures are supported.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Returns cell_grad if not None. Otherwise, assume cell_fn is a python</span>
+<span class="sd">    function representing the recurrent neural net&#39;s cell function, i.e.::</span>
+
+<span class="sd">      cell_fn: (theta, state0, inputs) -&gt; (state1, extra)</span>
+
+<span class="sd">    returns its default gradient python function, i.e.::</span>
+
+<span class="sd">      cell_grad: (theta, state0, inputs, extras, captured, dstate1) -&gt;</span>
+<span class="sd">          (dtheta, dstate0, dinputs)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">if</span> <span class="n">cell_grad</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">cell_grad</span>
+
+  <span class="k">if</span> <span class="n">implicit_captures</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># Matches the structure in the Recurrent constructor.</span>
+    <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">_EmptyCaptures</span><span class="p">()</span>
+
+  <span class="k">def</span> <span class="nf">CellGrad</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Default gradient function for cell_fn.&quot;&quot;&quot;</span>
+    <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">state1</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">extras</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">extras</span><span class="p">)</span>
+    <span class="c1"># NOTE: The default grad function recomputes the forward</span>
+    <span class="c1"># function and does not take advantage of &#39;extras&#39; returned by</span>
+    <span class="c1"># the forward function.</span>
+
+    <span class="c1"># Assert that if captured inputs were given, they match the actual</span>
+    <span class="c1"># tensors passed to the function we are compiled into. Must come after</span>
+    <span class="c1"># the call to cell_fn, which does the capture.</span>
+    <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">(),</span> <span class="n">implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+
+    <span class="c1"># Extract the internal captured tensor placeholders within the Defun</span>
+    <span class="c1"># we are running in.</span>
+    <span class="p">(</span><span class="n">captured</span><span class="p">,)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">(),</span> <span class="p">[</span><span class="n">implicit_captures</span><span class="p">])</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">_Flatten</span><span class="p">([</span><span class="n">state1</span><span class="p">])</span>
+    <span class="n">xs</span> <span class="o">=</span> <span class="n">_Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">])</span>
+    <span class="n">grad_ys</span> <span class="o">=</span> <span class="n">_Flatten</span><span class="p">([</span><span class="n">dstate1</span><span class="p">])</span>
+    <span class="n">grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span><span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span> <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">grad_ys</span><span class="o">=</span><span class="n">grad_ys</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_ConvertNoneGradientToZeros</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">],</span>
+                                       <span class="n">_Pack</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span>
+                                             <span class="p">[</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">]))</span>
+
+  <span class="k">return</span> <span class="n">CellGrad</span></div>
+
+
+<div class="viewcode-block" id="_WrapAccumulatorCellFn"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._WrapAccumulatorCellFn">[docs]</a><span class="k">def</span> <span class="nf">_WrapAccumulatorCellFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrap a cell_fn to propagate accumulators.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">WrappedCellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">SetAccumulatorValues</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">accumulators</span><span class="p">)</span>
+    <span class="c1"># The underlying cell_fn has no knowledge of accumulator state so</span>
+    <span class="c1"># delete it.</span>
+    <span class="n">state0</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+    <span class="k">del</span> <span class="n">state0</span><span class="o">.</span><span class="n">accumulators</span>
+    <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="c1"># Propagate new accumulator state forward.</span>
+    <span class="n">state1</span><span class="o">.</span><span class="n">accumulators</span> <span class="o">=</span> <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">GetAccumulatorValues</span><span class="p">()</span>
+    <span class="c1"># Reset: make sure nothing escapes.</span>
+    <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Reset</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span>
+
+  <span class="k">return</span> <span class="n">WrappedCellFn</span></div>
+
+
+<div class="viewcode-block" id="_WrapAccumulatorCellGradFn"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._WrapAccumulatorCellGradFn">[docs]</a><span class="k">def</span> <span class="nf">_WrapAccumulatorCellGradFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrap a cell grad function to disable accumulators.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">WrappedCellGradFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">):</span>
+    <span class="c1"># Compute the cell grad function with accumulators disabled.</span>
+    <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Disable</span><span class="p">())</span>
+    <span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span> <span class="o">=</span> <span class="n">cell_grad</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
+                                                    <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">)</span>
+    <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Enable</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span>
+
+  <span class="k">return</span> <span class="n">WrappedCellGradFn</span></div>
+
+
+<div class="viewcode-block" id="_IsSingleTimeStep"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._IsSingleTimeStep">[docs]</a><span class="k">def</span> <span class="nf">_IsSingleTimeStep</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns True only if the time dimension of inputs is 1.&quot;&quot;&quot;</span>
+  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">dims</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
+  <span class="k">return</span> <span class="kc">True</span></div>
+
+
+<div class="viewcode-block" id="_ReflectOnCellFn"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._ReflectOnCellFn">[docs]</a><span class="k">def</span> <span class="nf">_ReflectOnCellFn</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span>
+                     <span class="n">theta</span><span class="p">,</span>
+                     <span class="n">state0</span><span class="p">,</span>
+                     <span class="n">inputs</span><span class="p">,</span>
+                     <span class="n">accumulator_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">check_stateful_ops</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reflects on the cell_fn, applying asserts and returning needed info.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    cell_fn: A python function that computes:</span>
+<span class="sd">      state1, extras = cell_fn(theta, state0, inputs[t, :])</span>
+<span class="sd">    theta: weights. A `.NestedMap`.</span>
+<span class="sd">    state0: initial state. A `.NestedMap`.</span>
+<span class="sd">    inputs: inputs. A `.NestedMap`.</span>
+<span class="sd">    accumulator_layer: Whether the cell function must be run in the context</span>
+<span class="sd">        of the given accumulator layer.</span>
+<span class="sd">    check_stateful_ops: if True, raise a `ValueError` if cell_fn is stateful.</span>
+<span class="sd">  Returns:</span>
+<span class="sd">    `.NestedMap` of implicit captures that the cell_fn takes.</span>
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: cell_fn is stateful.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">fwd_sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">]</span>
+
+  <span class="c1"># Disable accumulators.</span>
+  <span class="k">if</span> <span class="n">accumulator_layer</span><span class="p">:</span>
+    <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Disable</span><span class="p">())</span>
+  <span class="k">try</span><span class="p">:</span>
+
+    <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">_Dtypes</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">Fwd</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">=</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">)</span>
+      <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">_Flatten</span><span class="p">([</span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span><span class="p">])</span>
+
+    <span class="c1"># This can trigger instantiating the function, so do it in the context</span>
+    <span class="c1"># of accumulators disabled to be safe.</span>
+    <span class="n">captured_inputs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Fwd</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">)</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="c1"># Enable accumulators.</span>
+    <span class="k">if</span> <span class="n">accumulator_layer</span><span class="p">:</span>
+      <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Enable</span><span class="p">())</span>
+
+  <span class="c1"># Asserts about the function.</span>
+  <span class="k">if</span> <span class="n">Fwd</span><span class="o">.</span><span class="n">stateful_ops</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">check_stateful_ops</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cell_fn contains stateful ops: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">Fwd</span><span class="o">.</span><span class="n">stateful_ops</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;cell_fn contains stateful ops: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">Fwd</span><span class="o">.</span><span class="n">stateful_ops</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">captured</span><span class="o">=</span><span class="n">captured_inputs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_NestedMapCopier"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._NestedMapCopier">[docs]</a><span class="k">def</span> <span class="nf">_NestedMapCopier</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a function that will DeepCopy the map on each call.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">Copier</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+
+  <span class="k">return</span> <span class="n">Copier</span></div>
+
+
+<div class="viewcode-block" id="_RecurrentSingleTimeStep"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._RecurrentSingleTimeStep">[docs]</a><span class="k">def</span> <span class="nf">_RecurrentSingleTimeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Short-cut for the single timestep without explicit cell_grad case.&quot;&quot;&quot;</span>
+  <span class="c1"># The seqlen length is staticly known as 1. Hence, we just need to</span>
+  <span class="c1"># call cell_fn once without putting it into a loop.</span>
+  <span class="c1"># Since we are not looping, there is no need to specially manage</span>
+  <span class="c1"># accumulators.</span>
+  <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+  <span class="n">state1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">(),</span> <span class="n">inputs</span><span class="p">)</span>
+  <span class="n">acc_state</span> <span class="o">=</span> <span class="n">state1</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span></div>
+
+
+<div class="viewcode-block" id="Recurrent"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent.Recurrent">[docs]</a><span class="k">def</span> <span class="nf">Recurrent</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span>
+              <span class="n">state0</span><span class="p">,</span>
+              <span class="n">inputs</span><span class="p">,</span>
+              <span class="n">cell_fn</span><span class="p">,</span>
+              <span class="n">cell_grad</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">extras</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">check_stateful_ops</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">accumulator_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute a recurrent neural net.</span>
+
+<span class="sd">  Roughly, `Recurrent()` computes the following::</span>
+
+<span class="sd">      state = state0</span>
+<span class="sd">      for t in inputs&#39; sequence length:</span>
+<span class="sd">        state = cell_fn(theta, state, inputs[t, :])</span>
+<span class="sd">        accumulate_state[t, :] = state</span>
+<span class="sd">      return accumulate_state, state</span>
+
+<span class="sd">  `theta`, `state`, `inputs` are all `.NestedMap` objects.</span>
+
+<span class="sd">  `inputs[t, :]` means taking a slice out from every tensor in the</span>
+<span class="sd">  `.NestedMap` `inputs`.</span>
+
+<span class="sd">  `accumulate_state[t, :] = state` means that we stash every tensor in</span>
+<span class="sd">  `state` into a slice of the corresponding tensor in</span>
+<span class="sd">  `accumulate_state`.</span>
+
+<span class="sd">  `cell_fn` is a python callable computing (building up a TensorFlow</span>
+<span class="sd">  graph) the recurrent neural network&#39;s one forward step. `cell_fn` must not</span>
+<span class="sd">  contain any stateful ops. Two calls of `cell_fn` must describe two identical</span>
+<span class="sd">  computations.</span>
+
+<span class="sd">  By construction, `Recurrent()`&#39;s backward computation does not access</span>
+<span class="sd">  any intermediate values computed by `cell_fn` during forward</span>
+<span class="sd">  computation. We may extend `Recurrent()` to support that by taking a</span>
+<span class="sd">  customized backward function of `cell_fn`.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    theta: weights. A `.NestedMap`.</span>
+<span class="sd">    state0: initial state. A `.NestedMap`.</span>
+<span class="sd">    inputs: inputs. A `.NestedMap`.</span>
+<span class="sd">    cell_fn: A python function, which computes::</span>
+
+<span class="sd">        state1, extras = cell_fn(theta, state0, inputs[t, :])</span>
+
+<span class="sd">    cell_grad: A python function which computes::</span>
+
+<span class="sd">        dtheta, dstate0, dinputs[t, :], dcaptured = cell_grad(</span>
+<span class="sd">            theta, state0, inputs[t, :], extras, dstate1)</span>
+
+<span class="sd">      If there are no captured tensors in `cell_fn`, `dcaptured` can be returned</span>
+<span class="sd">      as None. Captured tensors with custom `cell_grad` is currently unsupported</span>
+<span class="sd">      so this return value is reserved for future expansion.</span>
+<span class="sd">    extras: A `.NestedMap` of Tensors. The 2nd return value of every</span>
+<span class="sd">      invocation of `cell_fn` is a `.NestedMap` with matching keys and shapes</span>
+<span class="sd">      of `extras`.</span>
+<span class="sd">    check_stateful_ops: if True, raise a `ValueError` if `cell_fn` is stateful.</span>
+<span class="sd">    accumulator_layer: If provided, then accumulators on this layer will be</span>
+<span class="sd">      managed such that they carry to the final state in `FProp` and are</span>
+<span class="sd">      disabled for gradients. Uses the state key `accumulators`.</span>
+<span class="sd">    allow_implicit_capture: Whether to allow the `cell_fn` to implicitly</span>
+<span class="sd">      capture tensors. Only allowed if an explicit `cell_grad` is not given.</span>
+<span class="sd">  Returns:</span>
+<span class="sd">    `accumulate_state` and the final state.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">inputs</span> <span class="o">=</span> <span class="n">_TransformDType</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+  <span class="c1"># Short-cut for the single timestep with default grad function case.</span>
+  <span class="k">if</span> <span class="n">cell_grad</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">_IsSingleTimeStep</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_RecurrentSingleTimeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">)</span>
+
+  <span class="c1"># Whether we have accumulators to manage state for.</span>
+  <span class="n">has_accumulators</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="k">if</span> <span class="n">accumulator_layer</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="s1">&#39;accumulators&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">state0</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;Duplicate &quot;accumulators&quot; key in state0.&#39;</span><span class="p">)</span>
+    <span class="n">accumulator_values</span> <span class="o">=</span> <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">GetAccumulatorValues</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">accumulator_values</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
+      <span class="n">state0</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+      <span class="n">state0</span><span class="o">.</span><span class="n">accumulators</span> <span class="o">=</span> <span class="n">accumulator_values</span>
+      <span class="n">has_accumulators</span> <span class="o">=</span> <span class="kc">True</span>
+
+  <span class="c1"># Make it impossible to use a shared state0 since cell_fn can have</span>
+  <span class="c1"># side-effects and we want each call below to have a fresh one.</span>
+  <span class="n">new_state0</span> <span class="o">=</span> <span class="n">_NestedMapCopier</span><span class="p">(</span><span class="n">state0</span><span class="p">)</span>
+  <span class="k">del</span> <span class="n">state0</span>
+
+  <span class="c1"># Reflect on the cell_fn for assertions and info.</span>
+  <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">_ReflectOnCellFn</span><span class="p">(</span>
+      <span class="n">cell_fn</span><span class="p">,</span>
+      <span class="n">theta</span><span class="p">,</span>
+      <span class="n">new_state0</span><span class="p">(),</span>
+      <span class="n">inputs</span><span class="p">,</span>
+      <span class="n">accumulator_layer</span><span class="o">=</span><span class="n">accumulator_layer</span><span class="p">,</span>
+      <span class="n">check_stateful_ops</span><span class="o">=</span><span class="n">check_stateful_ops</span><span class="p">)</span>
+
+  <span class="k">assert</span> <span class="p">(</span>
+      <span class="ow">not</span> <span class="n">implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span> <span class="ow">or</span>
+      <span class="p">(</span><span class="n">allow_implicit_capture</span> <span class="ow">and</span> <span class="n">cell_grad</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)),</span> <span class="p">(</span>
+          <span class="p">(</span><span class="s1">&#39;Recurrent cell_fn implicitly captures tensors but &#39;</span>
+           <span class="s1">&#39;implicit capture is disabled or a custom cell_grad fn &#39;</span>
+           <span class="s1">&#39;is in use. Captured tensors: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),))</span>
+
+  <span class="c1"># Wrap the cell_fn so that it knows how to propagate accumulators.</span>
+  <span class="k">if</span> <span class="n">has_accumulators</span><span class="p">:</span>
+    <span class="n">cell_fn</span> <span class="o">=</span> <span class="n">_WrapAccumulatorCellFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">)</span>
+
+  <span class="c1"># If cell_grad is not given, derives the gradient function from</span>
+  <span class="c1"># cell_fn.</span>
+  <span class="n">cell_grad</span> <span class="o">=</span> <span class="n">_GetCellGrad</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">)</span>
+
+  <span class="c1"># Wrap the cell_grad so it disables accumulators.</span>
+  <span class="k">if</span> <span class="n">has_accumulators</span><span class="p">:</span>
+    <span class="n">cell_grad</span> <span class="o">=</span> <span class="n">_WrapAccumulatorCellGradFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">extras</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;recurrent_cellfn_extras&#39;</span><span class="p">):</span>
+      <span class="c1"># Derives &#39;extras&#39; so that we can allocate extras&#39; accumulator.</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">new_state0</span><span class="p">(),</span> <span class="n">_Index</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="n">extras</span> <span class="o">=</span> <span class="n">extras</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="ow">not</span> <span class="n">extras</span><span class="p">:</span>
+    <span class="c1"># Forces the extras to be an empty map if an empty &#39;extras&#39; is provided.</span>
+    <span class="n">extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">actual</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">new_state0</span><span class="p">(),</span> <span class="n">_Index</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">extras</span><span class="p">,</span> <span class="n">actual</span><span class="p">)</span>
+
+  <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span> <span class="o">=</span> <span class="n">_Recurrent</span><span class="p">(</span>
+      <span class="n">cell_fn</span><span class="o">=</span><span class="n">cell_fn</span><span class="p">,</span>
+      <span class="n">cell_grad</span><span class="o">=</span><span class="n">cell_grad</span><span class="p">,</span>
+      <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+      <span class="n">state0</span><span class="o">=</span><span class="n">new_state0</span><span class="p">(),</span>
+      <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+      <span class="n">extras</span><span class="o">=</span><span class="n">extras</span><span class="p">,</span>
+      <span class="n">implicit_captures</span><span class="o">=</span><span class="n">implicit_captures</span><span class="p">)</span><span class="o">.</span><span class="n">Compute</span><span class="p">()</span>
+
+  <span class="k">if</span> <span class="n">has_accumulators</span><span class="p">:</span>
+    <span class="c1"># Restore the accumulators from the final recurrent state.</span>
+    <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">SetAccumulatorValues</span><span class="p">(</span><span class="n">final_state</span><span class="o">.</span><span class="n">accumulators</span><span class="p">)</span>
+    <span class="k">del</span> <span class="n">acc_state</span><span class="o">.</span><span class="n">accumulators</span>
+    <span class="k">del</span> <span class="n">final_state</span><span class="o">.</span><span class="n">accumulators</span>
+
+  <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

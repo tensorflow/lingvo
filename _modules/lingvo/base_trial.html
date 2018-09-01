@@ -1,0 +1,325 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.base_trial &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.base_trial</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.base_trial</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Defines trials for parameter exploration.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">time</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+
+
+<div class="viewcode-block" id="Trial"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial">[docs]</a><span class="k">class</span> <span class="nc">Trial</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for a trial.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Trial.Params"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Default parameters for a trial.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;report_interval_seconds&#39;</span><span class="p">,</span> <span class="mi">600</span><span class="p">,</span>
+        <span class="s1">&#39;Interval between reporting trial results and checking for early &#39;</span>
+        <span class="s1">&#39;stopping.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vizier_objective_metric_key&#39;</span><span class="p">,</span> <span class="s1">&#39;loss&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Which eval metric to use as the &quot;objective value&quot; for tuning.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;report_during_training&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to report objective metrics during the training process.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_next_report_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">report_interval_seconds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">report_interval_seconds</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">objective_metric_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">vizier_objective_metric_key</span>
+
+<div class="viewcode-block" id="Trial.Name"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.Name">[docs]</a>  <span class="k">def</span> <span class="nf">Name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Trial.OverrideModelParams"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.OverrideModelParams">[docs]</a>  <span class="k">def</span> <span class="nf">OverrideModelParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Modifies `model_params` according to trial params.</span>
+
+<span class="sd">    Through this method a `Trial` may tweak model hyperparams (e.g., learning</span>
+<span class="sd">    rate, shape, depth, or width of networks).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      model_params: the original model hyperparams.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The modified `model_params`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Trial.ShouldStop"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns whether the trial should stop.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Trial.ShouldStopAndMaybeReport"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.ShouldStopAndMaybeReport">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldStopAndMaybeReport</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns whether the trial should stop.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      global_step: The global step counter.</span>
+<span class="sd">      metrics_dict: If not None, contains the metric should be</span>
+<span class="sd">        reported. If None, do nothing but returns whether the</span>
+<span class="sd">        trial should stop.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">metrics_dict</span> <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">report_during_training</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_report_time</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_next_report_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_interval_seconds</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DoReportTrainingProgress</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Trial._DoReportTrainingProgress"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial._DoReportTrainingProgress">[docs]</a>  <span class="k">def</span> <span class="nf">_DoReportTrainingProgress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Trial.ReportEvalMeasure"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.ReportEvalMeasure">[docs]</a>  <span class="k">def</span> <span class="nf">ReportEvalMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reports eval measurement and returns whether the trial should stop.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NoOpTrial"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial">[docs]</a><span class="k">class</span> <span class="nc">NoOpTrial</span><span class="p">(</span><span class="n">Trial</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A Trial implementation that does nothing.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">NoOpTrial</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Trial</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+
+<div class="viewcode-block" id="NoOpTrial.Name"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.Name">[docs]</a>  <span class="k">def</span> <span class="nf">Name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="NoOpTrial.OverrideModelParams"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.OverrideModelParams">[docs]</a>  <span class="k">def</span> <span class="nf">OverrideModelParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">model_params</span></div>
+
+<div class="viewcode-block" id="NoOpTrial.ShouldStop"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="NoOpTrial.ShouldStopAndMaybeReport"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ShouldStopAndMaybeReport">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldStopAndMaybeReport</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span>  <span class="c1"># Unused</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="NoOpTrial.ReportEvalMeasure"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ReportEvalMeasure">[docs]</a>  <span class="k">def</span> <span class="nf">ReportEvalMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">metrics_dict</span>  <span class="c1"># Unused</span>
+    <span class="k">return</span> <span class="kc">False</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

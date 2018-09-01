@@ -1,0 +1,796 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.ops.beam_search_step_op_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.ops.beam_search_step_op_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.ops.beam_search_step_op_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for beam_search_op.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="k">import</span> <span class="n">text_format</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">hyps_pb2</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
+
+<span class="n">_MIN_SCORE</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e36</span>
+
+
+<div class="viewcode-block" id="BeamSearchOpTest"><a class="viewcode-back" href="../../../../lingvo.core.ops.beam_search_step_op_test.html#lingvo.core.ops.beam_search_step_op_test.BeamSearchOpTest">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchOpTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="BeamSearchOpTest.setUp"><a class="viewcode-back" href="../../../../lingvo.core.ops.beam_search_step_op_test.html#lingvo.core.ops.beam_search_step_op_test.BeamSearchOpTest.setUp">[docs]</a>  <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BeamSearchOpTest</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setUp</span><span class="p">()</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">398849988</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">_testBeamSearchOpHelper</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="n">num_beams</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">lm_weight</span><span class="p">,</span> <span class="n">init_best_score</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span>
+      <span class="n">init_atten_probs</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">best_scores_expected</span><span class="p">,</span> <span class="n">cum_scores_expected</span><span class="p">,</span>
+      <span class="n">scores_expected</span><span class="p">,</span> <span class="n">hyps_expected</span><span class="p">,</span> <span class="n">prev_hyps_expected</span><span class="p">,</span> <span class="n">atten_probs_expected</span><span class="p">):</span>
+    <span class="n">eos_id</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">num_classes</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">b_size</span> <span class="o">/</span> <span class="n">num_beams</span>
+
+    <span class="n">best_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_beams</span><span class="p">])</span>
+    <span class="n">cumulative_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b_size</span><span class="p">])</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">])</span>
+    <span class="n">hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">prev_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">done_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">as_string</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+    <span class="n">lm_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">])</span>
+    <span class="n">best_scores</span> <span class="o">+=</span> <span class="n">init_best_score</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">probs</span><span class="p">):</span>
+      <span class="p">(</span><span class="n">best_scores</span><span class="p">,</span> <span class="n">cumulative_scores</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">hyps</span><span class="p">,</span> <span class="n">prev_hyps</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
+       <span class="n">atten_probs</span><span class="p">,</span> <span class="n">done</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">beam_search_step</span><span class="p">(</span>
+           <span class="n">prob</span><span class="p">,</span>
+           <span class="n">init_atten_probs</span><span class="p">,</span>
+           <span class="n">best_scores</span><span class="p">,</span>
+           <span class="n">cumulative_scores</span><span class="p">,</span>
+           <span class="n">scores</span><span class="p">,</span>
+           <span class="n">hyps</span><span class="p">,</span>
+           <span class="n">prev_hyps</span><span class="p">,</span>
+           <span class="n">done_hyps</span><span class="p">,</span>
+           <span class="n">atten_probs</span><span class="p">,</span> <span class="p">[],</span>
+           <span class="n">i</span><span class="p">,</span>
+           <span class="n">lm_log_probs</span><span class="p">,</span>
+           <span class="n">eos_id</span><span class="o">=</span><span class="n">eos_id</span><span class="p">,</span>
+           <span class="n">beam_size</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+           <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="n">num_hyps_per_beam</span><span class="p">,</span>
+           <span class="n">valid_eos_max_logit_delta</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+           <span class="n">lm_weight</span><span class="o">=</span><span class="n">lm_weight</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="p">(</span><span class="n">best_scores</span><span class="p">,</span> <span class="n">cumulative_scores</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">hyps</span><span class="p">,</span> <span class="n">prev_hyps</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
+       <span class="n">atten_probs</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">lm_log_probs</span><span class="p">)</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span>
+           <span class="n">best_scores</span><span class="p">,</span> <span class="n">cumulative_scores</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">hyps</span><span class="p">,</span> <span class="n">prev_hyps</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
+           <span class="n">atten_probs</span><span class="p">,</span> <span class="n">done</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">lm_log_probs</span>
+       <span class="p">])</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">best_scores</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">cumulative_scores</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">scores</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">hyps</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">prev_hyps</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">done_hyps</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">done</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">scores</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">lm_log_probs</span><span class="p">))</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">best_scores_expected</span><span class="p">,</span> <span class="n">best_scores</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">cum_scores_expected</span><span class="p">,</span> <span class="n">cumulative_scores</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">scores_expected</span><span class="p">,</span> <span class="n">scores</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">hyps_expected</span><span class="p">,</span> <span class="n">hyps</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">prev_hyps_expected</span><span class="p">,</span> <span class="n">prev_hyps</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">atten_probs_expected</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">done</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">done_hyps</span>
+
+<div class="viewcode-block" id="BeamSearchOpTest.testBeamSearchOp"><a class="viewcode-back" href="../../../../lingvo.core.ops.beam_search_step_op_test.html#lingvo.core.ops.beam_search_step_op_test.BeamSearchOpTest.testBeamSearchOp">[docs]</a>  <span class="k">def</span> <span class="nf">testBeamSearchOp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">b_size</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">num_beams</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">num_classes</span> <span class="o">=</span> <span class="mi">5</span>
+
+    <span class="n">best_scores_expected</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.895863</span><span class="p">,</span> <span class="mf">1.54302</span><span class="p">]</span>
+    <span class="n">cum_scores_expected</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="mf">1.79580379</span><span class="p">,</span> <span class="mf">1.95926094</span><span class="p">,</span> <span class="mf">1.66166079</span><span class="p">,</span> <span class="mf">1.73289895</span><span class="p">,</span> <span class="mf">1.63867819</span><span class="p">,</span> <span class="mf">1.5765177</span><span class="p">,</span>
+        <span class="mf">1.57203436</span><span class="p">,</span> <span class="mf">1.21810341</span>
+    <span class="p">]</span>
+    <span class="n">scores_expected</span> <span class="o">=</span> <span class="p">[[</span>
+        <span class="mf">0.89790189</span><span class="p">,</span> <span class="mf">0.97963047</span><span class="p">,</span> <span class="mf">0.7637589</span><span class="p">,</span> <span class="mf">0.75326848</span><span class="p">,</span> <span class="mf">0.67413247</span><span class="p">,</span> <span class="mf">0.18659079</span><span class="p">,</span>
+        <span class="mf">0.32619762</span><span class="p">,</span> <span class="mf">0.0323503</span>
+    <span class="p">],</span> <span class="p">[</span>
+        <span class="mf">0.89790189</span><span class="p">,</span> <span class="mf">0.97963047</span><span class="p">,</span> <span class="mf">0.7637589</span><span class="p">,</span> <span class="mf">0.75326848</span><span class="p">,</span> <span class="mf">0.96454573</span><span class="p">,</span> <span class="mf">0.82324922</span><span class="p">,</span>
+        <span class="mf">0.67413247</span><span class="p">,</span> <span class="mf">0.46483493</span>
+    <span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
+                                          <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+                       <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>
+    <span class="n">hyps_expected</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+    <span class="n">prev_hyps_expected</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                          <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                          <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+
+    <span class="n">hyp_str_expected</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    beam_id: 1</span>
+<span class="s2">    ids: 1</span>
+<span class="s2">    ids: 2</span>
+<span class="s2">      scores: 0.186590790749</span>
+<span class="s2">      scores: 0.712740063667</span>
+<span class="s2">    atten_vecs {</span>
+<span class="s2">      prob: 0.689820885658</span>
+<span class="s2">      prob: 0.216090679169</span>
+<span class="s2">      prob: 0.40637075901</span>
+<span class="s2">    }</span>
+<span class="s2">    atten_vecs {</span>
+<span class="s2">      prob: 0.824981451035</span>
+<span class="s2">      prob: 0.774956822395</span>
+<span class="s2">      prob: 0.944657206535</span>
+<span class="s2">    }</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+    <span class="n">atten_probs_expected</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+          <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span>
+                        <span class="mf">0.40637076</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span> <span class="mf">0.72539818</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span>
+          <span class="mf">0.40637076</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+                        <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span> <span class="mf">0.40637076</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+          <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span> <span class="mf">0.40637076</span><span class="p">]],</span>
+        <span class="p">[[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+          <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span> <span class="mf">0.40637076</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+          <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span>
+                        <span class="mf">0.40637076</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.51121557</span><span class="p">,</span> <span class="mf">0.80525708</span><span class="p">,</span> <span class="mf">0.73596036</span><span class="p">],</span> <span class="p">[</span>
+                            <span class="mf">0.45252705</span><span class="p">,</span> <span class="mf">0.37489808</span><span class="p">,</span> <span class="mf">0.12745726</span>
+                        <span class="p">],</span> <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span> <span class="mf">0.72539818</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">0.45252705</span><span class="p">,</span> <span class="mf">0.37489808</span><span class="p">,</span> <span class="mf">0.12745726</span><span class="p">]],</span> <span class="p">[</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+         <span class="p">],</span> <span class="p">[</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+         <span class="p">],</span> <span class="p">[</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+         <span class="p">],</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>
+    <span class="p">]</span>
+
+    <span class="n">scores</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">])]</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="n">init_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">done_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testBeamSearchOpHelper</span><span class="p">(</span>
+        <span class="n">b_size</span><span class="p">,</span> <span class="n">num_beams</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">init_atten_probs</span><span class="p">,</span>
+        <span class="n">atten_probs</span><span class="p">,</span> <span class="n">best_scores_expected</span><span class="p">,</span> <span class="n">cum_scores_expected</span><span class="p">,</span> <span class="n">scores_expected</span><span class="p">,</span>
+        <span class="n">hyps_expected</span><span class="p">,</span> <span class="n">prev_hyps_expected</span><span class="p">,</span> <span class="n">atten_probs_expected</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_SameHyp</span><span class="p">(</span><span class="n">hyp_str_expected</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="BeamSearchOpTest.testBeamSearchOpLMWeight"><a class="viewcode-back" href="../../../../lingvo.core.ops.beam_search_step_op_test.html#lingvo.core.ops.beam_search_step_op_test.BeamSearchOpTest.testBeamSearchOpLMWeight">[docs]</a>  <span class="k">def</span> <span class="nf">testBeamSearchOpLMWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">b_size</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">num_beams</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">num_classes</span> <span class="o">=</span> <span class="mi">5</span>
+
+    <span class="n">best_scores_expected</span> <span class="o">=</span> <span class="p">[</span><span class="mf">3.421918</span><span class="p">,</span> <span class="mf">3.013411</span><span class="p">]</span>
+    <span class="n">cum_scores_expected</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="mf">3.110763</span><span class="p">,</span> <span class="mf">2.753090</span><span class="p">,</span> <span class="mf">3.000604</span><span class="p">,</span> <span class="mf">2.466151</span><span class="p">,</span> <span class="mf">2.808191</span><span class="p">,</span> <span class="mf">2.384985</span><span class="p">,</span> <span class="mf">2.642948</span><span class="p">,</span>
+        <span class="mf">2.358385</span>
+    <span class="p">]</span>
+    <span class="n">scores_expected</span> <span class="o">=</span> <span class="p">[[</span>
+        <span class="mf">0.89790189</span><span class="p">,</span> <span class="mf">0.97963047</span><span class="p">,</span> <span class="mf">0.7637589</span><span class="p">,</span> <span class="mf">0.75326848</span><span class="p">,</span> <span class="mf">0.67413247</span><span class="p">,</span> <span class="mf">0.18659079</span><span class="p">,</span>
+        <span class="mf">0.32619762</span><span class="p">,</span> <span class="mf">0.0323503</span>
+    <span class="p">],</span> <span class="p">[</span>
+        <span class="mf">0.89790189</span><span class="p">,</span> <span class="mf">0.97963047</span><span class="p">,</span> <span class="mf">0.7637589</span><span class="p">,</span> <span class="mf">0.75326848</span><span class="p">,</span> <span class="mf">0.96454573</span><span class="p">,</span> <span class="mf">0.46483493</span><span class="p">,</span>
+        <span class="mf">0.67413247</span><span class="p">,</span> <span class="mf">0.82324922</span>
+    <span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span>
+                                          <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+                       <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>
+
+    <span class="c1"># hyps and prev_hyps are same as with no LM weight, except</span>
+    <span class="c1"># for prev_hyps[1, 7], which is 7 instead of 3.  This is because for this</span>
+    <span class="c1"># hyp, the weighted global score of the prefix is 0.42 and the unweighted</span>
+    <span class="c1"># scores for element [7, 0] has a high prob, 0.85.  This doesn&#39;t happen</span>
+    <span class="c1"># without LM weighting because the global score of the prefix would have</span>
+    <span class="c1"># been only 0.03.  Once the local score is reweighted with the LM,</span>
+    <span class="c1"># 0.85 gets replaced by 0.54, so the total score is only 0.96.</span>
+    <span class="n">hyps_expected</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                     <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+    <span class="n">prev_hyps_expected</span> <span class="o">=</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span>
+                          <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+                          <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]]</span>
+
+    <span class="n">hyp_str_expected</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">    beam_id: 1</span>
+<span class="s2">    ids: 0</span>
+<span class="s2">    ids: 2</span>
+<span class="s2">    scores: 0.75326848</span>
+<span class="s2">    scores: 0.78975141</span>
+<span class="s2">    atten_vecs {</span>
+<span class="s2">      prob: 0.689820885658</span>
+<span class="s2">      prob: 0.216090679169</span>
+<span class="s2">      prob: 0.40637075901</span>
+<span class="s2">    }</span>
+<span class="s2">    atten_vecs {</span>
+<span class="s2">      prob: 0.45252705</span>
+<span class="s2">      prob: 0.37489808</span>
+<span class="s2">      prob: 0.12745726</span>
+<span class="s2">    }</span>
+<span class="s2">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># atten_probs are also the same except for [1, 7, :], due to the change</span>
+    <span class="c1"># in hyps described above.</span>
+    <span class="n">atten_probs_expected</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">[[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+          <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span>
+                        <span class="mf">0.40637076</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span> <span class="mf">0.72539818</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span>
+          <span class="mf">0.40637076</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+                        <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span> <span class="mf">0.40637076</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+          <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span> <span class="mf">0.40637076</span><span class="p">]],</span>
+        <span class="p">[[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+          <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span> <span class="mf">0.40637076</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span>
+          <span class="mf">0.72539818</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.68982089</span><span class="p">,</span> <span class="mf">0.21609068</span><span class="p">,</span>
+                        <span class="mf">0.40637076</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.51121557</span><span class="p">,</span> <span class="mf">0.80525708</span><span class="p">,</span> <span class="mf">0.73596036</span><span class="p">],</span> <span class="p">[</span>
+                            <span class="mf">0.45252705</span><span class="p">,</span> <span class="mf">0.37489808</span><span class="p">,</span> <span class="mf">0.12745726</span>
+                        <span class="p">],</span> <span class="p">[</span><span class="mf">0.85785675</span><span class="p">,</span> <span class="mf">0.60858226</span><span class="p">,</span> <span class="mf">0.72539818</span><span class="p">],</span>
+         <span class="p">[</span><span class="mf">0.45252705</span><span class="p">,</span> <span class="mf">0.37489808</span><span class="p">,</span> <span class="mf">0.12745726</span><span class="p">]],</span> <span class="p">[</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+         <span class="p">],</span> <span class="p">[</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+         <span class="p">],</span> <span class="p">[</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+         <span class="p">],</span> <span class="p">[[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span>
+             <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]</span>
+    <span class="p">]</span>
+
+    <span class="n">scores</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">])]</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="n">init_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">done_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testBeamSearchOpHelper</span><span class="p">(</span>
+        <span class="n">b_size</span><span class="p">,</span> <span class="n">num_beams</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">init_atten_probs</span><span class="p">,</span>
+        <span class="n">atten_probs</span><span class="p">,</span> <span class="n">best_scores_expected</span><span class="p">,</span> <span class="n">cum_scores_expected</span><span class="p">,</span> <span class="n">scores_expected</span><span class="p">,</span>
+        <span class="n">hyps_expected</span><span class="p">,</span> <span class="n">prev_hyps_expected</span><span class="p">,</span> <span class="n">atten_probs_expected</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_SameHyp</span><span class="p">(</span><span class="n">hyp_str_expected</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span></div>
+
+  <span class="c1"># The following 3 tests, test each step of this decoding tree.</span>
+  <span class="c1"># Test that beam search finds the most probable sequence.</span>
+  <span class="c1"># These probabilities represent the following search</span>
+  <span class="c1">#</span>
+  <span class="c1">#               G0 (0)</span>
+  <span class="c1">#                  / \</span>
+  <span class="c1">#                /     \</span>
+  <span class="c1">#              /         \</span>
+  <span class="c1">#            /             \</span>
+  <span class="c1">#         0(0.6)          1(0.4)</span>
+  <span class="c1">#           / \            / \</span>
+  <span class="c1">#          /   \          /   \</span>
+  <span class="c1">#         /     \        /     \</span>
+  <span class="c1">#     0(0.55) 1(0.45) 0(0.05) 1(0.95)</span>
+  <span class="c1">#</span>
+  <span class="c1"># and these decoding probabilities</span>
+  <span class="c1"># 000 - 0.6 * 0.55 = 0.33</span>
+  <span class="c1"># 001 - 0.6 * 0.45 = 0.27</span>
+  <span class="c1"># 010 - 0.4 * 0.05 = 0.02</span>
+  <span class="c1"># 011 - 0.4 * 0.95 = 0.38</span>
+  <span class="c1">#</span>
+  <span class="c1"># Greedy would decode 000 since the first 0 is the most probable, but beam</span>
+  <span class="c1"># should decode 011 since it&#39;s the highest probability then followed by 000.</span>
+  <span class="k">def</span> <span class="nf">_test_single_step_small_vocab_3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">b_size</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">num_beams</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">lm_weight</span> <span class="o">=</span> <span class="mf">0.</span>
+
+    <span class="n">probs</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">]])]</span>
+    <span class="n">done_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testBeamSearchOpHelper</span><span class="p">(</span>
+        <span class="n">b_size</span><span class="p">,</span>
+        <span class="n">num_beams</span><span class="p">,</span>
+        <span class="n">seq_len</span><span class="p">,</span>
+        <span class="n">lm_weight</span><span class="p">,</span>
+        <span class="n">_MIN_SCORE</span><span class="p">,</span>
+        <span class="n">probs</span><span class="p">,</span>
+        <span class="n">init_atten_probs</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+        <span class="n">atten_probs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+        <span class="n">best_scores_expected</span><span class="o">=</span><span class="p">[</span><span class="n">_MIN_SCORE</span><span class="p">],</span>
+        <span class="n">cum_scores_expected</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">]),</span>
+        <span class="n">scores_expected</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">]),</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+        <span class="n">hyps_expected</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+        <span class="n">prev_hyps_expected</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+        <span class="n">atten_probs_expected</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+
+    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">([[</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">]],</span>
+                                  <span class="n">done_hyps</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BeamSearchOpTest.test_two_steps_small_vocab_3"><a class="viewcode-back" href="../../../../lingvo.core.ops.beam_search_step_op_test.html#lingvo.core.ops.beam_search_step_op_test.BeamSearchOpTest.test_two_steps_small_vocab_3">[docs]</a>  <span class="k">def</span> <span class="nf">test_two_steps_small_vocab_3</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">b_size</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">num_beams</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">lm_weight</span> <span class="o">=</span> <span class="mf">0.</span>
+
+    <span class="n">probs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">]]),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([[</span><span class="mf">0.55</span><span class="p">,</span> <span class="mf">0.45</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">]]),</span>
+    <span class="p">]</span>
+    <span class="n">done_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testBeamSearchOpHelper</span><span class="p">(</span>
+        <span class="n">b_size</span><span class="p">,</span>
+        <span class="n">num_beams</span><span class="p">,</span>
+        <span class="n">seq_len</span><span class="p">,</span>
+        <span class="n">lm_weight</span><span class="p">,</span>
+        <span class="n">_MIN_SCORE</span><span class="p">,</span>
+        <span class="n">probs</span><span class="p">,</span>
+        <span class="n">init_atten_probs</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+        <span class="n">atten_probs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+        <span class="n">best_scores_expected</span><span class="o">=</span><span class="p">[</span><span class="n">_MIN_SCORE</span><span class="p">],</span>
+        <span class="c1"># Note, probabilites are swapped due to beams being swapped.</span>
+        <span class="n">cum_scores_expected</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.4</span> <span class="o">*</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.6</span> <span class="o">*</span> <span class="mf">0.55</span><span class="p">]),</span>
+        <span class="n">scores_expected</span><span class="o">=</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">]),</span>
+                         <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.55</span><span class="p">]),</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+        <span class="n">hyps_expected</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+        <span class="n">prev_hyps_expected</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+        <span class="n">atten_probs_expected</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+
+    <span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">([[</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;0&#39;</span><span class="p">,</span> <span class="s1">&#39;0&#39;</span><span class="p">]],</span>
+                                  <span class="n">done_hyps</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeamSearchOpTest.test_three_steps_eos"><a class="viewcode-back" href="../../../../lingvo.core.ops.beam_search_step_op_test.html#lingvo.core.ops.beam_search_step_op_test.BeamSearchOpTest.test_three_steps_eos">[docs]</a>  <span class="k">def</span> <span class="nf">test_three_steps_eos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">b_size</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">num_beams</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">seq_len</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">lm_weight</span> <span class="o">=</span> <span class="mf">0.</span>
+
+    <span class="n">probs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">]]),</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([[</span><span class="mf">0.55</span><span class="p">,</span> <span class="mf">0.45</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.0000001</span><span class="p">]]),</span>
+        <span class="c1"># Finish the beams with EOS</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">]]),</span>
+    <span class="p">]</span>
+
+    <span class="n">done_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testBeamSearchOpHelper</span><span class="p">(</span>
+        <span class="n">b_size</span><span class="p">,</span>
+        <span class="n">num_beams</span><span class="p">,</span>
+        <span class="n">seq_len</span><span class="p">,</span>
+        <span class="n">lm_weight</span><span class="p">,</span>
+        <span class="n">_MIN_SCORE</span><span class="p">,</span>
+        <span class="n">probs</span><span class="p">,</span>
+        <span class="n">init_atten_probs</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+        <span class="n">atten_probs</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]),</span>
+        <span class="n">best_scores_expected</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.4</span> <span class="o">*</span> <span class="mf">0.95</span> <span class="o">*</span> <span class="mf">0.9</span><span class="p">]),</span>
+        <span class="n">cum_scores_expected</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.4</span> <span class="o">*</span> <span class="mf">0.95</span> <span class="o">*</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.4</span> <span class="o">*</span> <span class="mf">0.95</span> <span class="o">*</span> <span class="mf">0.05</span><span class="p">]),</span>
+        <span class="n">scores_expected</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.95</span><span class="p">,</span> <span class="mf">0.55</span><span class="p">]),</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">([</span><span class="mf">0.05</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">])</span>
+        <span class="p">],</span>
+        <span class="n">hyps_expected</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]],</span>
+        <span class="n">prev_hyps_expected</span><span class="o">=</span><span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+        <span class="n">atten_probs_expected</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]))</span>
+
+    <span class="n">expected_for_beam_0</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      beam_id: 0</span>
+<span class="s2">      ids: 1</span>
+<span class="s2">      ids: 1</span>
+<span class="s2">      ids: 2</span>
+<span class="s2">      scores: -0.916290700436  # = log 0.4</span>
+<span class="s2">      scores: -0.0512933060527 # = log 0.95</span>
+<span class="s2">      scores: -0.105360545218  # = log 0.9</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">      }</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">      }</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">      }</span>
+<span class="s2">      &quot;&quot;&quot;</span>
+
+    <span class="n">expected_for_beam_1</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      beam_id: 0</span>
+<span class="s2">      ids: 0</span>
+<span class="s2">      ids: 0</span>
+<span class="s2">      ids: 2</span>
+<span class="s2">      scores: -0.510825574398  # = log 0.6</span>
+<span class="s2">      scores: -0.597836971283  # = log 0.55</span>
+<span class="s2">      scores: -0.105360545218  # = log 0.9</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">      }</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">      }</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">      }</span>
+<span class="s2">      &quot;&quot;&quot;</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_SameHyp</span><span class="p">(</span><span class="n">expected_for_beam_0</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_SameHyp</span><span class="p">(</span><span class="n">expected_for_beam_1</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div>
+
+  <span class="k">def</span> <span class="nf">_SameHyp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">expected_hyp_str</span><span class="p">,</span> <span class="n">real_serialized_hyp</span><span class="p">):</span>
+    <span class="n">hyp1</span> <span class="o">=</span> <span class="n">hyps_pb2</span><span class="o">.</span><span class="n">Hypothesis</span><span class="p">()</span>
+    <span class="n">text_format</span><span class="o">.</span><span class="n">Merge</span><span class="p">(</span><span class="n">expected_hyp_str</span><span class="p">,</span> <span class="n">hyp1</span><span class="p">)</span>
+    <span class="n">hyp2</span> <span class="o">=</span> <span class="n">hyps_pb2</span><span class="o">.</span><span class="n">Hypothesis</span><span class="p">()</span>
+    <span class="n">hyp2</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">real_serialized_hyp</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">hyp1</span><span class="o">.</span><span class="n">beam_id</span><span class="p">,</span> <span class="n">hyp2</span><span class="o">.</span><span class="n">beam_id</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">hyp1</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">hyp2</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">hyp1</span><span class="o">.</span><span class="n">normalized_score</span><span class="p">,</span> <span class="n">hyp2</span><span class="o">.</span><span class="n">normalized_score</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">hyp1</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span> <span class="n">hyp2</span><span class="o">.</span><span class="n">scores</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hyp1</span><span class="o">.</span><span class="n">atten_vecs</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyp2</span><span class="o">.</span><span class="n">atten_vecs</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">av1</span><span class="p">,</span> <span class="n">av2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hyp1</span><span class="o">.</span><span class="n">atten_vecs</span><span class="p">,</span> <span class="n">hyp2</span><span class="o">.</span><span class="n">atten_vecs</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">av1</span><span class="o">.</span><span class="n">prob</span><span class="p">,</span> <span class="n">av2</span><span class="o">.</span><span class="n">prob</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BeamSearchOpTest.testTopKTerminatedHypsOp"><a class="viewcode-back" href="../../../../lingvo.core.ops.beam_search_step_op_test.html#lingvo.core.ops.beam_search_step_op_test.BeamSearchOpTest.testTopKTerminatedHypsOp">[docs]</a>  <span class="k">def</span> <span class="nf">testTopKTerminatedHypsOp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">b_size</span> <span class="o">=</span> <span class="mi">8</span>
+      <span class="n">num_beams</span> <span class="o">=</span> <span class="mi">2</span>
+      <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">b_size</span> <span class="o">/</span> <span class="n">num_beams</span>
+      <span class="n">seq_len</span> <span class="o">=</span> <span class="mi">6</span>
+      <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="mi">5</span><span class="p">])</span>
+      <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">b_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+      <span class="n">src_seq_lengths</span> <span class="o">=</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">]</span>
+      <span class="n">best_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_beams</span><span class="p">])</span>
+      <span class="n">cumulative_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b_size</span><span class="p">])</span>
+      <span class="n">in_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">])</span>
+      <span class="n">in_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="n">in_prev_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="n">in_done_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">as_string</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+      <span class="n">in_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">b_size</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+      <span class="p">(</span><span class="n">out_best_scores_0</span><span class="p">,</span> <span class="n">out_cumulative_scores_0</span><span class="p">,</span> <span class="n">out_scores_0</span><span class="p">,</span> <span class="n">out_hyps_0</span><span class="p">,</span>
+       <span class="n">out_prev_hyps_0</span><span class="p">,</span> <span class="n">out_done_hyps_0</span><span class="p">,</span> <span class="n">out_atten_probs_0</span><span class="p">,</span>
+       <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">beam_search_step</span><span class="p">(</span>
+           <span class="n">scores</span><span class="p">,</span>
+           <span class="n">atten_probs</span><span class="p">,</span>
+           <span class="n">best_scores</span><span class="p">,</span>
+           <span class="n">cumulative_scores</span><span class="p">,</span>
+           <span class="n">in_scores</span><span class="p">,</span>
+           <span class="n">in_hyps</span><span class="p">,</span>
+           <span class="n">in_prev_hyps</span><span class="p">,</span>
+           <span class="n">in_done_hyps</span><span class="p">,</span>
+           <span class="n">in_atten_probs</span><span class="p">,</span> <span class="p">[],</span>
+           <span class="mi">0</span><span class="p">,</span> <span class="p">[],</span>
+           <span class="n">eos_id</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+           <span class="n">beam_size</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+           <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="n">num_hyps_per_beam</span><span class="p">)</span>
+
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">beam_search_step</span><span class="p">(</span>
+          <span class="n">scores</span><span class="p">,</span>
+          <span class="n">atten_probs</span><span class="p">,</span>
+          <span class="n">out_best_scores_0</span><span class="p">,</span>
+          <span class="n">out_cumulative_scores_0</span><span class="p">,</span>
+          <span class="n">out_scores_0</span><span class="p">,</span>
+          <span class="n">out_hyps_0</span><span class="p">,</span>
+          <span class="n">out_prev_hyps_0</span><span class="p">,</span>
+          <span class="n">out_done_hyps_0</span><span class="p">,</span>
+          <span class="n">out_atten_probs_0</span><span class="p">,</span> <span class="p">[],</span>
+          <span class="mi">1</span><span class="p">,</span> <span class="p">[],</span>
+          <span class="n">eos_id</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+          <span class="n">beam_size</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
+          <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="n">num_hyps_per_beam</span><span class="p">)</span>
+
+      <span class="c1"># Get the topk terminated hyps.</span>
+      <span class="n">in_done_hyps</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
+      <span class="n">topk_hyps</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">top_k_terminated_hyps</span><span class="p">(</span>
+          <span class="n">in_done_hyps</span><span class="p">,</span>
+          <span class="n">src_seq_lengths</span><span class="p">,</span>
+          <span class="n">k</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+          <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="n">num_hyps_per_beam</span><span class="p">,</span>
+          <span class="n">length_normalization</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+          <span class="n">coverage_penalty</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span>
+          <span class="n">target_seq_length_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+      <span class="n">seq_ids</span><span class="p">,</span> <span class="n">seq_lens</span><span class="p">,</span> <span class="n">seq_scores</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">unpack_hyp</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_hyps</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">max_seq_length</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+      <span class="n">k1</span><span class="p">,</span> <span class="n">k2</span><span class="p">,</span> <span class="n">k3</span><span class="p">,</span> <span class="n">k4</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">topk_hyps</span><span class="p">,</span> <span class="n">seq_ids</span><span class="p">,</span> <span class="n">seq_lens</span><span class="p">,</span> <span class="n">seq_scores</span><span class="p">])</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">k1</span><span class="p">))</span>
+      <span class="k">assert</span> <span class="n">k1</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">4</span>
+
+      <span class="n">expected_top1_for_beam_0</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      beam_id: 0</span>
+<span class="s2">      ids: 3</span>
+<span class="s2">      ids: 2</span>
+<span class="s2">      scores: 0.897901892662</span>
+<span class="s2">      scores: 0.997961401939</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">        prob: 0.857856750488</span>
+<span class="s2">        prob: 0.608582258224</span>
+<span class="s2">        prob: 0.725398182869</span>
+<span class="s2">      }</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">        prob: 0.857856750488</span>
+<span class="s2">        prob: 0.608582258224</span>
+<span class="s2">        prob: 0.725398182869</span>
+<span class="s2">      }</span>
+<span class="s2">      normalized_score: 1.35659193993</span>
+<span class="s2">      &quot;&quot;&quot;</span>
+      <span class="n">expected_top2_for_beam_1</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">      beam_id: 1</span>
+<span class="s2">      ids: 0</span>
+<span class="s2">      ids: 2</span>
+<span class="s2">      scores: 0.753268480301</span>
+<span class="s2">      scores: 0.789751410484</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">        prob: 0.689820885658</span>
+<span class="s2">        prob: 0.216090679169</span>
+<span class="s2">        prob: 0.40637075901</span>
+<span class="s2">      }</span>
+<span class="s2">      atten_vecs {</span>
+<span class="s2">        prob: 0.452527046204</span>
+<span class="s2">        prob: 0.374898076057</span>
+<span class="s2">        prob: 0.127457261086</span>
+<span class="s2">      }</span>
+<span class="s2">      normalized_score: 1.02671170235</span>
+<span class="s2">      &quot;&quot;&quot;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_SameHyp</span><span class="p">(</span><span class="n">expected_top1_for_beam_0</span><span class="p">,</span> <span class="n">k1</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_SameHyp</span><span class="p">(</span><span class="n">expected_top2_for_beam_1</span><span class="p">,</span> <span class="n">k1</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">k2</span><span class="p">,</span>
+          <span class="p">[[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">k3</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">k4</span><span class="p">,</span> <span class="p">[</span><span class="mf">1.35659194</span><span class="p">,</span> <span class="mf">1.02759778</span><span class="p">,</span> <span class="mf">1.21130753</span><span class="p">,</span> <span class="mf">1.0267117</span><span class="p">])</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

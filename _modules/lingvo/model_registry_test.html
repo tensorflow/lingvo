@@ -1,0 +1,352 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.model_registry_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.model_registry_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.model_registry_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for model_registry.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="DummyModel"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.DummyModel">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">DummyModel</span><span class="p">(</span><span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
+
+<div class="viewcode-block" id="DummyModel.Train"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.DummyModel.Train">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Train&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="DummyModel.Dev"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.DummyModel.Dev">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Dev&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="DummyModel.Test"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.DummyModel.Test">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Test&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="DummyModel.Task"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.DummyModel.Task">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="ModelRegistryTest"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.ModelRegistryTest">[docs]</a><span class="k">class</span> <span class="nc">ModelRegistryTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ModelRegistryTest.setUp"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.ModelRegistryTest.setUp">[docs]</a>  <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="ModelRegistryTest.testGetClass"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.ModelRegistryTest.testGetClass">[docs]</a>  <span class="k">def</span> <span class="nf">testGetClass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+    <span class="n">mp</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="s1">&#39;test.DummyModel&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;Dev&#39;</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">Dev</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="s1">&#39;Test&#39;</span><span class="p">,</span> <span class="n">mp</span><span class="o">.</span><span class="n">Test</span><span class="p">()</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNotNone</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">Task</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNotNone</span><span class="p">(</span><span class="n">mp</span><span class="o">.</span><span class="n">Model</span><span class="p">())</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">LookupError</span><span class="p">):</span>
+      <span class="c1"># Not yet registered.</span>
+      <span class="n">model_registry</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="s1">&#39;something.does.not.exist&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelRegistryTest.testGetParams"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.ModelRegistryTest.testGetParams">[docs]</a>  <span class="k">def</span> <span class="nf">testGetParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;test.DummyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsNotNone</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">DummyModel</span><span class="o">.</span><span class="n">Test</span><span class="p">(),</span> <span class="n">cfg</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># Registered version adds model source info but direct does not.</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">DummyModel</span><span class="o">.</span><span class="n">Model</span><span class="p">(),</span> <span class="n">cfg</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">LookupError</span><span class="p">):</span>
+      <span class="c1"># Not yet registered.</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;something.does.not.exist&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;test.DummyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;UnknownDataset&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelRegistryTest.testGetParamsCanOverrideWithFlags"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.ModelRegistryTest.testGetParamsCanOverrideWithFlags">[docs]</a>  <span class="k">def</span> <span class="nf">testGetParamsCanOverrideWithFlags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;test.DummyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s1">&#39;train.max_steps: 10;  train.ema_decay: 0.9</span><span class="se">\n</span><span class="s1">&#39;</span>
+        <span class="s1">&#39;train.init_from_checkpoint_rules : {&quot;ckpt&quot;: ([&quot;abc&quot;, &quot;def&quot;], [])}</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">cfg2</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;test.DummyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertNotEqual</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cfg2</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertNotEqual</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cfg2</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertNotEqual</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">,</span>
+                        <span class="p">{</span><span class="s1">&#39;ckpt&#39;</span><span class="p">:</span> <span class="p">([</span><span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;def&#39;</span><span class="p">],</span> <span class="p">[])})</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cfg2</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">,</span>
+                     <span class="p">{</span><span class="s1">&#39;ckpt&#39;</span><span class="p">:</span> <span class="p">([</span><span class="s1">&#39;abc&#39;</span><span class="p">,</span> <span class="s1">&#39;def&#39;</span><span class="p">],</span> <span class="p">[])})</span></div>
+
+<div class="viewcode-block" id="ModelRegistryTest.testGetParamsCanOverrideWithFlagsRaises"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.ModelRegistryTest.testGetParamsCanOverrideWithFlagsRaises">[docs]</a>  <span class="k">def</span> <span class="nf">testGetParamsCanOverrideWithFlagsRaises</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span> <span class="o">=</span> <span class="s1">&#39;task.SOME_UNKNOWN_PARAM : 10&#39;</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">):</span>
+      <span class="n">_</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;test.DummyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelRegistryTest.testGetParamsCanOverrideInputParamsWithFlags"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.ModelRegistryTest.testGetParamsCanOverrideInputParamsWithFlags">[docs]</a>  <span class="k">def</span> <span class="nf">testGetParamsCanOverrideInputParamsWithFlags</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;test.DummyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span> <span class="o">=</span> <span class="s1">&#39;input.num_samples: 100&#39;</span>
+
+    <span class="n">cfg2</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;test.DummyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertNotEqual</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">cfg2</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelRegistryTest.testModelParamsIncludeSourceInfo"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.ModelRegistryTest.testModelParamsIncludeSourceInfo">[docs]</a>  <span class="k">def</span> <span class="nf">testModelParamsIncludeSourceInfo</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="s1">&#39;lingvo/model_registry_test.py&#39;</span>
+    <span class="c1"># NOTE: Only the registered version has source info.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="n">path</span><span class="p">,</span>
+                  <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;test.DummyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">model</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelRegistryTest.testDoubleRegister"><a class="viewcode-back" href="../../lingvo.model_registry_test.html#lingvo.model_registry_test.ModelRegistryTest.testDoubleRegister">[docs]</a>  <span class="k">def</span> <span class="nf">testDoubleRegister</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">CreateDuplicate</span><span class="p">():</span>
+      <span class="c1"># pylint: disable=unused-variable</span>
+      <span class="c1"># pylint: disable=function-redefined</span>
+      <span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+      <span class="k">class</span> <span class="nc">DummyDupl</span><span class="p">(</span><span class="n">DummyModel</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+      <span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+      <span class="k">class</span> <span class="nc">DummyDupl</span><span class="p">(</span><span class="n">DummyModel</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+      <span class="c1"># pylint: enable=unused-variable</span>
+      <span class="c1"># pylint: enable=function-redefined</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+      <span class="n">CreateDuplicate</span><span class="p">()</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

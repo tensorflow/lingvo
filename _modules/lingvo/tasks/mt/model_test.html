@@ -1,0 +1,573 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.mt.model_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.mt.model_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.mt.model_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for MT Models.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">test_helper</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">decoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">encoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">model</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+<span class="n">_TF_RANDOM_SEED</span> <span class="o">=</span> <span class="mi">93820986</span>
+
+
+<div class="viewcode-block" id="TestInputGenerator"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TestInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">TestInputGenerator</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">):</span>
+
+<div class="viewcode-block" id="TestInputGenerator.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TestInputGenerator.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Defaults params for NmtInput.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TestInputGenerator</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;split&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TestInputGenerator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_step</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="TestInputGenerator.InputBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TestInputGenerator.InputBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">split</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mi">10</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="mi">10</span></div>
+
+<div class="viewcode-block" id="TestInputGenerator.InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TestInputGenerator.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">bs</span><span class="p">,</span> <span class="n">sl</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">7</span>
+    <span class="n">src_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">8192</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+    <span class="n">tgt_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">8192</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+    <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">8192</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+    <span class="n">tgt_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+
+    <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">])</span>
+    <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">])</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">split</span><span class="p">:</span>
+      <span class="n">src_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">src_ids</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">src_paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">tgt_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">tgt_ids</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">tgt_labels</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">tgt_paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">tgt_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">tgt_weights</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">(),</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="k">lambda</span><span class="p">:</span> <span class="n">src_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">src_ids</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">(),</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="k">lambda</span><span class="p">:</span> <span class="n">src_paddings</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">src_paddings</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">(),</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="k">lambda</span><span class="p">:</span> <span class="n">tgt_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tgt_ids</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">(),</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="k">lambda</span><span class="p">:</span> <span class="n">tgt_labels</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tgt_labels</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">(),</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="k">lambda</span><span class="p">:</span> <span class="n">tgt_paddings</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tgt_paddings</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">(),</span> <span class="mi">2</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="k">lambda</span><span class="p">:</span> <span class="n">tgt_weights</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tgt_weights</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">src_ids</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">src_paddings</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tgt_ids</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tgt_labels</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tgt_paddings</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">tgt_weights</span>
+
+    <span class="k">return</span> <span class="n">ret</span></div></div>
+
+
+<div class="viewcode-block" id="TransformerModelTest"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TransformerModelTest">[docs]</a><span class="k">class</span> <span class="nc">TransformerModelTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">_InputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">NmtInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">input_file</span> <span class="o">=</span> <span class="n">test_helper</span><span class="o">.</span><span class="n">test_src_dir_path</span><span class="p">(</span>
+        <span class="s1">&#39;tasks/mt/testdata/wmt14_ende_wpm_32k_test.tfrecord&#39;</span><span class="p">)</span>
+    <span class="n">vocab_file</span> <span class="o">=</span> <span class="n">test_helper</span><span class="o">.</span><span class="n">test_src_dir_path</span><span class="p">(</span>
+        <span class="s1">&#39;tasks/mt/testdata/wmt14_ende_wpm_32k_test.vocab&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;tfrecord:&#39;</span> <span class="o">+</span> <span class="n">input_file</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">31415</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="mi">200</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="mi">200</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_vocab_filepath</span> <span class="o">=</span> <span class="n">vocab_file</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">32000</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+  <span class="k">def</span> <span class="nf">_EncoderParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;encoder&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="mi">1234</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">GaussianSqrtDim</span><span class="p">(</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+  <span class="k">def</span> <span class="nf">_DecoderParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">TransformerDecoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;decoder&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="mi">1234</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">GaussianSqrtDim</span><span class="p">(</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="mi">8</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+  <span class="k">def</span> <span class="nf">_testParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">TransformerModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;test_mdl&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InputParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderParams</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<div class="viewcode-block" id="TransformerModelTest.testConstruction"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TransformerModelTest.testConstruction">[docs]</a>  <span class="k">def</span> <span class="nf">testConstruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testParams</span><span class="p">()</span>
+      <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;vars = &#39;</span><span class="p">,</span> <span class="n">mdl</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span>
+      <span class="n">flatten_vars</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;vars flattened = &#39;</span><span class="p">,</span> <span class="n">flatten_vars</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">flatten_vars</span><span class="p">),</span> <span class="mi">238</span><span class="p">)</span>
+
+      <span class="c1"># Should match tf.trainable_variables().</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">()),</span> <span class="nb">len</span><span class="p">(</span><span class="n">flatten_vars</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TransformerModelTest.testFProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TransformerModelTest.testFProp">[docs]</a>  <span class="k">def</span> <span class="nf">testFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">_TF_RANDOM_SEED</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testParams</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+      <span class="k">if</span> <span class="n">fprop_dtype</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span>
+      <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">loss</span>
+      <span class="n">logp</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;log_pplx&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">vals</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="n">vals</span> <span class="o">+=</span> <span class="p">[</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">logp</span><span class="p">))]</span>
+
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;actual vals = </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">vals</span><span class="p">,</span> <span class="p">[(</span><span class="mf">189.22296</span><span class="p">,</span> <span class="mf">10.368382</span><span class="p">),</span> <span class="p">(</span><span class="mf">282.57202</span><span class="p">,</span> <span class="mf">10.369616</span><span class="p">),</span>
+                 <span class="p">(</span><span class="mf">142.55638</span><span class="p">,</span> <span class="mf">10.367737</span><span class="p">),</span> <span class="p">(</span><span class="mf">139.9939</span><span class="p">,</span> <span class="mf">10.369918</span><span class="p">),</span>
+                 <span class="p">(</span><span class="mf">293.08011</span><span class="p">,</span> <span class="mf">10.374517</span><span class="p">)],</span>
+          <span class="n">atol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TransformerModelTest.testFPropEvalMode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TransformerModelTest.testFPropEvalMode">[docs]</a>  <span class="k">def</span> <span class="nf">testFPropEvalMode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">_TF_RANDOM_SEED</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testParams</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">loss</span>
+      <span class="n">logp</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;log_pplx&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">vals</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="n">vals</span> <span class="o">+=</span> <span class="p">[</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">logp</span><span class="p">))]</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;actual vals = &#39;</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">vals</span><span class="p">,</span> <span class="p">[(</span><span class="mf">189.22296</span><span class="p">,</span> <span class="mf">10.368382</span><span class="p">),</span> <span class="p">(</span><span class="mf">282.57202</span><span class="p">,</span> <span class="mf">10.369616</span><span class="p">),</span>
+                 <span class="p">(</span><span class="mf">142.55638</span><span class="p">,</span> <span class="mf">10.367737</span><span class="p">),</span> <span class="p">(</span><span class="mf">139.9939</span><span class="p">,</span> <span class="mf">10.369918</span><span class="p">),</span>
+                 <span class="p">(</span><span class="mf">293.08011</span><span class="p">,</span> <span class="mf">10.374517</span><span class="p">)])</span></div>
+
+<div class="viewcode-block" id="TransformerModelTest.testBProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TransformerModelTest.testBProp">[docs]</a>  <span class="k">def</span> <span class="nf">testBProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">_TF_RANDOM_SEED</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testParams</span><span class="p">()</span>
+      <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">loss</span>
+      <span class="n">logp</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;log_pplx&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">vals</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">5</span><span class="p">):</span>
+        <span class="n">vals</span> <span class="o">+=</span> <span class="p">[</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">logp</span><span class="p">,</span> <span class="n">mdl</span><span class="o">.</span><span class="n">train_op</span><span class="p">))[:</span><span class="mi">2</span><span class="p">]]</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;BProp actual vals = &#39;</span><span class="p">,</span> <span class="n">vals</span><span class="p">)</span>
+      <span class="n">expected_vals</span> <span class="o">=</span> <span class="p">[(</span><span class="mf">189.22296</span><span class="p">,</span> <span class="mf">10.368382</span><span class="p">),</span> <span class="p">(</span><span class="mf">282.57202</span><span class="p">,</span> <span class="mf">10.369616</span><span class="p">),</span>
+                       <span class="p">(</span><span class="mf">142.55638</span><span class="p">,</span> <span class="mf">10.367737</span><span class="p">),</span> <span class="p">(</span><span class="mf">139.9939</span><span class="p">,</span> <span class="mf">10.369918</span><span class="p">),</span>
+                       <span class="p">(</span><span class="mf">293.08011</span><span class="p">,</span> <span class="mf">10.374517</span><span class="p">)]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">vals</span><span class="p">,</span> <span class="n">expected_vals</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TransformerModelTest.testBPropWithAccumComparison"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TransformerModelTest.testBPropWithAccumComparison">[docs]</a>  <span class="k">def</span> <span class="nf">testBPropWithAccumComparison</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">_SetDefaults</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="mi">12345</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="mi">12345</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">input_dropout_prob</span> <span class="o">=</span> <span class="mf">0.0</span>
+      <span class="n">mp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transparent_merger_tpl</span>
+      <span class="n">mp</span><span class="o">.</span><span class="n">weighted_merger_dropout_prob</span> <span class="o">=</span> <span class="mf">0.0</span>
+      <span class="n">disable_vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">lp</span> <span class="ow">in</span> <span class="n">base_layer</span><span class="o">.</span><span class="n">RecursiveFindLayerParams</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+        <span class="c1"># TODO(lepikhin): lp.dtype = dtype</span>
+        <span class="n">lp</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mi">12345</span><span class="p">)</span>
+        <span class="n">lp</span><span class="o">.</span><span class="n">vn</span> <span class="o">=</span> <span class="n">disable_vn</span>
+
+      <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+      <span class="k">assert</span> <span class="n">tp</span><span class="o">.</span><span class="n">l2_regularizer_weight</span> <span class="ow">is</span> <span class="kc">None</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">clip_gradient_norm_to_value</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_to_clip_to_zero</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">SGD</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">1e-2</span>
+      <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">ContinuousLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">p</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">())</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">_TF_RANDOM_SEED</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testParams</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">TestInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">split</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">_SetDefaults</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">Accumulator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">accum_steps</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">optimizer_tpl</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
+      <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">loss</span>
+      <span class="n">logp</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;log_pplx&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">((</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">(),</span> <span class="n">loss</span><span class="p">,</span> <span class="n">logp</span><span class="p">,</span> <span class="n">mdl</span><span class="o">.</span><span class="n">train_op</span><span class="p">))</span>
+
+      <span class="n">expected</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="s1">&#39;weight_0&#39;</span><span class="p">])</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">())</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">_TF_RANDOM_SEED</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testParams</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">TestInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">split</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">_SetDefaults</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+      <span class="n">mdl</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">loss</span>
+      <span class="n">logp</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;log_pplx&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">((</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">(),</span> <span class="n">loss</span><span class="p">,</span> <span class="n">logp</span><span class="p">,</span> <span class="n">mdl</span><span class="o">.</span><span class="n">train_op</span><span class="p">))</span>
+
+      <span class="n">actual</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="s1">&#39;weight_0&#39;</span><span class="p">])</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">expected</span><span class="p">,</span> <span class="n">actual</span><span class="p">,</span> <span class="n">rtol</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">,</span> <span class="n">atol</span><span class="o">=</span><span class="mf">1e-2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TransformerModelTest.testBatchSplit"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TransformerModelTest.testBatchSplit">[docs]</a>  <span class="k">def</span> <span class="nf">testBatchSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="n">num_splits</span><span class="p">):</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">())</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">93820981</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testParams</span><span class="p">()</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">b</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">num_splits</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">bucket_batch_limit</span>
+        <span class="p">]</span>
+        <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">ForTestingWorker</span><span class="p">(</span><span class="n">gpus</span><span class="o">=</span><span class="n">num_splits</span><span class="p">):</span>
+          <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+          <span class="n">metrics</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">])</span>
+
+    <span class="n">res1</span><span class="p">,</span> <span class="n">res2</span> <span class="o">=</span> <span class="n">Run</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">Run</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">res1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">res2</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">res1</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">res2</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TransformerModelTest.testBatchSizeInInputGenerator"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TransformerModelTest.testBatchSizeInInputGenerator">[docs]</a>  <span class="k">def</span> <span class="nf">testBatchSizeInInputGenerator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">_TF_RANDOM_SEED</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testParams</span><span class="p">()</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">ForTestingWorker</span><span class="p">(</span>
+          <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span> <span class="n">gpus</span><span class="o">=</span><span class="mi">5</span><span class="p">):</span>
+        <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">mdl</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">loss</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">_</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">,</span> <span class="p">[</span><span class="mi">20</span><span class="p">,</span> <span class="mi">40</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TransformerModelTest.testDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model_test.html#lingvo.tasks.mt.model_test.TransformerModelTest.testDecode">[docs]</a>  <span class="k">def</span> <span class="nf">testDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">93820985</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testParams</span><span class="p">()</span>
+      <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">dec_out_dict</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">Decode</span><span class="p">()</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">dec_out</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="p">)</span>
+      <span class="n">metrics_dict</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">()</span>
+      <span class="n">key_value_pairs</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertNear</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">[</span><span class="s1">&#39;corpus_bleu&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="mf">1.0e-5</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">key_value_pairs</span><span class="p">))</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">key_value_pairs</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

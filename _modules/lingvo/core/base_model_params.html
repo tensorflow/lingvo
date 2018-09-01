@@ -1,0 +1,316 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.base_model_params &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.base_model_params</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.base_model_params</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;BaseModelParams class definition.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+
+
+<div class="viewcode-block" id="_BaseModelParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params._BaseModelParams">[docs]</a><span class="k">class</span> <span class="nc">_BaseModelParams</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for storing model Params for a single experiment.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="_BaseModelParams.GetDatasetParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params._BaseModelParams.GetDatasetParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetDatasetParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convenience function that returns the param for the given dataset name.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      dataset: A python string. Typically, &#39;Dev&#39;, &#39;Test&#39;, etc.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      If there is a `cls.${dataset}` method defined, call that method to</span>
+<span class="sd">      generate a hyperparam for the input data.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      AttributeError: if there is not a `${dataset}` method defined under `cls`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">f</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="SingleTaskModelParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskModelParams</span><span class="p">(</span><span class="n">_BaseModelParams</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Model Params for a `.SingleTaskModel`.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SingleTaskModelParams.Train"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Train">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns Params for the training dataset.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SingleTaskModelParams.Dev"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Dev">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns Params for the development dataset.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Dev&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SingleTaskModelParams.Test"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Test">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns Params for the testing dataset.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Test&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SingleTaskModelParams.Task"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Task">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns task params.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SingleTaskModelParams.Model"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams.Model">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns model params.</span>
+
+<span class="sd">    Emulates structure of `MultiTaskModelParams`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+    <span class="c1"># Copy over model parameters from the task parameters.</span>
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">start_up_delay_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">start_up_delay_steps</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">early_stop</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">save_interval_seconds</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">save_interval_seconds</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">summary_interval_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">summary_interval_steps</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="MultiTaskModelParams"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskModelParams</span><span class="p">(</span><span class="n">_BaseModelParams</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Model Params for a `.MultiTaskModel`.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MultiTaskModelParams.Train"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Train">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns Params for the training dataset.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MultiTaskModelParams.Dev"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Dev">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Dev</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns Params for the development dataset.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MultiTaskModelParams.Test"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Test">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns Params for the testing dataset.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MultiTaskModelParams.Model"><a class="viewcode-back" href="../../../lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams.Model">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns model params.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

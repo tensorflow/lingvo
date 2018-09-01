@@ -1,0 +1,542 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.cudnn_rnn_utils module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.early_stop module" href="lingvo.core.early_stop.html" />
+    <link rel="prev" title="lingvo.core.cluster_factory module" href="lingvo.core.cluster_factory.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.cudnn_rnn_utils module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.cudnn_rnn_utils.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.cudnn_rnn_utils">
+<span id="lingvo-core-cudnn-rnn-utils-module"></span><h1>lingvo.core.cudnn_rnn_utils module<a class="headerlink" href="#module-lingvo.core.cudnn_rnn_utils" title="Permalink to this headline">¶</a></h1>
+<p>Utilities for converting CuDNN RNN params to Lingvo RNN weights.</p>
+<dl class="class">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer">
+<em class="property">class </em><code class="descclassname">lingvo.core.cudnn_rnn_utils.</code><code class="descname">CuDNNLSTMInitializer</code><span class="sig-paren">(</span><em>num_input_nodes</em>, <em>num_cell_nodes</em>, <em>direction='unidirectional'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#CuDNNLSTMInitializer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Helper class for cudnn rnn weights initialization.</p>
+<dl class="method">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.OpaqueParamsShape">
+<code class="descname">OpaqueParamsShape</code><span class="sig-paren">(</span><em>dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#CuDNNLSTMInitializer.OpaqueParamsShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.OpaqueParamsShape" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.weight_shapes">
+<code class="descname">weight_shapes</code><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.weight_shapes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the shapes of weight tensors of each gate.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.weight_sizes">
+<code class="descname">weight_sizes</code><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.weight_sizes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the sizes of weight tensor of each gate.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.weight_size">
+<code class="descname">weight_size</code><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.weight_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the accumulated weight size.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.bias_shapes">
+<code class="descname">bias_shapes</code><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.bias_shapes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the shapes of bias tensors of each gate.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.bias_sizes">
+<code class="descname">bias_sizes</code><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.bias_sizes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the sizes of bias tensor of each gate.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.bias_size">
+<code class="descname">bias_size</code><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.bias_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the accumulated bias size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.InitOpaqueParams">
+<code class="descname">InitOpaqueParams</code><span class="sig-paren">(</span><em>dtype</em>, <em>base_initializer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#CuDNNLSTMInitializer.InitOpaqueParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.InitOpaqueParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Uses base_initializer to init weights from opaque cudnn params.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>dtype</strong> – data type.</li>
+<li><strong>base_initializer</strong> – a callable that returns a tensor given shape, dtype and
+partition_info.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A initialized opaque cudnn params. Its weights are initialized with the
+base_initializer, and biases are set to zero.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.cudnn_rnn_utils._StitchWeights">
+<code class="descclassname">lingvo.core.cudnn_rnn_utils.</code><code class="descname">_StitchWeights</code><span class="sig-paren">(</span><em>w_i</em>, <em>w_f</em>, <em>w_c</em>, <em>w_o</em>, <em>r_i</em>, <em>r_f</em>, <em>r_c</em>, <em>r_o</em>, <em>input_dim</em>, <em>cell_dim</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#_StitchWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils._StitchWeights" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stitching LSTM per-gate weights to comform to LSTMCellSimple layout.</p>
+<p>LSTMCellSimple uses a single weight Tensor of shape [input_dim, 4 * cell_dim].
+This method puts the weight tensors together.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>w_i</strong> – </li>
+<li><strong>w_f</strong> – </li>
+<li><strong>w_c</strong> – </li>
+<li><strong>w_o</strong> – weights applied on cell input.</li>
+<li><strong>r_i</strong> – </li>
+<li><strong>r_f</strong> – </li>
+<li><strong>r_c</strong> – </li>
+<li><strong>r_o</strong> – weights applied on recurrent input.</li>
+<li><strong>input_dim</strong> – an int, LSTM input dim.</li>
+<li><strong>cell_dim</strong> – an int, LSTM cell dim.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A weight Tensor.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.cudnn_rnn_utils._StitchBiases">
+<code class="descclassname">lingvo.core.cudnn_rnn_utils.</code><code class="descname">_StitchBiases</code><span class="sig-paren">(</span><em>b_wi</em>, <em>b_wf</em>, <em>b_wc</em>, <em>b_wo</em>, <em>b_ri</em>, <em>b_rf</em>, <em>b_rc</em>, <em>b_ro</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#_StitchBiases"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils._StitchBiases" title="Permalink to this definition">¶</a></dt>
+<dd><p>Stitching LSTM per-gate biases to comform to LSTMCellSimple layout.</p>
+<p>LSTMCellSimple uses a single bias Tensor of shape [4 * cell_dim]. This method
+puts the bias tensors together.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>b_wi</strong> – </li>
+<li><strong>b_wf</strong> – </li>
+<li><strong>b_wc</strong> – </li>
+<li><strong>b_wo</strong> – biases applied on cell input.</li>
+<li><strong>b_ri</strong> – </li>
+<li><strong>b_rf</strong> – </li>
+<li><strong>b_rc</strong> – </li>
+<li><strong>b_ro</strong> – biases applied on recurrent input.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A bias Tensor.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.cudnn_rnn_utils._CuDNNParamsToCanonical">
+<code class="descclassname">lingvo.core.cudnn_rnn_utils.</code><code class="descname">_CuDNNParamsToCanonical</code><span class="sig-paren">(</span><em>cudnn_params</em>, <em>input_dim</em>, <em>cell_dim</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#_CuDNNParamsToCanonical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils._CuDNNParamsToCanonical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a single piece CuDNN params to canonical params of LSTM gates.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cudnn_params</strong> – A Tensor containing all weights and biases of a
+CuDNN LSTM. The shape of cudnn_params given input_dim, cell_dim and
+direction can be obtained by py_utils.CuDNNInitializer.effective_shape.</li>
+<li><strong>input_dim</strong> – an int, LSTM cell input dimension.</li>
+<li><strong>cell_dim</strong> – an int, LSTM cell hidden dimension.</li>
+<li><strong>direction</strong> – cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION or
+cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of weight Tensor and a list of bias Tensor, in the order they appear
+in input <code class="xref py py-obj docutils literal notranslate"><span class="pre">cudnn_params</span></code>, described above.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – for invalid <code class="xref py py-obj docutils literal notranslate"><span class="pre">direction</span></code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.cudnn_rnn_utils.RecoverLSTMCellSimpleWeightsFromCuDNN">
+<code class="descclassname">lingvo.core.cudnn_rnn_utils.</code><code class="descname">RecoverLSTMCellSimpleWeightsFromCuDNN</code><span class="sig-paren">(</span><em>cudnn_params</em>, <em>input_dim</em>, <em>cell_dim</em>, <em>direction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#RecoverLSTMCellSimpleWeightsFromCuDNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.RecoverLSTMCellSimpleWeightsFromCuDNN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recover LSTMCellSimple-compatible weights from (uni/bi)CuDNNLSTM weights.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cudnn_params</strong> – A Tensor containing all weights and biases of a
+CuDNN LSTM. The shape of cudnn_params given input_dim, cell_dim and
+direction can be obtained by py_utils.CuDNNInitializer.effective_shape.</li>
+<li><strong>input_dim</strong> – an int, LSTM cell input dimension.</li>
+<li><strong>cell_dim</strong> – an int, LSTM cell hidden dimension.</li>
+<li><strong>direction</strong> – cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION or
+cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of weight Tensor and a list of bias Tensor.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – for invalid <code class="xref py py-obj docutils literal notranslate"><span class="pre">direction</span></code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable">
+<em class="property">class </em><code class="descclassname">lingvo.core.cudnn_rnn_utils.</code><code class="descname">CuDNNLSTMSaveable</code><span class="sig-paren">(</span><em>opaque_params</em>, <em>cell_nodes</em>, <em>input_nodes</em>, <em>rnn_cell_name</em>, <em>scope=None</em>, <em>name='params_canonical'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#CuDNNLSTMSaveable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.contrib.cudnn_rnn.python.ops.cudnn_rnn_ops.CudnnLSTMSaveable</span></code></p>
+<p>Lingvo CuDNN LSTM opaque params saveable.</p>
+<p>Save CuDNN opaque params in lingvo canonical format such that the
+checkpoints can be used by both CuDNN and platform-independent RNN cells.</p>
+<p>CuDNN LSTM equation:</p>
+<blockquote>
+<div><div class="line-block">
+<div class="line">i_t = σ(w_i * x_t + r_i * h_(t-1) + b_wi + b_ri)</div>
+<div class="line">f_t = σ(w_f * x_t + r_f * h_(t-1) + b_wf + b_rf)</div>
+<div class="line">o_t = σ(w_o * x_t + r_o h_(t-1) + b_wo + b_ro)</div>
+<div class="line">c’_t = tanh(w_c * x_t + r_c * h_(t-1) + b_wc + b_rc)</div>
+<div class="line">c_t = f_t ◦ c_(t-1) + i_t ◦ c’_t</div>
+<div class="line">h_t = o_t ◦ tanh(c_t)</div>
+</div>
+</div></blockquote>
+<p>When saving, the opaque param is first transformed into a list of tensors
+in CuDNN canonical format, then further processed to be in the format of
+LSTMCellSimple vars.</p>
+<p>When recovering from a CuDNN graph, the restored tensors go through the
+reverse of the aforementioned process.</p>
+<p>When recovering from graphs built with LSTMCellSimple, the tensors in the
+checkpoints are ready to use, with the right shapes and names.</p>
+<p>Specifically the tensors are saved in the following order:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>------------------------------------------------------------
+| weights                    | biases                      |
+------------------------------------------------------------
+ \                             \
+  -------------------------------
+  | layer1     |layer2     |... |
+  -------------------------------
+  \             \
+   ---------------
+   |fwd   |bak   |
+   ---------------
+</pre></div>
+</div>
+<dl class="method">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._TransformSingleLayerCanonical">
+<code class="descname">_TransformSingleLayerCanonical</code><span class="sig-paren">(</span><em>cu_wts</em>, <em>cu_bs</em>, <em>prefix</em>, <em>tf_wts</em>, <em>tf_wts_names</em>, <em>tf_bs</em>, <em>tf_bs_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#CuDNNLSTMSaveable._TransformSingleLayerCanonical"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._TransformSingleLayerCanonical" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transform single layer Cudnn canonicals to tf canonicals.</p>
+<p>The elements of cu_weights, cu_biases are laid out in the following order:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>-------------------------------------------------
+| w_i | w_f | w_c | w_o | r_i | r_f | r_c | r_o |
+-------------------------------------------------
+---------------------------------------------------------
+| b_wi | b_wf | b_wc | b_wo | b_ri | b_rf | b_rc | b_ro |
+---------------------------------------------------------
+</pre></div>
+</div>
+<p>The transformed canonicals are in the following format and order:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>-----------------------------
+| w_c&#39; | w_i&#39; | w_f&#39; | w_o&#39; |
+| r_c&#39; | r_i&#39; | r_f&#39; | r_o&#39; |
+-----------------------------
+---------------------------------------------------------
+| b_wc + b_rc | b_wi + b_ri | b_wf + b_rf | b_wo + b_ro |
+---------------------------------------------------------
+</pre></div>
+</div>
+<p>The shapes of each element before transpose is reflected by
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">CuDNNLSTMInitializer.{weight_shapes,</span> <span class="pre">biase_shapes}</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>cu_wts</strong> – a list of tensors, single layer weights.</li>
+<li><strong>cu_bs</strong> – a list of tensors, single layer biases.</li>
+<li><strong>prefix</strong> – the shared prefix of all tensor names.</li>
+<li><strong>tf_wts</strong> – a list where transformed weights are stored.</li>
+<li><strong>tf_wts_names</strong> – a list where names of transformed weights are stored.</li>
+<li><strong>tf_bs</strong> – a list where transformed biases are stored.</li>
+<li><strong>tf_bs_names</strong> – a list where names of transformed biases are stored.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._cudnn_to_tf_gate_params">
+<code class="descname">_cudnn_to_tf_gate_params</code><span class="sig-paren">(</span><em>*cu_gate_order</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#CuDNNLSTMSaveable._cudnn_to_tf_gate_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._cudnn_to_tf_gate_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Put CuDNN gate params to lingvo RNN cell order.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._tf_to_cudnn_gate_params">
+<code class="descname">_tf_to_cudnn_gate_params</code><span class="sig-paren">(</span><em>*tf_gate_order</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#CuDNNLSTMSaveable._tf_to_cudnn_gate_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._tf_to_cudnn_gate_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Put lingvo RNN cell gate params to CuDNN order.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._TFCanonicalNamePrefix">
+<code class="descname">_TFCanonicalNamePrefix</code><span class="sig-paren">(</span><em>layer</em>, <em>unused_is_fwd=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#CuDNNLSTMSaveable._TFCanonicalNamePrefix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._TFCanonicalNamePrefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>The prefix of names under which lingvo canonical params are saved.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.cudnn_rnn_utils.BidiCuDNNLSTMSaveable">
+<em class="property">class </em><code class="descclassname">lingvo.core.cudnn_rnn_utils.</code><code class="descname">BidiCuDNNLSTMSaveable</code><span class="sig-paren">(</span><em>opaque_params</em>, <em>cell_nodes</em>, <em>input_nodes</em>, <em>fw_cell_name</em>, <em>bw_cell_name</em>, <em>scope=None</em>, <em>name='params_canonical'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#BidiCuDNNLSTMSaveable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.BidiCuDNNLSTMSaveable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable" title="lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable</span></code></a></p>
+<p>Lingvo CuDNN LSTM opaque params saveable.</p>
+<dl class="method">
+<dt id="lingvo.core.cudnn_rnn_utils.BidiCuDNNLSTMSaveable._TFCanonicalNamePrefix">
+<code class="descname">_TFCanonicalNamePrefix</code><span class="sig-paren">(</span><em>layer</em>, <em>is_fwd=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/cudnn_rnn_utils.html#BidiCuDNNLSTMSaveable._TFCanonicalNamePrefix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.cudnn_rnn_utils.BidiCuDNNLSTMSaveable._TFCanonicalNamePrefix" title="Permalink to this definition">¶</a></dt>
+<dd><p>The prefix of names under which lingvo canonical params are saved.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.early_stop.html" class="btn btn-neutral float-right" title="lingvo.core.early_stop module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.cluster_factory.html" class="btn btn-neutral" title="lingvo.core.cluster_factory module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

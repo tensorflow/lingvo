@@ -1,0 +1,576 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.layers_with_attention module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.lr_schedule module" href="lingvo.core.lr_schedule.html" />
+    <link rel="prev" title="lingvo.core.layers module" href="lingvo.core.layers.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.layers_with_attention module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.layers_with_attention.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.layers_with_attention">
+<span id="lingvo-core-layers-with-attention-module"></span><h1>lingvo.core.layers_with_attention module<a class="headerlink" href="#module-lingvo.core.layers_with_attention" title="Permalink to this headline">¶</a></h1>
+<p>Lingvo layers that depend on attention layers but are not recurrent.</p>
+<dl class="class">
+<dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_attention.</code><code class="descname">TransformerAttentionLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<p>Multi-headed attention, add and norm used by ‘Attention Is All You Need’.</p>
+<p>This class implements the first sub-layer of Transformer Layer. Input is
+first processed using a multi-headed (self) attention. Output of the
+attention layer is combined with the residual connection. And the finally,
+output is normalized using Layer Normalization.</p>
+<p>Layer can be used in three scenarios:</p>
+<ol class="arabic simple">
+<li>Multi-Headed Self-Attention, where attention keys (source vectors),
+attention values (context vectors) and queries come from the same previous
+layer output, <code class="xref py py-obj docutils literal notranslate"><span class="pre">query_vec</span></code>. This is the general use case for encoder
+Transformer Layers.</li>
+<li>Masked Multi-Headed Self-Attention, where attention keys, attention values
+and queries all come from the same previous layer output, but rightward
+activations are masked to prevent information flow from future. This is the
+use case for decoder self-attention Transformer Layers. Can be activated by
+setting is_masked flag of this layer.</li>
+<li>Multi-Headed Attention, where attention keys and attention values
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code>, are coming from a different source (output of the encoder)
+and queries <code class="xref py py-obj docutils literal notranslate"><span class="pre">query_vec</span></code>, coming from the previous layer outputs (decoder).
+This corresponds to the standard attention mechanism, decoder attending the
+encoder outputs.</li>
+</ol>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>query_vec</em>, <em>source_paddings</em>, <em>source_vecs=None</em>, <em>query_segment_id=None</em>, <em>source_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer attention, residual and normalization layer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>query_vec</strong> – [target_time, target_batch, dim]</li>
+<li><strong>source_paddings</strong> – [source_time, source_batch]</li>
+<li><strong>source_vecs</strong> – [source_time, source_batch, dim].</li>
+<li><strong>query_segment_id</strong> – [target_time, target_batch]</li>
+<li><strong>source_segment_id</strong> – [source_time, source_batch]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(output, atten_probs). output is of shape [target_time, target_batch,
+source_dim], atten_probs is of shape [target_time, target_batch,
+source_time].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep">
+<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>query_vec</em>, <em>prefix_state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend prefix by one more time step.</p>
+<p>This function is expected to be called during fast decoding of the
+Transformer model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>query_vec</strong> – [target_batch, dim]</li>
+<li><strong>prefix_state</strong> – dict, containing tensors which are the results of previous
+attentions, used for fast decoding.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
+representing the output from the current state, and new_state is the new
+state NestedMap.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_attention.TransformerFeedForwardLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_attention.</code><code class="descname">TransformerFeedForwardLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<p>Feed-forward, add and norm layer used by ‘Attention Is All You Need’.</p>
+<p>This class implements the second sub-layer of Transformer Layer. First,
+input passes through a feed-forward neural network with one hidden layer and
+then projected back to the original input dimension to apply residual. Output
+of the layer, is then normalized using Layer Normalization.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_attention.TransformerFeedForwardLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.TransformerFeedForwardLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Feed-forward, residual and layer-norm.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>inputs</strong> – [time, batch, dim].</li>
+<li><strong>paddings</strong> – [time, batch]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">tensor of the same shape with inputs</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_attention.TransformerLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_attention.</code><code class="descname">TransformerLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<p>Transformer Layer proposed by ‘Attention Is All You Need’.</p>
+<p>Applies self-attention followed by a feed forward network and
+layer normalization. Uses residual connections between each consecutive
+layer. In particular, adds residuals from layer input and attention output
+and from attention output (feed-forward input) to feed-forward output.</p>
+<p>Implements the transformer block in ‘Attention is All You Need’:
+<a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_attention.TransformerLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.TransformerLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>aux_vecs=None</em>, <em>aux_paddings=None</em>, <em>source_segment_id=None</em>, <em>aux_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer Layer.</p>
+<p>Transformer layer has the naming scheme as follows: <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code> and
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">source_paddings</span></code> are all assumed to be coming from the activations of the
+layer below. When <a class="reference internal" href="#lingvo.core.layers_with_attention.TransformerLayer" title="lingvo.core.layers_with_attention.TransformerLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerLayer</span></code></a> is used in the Encoder (default
+behavior of this layer) <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_*</span></code> tensors correspond to the outputs of
+previous encoder layer. Further, keys, values and queries are all
+forked from <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code>. When TransformerLayer is used in the Decoder
+(is_decoder=True), <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_*</span></code> tensors correspond to the outputs of previous
+decoder layer and used as the queries.</p>
+<p>For the cases when <a class="reference internal" href="#lingvo.core.layers_with_attention.TransformerLayer" title="lingvo.core.layers_with_attention.TransformerLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerLayer</span></code></a> is used in the decoder
+(is_decoder=True) <code class="xref py py-obj docutils literal notranslate"><span class="pre">aux_*</span></code> tensors have to be provided.  Auxiliary inputs,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">aux_*</span></code> tensors, are then correspond to the top-most layer encoder outputs
+and used by the second <a class="reference internal" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer" title="lingvo.core.layers_with_attention.TransformerAttentionLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerAttentionLayer</span></code></a> as keys and values.</p>
+<p>Regardless of the encoder or decoder, queries are always assumed to be
+coming from the activations of layer below, in particular <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>source_vecs</strong> – [source_time, source_batch, dim].</li>
+<li><strong>source_paddings</strong> – [source_time, source_batch]</li>
+<li><strong>aux_vecs</strong> – [aux_time, aux_batch, dim]</li>
+<li><strong>aux_paddings</strong> – [aux_time, aux_batch]</li>
+<li><strong>source_segment_id</strong> – [source_time, source_batch]</li>
+<li><strong>aux_segment_id</strong> – [aux_time, aux_batch]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>The attention context vector, [source_time, source_batch, dim].</p>
+<p>The attention probability vector, [source_time, source_batch, source_time]
+if is_decoder is False, otherwise [source_time, source_batch, aux_time].</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.TransformerLayer.ExtendStep">
+<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>prefix_states</em>, <em>aux_vecs=None</em>, <em>aux_paddings=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer Layer, extend one step in decoding.</p>
+<p>This function is expected to be called during fast decoding of Transformer
+models.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>source_vecs</strong> – [source_batch, dim].</li>
+<li><strong>prefix_states</strong> – dict, containing tensors which are the results of previous
+attentions, used for fast decoding.</li>
+<li><strong>aux_vecs</strong> – [aux_time, aux_batch, dim]</li>
+<li><strong>aux_paddings</strong> – [aux_time, aux_batch]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>The attention context vector, [target_batch, source_dim]</p>
+<p>The attention probability vector, [source_time, target_batch]</p>
+<p>Updated prefix states</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_attention.MergerLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_attention.</code><code class="descname">MergerLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<p>Merges a list of input tensors with various options into a single tensor.</p>
+<p>Implements a merger/combiner operator given a list of tensors. The merger
+operator outputs a single tensor with the following options (merger_op):</p>
+<ul class="simple">
+<li>atten: Applies attention over the set of input tensors given query vector.</li>
+<li>mean: Takes the mean of input tensors.</li>
+<li>concat: Concatenates the input tensors over the last dimension.</li>
+<li>sum: Sum up all the input tensors.</li>
+</ul>
+<p>This class is expected to be called by multi-source/multi-column models.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_attention.MergerLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for this MergerLayer class.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.layers_with_attention.MergerLayer.MERGER_OPS">
+<code class="descname">MERGER_OPS</code><em class="property"> = ['mean', 'atten', 'concat', 'sum', 'weighted_sum']</em><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.MERGER_OPS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.MergerLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>query_vec=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combines the list of input tensors into a single tensor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>inputs</strong> – A list of tensors of shape […, hidden_dim] or
+[…, [pre_proj_input_dims[i]]] if pre_proj_input_dims is specified.</li>
+<li><strong>query_vec</strong> – A tensor of shape […, hidden_dim].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A tensor of the same shape with input tensors.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – p.merger_op is not defined.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_attention.StyleLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_attention.</code><code class="descname">StyleLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<p>A layer that performs weighted style emb lookup.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_attention.StyleLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.StyleLayer.EmbLookup">
+<code class="descname">EmbLookup</code><span class="sig-paren">(</span><em>theta</em>, <em>ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up style embedding vectors for ids only for test purpose.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – Named tuple with the weight matrix for the embedding.</li>
+<li><strong>ids</strong> – A rank-N int32 tensor.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">embs, A rank-(N+1) params.dtype tensor.
+embs[indices, :] is the embedding vector for ids[indices].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.StyleLayer.StyleEmbFromProbs">
+<code class="descname">StyleEmbFromProbs</code><span class="sig-paren">(</span><em>theta</em>, <em>inp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.StyleEmbFromProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.StyleEmbFromProbs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look up style embedding based on feedin probabilities.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – params for this layer and its sub-layers.</li>
+<li><strong>inp</strong> – attention probabilities of shape [batch_size, num_styles].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">style_emb - weighted combined style embedding based on inp.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_attention.StyleLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look up style embedding.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.lr_schedule.html" class="btn btn-neutral float-right" title="lingvo.core.lr_schedule module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.layers.html" class="btn btn-neutral" title="lingvo.core.layers module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
