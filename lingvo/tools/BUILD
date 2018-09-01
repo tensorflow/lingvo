@@ -60,8 +60,6 @@ py_test(
     data = [
         "//lingvo/tools/testdata:audio_data",
     ],
-    # This requires sox, which not hermetic.
-    tags = ["notap"],
     deps = [
         ":audio_lib",
         # Implicit tensorflow dependency.
