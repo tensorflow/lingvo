@@ -353,7 +353,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateVnConfig</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BaseTask.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Computes predictions for &#39;input_batch&#39;.</span>
+    <span class="sd">&quot;&quot;&quot;Computes predictions for `input_batch`.</span>
 
 <span class="sd">    The output can be in the form of probablistic distributions, e.g., softmax</span>
 <span class="sd">    logits for discrete outputs, mixture of logistics for continuous values, or</span>
@@ -365,11 +365,11 @@
 <span class="sd">    used to compute final outputs, perhaps with sampling.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing variable values of this task.</span>
-<span class="sd">      input_batch: A nested map object containing input tensors to this tower.</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Predictions, in the form of a single Tensor, a NestedMap, or a namedtuple.</span>
+<span class="sd">      Predictions, either a single Tensor, a `.NestedMap`, or a namedtuple.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
@@ -377,9 +377,9 @@
     <span class="sd">&quot;&quot;&quot;Computes loss and other metrics for the given predictions.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing variable values of this task.</span>
-<span class="sd">      input_batch: A nested map object containing input tensors to this tower.</span>
-<span class="sd">      predictions: The output of ComputePredictions.</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this task.</span>
+<span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
+<span class="sd">      predictions: The output of `ComputePredictions`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A dict containing str keys and (metric, weight) pairs as values, where</span>
@@ -391,9 +391,9 @@
     <span class="sd">&quot;&quot;&quot;Forward propagation through one tower of the model.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing variable values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing variable values of this</span>
 <span class="sd">        task copied to this tower&#39;s devices.</span>
-<span class="sd">      input_batch: A nested map object containing input tensors to this tower.</span>
+<span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A dict containing metrics pairs.</span>
@@ -404,12 +404,12 @@
 <div class="viewcode-block" id="BaseTask.FProp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Forward propagation.</span>
 
-<span class="sd">    This default FProp implementation here supports batch splitting in</span>
+<span class="sd">    This default `FProp` implementation here supports batch splitting in</span>
 <span class="sd">    synchronous and asynchronous training when sub-classes implement</span>
-<span class="sd">    FPropTower.</span>
+<span class="sd">    `FPropTower`.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 
 <span class="sd">    Returns:</span>
@@ -474,7 +474,7 @@
     <span class="k">return</span> <span class="n">metrics</span></div>
 
 <div class="viewcode-block" id="BaseTask.FPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.FPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">FPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calls FProp.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Calls `FProp` with this layer&#39;s parameters.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask.AdjustGradients"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.AdjustGradients">[docs]</a>  <span class="k">def</span> <span class="nf">AdjustGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vars_gradients</span><span class="p">):</span>
@@ -497,14 +497,14 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Filtered bprop variables: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">vs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_BPropForVariables</span><span class="p">(</span><span class="n">vs</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_HasNanOrInf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a bool tensor to indicate if var_grads contains NaNs or Infs.</span>
+<div class="viewcode-block" id="BaseTask._HasNanOrInf"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._HasNanOrInf">[docs]</a>  <span class="k">def</span> <span class="nf">_HasNanOrInf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a bool tensor to indicate if `var_grads` contains NaNs or Infs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      var_grads: A NestedMap with (var, grad) tuple as the map value.</span>
+<span class="sd">      var_grads: A `.NestedMap` with (var, grad) tuple as the map value.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A bool scalar tensor to indicate if the var_grads contains NaNs or Infs.</span>
+<span class="sd">      A bool scalar tensor to indicate if the `var_grads` contains NaNs or Infs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">HasNanOrInf</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -513,22 +513,23 @@
 
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">([(</span><span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">values</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
         <span class="n">g</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">)</span> <span class="k">else</span> <span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">g</span><span class="p">))</span>
-                          <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
+                          <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span></div>
 
 <div class="viewcode-block" id="BaseTask.ScaleGradients"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ScaleGradients">[docs]</a>  <span class="k">def</span> <span class="nf">ScaleGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Scales gradients according to training params.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      var_grads: a NestedMap whose values are (var, grad) pairs.</span>
+<span class="sd">      var_grads: a `.NestedMap` whose values are (var, grad) pairs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (has_nan_or_inf, grad_scale, final_var_grads), where:</span>
-<span class="sd">        has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN</span>
-<span class="sd">          or Inf in input gradients.</span>
-<span class="sd">        grad_scale: the gradient scale. 0 if gradient updates should be skipped</span>
-<span class="sd">          for the step.</span>
-<span class="sd">        final_var_grads: a NestedMap whose values are (var, grad) pairs, where</span>
-<span class="sd">          gradients have already been scaled.</span>
+<span class="sd">      (has_nan_or_inf, grad_scale, final_var_grads).</span>
+
+<span class="sd">      - has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN</span>
+<span class="sd">        or Inf in input gradients.</span>
+<span class="sd">      - grad_scale: the gradient scale. 0 if gradient updates should be skipped</span>
+<span class="sd">        for the step.</span>
+<span class="sd">      - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs, where</span>
+<span class="sd">        gradients have already been scaled.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
@@ -573,11 +574,11 @@
     <span class="n">final_var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyGradMultiplier</span><span class="p">(</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">has_nan_or_inf</span><span class="p">,</span> <span class="n">grad_scale</span><span class="p">,</span> <span class="n">final_var_grads</span></div>
 
-  <span class="k">def</span> <span class="nf">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTask._BPropForVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._BPropForVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs the backward graph for the given variables.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      vmap: a NestedMap of variables.</span>
+<span class="sd">      vmap: a `.NestedMap` of variables.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
@@ -639,10 +640,10 @@
         <span class="n">post_training_step_updates</span><span class="p">,</span>
         <span class="n">increment_global_steps</span><span class="p">,</span>
         <span class="n">mask_update_op</span><span class="p">,</span>
-        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train&#39;</span><span class="p">)</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask.ApplyExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ema</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Wraps self.train_op with an Op to update exponential moving average.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Wraps `self.train_op` with an op updating exponential moving average.&quot;&quot;&quot;</span>
     <span class="c1"># We need to apply EMA to all trainable variables of this Task, not just</span>
     <span class="c1"># bprop vars, so that we create a shadow &#39;/ExponentialMovingAverage&#39;</span>
     <span class="c1"># variable for every trainable variable.</span>
@@ -656,7 +657,7 @@
 <div class="viewcode-block" id="BaseTask.Decode"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs the inference graph for eval decoding.</span>
 
-<span class="sd">    Returns a dict of tensors as decoder output.</span>
+<span class="sd">    Returns a dict of Tensors as decoder output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
@@ -665,7 +666,7 @@
 
 <span class="sd">    Each subgraph represents a public API for a part of the graph which can</span>
 <span class="sd">    be operated independently. By convention, the subgraph named &#39;default&#39;</span>
-<span class="sd">    should perfom end to end inference via the input generator.</span>
+<span class="sd">    should perform end to end inference via the input generator.</span>
 
 <span class="sd">    Note that having distinct subgraphs (e.g. &#39;encoder&#39;, &#39;decoder&#39;) is</span>
 <span class="sd">    not just a space optimization: when driving the graph externally in an</span>
@@ -673,31 +674,28 @@
 <span class="sd">    case, the graph will be constructed with only those pieces.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      An inference_graph_pb2.InferenceGraph message or a legacy</span>
-<span class="sd">      dict of {&#39;subgraph_name&#39;: (fetches, feeds)} for each subgraph where</span>
-<span class="sd">      feeds and fetches are NestedMaps of public API names to internal</span>
-<span class="sd">      Tensor instances. Callers are responsible for handling either format.</span>
+<span class="sd">      An `inference_graph_pb2.InferenceGraph` message.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask.CreateDecoderMetrics"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Creates a dict of decoder metrics to be updated via PostProcessDecodeOut.</span>
+    <span class="sd">&quot;&quot;&quot;Creates a dict of decoder metrics for `PostProcessDecodeOut` to update.</span>
 
-<span class="sd">    Returns a dict mapping from string keys to BaseMetric objects.</span>
+<span class="sd">    Returns a dict mapping from string keys to `.BaseMetric` objects.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="BaseTask.PostProcessDecodeOut"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">decode_metrics_dict</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Post-processes decoder out, and updates contents of decode_metrics_dict.</span>
+    <span class="sd">&quot;&quot;&quot;Post-processes decoder out and updates contents of `decode_metrics_dict`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      decode_out_dict: A dictionary of Tensors fetched.</span>
-<span class="sd">      decode_metrics_dict: A dict mapping from string key to BaseMetric object</span>
-<span class="sd">        as created by CreateDecoderMetrics.</span>
+<span class="sd">      decode_metrics_dict: A dict mapping from string key to `.BaseMetric`</span>
+<span class="sd">        object as created by `CreateDecoderMetrics`.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      output_key_value_pairs: a list of (key, value) pairs that can be saved</span>
-<span class="sd">        (i.e. of type str, bytes, or unicode).</span>
+<span class="sd">      output_key_value_pairs - a list of (key, value) pairs that can be saved</span>
+<span class="sd">      (i.e. of type str, bytes, or unicode).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
@@ -740,7 +738,7 @@
 <span class="sd">      weight: A scalar Tensor.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">      ValueError: if &#39;name&#39; is already defined.</span>
+<span class="sd">      ValueError: if `name` is already defined.</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="p">:</span>
@@ -765,14 +763,14 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples</span><span class="o">.</span><span class="n">IncBy</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask.IncrementTotalNans"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.IncrementTotalNans">[docs]</a>  <span class="k">def</span> <span class="nf">IncrementTotalNans</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Updates the total number of NaN/Inf gradients by &#39;value&#39;.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Updates the total number of NaN/Inf gradients by `value`.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">global_variable_scope</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">StatsCounter</span><span class="p">(</span><span class="s1">&#39;total_nan_gradients&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_nans_and_infs</span><span class="o">.</span><span class="n">IncBy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_UpdateVnConfig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTask._UpdateVnConfig"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._UpdateVnConfig">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateVnConfig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update vn config from the various vn flags.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
@@ -784,9 +782,9 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># vn.scale is dependent on global_step.</span>
         <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">&gt;</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_start_step</span><span class="p">,</span>
-                             <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_std</span>
+                             <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">tp</span><span class="o">.</span><span class="n">vn_std</span></div>
 
-  <span class="k">def</span> <span class="nf">_GetMaskUpdateOp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTask._GetMaskUpdateOp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._GetMaskUpdateOp">[docs]</a>  <span class="k">def</span> <span class="nf">_GetMaskUpdateOp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns op to update masks and threshold variables for model pruning.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
@@ -799,14 +797,14 @@
           <span class="n">pruning_hparams</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">)</span>
       <span class="n">pruning_obj</span><span class="o">.</span><span class="n">add_pruning_summaries</span><span class="p">()</span>
       <span class="n">mask_update_op</span> <span class="o">=</span> <span class="n">pruning_obj</span><span class="o">.</span><span class="n">conditional_mask_update_op</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">mask_update_op</span></div>
+    <span class="k">return</span> <span class="n">mask_update_op</span></div></div>
 
 
 <div class="viewcode-block" id="DistillationTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask">[docs]</a><span class="k">class</span> <span class="nc">DistillationTask</span><span class="p">(</span><span class="n">BaseTask</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A task to distill knowledge from a teacher task to a student task.</span>
 
 <span class="sd">  The training parameters (e.g., learning rate) are determined only by</span>
-<span class="sd">  DistillationTask.params.train. Teacher and student task&#39;s training and eval</span>
+<span class="sd">  `DistillationTask.params.train`. Teacher and student task&#39;s training and eval</span>
 <span class="sd">  parameters must be set to None.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
@@ -1014,7 +1012,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">      task_name: string, the name of the model task to be returned.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">      An instance of BaseTask.</span>
+<span class="sd">      An instance of `BaseTask`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 

@@ -219,40 +219,53 @@
 
 <span class="sd">  The user of this helper class needs to implement three callbacks.</span>
 
-<span class="sd">  def InitBeamSearchState(</span>
-<span class="sd">      source_encs, source_paddings, num_hyps_per_beam, additional_source_info):</span>
-<span class="sd">    Args:</span>
-<span class="sd">      source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
-<span class="sd">      source_paddings: A tensor of shape [src_len, src_batch].</span>
-<span class="sd">      num_hyps_per_beam: An int, number hyps to keep for source sentence.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
-<span class="sd">          information about the source that may be useful for decoding.</span>
-<span class="sd">    Returns:</span>
-<span class="sd">      initial_results: a NestedMap of initial results. It should contain the</span>
-<span class="sd">      following tensors at the minimum.</span>
-<span class="sd">          atten_probs: The initial attention probs, of shape [tgt_batch,</span>
-<span class="sd">              src_len].</span>
-<span class="sd">      states: a NestedMap of tensors representing states that the client would</span>
-<span class="sd">          like to keep track of for each hyp.</span>
-<span class="sd">  This callback is called once only at the beginning of beam search.</span>
+<span class="sd">  This callback is called once only at the beginning of beam search:</span>
 
-<span class="sd">  def PreBeamSearchStepCallback(</span>
-<span class="sd">      source_encs, source_paddings, step_ids, in_states, num_hyps_per_beam,</span>
-<span class="sd">      additional_source_info):</span>
-<span class="sd">    Args:</span>
-<span class="sd">      source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
-<span class="sd">      source_paddings: A tensor of shape [src_len, src_batch].</span>
-<span class="sd">      step_ids: A tensor of shape [tgt_batch, 1].</span>
-<span class="sd">      in_states: A NestedMap of tensors representing states that the clients</span>
-<span class="sd">          would like to keep track of for each of the active hyps.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
-<span class="sd">          information about the source that may be useful for decoding.</span>
-<span class="sd">    Returns:</span>
-<span class="sd">      results: A NestedMap of beam search results. It should contain</span>
-<span class="sd">          the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors at the minimal. Optionally</span>
-<span class="sd">          it may contain &#39;lm_log_probs&#39; if a LM is used during decoding and</span>
-<span class="sd">          &#39;is_last_chunk&#39; if it is decoding a neural transducer model.</span>
+<span class="sd">  .. code-block:: none</span>
 
+<span class="sd">      def InitBeamSearchState(source_encs,</span>
+<span class="sd">                              source_paddings,</span>
+<span class="sd">                              num_hyps_per_beam,</span>
+<span class="sd">                              additional_source_info):</span>
+<span class="sd">        Args:</span>
+<span class="sd">          source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
+<span class="sd">          source_paddings: A tensor of shape [src_len, src_batch].</span>
+<span class="sd">          num_hyps_per_beam: An int, number hyps to keep for source sentence.</span>
+<span class="sd">          additional_source_info: a NestedMap of tensors containing extra</span>
+<span class="sd">              information about the source that may be useful for decoding.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">          initial_results: a NestedMap of initial results. It should contain the</span>
+<span class="sd">              following tensors at the minimum.</span>
+<span class="sd">                  atten_probs: The initial attention probs, of shape [tgt_batch,</span>
+<span class="sd">                      src_len].</span>
+<span class="sd">          states: a NestedMap of tensors representing states that the client</span>
+<span class="sd">              would like to keep track of for each hyp.</span>
+
+<span class="sd">  This callback is called once every decoding time step before beam_search_step</span>
+<span class="sd">  is called:</span>
+
+<span class="sd">  .. code-block:: none</span>
+
+<span class="sd">      def PreBeamSearchStepCallback(source_encs,</span>
+<span class="sd">                                    source_paddings,</span>
+<span class="sd">                                    step_ids,</span>
+<span class="sd">                                    in_states,</span>
+<span class="sd">                                    num_hyps_per_beam,</span>
+<span class="sd">                                    additional_source_info):</span>
+<span class="sd">        Args:</span>
+<span class="sd">          source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
+<span class="sd">          source_paddings: A tensor of shape [src_len, src_batch].</span>
+<span class="sd">          step_ids: A tensor of shape [tgt_batch, 1].</span>
+<span class="sd">          in_states: A NestedMap of tensors representing states that the clients</span>
+<span class="sd">              would like to keep track of for each of the active hyps.</span>
+<span class="sd">          additional_source_info: a NestedMap of tensors containing extra</span>
+<span class="sd">              information about the source that may be useful for decoding.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">          results: A NestedMap of beam search results. It should contain</span>
+<span class="sd">              the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors at the minimal.</span>
+<span class="sd">              Optionally it may contain &#39;lm_log_probs&#39; if a LM is used during</span>
+<span class="sd">              decoding and &#39;is_last_chunk&#39; if it is decoding a neural transducer</span>
+<span class="sd">              model.</span>
 <span class="sd">          atten_probs: The updated attention probs, of shape [tgt_batch,</span>
 <span class="sd">              src_len].</span>
 <span class="sd">          log_probs: Log prob for each of the tokens in the target vocab. This</span>
@@ -260,26 +273,29 @@
 <span class="sd">          lm_log_probs: Language model prob for each of the tokens in the target</span>
 <span class="sd">              vocab.  If not empty, this is of shape [tgt_batch, vocab_size].</span>
 <span class="sd">          is_last_chunk: Whether or not each of the hyp is at the end of a</span>
-<span class="sd">          chunk. If non-empty, it is of shape [tgt_batch, 1]</span>
-<span class="sd">      out_states: A NestedMap. The updated states. This &#39;out_states&#39; should be</span>
-<span class="sd">          of the exact same structure as &#39;in_states&#39;</span>
-<span class="sd">  This callback is called once every decoding time step before beam_search_step</span>
-<span class="sd">  is called.</span>
+<span class="sd">              chunk. If non-empty, it is of shape [tgt_batch, 1]</span>
+<span class="sd">          out_states: A NestedMap. The updated states. This &#39;out_states&#39; should</span>
+<span class="sd">              be of the exact same structure as &#39;in_states&#39;</span>
 
-<span class="sd">  def PostBeamSearchStepCallback(</span>
-<span class="sd">      source_encs, source_paddings, new_step_ids, other_states,</span>
-<span class="sd">      additional_source_info):</span>
-<span class="sd">    Args:</span>
-<span class="sd">      source_encs: The same as above.</span>
-<span class="sd">      source_paddings: The same as above.</span>
-<span class="sd">      new_step_ids: Token ids for the next beam search step.</span>
-<span class="sd">      other_states: A NestedMap.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
-<span class="sd">          information about the source that may be useful for decoding.</span>
-<span class="sd">    Returns:</span>
-<span class="sd">      final_states, A NestedMap.</span>
 <span class="sd">  This callback is called once every decoding time step after beam_search_step</span>
-<span class="sd">  is called.</span>
+<span class="sd">  is called:</span>
+
+<span class="sd">  .. code-block:: none</span>
+
+<span class="sd">      def PostBeamSearchStepCallback(source_encs,</span>
+<span class="sd">                                     source_paddings,</span>
+<span class="sd">                                     new_step_ids,</span>
+<span class="sd">                                     other_states,</span>
+<span class="sd">                                     additional_source_info):</span>
+<span class="sd">        Args:</span>
+<span class="sd">          source_encs: The same as above.</span>
+<span class="sd">          source_paddings: The same as above.</span>
+<span class="sd">          new_step_ids: Token ids for the next beam search step.</span>
+<span class="sd">          other_states: A NestedMap.</span>
+<span class="sd">          additional_source_info: a NestedMap of tensors containing extra</span>
+<span class="sd">              information about the source that may be useful for decoding.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">          final_states, A NestedMap.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BeamSearchHelper.Params"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -333,41 +349,41 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_is_neural_transducer</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_has_lm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lm_log_probs_weight</span> <span class="o">!=</span> <span class="mf">0.0</span>
 
-  <span class="k">def</span> <span class="nf">_BeamSearchStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span>
+<div class="viewcode-block" id="BeamSearchHelper._BeamSearchStep"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep">[docs]</a>  <span class="k">def</span> <span class="nf">_BeamSearchStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span>
                       <span class="n">core_bs_states</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
                       <span class="n">pre_beam_search_step_callback</span><span class="p">,</span>
                       <span class="n">post_beam_search_step_callback</span><span class="p">,</span> <span class="n">additional_source_info</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extend beam search hyps for one step.</span>
 
-<span class="sd">    num_beams = Number of source sequences to be decoded.</span>
-<span class="sd">    num_hyps_per_beam = Number of hyps to keep per source sequence.</span>
-<span class="sd">    num_hyps = num_beams * num_hyps_per_beam</span>
-<span class="sd">    src_seq_len = Number of time steps in the source sequence.</span>
-<span class="sd">    tgt_seq_len = Maximum allowed time steps in the target sequence.</span>
+<span class="sd">      | num_beams = Number of source sequences to be decoded.</span>
+<span class="sd">      | num_hyps_per_beam = Number of hyps to keep per source sequence.</span>
+<span class="sd">      | num_hyps = num_beams * num_hyps_per_beam</span>
+<span class="sd">      | src_seq_len = Number of time steps in the source sequence.</span>
+<span class="sd">      | tgt_seq_len = Maximum allowed time steps in the target sequence.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      source_encs: A tensor of the shape [time, batch, depth]. The encoding of</span>
 <span class="sd">          the source.</span>
-<span class="sd">      source_paddings: A tensor of the shape [time, batch]. Padding state of the</span>
-<span class="sd">          source.</span>
+<span class="sd">      source_paddings: A tensor of the shape [time, batch]. Padding state of</span>
+<span class="sd">          the source.</span>
 <span class="sd">      cur_step: A scalar int tensor, the current time step, 0-based.</span>
 <span class="sd">      step_ids: An int tensor of shape [num_hyps, 1]. The input ids to the</span>
 <span class="sd">          current search step.</span>
 <span class="sd">      core_bs_states: A tuple of core beam search states. This list is</span>
 <span class="sd">          maintained by this helper class.</span>
-<span class="sd">      other_states: A NestedMap of other beam search states. This NestedMap is</span>
-<span class="sd">          managed and updated by the client. It is expected that each of its</span>
+<span class="sd">      other_states: A `.NestedMap` of other beam search states. This `.NestedMap`</span>
+<span class="sd">          is managed and updated by the client. It is expected that each of its</span>
 <span class="sd">          member tensors are of rank &gt;= 1. t[i, ...] is the state of the i-th</span>
 <span class="sd">          hyp at the beginning of this search step.</span>
 <span class="sd">      num_hyps_per_beam: Num of hyps to keep per beam.</span>
-<span class="sd">      pre_beam_search_step_callback: The PreBeamSearchStepCallback callback.</span>
+<span class="sd">      pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.</span>
 <span class="sd">          See class header comments for more details.</span>
-<span class="sd">      post_beam_search_step_callback: The PostBeamSearchStepCallback callback.</span>
+<span class="sd">      post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.</span>
 <span class="sd">          See class header comments for more details.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
+<span class="sd">      additional_source_info: a `.NestedMap` of tensors containing extra context</span>
 <span class="sd">          information about the source that may be useful for decoding.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">      A tuple of following elements for the next beam search step:</span>
+<span class="sd">      A tuple of following elements for the next beam search step,</span>
 <span class="sd">      (next step, all_done, step_ids, core_bs_states, other_states)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -428,7 +444,7 @@
         <span class="n">additional_source_info</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">(</span><span class="n">cur_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">all_done</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">new_bs_states</span><span class="p">,</span>
-            <span class="n">final_other_states</span><span class="p">)</span>
+            <span class="n">final_other_states</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BeamSearchHelper.BeamSearchDecode"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">source_encs</span><span class="p">,</span>
@@ -442,26 +458,26 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      source_encs: source encoding, of shape [time, batch, depth]. In case of</span>
-<span class="sd">        multi-source decoding, a nested map object containing source encoding</span>
+<span class="sd">        multi-source decoding, a `.NestedMap` object containing source encoding</span>
 <span class="sd">        tensors, again each of shape [time, batch, depth].</span>
 <span class="sd">      source_paddings: source encoding&#39;s padding, of shape [time, batch]. In</span>
-<span class="sd">        case of multi-source decoding, A nested map object containing source</span>
+<span class="sd">        case of multi-source decoding, A `.NestedMap` object containing source</span>
 <span class="sd">        padding tensors, each of shape [time, batch].</span>
 <span class="sd">      num_hyps_per_beam_override: If set to a value &lt;= 0, this parameter is</span>
 <span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to</span>
-<span class="sd">        override p.num_hyps_per_beam.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
+<span class="sd">        override `p.num_hyps_per_beam`.</span>
+<span class="sd">      additional_source_info: a `.NestedMap` of tensors containing extra context</span>
 <span class="sd">          information about the source that may be useful for decoding.</span>
 
-<span class="sd">      init_beam_search_state: The InitBeamSearchState callback. Please refer to</span>
-<span class="sd">          the class header comments for more details.</span>
-<span class="sd">      pre_beam_search_step_callback: The PreBeamSearchStepCallback callback.</span>
+<span class="sd">      init_beam_search_state: The `InitBeamSearchState` callback. Please refer</span>
+<span class="sd">          to the class header comments for more details.</span>
+<span class="sd">      pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.</span>
 <span class="sd">          Please refer to the class header comments for more details.</span>
-<span class="sd">      post_beam_search_step_callback: The PostBeamSearchStepCallback callback.</span>
+<span class="sd">      post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.</span>
 <span class="sd">          Please refer to the class header comments for more details.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      base_decoder.BeamSearchDecodeOutput</span>
+<span class="sd">      A `BeamSearchDecodeOutput`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hyps_per_beam</span>
@@ -562,7 +578,7 @@
                                   <span class="n">final_other_states</span><span class="p">)</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">_GetShapes</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">none_shapes</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="_GetShapes"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper._GetShapes">[docs]</a><span class="k">def</span> <span class="nf">_GetShapes</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">none_shapes</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Util for getting nested structure of shapes from structure of tensors.</span>
 
 <span class="sd">  Args:</span>
@@ -570,7 +586,7 @@
 <span class="sd">    none_shapes: Returns None shapes if true.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    The same structure as tensors but of corresponding TensorShape objects.</span>
+<span class="sd">    The same structure as tensors but of corresponding `TensorShape` objects.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">shapes</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">framework</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">tensors</span><span class="p">):</span>
@@ -584,7 +600,7 @@
       <span class="n">shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">tensors</span><span class="p">)(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">framework</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">shapes</span><span class="p">))</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">framework</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">shapes</span><span class="p">))</span></div>
 </pre></div>
 
            </div>

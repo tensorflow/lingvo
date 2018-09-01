@@ -28,8 +28,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.tasks.lm.layers_test module" href="lingvo.tasks.lm.layers_test.html" />
-    <link rel="prev" title="lingvo.tasks.lm.input_generator_test module" href="lingvo.tasks.lm.input_generator_test.html" /> 
+    <link rel="next" title="lingvo.tasks.lm.model module" href="lingvo.tasks.lm.model.html" />
+    <link rel="prev" title="lingvo.tasks.lm.input_generator module" href="lingvo.tasks.lm.input_generator.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -171,6 +171,17 @@
 <em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">BaseLanguageModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
 <p>Abstract base class for a language model layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="lingvo.tasks.lm.layers.BaseLanguageModel.FProp">
 <code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.FProp" title="Permalink to this definition">¶</a></dt>
@@ -180,19 +191,98 @@
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</li>
 <li><strong>inputs</strong> – a tensor of shape [time, batch] or [time, batch, dims].</li>
 <li><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</li>
-<li><strong>state0</strong> – A NestedMap containing the initial recurrent state.</li>
+<li><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</li>
 <li><strong>*args</strong> – optional extra arguments.</li>
 <li><strong>**kwargs</strong> – optional extra keyword arguments.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(xent_output, state1). xent_output is a NestedMap as defined by
-SoftmaxLayer’s return value and state1 is the next recurrent
-state.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(xent_output, state1). <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.Logits">
+<code class="descname">Logits</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.Logits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.Logits" title="Permalink to this definition">¶</a></dt>
+<dd><p>FProp and returns the logits for the whole sequence.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.StepOutputDimension">
+<em class="property">classmethod </em><code class="descname">StepOutputDimension</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.StepOutputDimension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.StepOutputDimension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns dimensions of <a class="reference internal" href="#lingvo.tasks.lm.layers.BaseLanguageModel.Step" title="lingvo.tasks.lm.layers.BaseLanguageModel.Step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Step()</span></code></a>’s output dimension.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> – Params for this layer.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields</dt>
+<dd><dl class="first last docutils">
+<dt>logits: a python int.</dt>
+<dd>The vocab size.</dd>
+<dt>last_hidden: a python int.</dt>
+<dd>The last hidden layer’s dimension.</dd>
+</dl>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.Step">
+<code class="descname">Step</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.Step" title="Permalink to this definition">¶</a></dt>
+<dd><p>FProp one step.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>inputs</strong> – a tensor of shape [batch] or [batch, dims].</li>
+<li><strong>paddings</strong> – a 0/1 tensor of shape [batch].</li>
+<li><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</li>
+<li><strong>*args</strong> – optional extra arguments.</li>
+<li><strong>**kwargs</strong> – optional extra keyword arguments.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>A tuple (output, state1).</dt>
+<dd><dl class="first last docutils">
+<dt>output: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields.</dt>
+<dd><dl class="first last docutils">
+<dt>logits:</dt>
+<dd><p class="first last">[batch, vocab_size].</p>
+</dd>
+<dt>log_probs:</dt>
+<dd><p class="first last">[batch, vocab_size].</p>
+</dd>
+<dt>last_hidden:</dt>
+<dd><p class="first last">[batch, dims].</p>
+</dd>
+</dl>
+</dd>
+<dt>state1:</dt>
+<dd><p class="first last">The new recurrent state.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</p>
 </td>
 </tr>
 </tbody>
@@ -205,107 +295,6 @@ state.</p>
 <dd><p>Returns an optional feed dict with str keys and Tensor values.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.Logits">
-<code class="descname">Logits</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.Logits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.Logits" title="Permalink to this definition">¶</a></dt>
-<dd><p>FProp and returns the logits for the whole sequence.</p>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.Step">
-<code class="descname">Step</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.Step" title="Permalink to this definition">¶</a></dt>
-<dd><p>FProp one step.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>inputs</strong> – a tensor of shape [batch] or [batch, dims].</li>
-<li><strong>paddings</strong> – a 0/1 tensor of shape [batch].</li>
-<li><strong>state0</strong> – A NestedMap containing the initial recurrent state.</li>
-<li><strong>*args</strong> – optional extra arguments.</li>
-<li><strong>**kwargs</strong> – optional extra keyword arguments.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
-<dt>A NestedMap with fields.</dt>
-<dd><p class="first last">logits: [batch, vocab_size].
-log_probs: [batch, vocab_size].
-last_hidden: [batch, dims].</p>
-</dd>
-</dl>
-<p>state1: The new recurrent state.</p>
-</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">output</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.StepOutputDimension">
-<em class="property">classmethod </em><code class="descname">StepOutputDimension</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.StepOutputDimension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.StepOutputDimension" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns dimensions of Step()’s output dimension.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> – Params for this layer.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
-<dt>A NestedMap with fields.</dt>
-<dd>logits: a python int. the vocab size.
-last_hidden: a python int. The last hidden layer’s dimension.</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">output_dims</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.BaseLanguageModel.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#BaseLanguageModel.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.BaseLanguageModel.zero_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="lingvo.tasks.lm.layers.MoeLm">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">MoeLm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#MoeLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.MoeLm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.BaseLanguageModel" title="lingvo.tasks.lm.layers.BaseLanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.BaseLanguageModel</span></code></a></p>
-<p>Mixture of experts language modeling class.</p>
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.MoeLm.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#MoeLm.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.MoeLm.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward compute.</p>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.MoeLm.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#MoeLm.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.MoeLm.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.MoeLm.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#MoeLm.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.MoeLm.zero_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </dd></dl>
 
 <dl class="class">
@@ -313,6 +302,11 @@ last_hidden: a python int. The last hidden layer’s dimension.</dd>
 <em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">NullLm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#NullLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.NullLm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.BaseLanguageModel" title="lingvo.tasks.lm.layers.BaseLanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.BaseLanguageModel</span></code></a></p>
 <p>A trivial language model does nothing really.</p>
+<dl class="method">
+<dt id="lingvo.tasks.lm.layers.NullLm.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#NullLm.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.NullLm.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="lingvo.tasks.lm.layers.NullLm.FProp">
 <code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#NullLm.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.NullLm.FProp" title="Permalink to this definition">¶</a></dt>
@@ -322,19 +316,18 @@ last_hidden: a python int. The last hidden layer’s dimension.</dd>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</li>
 <li><strong>inputs</strong> – a tensor of shape [time, batch] or [time, batch, dims].</li>
 <li><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</li>
-<li><strong>state0</strong> – A NestedMap containing the initial recurrent state.</li>
+<li><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</li>
 <li><strong>*args</strong> – optional extra arguments.</li>
 <li><strong>**kwargs</strong> – optional extra keyword arguments.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(xent_output, state1). xent_output is a NestedMap as defined by
-SoftmaxLayer’s return value and state1 is the next recurrent
-state.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(xent_output, state1). <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state.</p>
 </td>
 </tr>
 </tbody>
@@ -347,22 +340,152 @@ state.</p>
 <dd><p>FProp and returns the logits for the whole sequence.</p>
 </dd></dl>
 
+<dl class="classmethod">
+<dt id="lingvo.tasks.lm.layers.NullLm.StepOutputDimension">
+<em class="property">classmethod </em><code class="descname">StepOutputDimension</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#NullLm.StepOutputDimension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.NullLm.StepOutputDimension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns dimensions of <a class="reference internal" href="#lingvo.tasks.lm.layers.NullLm.Step" title="lingvo.tasks.lm.layers.NullLm.Step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Step()</span></code></a>’s output dimension.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.tasks.lm.layers.NullLm.Step">
 <code class="descname">Step</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#NullLm.Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.NullLm.Step" title="Permalink to this definition">¶</a></dt>
 <dd><p>FProp one step.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.lm.layers._RnnOutputSize">
+<code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">_RnnOutputSize</code><span class="sig-paren">(</span><em>rnns</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#_RnnOutputSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers._RnnOutputSize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">RnnLmNoEmbedding</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.BaseLanguageModel" title="lingvo.tasks.lm.layers.BaseLanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.BaseLanguageModel</span></code></a></p>
+<p>Stacked RNN based language model layer.</p>
 <dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.NullLm.StepOutputDimension">
-<em class="property">classmethod </em><code class="descname">StepOutputDimension</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#NullLm.StepOutputDimension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.NullLm.StepOutputDimension" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns dimensions of Step()’s output dimension.</p>
+<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.lm.layers.NullLm.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#NullLm.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.NullLm.zero_state" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.StepOutputDimension">
+<em class="property">classmethod </em><code class="descname">StepOutputDimension</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.StepOutputDimension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.StepOutputDimension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns dimensions of <a class="reference internal" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.Step" title="lingvo.tasks.lm.layers.RnnLmNoEmbedding.Step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Step()</span></code></a>’s output dimension.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> – Params for this layer.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields</dt>
+<dd><dl class="first last docutils">
+<dt>logits: a python int.</dt>
+<dd>The vocab size.</dd>
+<dt>last_hidden: a python int.</dt>
+<dd>The last hidden layer’s dimension.</dd>
+</dl>
+</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.Step">
+<code class="descname">Step</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>direct_features=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.Step" title="Permalink to this definition">¶</a></dt>
+<dd><p>FProp one step.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>inputs</strong> – a tensor of shape [batch] or [batch, dims].</li>
+<li><strong>paddings</strong> – a 0/1 tensor of shape [batch].</li>
+<li><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</li>
+<li><strong>direct_features</strong> – If not None, a tensor of [batch, direct_feature_dims]
+that is concatenated to the output of the last RNN layer.</li>
+<li><strong>*args</strong> – optional extra arguments.</li>
+<li><strong>**kwargs</strong> – optional extra keyword arguments.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>A tuple (output, state1).</dt>
+<dd><dl class="first last docutils">
+<dt>output: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields.</dt>
+<dd><dl class="first last docutils">
+<dt>logits:</dt>
+<dd><p class="first last">[batch, vocab_size].</p>
+</dd>
+<dt>last_hidden:</dt>
+<dd><p class="first last">[batch, dims].</p>
+</dd>
+</dl>
+</dd>
+<dt>state1:</dt>
+<dd><p class="first last">The new recurrent state.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>labels=None</em>, <em>direct_features=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes xent loss given the language model input activations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>inputs</strong> – input activation. A tensor of shape [time, batch, dims].</li>
+<li><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</li>
+<li><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</li>
+<li><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields.</p>
+<ul>
+<li>class_weights, a tensor with shape [time, batch] containing the
+weights for each target word.</li>
+<li>class_ids, a tensor with shape [time, batch] of int32 dtype containing
+the target class labels.</li>
+<li>class_probabilities, a tensor with shape [time, batch, vocab_size] of
+float values indicating class-membership probabilities.</li>
+</ul>
+</li>
+<li><strong>direct_features</strong> – If not None, a tensor of [time, batch, direct_feature_dims] that is
+concatenated to the output of the last RNN layer.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, state1), where
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state. Otherwise,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -371,6 +494,12 @@ state.</p>
 <em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">RnnLm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding" title="lingvo.tasks.lm.layers.RnnLmNoEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.RnnLmNoEmbedding</span></code></a></p>
 <p>Stacked RNN based language model layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.lm.layers.RnnLm.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLm.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLm.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
 <dl class="classmethod">
 <dt id="lingvo.tasks.lm.layers.RnnLm.CommonParams">
 <em class="property">classmethod </em><code class="descname">CommonParams</code><span class="sig-paren">(</span><em>vocab_size</em>, <em>emb_dim=1024</em>, <em>num_layers=2</em>, <em>rnn_dims=2048</em>, <em>rnn_hidden_dims=0</em>, <em>residual_start=1</em>, <em>softmax_max_alloc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLm.CommonParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLm.CommonParams" title="Permalink to this definition">¶</a></dt>
@@ -389,12 +518,12 @@ state.</p>
 higher index layers also have residuals.</li>
 <li><strong>softmax_max_alloc</strong> – If set to a positive integer the soft-max
 computation is chunked into allocations of at most
-softmax_max_alloc; when left to its default value of None no
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">softmax_max_alloc</span></code>; when left to its default value of None no
 chunking is done.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A RnnLm parameter object.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="#lingvo.tasks.lm.layers.RnnLm" title="lingvo.tasks.lm.layers.RnnLm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RnnLm</span></code></a> parameter object.</p>
 </td>
 </tr>
 </tbody>
@@ -410,141 +539,82 @@ chunking is done.</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</li>
 <li><strong>inputs</strong> – input ids. An int32 tensor of shape [time, batch].</li>
 <li><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</li>
-<li><strong>state0</strong> – A NestedMap containing the initial recurrent state.</li>
-<li><strong>labels</strong> – <p>If not None, a NestedMap contains the following fields:
-class_weights - a tensor with shape [time, batch] containing</p>
-<blockquote>
-<div>the weights for each target word.</div></blockquote>
-<dl class="docutils">
-<dt>class_ids - a tensor with shape [time, batch] of int32 dtype</dt>
-<dd>containing the target class labels.</dd>
-<dt>class_probabilities - a tensor with shape [time, batch, vocab_size]</dt>
-<dd>of float values indicating class-membership probabilities.</dd>
-</dl>
+<li><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the initial recurrent state.</li>
+<li><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p>
+<ul>
+<li>class_weights, a tensor with shape [time, batch] containing the
+weights for each target word.</li>
+<li>class_ids, a tensor with shape [time, batch] of int32 dtype containing
+the target class labels.</li>
+<li>class_probabilities, a tensor with shape [time, batch, vocab_size] of
+float values indicating class-membership probabilities.</li>
+</ul>
 </li>
-<li><strong>direct_features</strong> – If not None, a tensor of[time, batch,
-direct_feature_dims] that is concatenated to the output of the last
-RNN layer.</li>
+<li><strong>direct_features</strong> – If not None, a tensor of [time, batch, direct_feature_dims] that is
+concatenated to the output of the last RNN layer.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">If labels is not None, returns (xent_output, state1), where
-xent_output is a NestedMap as defined by SoftmaxLayer’s return
-value and state1 is the next recurrent state. Otherwise,
-xent_output only contains the softmax logits.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, state1), where
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state. Otherwise,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
 </td>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.RnnLm.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLm.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLm.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">RnnLmNoEmbedding</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.tasks.lm.layers.MoeLm">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">MoeLm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#MoeLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.MoeLm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.BaseLanguageModel" title="lingvo.tasks.lm.layers.BaseLanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.BaseLanguageModel</span></code></a></p>
-<p>Stacked RNN based language model layer.</p>
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>labels=None</em>, <em>direct_features=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes xent loss given the language model input activations.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>inputs</strong> – input activation. A tensor of shape [time, batch, dims].</li>
-<li><strong>paddings</strong> – a 0/1 tensor of shape [time, batch].</li>
-<li><strong>state0</strong> – A NestedMap containing the initial recurrent state.</li>
-<li><strong>labels</strong> – <p>If not None, a NestedMap contains the following fields:
-class_weights - a tensor with shape [time, batch] containing</p>
-<blockquote>
-<div>the weights for each target word.</div></blockquote>
-<dl class="docutils">
-<dt>class_ids - a tensor with shape [time, batch] of int32 dtype</dt>
-<dd>containing the target class labels.</dd>
-<dt>class_probabilities - a tensor with shape [time, batch, vocab_size]</dt>
-<dd>of float values indicating class-membership probabilities.</dd>
-</dl>
-</li>
-<li><strong>direct_features</strong> – If not None, a tensor of[time, batch,
-direct_feature_dims] that is concatenated to the output of the last
-RNN layer.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">If labels is not None, returns (xent_output, state1), where
-xent_output is a NestedMap as defined by SoftmaxLayer’s return
-value and state1 is the next recurrent state. Otherwise,
-xent_output only contains the softmax logits.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
+<p>Mixture of experts language modeling class.</p>
 <dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.tasks.lm.layers.MoeLm.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#MoeLm.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.MoeLm.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.Step">
-<code class="descname">Step</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>direct_features=None</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.Step" title="Permalink to this definition">¶</a></dt>
-<dd><p>FProp one step.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>inputs</strong> – a tensor of shape [batch] or [batch, dims].</li>
-<li><strong>paddings</strong> – a 0/1 tensor of shape [batch].</li>
-<li><strong>state0</strong> – A NestedMap containing the initial recurrent state.</li>
-<li><strong>direct_features</strong> – If not None, a tensor of[batch,
-direct_feature_dims] that is concatenated to the output of the last
-RNN layer.</li>
-<li><strong>*args</strong> – optional extra arguments.</li>
-<li><strong>**kwargs</strong> – optional extra keyword arguments.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
-<dt>A NestedMap with fields.</dt>
-<dd><p class="first last">logits: [batch, vocab_size].
-last_hidden: [batch, dims].</p>
-</dd>
-</dl>
-<p>state1: The new recurrent state.</p>
-</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">output</p>
-</td>
-</tr>
-</tbody>
-</table>
+<dt id="lingvo.tasks.lm.layers.MoeLm.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#MoeLm.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.MoeLm.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.layers.MoeLm.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#MoeLm.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.MoeLm.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward compute.</p>
 </dd></dl>
 
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">TransformerLmNoEmbedding</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.BaseLanguageModel" title="lingvo.tasks.lm.layers.BaseLanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.BaseLanguageModel</span></code></a></p>
+<p>Transformer language model.</p>
 <dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.StepOutputDimension">
-<em class="property">classmethod </em><code class="descname">StepOutputDimension</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.StepOutputDimension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.StepOutputDimension" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns dimensions of Step()’s output dimension.</p>
+<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.StepOutputDimension">
+<em class="property">classmethod </em><code class="descname">StepOutputDimension</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.StepOutputDimension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.StepOutputDimension" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns dimensions of <a class="reference internal" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Step" title="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Step"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Step()</span></code></a>’s output dimension.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -552,22 +622,101 @@ last_hidden: [batch, dims].</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> – Params for this layer.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
-<dt>A NestedMap with fields.</dt>
-<dd>logits: a python int. the vocab size.
-last_hidden: a python int. The last hidden layer’s dimension.</dd>
+<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields</dt>
+<dd><dl class="first last docutils">
+<dt>logits: a python int.</dt>
+<dd>The vocab size.</dd>
+<dt>last_hidden: a python int.</dt>
+<dd>The last hidden layer’s dimension.</dd>
+</dl>
+</dd>
 </dl>
 </td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">output_dims</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.lm.layers.RnnLmNoEmbedding.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#RnnLmNoEmbedding.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.RnnLmNoEmbedding.zero_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Step">
+<code class="descname">Step</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Step" title="Permalink to this definition">¶</a></dt>
+<dd><p>FProp one step.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>inputs</strong> – a tensor of shape [batch, model_dim].</li>
+<li><strong>paddings</strong> – a 0/1 tensor of shape [batch]. Unused here.</li>
+<li><strong>state0</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the prefix states up to step t-1.</li>
+<li><strong>*args</strong> – optional extra arguments.</li>
+<li><strong>**kwargs</strong> – optional extra keyword arguments.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>A tuple (output, state1).</dt>
+<dd><dl class="first last docutils">
+<dt>output: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fields.</dt>
+<dd><dl class="first last docutils">
+<dt>logits:</dt>
+<dd><p class="first last">[batch, vocab_size].</p>
+</dd>
+<dt>last_hidden:</dt>
+<dd><p class="first last">[batch, model_dims].</p>
+</dd>
+</dl>
+</dd>
+<dt>state1:</dt>
+<dd><p class="first last">The updated prefix states including step t.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0=None</em>, <em>labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes xent loss given the language model input activations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>inputs</strong> – Input activation. A tensor of shape [time, batch, model_dim].</li>
+<li><strong>paddings</strong> – A 0/1 tensor of shape [time, batch].</li>
+<li><strong>state0</strong> – Not used for Transformer.</li>
+<li><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p>
+<ul>
+<li>class_weights, a tensor with shape [time, batch] containing the
+weights for each target word.</li>
+<li>class_ids, a tensor with shape [time, batch] of int32 dtype containing
+the target class labels.</li>
+<li>class_probabilities, a tensor with shape [time, batch, vocab_size] of
+float values indicating class-membership probabilities.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, None), where
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+value. Otherwise, <code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 </dd></dl>
 
@@ -576,6 +725,12 @@ last_hidden: a python int. The last hidden layer’s dimension.</dd>
 <em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">TransformerLm</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding" title="lingvo.tasks.lm.layers.TransformerLmNoEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.TransformerLmNoEmbedding</span></code></a></p>
 <p>Stacked RNN based language model layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.lm.layers.TransformerLm.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLm.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLm.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
 <dl class="classmethod">
 <dt id="lingvo.tasks.lm.layers.TransformerLm.CommonParams">
 <em class="property">classmethod </em><code class="descname">CommonParams</code><span class="sig-paren">(</span><em>model_dim</em>, <em>hidden_dim</em>, <em>num_heads</em>, <em>num_layers</em>, <em>learning_rate</em>, <em>warmup_steps</em>, <em>vocab_size</em>, <em>input_dropout_prob=0.0</em>, <em>residual_dropout_prob=0.1</em>, <em>atten_dropout_prob=0.0</em>, <em>relu_dropout_prob=0.0</em>, <em>softmax_max_alloc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLm.CommonParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLm.CommonParams" title="Permalink to this definition">¶</a></dt>
@@ -623,154 +778,33 @@ chunking is done.</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</li>
 <li><strong>inputs</strong> – Input ids. An int32 tensor of shape [time, batch].</li>
 <li><strong>paddings</strong> – A 0/1 tensor of shape [time, batch].</li>
 <li><strong>state0</strong> – Not used for Transformer.</li>
-<li><strong>labels</strong> – <p>If not None, a NestedMap contains the following fields:
-class_weights - a tensor with shape [time, batch] containing</p>
-<blockquote>
-<div>the weights for each target word.</div></blockquote>
-<dl class="docutils">
-<dt>class_ids - a tensor with shape [time, batch] of int32 dtype</dt>
-<dd>containing the target class labels.</dd>
-<dt>class_probabilities - a tensor with shape [time, batch, vocab_size]</dt>
-<dd>of float values indicating class-membership probabilities.</dd>
-</dl>
+<li><strong>labels</strong> – <p>If not None, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing the following fields:</p>
+<ul>
+<li>class_weights, a tensor with shape [time, batch] containing the
+weights for each target word.</li>
+<li>class_ids, a tensor with shape [time, batch] of int32 dtype containing
+the target class labels.</li>
+<li>class_probabilities, a tensor with shape [time, batch, vocab_size] of
+float values indicating class-membership probabilities.</li>
+</ul>
 </li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">If labels is not None, returns (xent_output, state1), where
-xent_output is a NestedMap as defined by SoftmaxLayer’s return
-value and state1 is the next recurrent state. Otherwise,
-xent_output only contains the softmax logits.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">If <code class="xref py py-obj docutils literal notranslate"><span class="pre">labels</span></code> is not None, returns (xent_output, state1), where
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> as defined by <code class="xref py py-obj docutils literal notranslate"><span class="pre">SoftmaxLayer</span></code>’s return
+value and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> is the next recurrent state. Otherwise,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">xent_output</span></code> only contains the softmax logits.</p>
 </td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.TransformerLm.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLm.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLm.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding">
-<em class="property">class </em><code class="descclassname">lingvo.tasks.lm.layers.</code><code class="descname">TransformerLmNoEmbedding</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.layers.BaseLanguageModel" title="lingvo.tasks.lm.layers.BaseLanguageModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.layers.BaseLanguageModel</span></code></a></p>
-<p>Transformer language model.</p>
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0=None</em>, <em>labels=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes xent loss given the language model input activations.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>inputs</strong> – Input activation. A tensor of shape [time, batch, model_dim].</li>
-<li><strong>paddings</strong> – A 0/1 tensor of shape [time, batch].</li>
-<li><strong>state0</strong> – Not used for Transformer.</li>
-<li><strong>labels</strong> – <p>If not None, a NestedMap contains the following fields:
-class_weights - a tensor with shape [time, batch] containing</p>
-<blockquote>
-<div>the weights for each target word.</div></blockquote>
-<dl class="docutils">
-<dt>class_ids - a tensor with shape [time, batch] of int32 dtype</dt>
-<dd>containing the target class labels.</dd>
-<dt>class_probabilities - a tensor with shape [time, batch, vocab_size]</dt>
-<dd>of float values indicating class-membership probabilities.</dd>
-</dl>
-</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">If labels is not None, returns (xent_output, None), where
-xent_output is a NestedMap as defined by SoftmaxLayer’s return
-value. Otherwise, xent_output only contains the softmax logits.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Step">
-<code class="descname">Step</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>state0</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.Step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Step" title="Permalink to this definition">¶</a></dt>
-<dd><p>FProp one step.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>inputs</strong> – a tensor of shape [batch, model_dim].</li>
-<li><strong>paddings</strong> – a 0/1 tensor of shape [batch]. Unused here.</li>
-<li><strong>state0</strong> – A NestedMap containing the prefix states up to step t-1.</li>
-<li><strong>*args</strong> – optional extra arguments.</li>
-<li><strong>**kwargs</strong> – optional extra keyword arguments.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
-<dt>A NestedMap with fields.</dt>
-<dd><p class="first last">logits: [batch, vocab_size].
-last_hidden: [batch, model_dim].</p>
-</dd>
-</dl>
-<p>state1: The updated prefix states including step t.</p>
-</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">output</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.StepOutputDimension">
-<em class="property">classmethod </em><code class="descname">StepOutputDimension</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.StepOutputDimension"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.StepOutputDimension" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns dimensions of Step()’s output dimension.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> – Params for this layer.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
-<dt>A NestedMap with fields.</dt>
-<dd>logits: a python int. the vocab size.
-last_hidden: a python int. The last hidden layer’s dimension.</dd>
-</dl>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">output_dims</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.lm.layers.TransformerLmNoEmbedding.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/layers.html#TransformerLmNoEmbedding.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.zero_state" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 </dd></dl>
 
@@ -784,10 +818,10 @@ last_hidden: a python int. The last hidden layer’s dimension.</dd>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.tasks.lm.layers_test.html" class="btn btn-neutral float-right" title="lingvo.tasks.lm.layers_test module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.tasks.lm.model.html" class="btn btn-neutral float-right" title="lingvo.tasks.lm.model module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.lm.input_generator_test.html" class="btn btn-neutral" title="lingvo.tasks.lm.input_generator_test module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tasks.lm.input_generator.html" class="btn btn-neutral" title="lingvo.tasks.lm.input_generator module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

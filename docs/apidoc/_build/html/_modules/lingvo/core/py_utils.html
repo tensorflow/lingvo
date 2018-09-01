@@ -212,60 +212,60 @@
 
 
 <span class="c1"># TODO(syzhang): merge this with summary_utils.scalar().</span>
-<span class="k">def</span> <span class="nf">_scalar</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="_scalar"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._scalar">[docs]</a><span class="k">def</span> <span class="nf">_scalar</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="Assert"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Assert">[docs]</a><span class="k">def</span> <span class="nf">Assert</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Assert"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.Assert">[docs]</a><span class="k">def</span> <span class="nf">Assert</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="assert_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="assert_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.assert_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="assert_greater_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_greater_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="assert_greater_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.assert_greater_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="assert_greater"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_greater">[docs]</a><span class="k">def</span> <span class="nf">assert_greater</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="assert_greater"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.assert_greater">[docs]</a><span class="k">def</span> <span class="nf">assert_greater</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_greater</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="assert_less_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_less_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="assert_less_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.assert_less_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="assert_less"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_less">[docs]</a><span class="k">def</span> <span class="nf">assert_less</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="assert_less"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.assert_less">[docs]</a><span class="k">def</span> <span class="nf">assert_less</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_less</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="assert_between"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_between">[docs]</a><span class="k">def</span> <span class="nf">assert_between</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="assert_between"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.assert_between">[docs]</a><span class="k">def</span> <span class="nf">assert_between</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
       <span class="n">Assert</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">l</span><span class="p">)),</span> <span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
       <span class="n">Assert</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">r</span><span class="p">)),</span> <span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="assert_shape_match"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_shape_match">[docs]</a><span class="k">def</span> <span class="nf">assert_shape_match</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="assert_shape_match"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.assert_shape_match">[docs]</a><span class="k">def</span> <span class="nf">assert_shape_match</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
     <span class="n">filepath</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">extract_stack</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
     <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;msg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;LINGVO ASSERT </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span>
@@ -275,23 +275,23 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="assert_same_dim0"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_same_dim0">[docs]</a><span class="k">def</span> <span class="nf">assert_same_dim0</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="assert_same_dim0"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.assert_same_dim0">[docs]</a><span class="k">def</span> <span class="nf">assert_same_dim0</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">assert_same_dim0</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
 
-<span class="k">def</span> <span class="nf">_CheckNumerics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="_CheckNumerics"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._CheckNumerics">[docs]</a><span class="k">def</span> <span class="nf">_CheckNumerics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span><span class="p">:</span>
     <span class="k">if</span> <span class="s1">&#39;name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
       <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;:\d+&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_CheckNumerics&#39;</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">check_numerics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">message</span> <span class="k">if</span> <span class="n">message</span> <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">x</span></div>
 
 
-<div class="viewcode-block" id="CheckNumerics"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CheckNumerics">[docs]</a><span class="k">def</span> <span class="nf">CheckNumerics</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="CheckNumerics"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.CheckNumerics">[docs]</a><span class="k">def</span> <span class="nf">CheckNumerics</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Check numerics for tensors in inp.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_check_numerics</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">inp</span>
@@ -302,12 +302,12 @@
   <span class="k">return</span> <span class="n">_CheckNumerics</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="with_dependencies"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.with_dependencies">[docs]</a><span class="k">def</span> <span class="nf">with_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">,</span> <span class="n">output_tensor</span><span class="p">):</span>
+<div class="viewcode-block" id="with_dependencies"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.with_dependencies">[docs]</a><span class="k">def</span> <span class="nf">with_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">,</span> <span class="n">output_tensor</span><span class="p">):</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">output_tensor</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="HasRank"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.HasRank">[docs]</a><span class="k">def</span> <span class="nf">HasRank</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">expected_rank</span><span class="p">):</span>
+<div class="viewcode-block" id="HasRank"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.HasRank">[docs]</a><span class="k">def</span> <span class="nf">HasRank</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">expected_rank</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Syntactic sugar for asserting that tensor has the expected rank.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expected_rank</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
     <span class="k">assert</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="n">expected_rank</span>
@@ -319,7 +319,7 @@
     <span class="k">return</span> <span class="n">tensor</span></div>
 
 
-<div class="viewcode-block" id="HasShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.HasShape">[docs]</a><span class="k">def</span> <span class="nf">HasShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">):</span>
+<div class="viewcode-block" id="HasShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.HasShape">[docs]</a><span class="k">def</span> <span class="nf">HasShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Syntactic sugar for asserting that tensor has the expected shape.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span><span class="p">:</span>
     <span class="n">filepath</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">extract_stack</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
@@ -332,7 +332,7 @@
     <span class="k">return</span> <span class="n">tensor</span></div>
 
 
-<div class="viewcode-block" id="GetShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetShape">[docs]</a><span class="k">def</span> <span class="nf">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">ndims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="GetShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GetShape">[docs]</a><span class="k">def</span> <span class="nf">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">ndims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns tensor&#39;s shape as a list which can be unpacked, unlike tf.shape.</span>
 
 <span class="sd">  Tries to return static shape if it&#39;s available. Note that this means</span>
@@ -356,29 +356,29 @@
   <span class="k">return</span> <span class="n">shapes</span></div>
 
 
-<div class="viewcode-block" id="use_xla"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.use_xla">[docs]</a><span class="k">def</span> <span class="nf">use_xla</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="use_xla"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.use_xla">[docs]</a><span class="k">def</span> <span class="nf">use_xla</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">res</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span>
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
     <span class="k">assert</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;cpu&#39;</span><span class="p">,</span> <span class="s1">&#39;gpu&#39;</span><span class="p">,</span> <span class="s1">&#39;tpu&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">res</span></div>
 
 
-<div class="viewcode-block" id="use_tpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.use_tpu">[docs]</a><span class="k">def</span> <span class="nf">use_tpu</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="use_tpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.use_tpu">[docs]</a><span class="k">def</span> <span class="nf">use_tpu</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="n">res</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span>
   <span class="k">if</span> <span class="n">res</span><span class="p">:</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span>  <span class="c1"># asserts not supported on tpu</span>
   <span class="k">return</span> <span class="n">res</span></div>
 
 
-<div class="viewcode-block" id="tpu_compat"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.tpu_compat">[docs]</a><span class="k">def</span> <span class="nf">tpu_compat</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="tpu_compat"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.tpu_compat">[docs]</a><span class="k">def</span> <span class="nf">tpu_compat</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">return</span> <span class="n">use_tpu</span><span class="p">()</span> <span class="ow">or</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tpu_compatible</span></div>
 
 
-<div class="viewcode-block" id="use_resource_variables"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.use_resource_variables">[docs]</a><span class="k">def</span> <span class="nf">use_resource_variables</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="use_resource_variables"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.use_resource_variables">[docs]</a><span class="k">def</span> <span class="nf">use_resource_variables</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">return</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_resource_var</span> <span class="ow">or</span> <span class="n">tpu_compat</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="outside_all_rewrites"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.outside_all_rewrites">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<div class="viewcode-block" id="outside_all_rewrites"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.outside_all_rewrites">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">outside_all_rewrites</span><span class="p">():</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">yield</span></div>
@@ -387,23 +387,23 @@
 <span class="n">_tpu_device_assignment</span> <span class="o">=</span> <span class="kc">None</span>
 
 
-<div class="viewcode-block" id="SetTpuDeviceAssignment"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SetTpuDeviceAssignment">[docs]</a><span class="k">def</span> <span class="nf">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">tpu_device_assignment</span><span class="p">):</span>
+<div class="viewcode-block" id="SetTpuDeviceAssignment"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.SetTpuDeviceAssignment">[docs]</a><span class="k">def</span> <span class="nf">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">tpu_device_assignment</span><span class="p">):</span>
   <span class="k">global</span> <span class="n">_tpu_device_assignment</span>
   <span class="k">assert</span> <span class="n">_tpu_device_assignment</span> <span class="ow">is</span> <span class="kc">None</span>
   <span class="n">_tpu_device_assignment</span> <span class="o">=</span> <span class="n">tpu_device_assignment</span></div>
 
 
 <span class="c1"># This function should called in unittest only.</span>
-<div class="viewcode-block" id="ClearTpuDevice"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ClearTpuDevice">[docs]</a><span class="k">def</span> <span class="nf">ClearTpuDevice</span><span class="p">():</span>
+<div class="viewcode-block" id="ClearTpuDevice"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ClearTpuDevice">[docs]</a><span class="k">def</span> <span class="nf">ClearTpuDevice</span><span class="p">():</span>
   <span class="k">global</span> <span class="n">_tpu_device_assignment</span>
   <span class="n">_tpu_device_assignment</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 
-<div class="viewcode-block" id="GetTpuDeviceAssignment"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetTpuDeviceAssignment">[docs]</a><span class="k">def</span> <span class="nf">GetTpuDeviceAssignment</span><span class="p">():</span>
+<div class="viewcode-block" id="GetTpuDeviceAssignment"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GetTpuDeviceAssignment">[docs]</a><span class="k">def</span> <span class="nf">GetTpuDeviceAssignment</span><span class="p">():</span>
   <span class="k">return</span> <span class="n">_tpu_device_assignment</span></div>
 
 
-<div class="viewcode-block" id="SessionConfig"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SessionConfig">[docs]</a><span class="k">def</span> <span class="nf">SessionConfig</span><span class="p">(</span><span class="n">soft_placement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="SessionConfig"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.SessionConfig">[docs]</a><span class="k">def</span> <span class="nf">SessionConfig</span><span class="p">(</span><span class="n">soft_placement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a session config proto.</span>
 
 <span class="sd">  Args:</span>
@@ -427,14 +427,15 @@
 <span class="n">_NAME_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="s1">&#39;[A-Za-z_][A-Za-z0-9_]*&#39;</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="NestedMap"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap">[docs]</a><span class="k">class</span> <span class="nc">NestedMap</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap">[docs]</a><span class="k">class</span> <span class="nc">NestedMap</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A simpler helper to maintain a dict.</span>
 
-<span class="sd">  E.g.</span>
-<span class="sd">    foo = NestedMap()</span>
-<span class="sd">    foo[&#39;x&#39;] = 10</span>
-<span class="sd">    foo.y = 20</span>
-<span class="sd">    assert foo.x * 2 == foo.y</span>
+<span class="sd">  E.g.::</span>
+
+<span class="sd">      &gt;&gt;&gt; foo = NestedMap()</span>
+<span class="sd">      &gt;&gt;&gt; foo[&#39;x&#39;] = 10</span>
+<span class="sd">      &gt;&gt;&gt; foo.y = 20</span>
+<span class="sd">      &gt;&gt;&gt; assert foo.x * 2 == foo.y</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="c1"># Disable pytype attribute checking.</span>
@@ -456,19 +457,19 @@
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
           <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">; available attributes: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
 
-<div class="viewcode-block" id="NestedMap.copy"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.copy">[docs]</a>  <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># Don&#39;t delegate w/ super: dict.copy() -&gt; dict.</span>
+<div class="viewcode-block" id="NestedMap.copy"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.copy">[docs]</a>  <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># Don&#39;t delegate w/ super: dict.copy() -&gt; dict.</span>
     <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="NestedMap.DeepCopy"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.DeepCopy">[docs]</a>  <span class="k">def</span> <span class="nf">DeepCopy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.DeepCopy"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.DeepCopy">[docs]</a>  <span class="k">def</span> <span class="nf">DeepCopy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">flat_v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_v</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="NestedMap.CheckKey"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.CheckKey">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="NestedMap.CheckKey"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.CheckKey">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Asserts that key is valid NestedMap key.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_NAME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">key</span></div>
 
-<div class="viewcode-block" id="NestedMap.Flatten"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Flatten">[docs]</a>  <span class="k">def</span> <span class="nf">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Flatten"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.Flatten">[docs]</a>  <span class="k">def</span> <span class="nf">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Flatten the nested map and returns values in a list.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">Expand</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
@@ -487,7 +488,7 @@
       <span class="n">ret</span> <span class="o">+=</span> <span class="n">Expand</span><span class="p">(</span><span class="bp">self</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="NestedMap.FlattenItems"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.FlattenItems">[docs]</a>  <span class="k">def</span> <span class="nf">FlattenItems</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.FlattenItems"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.FlattenItems">[docs]</a>  <span class="k">def</span> <span class="nf">FlattenItems</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Flatten the nested map and returns &lt;key, value&gt; pairs in a list.</span>
 
 <span class="sd">    Returns:</span>
@@ -512,7 +513,7 @@
 
     <span class="k">return</span> <span class="n">Expand</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="NestedMap.Transform"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Transform"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.Transform">[docs]</a>  <span class="k">def</span> <span class="nf">Transform</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this NestedMap with fn applied on each value.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">DoTransform</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
@@ -532,7 +533,7 @@
 
     <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="NestedMap.Filter"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Filter">[docs]</a>  <span class="k">def</span> <span class="nf">Filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Filter"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.Filter">[docs]</a>  <span class="k">def</span> <span class="nf">Filter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this NestedMap with entries that fn(entry) is True.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">DoFilter</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
@@ -558,7 +559,7 @@
 
     <span class="k">return</span> <span class="n">ret</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="NestedMap.Pack"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.Pack">[docs]</a>  <span class="k">def</span> <span class="nf">Pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.Pack"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.Pack">[docs]</a>  <span class="k">def</span> <span class="nf">Pack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lst</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a copy of this with each value replaced by a value in lst.&quot;&quot;&quot;</span>
 
     <span class="k">class</span> <span class="nc">DoPack</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -572,14 +573,14 @@
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">DoPack</span><span class="p">(</span><span class="n">lst</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="NestedMap.IsCompatible"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.IsCompatible">[docs]</a>  <span class="k">def</span> <span class="nf">IsCompatible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.IsCompatible"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.IsCompatible">[docs]</a>  <span class="k">def</span> <span class="nf">IsCompatible</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns true if self and other is compatible.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      other: Another NestedMap.</span>
 
-<span class="sd">    If x and y are two compatible NestedMap, x.Pack(y.Flatten())</span>
-<span class="sd">    produces y and y.Pack(x.Flatten()) produces x.</span>
+<span class="sd">    If x and y are two compatible `.NestedMap`, `x.Pack(y.Flatten())`</span>
+<span class="sd">    produces y and `y.Pack(x.Flatten())` produces x.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">DoCompare</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
@@ -604,7 +605,7 @@
 
     <span class="k">return</span> <span class="n">DoCompare</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="NestedMap.DebugString"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.DebugString">[docs]</a>  <span class="k">def</span> <span class="nf">DebugString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="NestedMap.DebugString"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NestedMap.DebugString">[docs]</a>  <span class="k">def</span> <span class="nf">DebugString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a debug string for this nested map.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">Print</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
@@ -630,7 +631,7 @@
     <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">strs</span><span class="p">))</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">_Unique</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_Unique"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._Unique">[docs]</a><span class="k">class</span> <span class="nc">_Unique</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A helper to uniqify variables in a NestedMap.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -641,15 +642,15 @@
       <span class="k">return</span> <span class="kc">False</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_vset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-      <span class="k">return</span> <span class="kc">True</span>
+      <span class="k">return</span> <span class="kc">True</span></div>
 
 
-<div class="viewcode-block" id="ToUniqueList"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ToUniqueList">[docs]</a><span class="k">def</span> <span class="nf">ToUniqueList</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Returns the flattened nmap with duplicates removed.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ToUniqueList"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ToUniqueList">[docs]</a><span class="k">def</span> <span class="nf">ToUniqueList</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the flattened `nmap` with duplicates removed.&quot;&quot;&quot;</span>
   <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">_Unique</span><span class="p">())</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="ReadOnlyAttrDictView"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ReadOnlyAttrDictView">[docs]</a><span class="k">def</span> <span class="nf">ReadOnlyAttrDictView</span><span class="p">(</span><span class="n">backing</span><span class="p">):</span>
+<div class="viewcode-block" id="ReadOnlyAttrDictView"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ReadOnlyAttrDictView">[docs]</a><span class="k">def</span> <span class="nf">ReadOnlyAttrDictView</span><span class="p">(</span><span class="n">backing</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps a dict to provide a read-only view of its contents.</span>
 
 <span class="sd">  Dict keys can also be accessed by attribute.</span>
@@ -690,58 +691,58 @@
   <span class="k">return</span> <span class="n">Wrapper</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="WeightInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit">[docs]</a><span class="k">class</span> <span class="nc">WeightInit</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="WeightInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit">[docs]</a><span class="k">class</span> <span class="nc">WeightInit</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Static class providing weight initialization config params.&quot;&quot;&quot;</span>
 
-  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit._Params"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit._Params">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">_Params</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;method&#39;</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="s1">&#39;Initialization method.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="s1">&#39;Initialization scale.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="s1">&#39;Random seed used to generate initial values.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="WeightInit.Gaussian"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.Gaussian">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit.Gaussian"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.Gaussian">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">Gaussian</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;scale * tf.random_normal(0, 1.0).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="WeightInit.Uniform"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.Uniform">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit.Uniform"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.Uniform">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">Uniform</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;scale * tf.random_uniform(-1.0, 1.0).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="WeightInit.Xavier"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.Xavier">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit.Xavier"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.Xavier">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">Xavier</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Xavier initialization (`x = sqrt(6. / (in + out)); [-x, x]`).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); [-x, x]).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;xavier&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="WeightInit.Constant"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.Constant">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit.Constant"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.Constant">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">Constant</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;scale.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;constant&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="WeightInit.TruncatedGaussian"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.TruncatedGaussian">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit.TruncatedGaussian"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.TruncatedGaussian">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">TruncatedGaussian</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;scale * tf.truncated_normal(0, 1.0).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;truncated_gaussian&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="WeightInit.GaussianSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.GaussianSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit.GaussianSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.GaussianSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">GaussianSqrtDim</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;scale * tf.random_normal(0, 1 / sqrt(dim0)).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="WeightInit.UniformSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.UniformSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit.UniformSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.UniformSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">UniformSqrtDim</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;scale * tf.uniform(-1 / sqrt(dim0), 1 / sqrt(dim0)).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;uniform_sqrt_dim&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="WeightInit.UniformUnitScaling"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.UniformUnitScaling">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit.UniformUnitScaling"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.UniformUnitScaling">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">UniformUnitScaling</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;scale * sqrt(3) / sqrt(dim0) * tf.uniform(-1, 1).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;uniform_unit_scaling&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="WeightInit.TruncatedGaussianSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="WeightInit.TruncatedGaussianSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightInit.TruncatedGaussianSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">TruncatedGaussianSqrtDim</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;scale * tf.truncated_normal(0, 1 / sqrt(dim0)).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div></div>
@@ -750,18 +751,18 @@
 <span class="n">_DEFAULT_XAVIER_INIT</span> <span class="o">=</span> <span class="mf">1.000001</span>
 
 
-<div class="viewcode-block" id="DefaultParamInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.DefaultParamInit">[docs]</a><span class="k">def</span> <span class="nf">DefaultParamInit</span><span class="p">():</span>
+<div class="viewcode-block" id="DefaultParamInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.DefaultParamInit">[docs]</a><span class="k">def</span> <span class="nf">DefaultParamInit</span><span class="p">():</span>
   <span class="c1"># Here we use 1.000001 as a signature for user picking up the</span>
   <span class="c1"># default param initializer.</span>
   <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="n">_DEFAULT_XAVIER_INIT</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="IsDefaultParamInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.IsDefaultParamInit">[docs]</a><span class="k">def</span> <span class="nf">IsDefaultParamInit</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+<div class="viewcode-block" id="IsDefaultParamInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.IsDefaultParamInit">[docs]</a><span class="k">def</span> <span class="nf">IsDefaultParamInit</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
   <span class="k">return</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;xavier&#39;</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">scale</span> <span class="o">==</span> <span class="n">_DEFAULT_XAVIER_INIT</span> <span class="ow">and</span>
           <span class="n">p</span><span class="o">.</span><span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="WeightParams"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightParams">[docs]</a><span class="k">def</span> <span class="nf">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="WeightParams"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightParams">[docs]</a><span class="k">def</span> <span class="nf">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">collections</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a hyperparams for a weight variable given the shape/init/dtype.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">init</span> <span class="o">=</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="n">_DEFAULT_XAVIER_INIT</span><span class="p">)</span>
@@ -778,7 +779,7 @@
   <span class="k">return</span> <span class="n">p</span></div>
 
 
-<div class="viewcode-block" id="FindNeeded"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.FindNeeded">[docs]</a><span class="k">def</span> <span class="nf">FindNeeded</span><span class="p">(</span><span class="n">endpoints</span><span class="p">):</span>
+<div class="viewcode-block" id="FindNeeded"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.FindNeeded">[docs]</a><span class="k">def</span> <span class="nf">FindNeeded</span><span class="p">(</span><span class="n">endpoints</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;List names of tensors and operations required to compute endpoints.&quot;&quot;&quot;</span>
   <span class="n">names_seen</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
   <span class="n">queue</span> <span class="o">=</span> <span class="p">[]</span>
@@ -798,13 +799,13 @@
   <span class="k">return</span> <span class="n">names_seen</span></div>
 
 
-<div class="viewcode-block" id="FindNeededInList"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.FindNeededInList">[docs]</a><span class="k">def</span> <span class="nf">FindNeededInList</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">,</span> <span class="n">endpoints</span><span class="p">):</span>
+<div class="viewcode-block" id="FindNeededInList"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.FindNeededInList">[docs]</a><span class="k">def</span> <span class="nf">FindNeededInList</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">,</span> <span class="n">endpoints</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Return tensors from tensor_list needed to compute any of endpoints.&quot;&quot;&quot;</span>
   <span class="n">all_needed</span> <span class="o">=</span> <span class="n">FindNeeded</span><span class="p">(</span><span class="n">endpoints</span><span class="p">)</span>
   <span class="k">return</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensor_list</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">all_needed</span><span class="p">]</span></div>
 
 
-<span class="k">class</span> <span class="nc">_CollectionGetter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_CollectionGetter"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._CollectionGetter">[docs]</a><span class="k">class</span> <span class="nc">_CollectionGetter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Get graph local value from a defined collection.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default_factory</span><span class="p">):</span>
@@ -818,7 +819,7 @@
       <span class="k">return</span> <span class="n">collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_default_factory</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="n">value</span></div>
 
 
 <span class="c1"># Global variable to control multitask variable reuse</span>
@@ -839,7 +840,7 @@
                                             <span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
 
 
-<div class="viewcode-block" id="OpportunisticVariableReuseScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.OpportunisticVariableReuseScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<div class="viewcode-block" id="OpportunisticVariableReuseScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.OpportunisticVariableReuseScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="n">enable_opportunistic_reuse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="n">opportunistic_var_reuse</span> <span class="o">=</span> <span class="n">_get_opportunistic_variable_reuse</span><span class="p">()</span>
   <span class="n">old_val</span> <span class="o">=</span> <span class="n">opportunistic_var_reuse</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -848,7 +849,7 @@
   <span class="n">opportunistic_var_reuse</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">old_val</span></div>
 
 
-<div class="viewcode-block" id="VariableRenameScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.VariableRenameScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<div class="viewcode-block" id="VariableRenameScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.VariableRenameScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">VariableRenameScope</span><span class="p">(</span><span class="n">renames</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Append the renaming rules to the stack of renames.</span>
 
@@ -865,7 +866,7 @@
   <span class="n">rename_rules_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="GetVariableName"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetVariableName">[docs]</a><span class="k">def</span> <span class="nf">GetVariableName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="GetVariableName"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GetVariableName">[docs]</a><span class="k">def</span> <span class="nf">GetVariableName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Get variable name after application of all renaming rules.</span>
 
 <span class="sd">  Args:</span>
@@ -889,7 +890,7 @@
   <span class="k">return</span> <span class="n">new_name</span></div>
 
 
-<div class="viewcode-block" id="GenerateSeedFromName"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GenerateSeedFromName">[docs]</a><span class="k">def</span> <span class="nf">GenerateSeedFromName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="GenerateSeedFromName"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GenerateSeedFromName">[docs]</a><span class="k">def</span> <span class="nf">GenerateSeedFromName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Generate a random seed from a name string.&quot;&quot;&quot;</span>
   <span class="n">md5</span> <span class="o">=</span> <span class="n">hashlib</span><span class="o">.</span><span class="n">md5</span><span class="p">()</span>
   <span class="n">md5</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
@@ -904,7 +905,7 @@
 
 
 <span class="c1"># TODO(yonghui): Add support for partitioned Variables.</span>
-<div class="viewcode-block" id="CreateVariable"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CreateVariable">[docs]</a><span class="k">def</span> <span class="nf">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+<div class="viewcode-block" id="CreateVariable"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.CreateVariable">[docs]</a><span class="k">def</span> <span class="nf">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
                    <span class="n">params</span><span class="p">,</span>
                    <span class="n">reuse</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">trainable</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
@@ -977,7 +978,7 @@
   <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;xavier&#39;</span><span class="p">]:</span>
     <span class="c1"># pylint: disable=unused-argument</span>
     <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Xavier initialization (`x = sqrt(6. / (in + out)); scale*[-x, x]`).&quot;&quot;&quot;</span>
+      <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
@@ -1057,14 +1058,14 @@
 <span class="n">global_variable_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
 
 
-<div class="viewcode-block" id="GetOrCreateGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetOrCreateGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">GetOrCreateGlobalStep</span><span class="p">():</span>
+<div class="viewcode-block" id="GetOrCreateGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GetOrCreateGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">GetOrCreateGlobalStep</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Create if needed and return the global_step.&quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
       <span class="n">global_variable_scope</span><span class="p">,</span> <span class="n">use_resource</span><span class="o">=</span><span class="n">use_resource_variables</span><span class="p">()):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_or_create_global_step</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="CreateTaskGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CreateTaskGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">CreateTaskGlobalStep</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">task_name</span><span class="p">):</span>
+<div class="viewcode-block" id="CreateTaskGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.CreateTaskGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">CreateTaskGlobalStep</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">task_name</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Create if needed and return the global_step.&quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">global_variable_scope</span><span class="p">):</span>
     <span class="n">graph_collections</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">GLOBAL_VARIABLES</span><span class="p">,</span> <span class="s1">&#39;TASK_GLOBAL_STEP&#39;</span><span class="p">]</span>
@@ -1077,7 +1078,7 @@
     <span class="k">return</span> <span class="n">v</span></div>
 
 
-<span class="k">def</span> <span class="nf">_LogPlacement</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">copy</span><span class="p">):</span>
+<div class="viewcode-block" id="_LogPlacement"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._LogPlacement">[docs]</a><span class="k">def</span> <span class="nf">_LogPlacement</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">copy</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Logs theta and its copy&#39;s device placement.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">GetDevices</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
@@ -1090,10 +1091,10 @@
       <span class="n">theta</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
           <span class="p">[(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> -&gt; </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
            <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">GetDevices</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="n">GetDevices</span><span class="p">(</span><span class="n">copy</span><span class="p">))])</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
-  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;==========&#39;</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;==========&#39;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="CreateLocalTheta"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CreateLocalTheta">[docs]</a><span class="k">def</span> <span class="nf">CreateLocalTheta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">device_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CreateLocalTheta"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.CreateLocalTheta">[docs]</a><span class="k">def</span> <span class="nf">CreateLocalTheta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">device_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates local copy of theta and shards across devices device list.</span>
 
 <span class="sd">  Leaves variables intact.</span>
@@ -1105,7 +1106,7 @@
 <span class="sd">    label: Logging label.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap of identity() wrapped theta</span>
+<span class="sd">    A `.NestedMap` of identity() wrapped theta</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">class</span> <span class="nc">AddIdentity</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -1126,7 +1127,7 @@
   <span class="k">return</span> <span class="n">copy</span></div>
 
 
-<span class="k">def</span> <span class="nf">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span> <span class="n">var_ignore_rules</span><span class="p">):</span>
+<div class="viewcode-block" id="_GetVarsToLoad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._GetVarsToLoad">[docs]</a><span class="k">def</span> <span class="nf">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span> <span class="n">var_ignore_rules</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Determines variables to load and their names in checkpoint.&quot;&quot;&quot;</span>
   <span class="c1"># This list contains mappings from var names as they appear in the checkpoint</span>
   <span class="c1"># to the vars in our model they correspond to.</span>
@@ -1145,10 +1146,10 @@
       <span class="k">if</span> <span class="n">checkpoint_var_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;:0&#39;</span><span class="p">):</span>
         <span class="n">checkpoint_var_name</span> <span class="o">=</span> <span class="n">checkpoint_var_name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
       <span class="n">vars_to_load</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">checkpoint_var_name</span><span class="p">,</span> <span class="n">model_var</span><span class="p">))</span>
-  <span class="k">return</span> <span class="n">vars_to_load</span>
+  <span class="k">return</span> <span class="n">vars_to_load</span></div>
 
 
-<span class="k">def</span> <span class="nf">_OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">,</span>
+<div class="viewcode-block" id="_OverrideVarsFromCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._OverrideVarsFromCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">_OverrideVarsFromCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">,</span>
                                 <span class="n">variable_loading_rules</span><span class="p">,</span> <span class="n">var_ignore_rules</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Overrides variables from a provided checkpoint.&quot;&quot;&quot;</span>
   <span class="n">vars_to_load</span> <span class="o">=</span> <span class="n">_GetVarsToLoad</span><span class="p">(</span><span class="n">all_vars</span><span class="p">,</span> <span class="n">variable_loading_rules</span><span class="p">,</span>
@@ -1173,10 +1174,10 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">remaining_vars_to_load</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">var_list</span><span class="o">=</span><span class="n">unique_vars_to_load</span><span class="p">)</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
-    <span class="n">vars_to_load</span> <span class="o">=</span> <span class="n">remaining_vars_to_load</span>
+    <span class="n">vars_to_load</span> <span class="o">=</span> <span class="n">remaining_vars_to_load</span></div>
 
 
-<div class="viewcode-block" id="OverrideVarsFromCheckpoints"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.OverrideVarsFromCheckpoints">[docs]</a><span class="k">def</span> <span class="nf">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">ckpts_loading_rules</span><span class="p">):</span>
+<div class="viewcode-block" id="OverrideVarsFromCheckpoints"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.OverrideVarsFromCheckpoints">[docs]</a><span class="k">def</span> <span class="nf">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">session</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">ckpts_loading_rules</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Overrides model variables from checkpoints.</span>
 
 <span class="sd">  Args:</span>
@@ -1225,15 +1226,15 @@
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Model variables overridden: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">vars_overridden</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">):</span>
+<div class="viewcode-block" id="_ComputeGradientsSimple"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._ComputeGradientsSimple">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
       <span class="n">loss</span><span class="p">,</span>
       <span class="n">all_vars</span><span class="p">,</span>
       <span class="n">aggregation_method</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>  <span class="c1"># Tree</span>
-      <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_ComputeGradientsTpu</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">):</span>
+<div class="viewcode-block" id="_ComputeGradientsTpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._ComputeGradientsTpu">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsTpu</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients for local loss across whole TPU cluster.&quot;&quot;&quot;</span>
   <span class="c1"># Scale the loss to account for the full batch size.</span>
   <span class="n">shards</span> <span class="o">=</span> <span class="n">tpu_function</span><span class="o">.</span><span class="n">get_tpu_context</span><span class="p">()</span><span class="o">.</span><span class="n">number_of_shards</span>
@@ -1258,18 +1259,18 @@
         <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">g</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">aggregated_grads</span>
+  <span class="k">return</span> <span class="n">aggregated_grads</span></div>
 
 
-<div class="viewcode-block" id="ComputeGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
+<div class="viewcode-block" id="ComputeGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ComputeGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients of variables in vmap w.r.t. to loss.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    loss: A scalar Tensor.</span>
-<span class="sd">    vmap: A NestedMap of variables.</span>
+<span class="sd">    vmap: A `.NestedMap` of variables.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    var_grad: a NestedMap of (variable, gradient). You can view</span>
+<span class="sd">    var_grad - a NestedMap of (variable, gradient). You can view</span>
 <span class="sd">    var_grad as an ordered list of (key, (var, grad)) tuples. Every</span>
 <span class="sd">    key of var_grad exists in vmap. Every variable in vmap that</span>
 <span class="sd">    contributes to loss must exist in var_grad. Every var of var_grad</span>
@@ -1316,16 +1317,16 @@
   <span class="k">return</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v_g</span><span class="p">:</span> <span class="n">v_g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ApplyGradMultiplier"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ApplyGradMultiplier">[docs]</a><span class="k">def</span> <span class="nf">ApplyGradMultiplier</span><span class="p">(</span><span class="n">vs_gs_scale</span><span class="p">,</span> <span class="n">grad_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="ApplyGradMultiplier"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ApplyGradMultiplier">[docs]</a><span class="k">def</span> <span class="nf">ApplyGradMultiplier</span><span class="p">(</span><span class="n">vs_gs_scale</span><span class="p">,</span> <span class="n">grad_scale</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Scale gradients by grad_scale on same device as corresponding variables.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    vs_gs_scale: A NestedMap of (variable, gradient, scale).</span>
+<span class="sd">    vs_gs_scale: A `.NestedMap` of (variable, gradient, scale).</span>
 <span class="sd">    grad_scale: If None, each vs_gs entry has the scale. Otherwise,</span>
 <span class="sd">      grad_scale applies to every entry.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap of (variable, gradient * grad_scale). In particular, if</span>
+<span class="sd">    A `.NestedMap` of (variable, gradient * grad_scale). In particular, if</span>
 <span class="sd">    grad_scale is 0, the result gradient is always 0, even if the input</span>
 <span class="sd">    gradient is inf or nan.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -1354,7 +1355,7 @@
   <span class="k">return</span> <span class="n">vs_gs_scale</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Scale</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="AdjustGradientsWithL2Loss"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AdjustGradientsWithL2Loss">[docs]</a><span class="k">def</span> <span class="nf">AdjustGradientsWithL2Loss</span><span class="p">(</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">l2_regularizer_weight</span><span class="p">):</span>
+<div class="viewcode-block" id="AdjustGradientsWithL2Loss"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.AdjustGradientsWithL2Loss">[docs]</a><span class="k">def</span> <span class="nf">AdjustGradientsWithL2Loss</span><span class="p">(</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">l2_regularizer_weight</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adjusts the map of (var, grad) with L2 regularization.</span>
 
 <span class="sd">  Args:</span>
@@ -1362,8 +1363,10 @@
 <span class="sd">    l2_regularizer_weight: L2 regularization weight.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    l2_loss: A scalar. The l2 loss.</span>
-<span class="sd">    var_grads: a NestedMap of (variable, gradient) regulated by L2.</span>
+<span class="sd">    A tuple (l2_loss, var_grads).</span>
+
+<span class="sd">    - l2_loss: A scalar. The l2 loss.</span>
+<span class="sd">    - var_grads: a NestedMap of (variable, gradient) regulated by L2.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">GetVar</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
@@ -1418,7 +1421,7 @@
   <span class="k">return</span> <span class="n">l2_loss</span><span class="p">,</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">L2Grad</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="SplitRecursively"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SplitRecursively">[docs]</a><span class="k">def</span> <span class="nf">SplitRecursively</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="SplitRecursively"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.SplitRecursively">[docs]</a><span class="k">def</span> <span class="nf">SplitRecursively</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Splits Tensors in &#39;x&#39; recursively.</span>
 
 <span class="sd">  Args:</span>
@@ -1427,13 +1430,14 @@
 <span class="sd">    axis: the split axis.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A list of split values of length &#39;num_splits&#39;:</span>
+<span class="sd">    A list of split values of length &#39;num_splits&#39;.</span>
+
 <span class="sd">    - If &#39;x&#39; is a Tensor, a list of split Tensors.</span>
 <span class="sd">    - If &#39;x&#39; is a list, a list of lists, where each sublist has the same length</span>
 <span class="sd">      as &#39;x&#39; and the k&#39;th element in each sublist corresponds to a split of the</span>
 <span class="sd">      k&#39;th element from &#39;x&#39;.</span>
-<span class="sd">    - If &#39;x&#39; is a NestedMap, a list of NestedMaps, where each field correspends</span>
-<span class="sd">      to a split from the same field of &#39;x&#39;.</span>
+<span class="sd">    - If &#39;x&#39; is a NestedMap, a list of `.NestedMap`, where each field</span>
+<span class="sd">      corresponds to a split from the same field of &#39;x&#39;.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
@@ -1452,25 +1456,26 @@
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Unexpected type for SplitRecursively: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">x</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="ConcatRecursively"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ConcatRecursively">[docs]</a><span class="k">def</span> <span class="nf">ConcatRecursively</span><span class="p">(</span><span class="n">splits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="ConcatRecursively"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ConcatRecursively">[docs]</a><span class="k">def</span> <span class="nf">ConcatRecursively</span><span class="p">(</span><span class="n">splits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Concatenates tensors from &#39;splits&#39;.</span>
 
 <span class="sd">  This is the inverse function of SplitRecursively.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    splits: a list of splits to concatenate, where elements can be Tensors,</span>
-<span class="sd">      lists, or NestedMaps. The elements must share the same type and structure.</span>
-<span class="sd">      For example, list elements must have the same length; NestedMaps must have</span>
-<span class="sd">      the same set of fields.</span>
+<span class="sd">      lists, or `.NestedMap`. The elements must share the same type and</span>
+<span class="sd">      structure.  For example, list elements must have the same length;</span>
+<span class="sd">      `.NestedMap` must have the same set of fields.</span>
 <span class="sd">    axis: the concatenation axis.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    Concatenated data.</span>
+
 <span class="sd">    - If input &#39;splits&#39; are Tensors, returns a concatenated Tensor.</span>
 <span class="sd">    - If input &#39;splits&#39; are lists, returns a list of the same length where the</span>
 <span class="sd">      k&#39;th element represents concatenated data of the k&#39;th element from each</span>
 <span class="sd">      split.</span>
-<span class="sd">    - If input &#39;splits&#39; are NestedMaps, returns a NestedMap with each field</span>
+<span class="sd">    - If input &#39;splits&#39; are `.NestedMap`, returns a NestedMap with each field</span>
 <span class="sd">      concatenated from corresponding fields of input splits.</span>
 
 <span class="sd">  Raises:</span>
@@ -1509,7 +1514,7 @@
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Unexpected type for ConcatRecursively: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">splits</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="AddToPruningCollections"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AddToPruningCollections">[docs]</a><span class="k">def</span> <span class="nf">AddToPruningCollections</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+<div class="viewcode-block" id="AddToPruningCollections"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.AddToPruningCollections">[docs]</a><span class="k">def</span> <span class="nf">AddToPruningCollections</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Add mask, threshold, and weight vars to their respective collections.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">mask</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">pruning_layers</span><span class="o">.</span><span class="n">MASK_COLLECTION</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning_layers</span><span class="o">.</span><span class="n">WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
@@ -1517,7 +1522,7 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning_layers</span><span class="o">.</span><span class="n">THRESHOLD_COLLECTION</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="WeightedAvg"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightedAvg">[docs]</a><span class="k">def</span> <span class="nf">WeightedAvg</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">sum_reduction_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">):</span>
+<div class="viewcode-block" id="WeightedAvg"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightedAvg">[docs]</a><span class="k">def</span> <span class="nf">WeightedAvg</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">sum_reduction_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes weighted average of values from a tensor.</span>
 
 <span class="sd">  Args:</span>
@@ -1526,8 +1531,10 @@
 <span class="sd">    sum_reduction_fn: called to reduce the values and weights to single value.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    avg: weighted average value</span>
-<span class="sd">    total_weight: sum of all weights</span>
+<span class="sd">    A tuple (avg, total_weight).</span>
+
+<span class="sd">    - avg: weighted average value</span>
+<span class="sd">    - total_weight: sum of all weights</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">values</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">([</span>
       <span class="n">assert_equal</span><span class="p">(</span>
@@ -1541,14 +1548,14 @@
   <span class="k">return</span> <span class="n">avg</span><span class="p">,</span> <span class="n">total_weight</span></div>
 
 
-<div class="viewcode-block" id="WeightedAvgOfMetrics"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightedAvgOfMetrics">[docs]</a><span class="k">def</span> <span class="nf">WeightedAvgOfMetrics</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
+<div class="viewcode-block" id="WeightedAvgOfMetrics"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.WeightedAvgOfMetrics">[docs]</a><span class="k">def</span> <span class="nf">WeightedAvgOfMetrics</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes the weighted average of metrics in the list.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    metrics: list of dictionaries of metrics</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    ret_dict: dictionary of weighted averages of each metrics</span>
+<span class="sd">    ret_dict - dictionary of weighted averages of each metrics.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">ret_dict</span> <span class="o">=</span> <span class="p">{}</span>
   <span class="n">lists_of_metrics</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1566,7 +1573,7 @@
   <span class="k">return</span> <span class="n">ret_dict</span></div>
 
 
-<div class="viewcode-block" id="CombineMetrics"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CombineMetrics">[docs]</a><span class="k">def</span> <span class="nf">CombineMetrics</span><span class="p">(</span><span class="n">loss_metric_weight_pairs</span><span class="p">):</span>
+<div class="viewcode-block" id="CombineMetrics"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.CombineMetrics">[docs]</a><span class="k">def</span> <span class="nf">CombineMetrics</span><span class="p">(</span><span class="n">loss_metric_weight_pairs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Combines metrics from `loss_metric_weight_pairs` according to weights.</span>
 
 <span class="sd">  Keys must either exist in all metrics, in which it will be processed as a</span>
@@ -1617,7 +1624,7 @@
   <span class="k">return</span> <span class="n">result</span></div>
 
 
-<div class="viewcode-block" id="StatsCounter"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.StatsCounter">[docs]</a><span class="k">class</span> <span class="nc">StatsCounter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="StatsCounter"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.StatsCounter">[docs]</a><span class="k">class</span> <span class="nc">StatsCounter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A single counter in TF.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -1628,11 +1635,11 @@
         <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var</span><span class="o">.</span><span class="n">value</span><span class="p">()</span> <span class="o">+</span> <span class="mi">0</span>  <span class="c1"># Makes a copy.</span>
 
-<div class="viewcode-block" id="StatsCounter.Value"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.StatsCounter.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="StatsCounter.Value"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.StatsCounter.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the current counter value.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span></div>
 
-<div class="viewcode-block" id="StatsCounter.IncBy"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.StatsCounter.IncBy">[docs]</a>  <span class="k">def</span> <span class="nf">IncBy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
+<div class="viewcode-block" id="StatsCounter.IncBy"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.StatsCounter.IncBy">[docs]</a>  <span class="k">def</span> <span class="nf">IncBy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">delta</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Increment the counter by delta and return the new value.&quot;&quot;&quot;</span>
     <span class="c1"># NOTE: We must ensure _value is computed (_var + 0) before</span>
     <span class="c1"># updating _var with delta.</span>
@@ -1642,17 +1649,17 @@
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var</span><span class="p">,</span> <span class="n">delta</span><span class="p">))</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">_AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_AddVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._AddVN">[docs]</a><span class="k">def</span> <span class="nf">_AddVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
   <span class="n">seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">seed</span>
   <span class="k">if</span> <span class="n">seed</span> <span class="ow">and</span> <span class="n">step</span><span class="p">:</span>
     <span class="n">seed</span> <span class="o">+=</span> <span class="n">step</span> <span class="o">*</span> <span class="mi">203984</span>
   <span class="n">noises</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">(</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">noises</span>
+  <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">noises</span></div>
 
 
-<div class="viewcode-block" id="AddGlobalVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AddGlobalVN">[docs]</a><span class="k">def</span> <span class="nf">AddGlobalVN</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+<div class="viewcode-block" id="AddGlobalVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.AddGlobalVN">[docs]</a><span class="k">def</span> <span class="nf">AddGlobalVN</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adds variational noise to weights if specified by params.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">global_vn</span><span class="p">:</span>
@@ -1660,7 +1667,7 @@
   <span class="k">return</span> <span class="n">weights</span></div>
 
 
-<div class="viewcode-block" id="AddPerStepVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AddPerStepVN">[docs]</a><span class="k">def</span> <span class="nf">AddPerStepVN</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AddPerStepVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.AddPerStepVN">[docs]</a><span class="k">def</span> <span class="nf">AddPerStepVN</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adds per-setp variational noise to weights if specified by params.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
   <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">:</span>
@@ -1668,7 +1675,7 @@
   <span class="k">return</span> <span class="n">weights</span></div>
 
 
-<div class="viewcode-block" id="VariationalNoiseParams"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.VariationalNoiseParams">[docs]</a><span class="k">def</span> <span class="nf">VariationalNoiseParams</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">global_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">per_step_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<div class="viewcode-block" id="VariationalNoiseParams"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.VariationalNoiseParams">[docs]</a><span class="k">def</span> <span class="nf">VariationalNoiseParams</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="n">global_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">per_step_vn</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a hyperparams for variational noise.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -1684,7 +1691,7 @@
   <span class="k">return</span> <span class="n">p</span></div>
 
 
-<div class="viewcode-block" id="GetStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetStepSeed">[docs]</a><span class="k">def</span> <span class="nf">GetStepSeed</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="GetStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GetStepSeed">[docs]</a><span class="k">def</span> <span class="nf">GetStepSeed</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Gets step_seed.&quot;&quot;&quot;</span>
   <span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
   <span class="n">step_seed_tensors</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="s1">&#39;step_seed&#39;</span><span class="p">)</span>
@@ -1693,7 +1700,7 @@
   <span class="k">return</span> <span class="kc">None</span></div>
 
 
-<div class="viewcode-block" id="ResetStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ResetStepSeed">[docs]</a><span class="k">def</span> <span class="nf">ResetStepSeed</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="ResetStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ResetStepSeed">[docs]</a><span class="k">def</span> <span class="nf">ResetStepSeed</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Resets step_seed to specified value.&quot;&quot;&quot;</span>
   <span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
   <span class="n">step_seed_tensors</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="s1">&#39;step_seed&#39;</span><span class="p">)</span>
@@ -1706,7 +1713,7 @@
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Multiple tensors in step_seed collection.&#39;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="GetIncStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetIncStepSeed">[docs]</a><span class="k">def</span> <span class="nf">GetIncStepSeed</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="GetIncStepSeed"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GetIncStepSeed">[docs]</a><span class="k">def</span> <span class="nf">GetIncStepSeed</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns and increments the step_seed.&quot;&quot;&quot;</span>
   <span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
   <span class="n">step_seed_tensors</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="s1">&#39;step_seed&#39;</span><span class="p">)</span>
@@ -1718,7 +1725,7 @@
   <span class="k">return</span> <span class="n">step_seed</span></div>
 
 
-<div class="viewcode-block" id="GetOpSeedPair"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetOpSeedPair">[docs]</a><span class="k">def</span> <span class="nf">GetOpSeedPair</span><span class="p">(</span><span class="n">op_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="GetOpSeedPair"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GetOpSeedPair">[docs]</a><span class="k">def</span> <span class="nf">GetOpSeedPair</span><span class="p">(</span><span class="n">op_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns the seed pair for an operation given op_seed.&quot;&quot;&quot;</span>
   <span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
   <span class="n">step_seed</span> <span class="o">=</span> <span class="n">GetIncStepSeed</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
@@ -1731,8 +1738,8 @@
   <span class="k">return</span> <span class="n">seeds</span></div>
 
 
-<div class="viewcode-block" id="DeterministicDropout"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.DeterministicDropout">[docs]</a><span class="k">def</span> <span class="nf">DeterministicDropout</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">,</span> <span class="n">seeds</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Similar to tf.nn.dropout(), but fully deterministic.</span>
+<div class="viewcode-block" id="DeterministicDropout"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.DeterministicDropout">[docs]</a><span class="k">def</span> <span class="nf">DeterministicDropout</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">,</span> <span class="n">seeds</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Similar to `tf.nn.dropout()`, but fully deterministic.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    x: A float Tensor on which to apply dropout.</span>
@@ -1780,7 +1787,7 @@
                                                  <span class="k">lambda</span><span class="p">:</span> <span class="p">{})</span>
 
 
-<div class="viewcode-block" id="UpdateBatchNormVars"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UpdateBatchNormVars">[docs]</a><span class="k">def</span> <span class="nf">UpdateBatchNormVars</span><span class="p">(</span><span class="n">batch_norm_var</span><span class="p">,</span> <span class="n">batch_norm_stats</span><span class="p">,</span> <span class="n">decay</span><span class="p">):</span>
+<div class="viewcode-block" id="UpdateBatchNormVars"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.UpdateBatchNormVars">[docs]</a><span class="k">def</span> <span class="nf">UpdateBatchNormVars</span><span class="p">(</span><span class="n">batch_norm_var</span><span class="p">,</span> <span class="n">batch_norm_stats</span><span class="p">,</span> <span class="n">decay</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Update batch normalization moving averages.&quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span>
       <span class="s1">&#39;AssignMovingAvg&#39;</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span>
@@ -1800,7 +1807,7 @@
   <span class="k">return</span> <span class="n">bn_update</span></div>
 
 
-<div class="viewcode-block" id="FindRelevantBatchNormUpdates"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.FindRelevantBatchNormUpdates">[docs]</a><span class="k">def</span> <span class="nf">FindRelevantBatchNormUpdates</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">batch_norm_updates</span><span class="p">):</span>
+<div class="viewcode-block" id="FindRelevantBatchNormUpdates"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.FindRelevantBatchNormUpdates">[docs]</a><span class="k">def</span> <span class="nf">FindRelevantBatchNormUpdates</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">batch_norm_updates</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Finds and returns a list of relevant batch-normalization updates.</span>
 
 <span class="sd">  Args:</span>
@@ -1837,11 +1844,11 @@
                                               <span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
 
-<div class="viewcode-block" id="GetModelSplit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetModelSplit">[docs]</a><span class="k">def</span> <span class="nf">GetModelSplit</span><span class="p">():</span>
+<div class="viewcode-block" id="GetModelSplit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.GetModelSplit">[docs]</a><span class="k">def</span> <span class="nf">GetModelSplit</span><span class="p">():</span>
   <span class="k">return</span> <span class="n">_get_model_split_id_stack</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="ModelSplit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ModelSplit">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<div class="viewcode-block" id="ModelSplit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ModelSplit">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">ModelSplit</span><span class="p">(</span><span class="n">split_id</span><span class="p">):</span>
   <span class="k">assert</span> <span class="n">split_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
   <span class="n">_get_model_split_id_stack</span><span class="p">()</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">split_id</span><span class="p">)</span>
@@ -1852,13 +1859,14 @@
 <span class="n">_SAMPLE_STEP_KEY</span> <span class="o">=</span> <span class="s1">&#39;sample_step&#39;</span>
 
 
-<div class="viewcode-block" id="SampleStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SampleStep">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<div class="viewcode-block" id="SampleStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.SampleStep">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">SampleStep</span><span class="p">(</span><span class="n">step</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A context for a sample step during decoding.</span>
 
-<span class="sd">  Example usage:</span>
-<span class="sd">    with py_utils.SampleStep(step):</span>
-<span class="sd">      sample = self.DecodeOneStep()</span>
+<span class="sd">  Example usage::</span>
+
+<span class="sd">      with py_utils.SampleStep(step):</span>
+<span class="sd">        sample = self.DecodeOneStep()</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    step: the step tensor.</span>
@@ -1874,15 +1882,15 @@
     <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
-<span class="k">def</span> <span class="nf">_GetSampleStep</span><span class="p">():</span>
+<div class="viewcode-block" id="_GetSampleStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._GetSampleStep">[docs]</a><span class="k">def</span> <span class="nf">_GetSampleStep</span><span class="p">():</span>
   <span class="n">stack</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">_SAMPLE_STEP_KEY</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">stack</span> <span class="k">else</span> <span class="kc">None</span>
+  <span class="k">return</span> <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">stack</span> <span class="k">else</span> <span class="kc">None</span></div>
 
 
-<div class="viewcode-block" id="AddDebugTensor"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AddDebugTensor">[docs]</a><span class="k">def</span> <span class="nf">AddDebugTensor</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AddDebugTensor"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.AddDebugTensor">[docs]</a><span class="k">def</span> <span class="nf">AddDebugTensor</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adds `tensor` to the debug collection.</span>
 
-<span class="sd">  Prints the tensor if --print_debug_tensors is True.</span>
+<span class="sd">  Prints the tensor if `--print_debug_tensors` is True.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    tensor: A tensor.</span>
@@ -1906,7 +1914,7 @@
   <span class="k">return</span> <span class="n">tensor</span></div>
 
 
-<div class="viewcode-block" id="ArgMax"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ArgMax">[docs]</a><span class="k">def</span> <span class="nf">ArgMax</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="ArgMax"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ArgMax">[docs]</a><span class="k">def</span> <span class="nf">ArgMax</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;tf.argmax wrapper.</span>
 
 <span class="sd">  Args:</span>
@@ -1922,22 +1930,22 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_EnsureMatrixShape</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<div class="viewcode-block" id="_EnsureMatrixShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention._EnsureMatrixShape">[docs]</a><span class="k">def</span> <span class="nf">_EnsureMatrixShape</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
   <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">x</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">assert</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">2</span>
-  <span class="k">return</span> <span class="n">x</span>
+  <span class="k">return</span> <span class="n">x</span></div>
 
 
-<div class="viewcode-block" id="Matmul"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Matmul">[docs]</a><span class="k">def</span> <span class="nf">Matmul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<div class="viewcode-block" id="Matmul"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.Matmul">[docs]</a><span class="k">def</span> <span class="nf">Matmul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;tf.matmul wrapper expecting x and y are actually matrices.&quot;&quot;&quot;</span>
   <span class="n">x</span> <span class="o">=</span> <span class="n">_EnsureMatrixShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
   <span class="n">y</span> <span class="o">=</span> <span class="n">_EnsureMatrixShape</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="SumSquared"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SumSquared">[docs]</a><span class="k">def</span> <span class="nf">SumSquared</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">):</span>
+<div class="viewcode-block" id="SumSquared"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.SumSquared">[docs]</a><span class="k">def</span> <span class="nf">SumSquared</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes sum([x*x for x in tensor_list].&quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;SumSquared&#39;</span><span class="p">):</span>
     <span class="n">sum_squared</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1950,7 +1958,7 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">sum_squared</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="PiecewiseConstant"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PiecewiseConstant">[docs]</a><span class="k">def</span> <span class="nf">PiecewiseConstant</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">boundaries</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">vdtype</span><span class="p">):</span>
+<div class="viewcode-block" id="PiecewiseConstant"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.PiecewiseConstant">[docs]</a><span class="k">def</span> <span class="nf">PiecewiseConstant</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">boundaries</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">vdtype</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns the piecewise value of x_in.&quot;&quot;&quot;</span>
   <span class="n">x_in</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">x_in</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
   <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">boundaries</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
@@ -1964,11 +1972,11 @@
   <span class="k">return</span> <span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vs</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">one_hot_vec</span><span class="p">))[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="PadSequenceDimension"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PadSequenceDimension">[docs]</a><span class="k">def</span> <span class="nf">PadSequenceDimension</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Pads x to &#39;length&#39; using pad_val along the second dim.</span>
+<div class="viewcode-block" id="PadSequenceDimension"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.PadSequenceDimension">[docs]</a><span class="k">def</span> <span class="nf">PadSequenceDimension</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_val</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Pads x to `length` using `pad_val` along the second dim.</span>
 
-<span class="sd">  Assumes &#39;x&#39; is a tensor with rank &gt;= 2, and it only pads &#39;x&#39; to &#39;length&#39;</span>
-<span class="sd">  along the second dim. Explicitly sets the returned tensor shape to &#39;shape&#39; if</span>
+<span class="sd">  Assumes `x` is a tensor with rank &gt;= 2, and it only pads `x` to `length`</span>
+<span class="sd">  along the second dim. Explicitly sets the returned tensor shape to `shape` if</span>
 <span class="sd">  given. Raises runtime errors if x.shape[1] &gt; length or x.shape[i] != shape[i]</span>
 <span class="sd">  where i != 1.</span>
 
@@ -1997,15 +2005,16 @@
   <span class="k">return</span> <span class="n">x</span></div>
 
 
-<div class="viewcode-block" id="ApplyPadding"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ApplyPadding">[docs]</a><span class="k">def</span> <span class="nf">ApplyPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">padded</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">broadcast</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="ApplyPadding"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.ApplyPadding">[docs]</a><span class="k">def</span> <span class="nf">ApplyPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">padded</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">broadcast</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Applies padding to a tensor.</span>
 
 <span class="sd">  This is preferable to using arithmetic means for masking out padded values</span>
-<span class="sd">  such as:</span>
-<span class="sd">    # Equiv to ApplyPadding(padding, x))</span>
-<span class="sd">    x *= 1.0 - padding</span>
-<span class="sd">    # Equiv to ApplyPadding(padding, new, old)</span>
-<span class="sd">    new = old * padding + new * (1 - padding)</span>
+<span class="sd">  such as::</span>
+
+<span class="sd">      # Equiv to ApplyPadding(padding, x))</span>
+<span class="sd">      x *= 1.0 - padding</span>
+<span class="sd">      # Equiv to ApplyPadding(padding, new, old)</span>
+<span class="sd">      new = old * padding + new * (1 - padding)</span>
 
 <span class="sd">  Aside from just being easier to read and reason about, using this function</span>
 <span class="sd">  is friendly to quantized representations because it does not mix arithmetic</span>
@@ -2033,7 +2042,7 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">padding</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">padded</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="Retry"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Retry">[docs]</a><span class="k">def</span> <span class="nf">Retry</span><span class="p">(</span><span class="n">max_retries</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">retry_value</span><span class="o">=</span><span class="ne">Exception</span><span class="p">):</span>
+<div class="viewcode-block" id="Retry"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.Retry">[docs]</a><span class="k">def</span> <span class="nf">Retry</span><span class="p">(</span><span class="n">max_retries</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">retry_value</span><span class="o">=</span><span class="ne">Exception</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">retry</span><span class="o">.</span><span class="n">Retry</span><span class="p">(</span><span class="n">max_retries</span><span class="p">,</span> <span class="n">retry_value</span><span class="p">)</span></div>
 
 
@@ -2044,11 +2053,11 @@
                        <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AbortedError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">UnavailableError</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="RetryOnTransientTfError"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.RetryOnTransientTfError">[docs]</a><span class="k">def</span> <span class="nf">RetryOnTransientTfError</span><span class="p">(</span><span class="n">max_retries</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="RetryOnTransientTfError"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.RetryOnTransientTfError">[docs]</a><span class="k">def</span> <span class="nf">RetryOnTransientTfError</span><span class="p">(</span><span class="n">max_retries</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">Retry</span><span class="p">(</span><span class="n">max_retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">,</span> <span class="n">retry_value</span><span class="o">=</span><span class="n">transient_tf_errors</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="PadOrTrimTo"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PadOrTrimTo">[docs]</a><span class="k">def</span> <span class="nf">PadOrTrimTo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+<div class="viewcode-block" id="PadOrTrimTo"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.PadOrTrimTo">[docs]</a><span class="k">def</span> <span class="nf">PadOrTrimTo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Pad and slice x to the given shape.</span>
 
 <span class="sd">  Args:</span>
@@ -2068,14 +2077,14 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">shape</span><span class="p">),</span> <span class="n">shape</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="StackTensorsRecursively"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.StackTensorsRecursively">[docs]</a><span class="k">def</span> <span class="nf">StackTensorsRecursively</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Recursively stacks Tensors in a list of NestedMaps.</span>
+<div class="viewcode-block" id="StackTensorsRecursively"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.StackTensorsRecursively">[docs]</a><span class="k">def</span> <span class="nf">StackTensorsRecursively</span><span class="p">(</span><span class="n">values</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Recursively stacks Tensors in a list of `.NestedMap`.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    values: a list of NestedMaps or Tensors to stacks.</span>
+<span class="sd">    values: a list of `.NestedMap` or Tensors to stacks.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap with stacked values or a stacked Tensor.</span>
+<span class="sd">    A `.NestedMap` with stacked values or a stacked Tensor.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">flatten</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">values</span><span class="p">]</span>
   <span class="n">stacked</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2085,7 +2094,7 @@
   <span class="k">return</span> <span class="n">ret</span></div>
 
 
-<div class="viewcode-block" id="MixByWeight"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.MixByWeight">[docs]</a><span class="k">def</span> <span class="nf">MixByWeight</span><span class="p">(</span><span class="n">inputs_with_weights</span><span class="p">):</span>
+<div class="viewcode-block" id="MixByWeight"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.MixByWeight">[docs]</a><span class="k">def</span> <span class="nf">MixByWeight</span><span class="p">(</span><span class="n">inputs_with_weights</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a weighted random choice from the give inputs.</span>
 
 <span class="sd">  Args:</span>
@@ -2119,7 +2128,7 @@
       <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="CheckShapes"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CheckShapes">[docs]</a><span class="k">def</span> <span class="nf">CheckShapes</span><span class="p">(</span><span class="n">shapes</span><span class="p">):</span>
+<div class="viewcode-block" id="CheckShapes"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.CheckShapes">[docs]</a><span class="k">def</span> <span class="nf">CheckShapes</span><span class="p">(</span><span class="n">shapes</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Asserts that shapes is a tuple of fully defined tf.TensorShape.&quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">shapes</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">:</span>
@@ -2127,13 +2136,40 @@
     <span class="k">assert</span> <span class="n">s</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="UpdateFpropDtype"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UpdateFpropDtype">[docs]</a><span class="k">def</span> <span class="nf">UpdateFpropDtype</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">):</span>
+<div class="viewcode-block" id="UpdateFpropDtype"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.UpdateFpropDtype">[docs]</a><span class="k">def</span> <span class="nf">UpdateFpropDtype</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Recursively update the fprop_dtype of the Params.&quot;&quot;&quot;</span>
   <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">):</span>
       <span class="n">UpdateFpropDtype</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;fprop_dtype&#39;</span><span class="p">:</span>
       <span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span></div>
+
+
+<div class="viewcode-block" id="NameScopeDecorator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.attention.NameScopeDecorator">[docs]</a><span class="k">def</span> <span class="nf">NameScopeDecorator</span><span class="p">(</span><span class="n">name_scope</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Decorates a python function to introduce a tf.name_scope.</span>
+
+<span class="sd">  Example::</span>
+
+<span class="sd">      @py_utils.NameScopeDecorator(&#39;foobar&#39;)</span>
+<span class="sd">      def MyFoobarMethod(self):</span>
+<span class="sd">        # ... Do TF things</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name_scope: The name scope to introduce.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A function decorator.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">Decorator</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">Wrapped</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">name_scope</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">Wrapped</span>
+
+  <span class="k">return</span> <span class="n">Decorator</span></div>
 </pre></div>
 
            </div>

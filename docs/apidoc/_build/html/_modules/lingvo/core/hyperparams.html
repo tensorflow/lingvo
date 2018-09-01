@@ -171,7 +171,7 @@
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 
-<span class="k">def</span> <span class="nf">_QuoteString</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+<div class="viewcode-block" id="_QuoteString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._QuoteString">[docs]</a><span class="k">def</span> <span class="nf">_QuoteString</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Quotes a string with appropriate quotes and escaping.</span>
 
 <span class="sd">  This performs lite escaping by choosing enclosing quotation marks that would</span>
@@ -189,10 +189,10 @@
   <span class="n">quote_delim</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="k">if</span> <span class="n">single_quote_count</span> <span class="o">&lt;=</span> <span class="n">double_quote_count</span> <span class="k">else</span> <span class="s1">&#39;&quot;&#39;</span>
   <span class="c1"># Apply escaping to the chosen quote character and the backslash.</span>
   <span class="n">encoded</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([</span><span class="si">%s</span><span class="se">\\</span><span class="s1">])&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">quote_delim</span><span class="p">,),</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">\1&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">quote_delim</span> <span class="o">+</span> <span class="n">encoded</span> <span class="o">+</span> <span class="n">quote_delim</span>
+  <span class="k">return</span> <span class="n">quote_delim</span> <span class="o">+</span> <span class="n">encoded</span> <span class="o">+</span> <span class="n">quote_delim</span></div>
 
 
-<span class="k">def</span> <span class="nf">_UnquoteString</span><span class="p">(</span><span class="n">quoted</span><span class="p">):</span>
+<div class="viewcode-block" id="_UnquoteString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._UnquoteString">[docs]</a><span class="k">def</span> <span class="nf">_UnquoteString</span><span class="p">(</span><span class="n">quoted</span><span class="p">):</span>
   <span class="k">if</span> <span class="n">quoted</span> <span class="ow">and</span> <span class="n">quoted</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="p">]:</span>
     <span class="c1"># Note that only the limited set of escaping produced by _QuoteString is</span>
     <span class="c1"># supported.</span>
@@ -200,10 +200,10 @@
     <span class="k">return</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;&quot;&quot;\\([\\&#39;&quot;])&quot;&quot;&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;\1&#39;</span><span class="p">,</span> <span class="n">contents</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="c1"># Just return literal text.</span>
-    <span class="k">return</span> <span class="n">quoted</span>
+    <span class="k">return</span> <span class="n">quoted</span></div>
 
 
-<span class="k">def</span> <span class="nf">_EndsWithTerminalQuote</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">quote_char</span><span class="p">):</span>
+<div class="viewcode-block" id="_EndsWithTerminalQuote"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._EndsWithTerminalQuote">[docs]</a><span class="k">def</span> <span class="nf">_EndsWithTerminalQuote</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">quote_char</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns whether a string ends with a valid terminal quote.&quot;&quot;&quot;</span>
   <span class="n">endm</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(</span><span class="se">\\</span><span class="s1">*)</span><span class="si">%s</span><span class="s1">$&#39;</span> <span class="o">%</span> <span class="n">quote_char</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">endm</span><span class="p">:</span>
@@ -215,18 +215,18 @@
     <span class="k">return</span> <span class="kc">True</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="c1"># Terminal quote is escaped.</span>
-    <span class="k">return</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
 
 
-<span class="k">class</span> <span class="nc">_SortedDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
+<div class="viewcode-block" id="_SortedDict"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._SortedDict">[docs]</a><span class="k">class</span> <span class="nc">_SortedDict</span><span class="p">(</span><span class="nb">dict</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A dict with a __repr__ that is always sorted by key.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="s1">&#39;{&#39;</span> <span class="o">+</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-        <span class="s1">&#39;</span><span class="si">%r</span><span class="s1">: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span> <span class="o">+</span> <span class="s1">&#39;}&#39;</span>
+        <span class="s1">&#39;</span><span class="si">%r</span><span class="s1">: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span> <span class="o">+</span> <span class="s1">&#39;}&#39;</span></div>
 
 
-<span class="k">class</span> <span class="nc">_Param</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_Param"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._Param">[docs]</a><span class="k">class</span> <span class="nc">_Param</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Stores data for a single parameter.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
@@ -255,7 +255,7 @@
     <span class="n">memo</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="n">p</span>
     <span class="k">return</span> <span class="n">p</span>
 
-  <span class="k">def</span> <span class="nf">ToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nested_depth</span><span class="p">):</span>
+<div class="viewcode-block" id="_Param.ToString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._Param.ToString">[docs]</a>  <span class="k">def</span> <span class="nf">ToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nested_depth</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Prints the parameter as a string.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">GetRepr</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
@@ -280,16 +280,16 @@
       <span class="k">return</span> <span class="s1">&#39;&quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">value_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">GetRepr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">))</span>
-    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">nested_indent</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="n">value_str</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">nested_indent</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="n">value_str</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<div class="viewcode-block" id="_Param.Set"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._Param.Set">[docs]</a>  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="c1"># Note that we don&#39;t make a copy of Params objects.</span>
     <span class="c1"># TODO(sadovsky): Maybe add safeguard to ensure that Params object is not</span>
     <span class="c1"># owned by other Params objects.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_value</span> <span class="o">=</span> <span class="n">value</span></div>
 
-  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span>
+<div class="viewcode-block" id="_Param.Get"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._Param.Get">[docs]</a>  <span class="k">def</span> <span class="nf">Get</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span></div></div>
 
 
 <div class="viewcode-block" id="Params"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -336,14 +336,14 @@
   <span class="k">def</span> <span class="nf">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ToString</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_ToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nested_depth</span><span class="p">):</span>
+<div class="viewcode-block" id="Params._ToString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._ToString">[docs]</a>  <span class="k">def</span> <span class="nf">_ToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nested_depth</span><span class="p">):</span>
     <span class="c1"># Note: We use iteritems() below so as to sort by name.</span>
     <span class="n">sorted_param_strs</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">v</span><span class="o">.</span><span class="n">ToString</span><span class="p">(</span><span class="n">nested_depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">))</span>
     <span class="p">]</span>
     <span class="n">nested_indent</span> <span class="o">=</span> <span class="s1">&#39;  &#39;</span> <span class="o">*</span> <span class="n">nested_depth</span>
-    <span class="k">return</span> <span class="s1">&#39;{</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s1">}&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sorted_param_strs</span><span class="p">),</span> <span class="n">nested_indent</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;{</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s1">}&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sorted_param_strs</span><span class="p">),</span> <span class="n">nested_indent</span><span class="p">)</span></div>
 
   <span class="c1"># Override __deepcopy__ so that copy.deepcopy(self._params) properly</span>
   <span class="c1"># deep-copies nested Params objects.</span>
@@ -381,7 +381,7 @@
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Parameter </span><span class="si">%s</span><span class="s1"> is already defined&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Param</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_GetNested</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="Params._GetNested"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._GetNested">[docs]</a>  <span class="k">def</span> <span class="nf">_GetNested</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns nested param by its name.&quot;&quot;&quot;</span>
     <span class="n">parts</span> <span class="o">=</span> <span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
     <span class="n">curr</span> <span class="o">=</span> <span class="bp">self</span>
@@ -394,7 +394,7 @@
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]))</span>
       <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">curr</span><span class="p">,</span> <span class="n">Params</span><span class="p">),</span> <span class="p">(</span>
           <span class="s1">&#39;Cannot introspect </span><span class="si">%s</span><span class="s1"> for </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">curr</span><span class="p">),</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">parts</span><span class="p">[:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])))</span>
-    <span class="k">return</span> <span class="n">curr</span><span class="p">,</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">curr</span><span class="p">,</span> <span class="n">parts</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="Params.Set"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Set">[docs]</a>  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sets multiple parameters.</span>

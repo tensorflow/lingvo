@@ -160,22 +160,27 @@
 
 <span class="sd">The main interface of this module is Recurrent().</span>
 <span class="sd">This expects the caller to describe the recurrent neural net by specifying:</span>
-<span class="sd">  theta: the &quot;weights&quot; each RNN uses.</span>
-<span class="sd">  state0: the initial state of each RNN.</span>
-<span class="sd">  cell_fn: A python function describing RNN cell. It must has the following</span>
-<span class="sd">    signature:</span>
-<span class="sd">         cell_fn: (theta, state0, inputs) -&gt; (state1, extras)</span>
+
+<span class="sd">  - theta: the &quot;weights&quot; each RNN uses.</span>
+<span class="sd">  - state0: the initial state of each RNN.</span>
+<span class="sd">  - cell_fn: A python function describing RNN cell. It must has the following</span>
+<span class="sd">    signature::</span>
+
+<span class="sd">        cell_fn: (theta, state0, inputs) -&gt; (state1, extras)</span>
+
 <span class="sd">    state1 is the next RNN state, extras are computed by cell_fn</span>
 <span class="sd">    and the library forwards extras to cell_fn&#39;s gradient function.</span>
-<span class="sd">  cell_grad: A python function describing the backprop gradient function</span>
-<span class="sd">    for the RNN cell. It must has the following signature:</span>
-<span class="sd">         cell_grad: (theta, state0, inputs, extras, dstate1) -&gt; (</span>
-<span class="sd">                  dtheta, dstate0, dinputs)</span>
+<span class="sd">  - cell_grad: A python function describing the backprop gradient function</span>
+<span class="sd">    for the RNN cell. It must has the following signature::</span>
+
+<span class="sd">        cell_grad: (theta, state0, inputs, extras, dstate1) -&gt;</span>
+<span class="sd">            (dtheta, dstate0, dinputs)</span>
+
 <span class="sd">    dstate1 is what the backprop algorithm provides representing</span>
 <span class="sd">    gradients of state1 w.r.t. the final loss.</span>
 
-<span class="sd">All of theta, state0, inputs, extras and dstate1 are</span>
-<span class="sd">py_utils.NestedMap so that they can carry a bunch of tensors around.</span>
+<span class="sd">All of `theta`, `state0`, `inputs`, `extras` and `dstate1` are</span>
+<span class="sd">`NestedMap` so that they can carry a bunch of tensors around.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
@@ -194,11 +199,11 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
 
-<span class="k">def</span> <span class="nf">_AssertIsCompatible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
-  <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> vs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span>
+<div class="viewcode-block" id="_AssertIsCompatible"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._AssertIsCompatible">[docs]</a><span class="k">def</span> <span class="nf">_AssertIsCompatible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+  <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> vs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_AssertSameTensors</span><span class="p">(</span><span class="n">list_a</span><span class="p">,</span> <span class="n">list_b</span><span class="p">):</span>
+<div class="viewcode-block" id="_AssertSameTensors"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._AssertSameTensors">[docs]</a><span class="k">def</span> <span class="nf">_AssertSameTensors</span><span class="p">(</span><span class="n">list_a</span><span class="p">,</span> <span class="n">list_b</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Asserts that two lists of tensors are the same tensors.&quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_a</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">list_b</span><span class="p">),</span> <span class="p">(</span>
       <span class="s1">&#39;Expected equal tensor lists but different lengths: </span><span class="si">%r</span><span class="s1"> vs </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">list_a</span><span class="p">,</span>
@@ -206,38 +211,41 @@
   <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">list_a</span><span class="p">,</span> <span class="n">list_b</span><span class="p">):</span>
     <span class="k">assert</span> <span class="n">a</span> <span class="ow">is</span> <span class="n">b</span><span class="p">,</span> <span class="p">(</span>
         <span class="s1">&#39;Expected equal tensor lists but at least one differs: </span><span class="si">%r</span><span class="s1"> vs </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span>
-        <span class="p">(</span><span class="n">list_a</span><span class="p">,</span> <span class="n">list_b</span><span class="p">))</span>
+        <span class="p">(</span><span class="n">list_a</span><span class="p">,</span> <span class="n">list_b</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Index</span><span class="p">(</span><span class="n">nmap</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Returns a NestedMap with x[index, :] for each tensor x in nmap.</span>
+<div class="viewcode-block" id="_Index"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Index">[docs]</a><span class="k">def</span> <span class="nf">_Index</span><span class="p">(</span><span class="n">nmap</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a `.NestedMap` with x[index, :] for each tensor x in nmap.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    nmap: A NestedMap of tensors.</span>
-<span class="sd">    index: A tf scalar integer. Performance is better if &#39;index&#39; is</span>
-<span class="sd">      on the host memory.</span>
+<span class="sd">    nmap: A `.NestedMap` of tensors.</span>
+<span class="sd">    index: A tf scalar integer. Performance is better if &#39;index&#39; is on the host</span>
+<span class="sd">      memory.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap of tensors. For each key in nmap, rets.key = nmap.key[index, :].</span>
+<span class="sd">    A `.NestedMap` of tensors. For each key in nmap::</span>
+
+<span class="sd">      rets.key = nmap.key[index, :]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">index</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
   <span class="n">index</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">assert_has_rank</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">index</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Update</span><span class="p">(</span><span class="n">nmap_acc</span><span class="p">,</span> <span class="n">nmap_x</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+<div class="viewcode-block" id="_Update"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Update">[docs]</a><span class="k">def</span> <span class="nf">_Update</span><span class="p">(</span><span class="n">nmap_acc</span><span class="p">,</span> <span class="n">nmap_x</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Updates t-th row in accumulators.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    nmap_acc: A NestedMap of tensors. The accumulators.</span>
-<span class="sd">    nmap_x: A NestedMap of tensors. The update values.</span>
+<span class="sd">    nmap_acc: A `.NestedMap` of tensors. The accumulators.</span>
+<span class="sd">    nmap_x: A `.NestedMap` of tensors. The update values.</span>
 <span class="sd">    t: A scalar integer. Performance is better if &#39;t&#39; is on the device</span>
 <span class="sd">      memory.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap of tensors. Say, ret is returned. For each key, we have</span>
-<span class="sd">      ret[key] = nmap_acc[key];</span>
-<span class="sd">      ret[key][t, :] = nmap_x[key]</span>
+<span class="sd">    A `.NestedMap` of tensors. Say, ret is returned. For each key, we have::</span>
+
+<span class="sd">        ret[key] = nmap_acc[key];</span>
+<span class="sd">        ret[key][t, :] = nmap_x[key]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">acc_lst</span> <span class="o">=</span> <span class="n">nmap_acc</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
   <span class="n">x_lst</span> <span class="o">=</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
@@ -245,16 +253,16 @@
   <span class="n">lst</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">acc</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">acc_lst</span><span class="p">,</span> <span class="n">x_lst</span><span class="p">):</span>
     <span class="n">lst</span> <span class="o">+=</span> <span class="p">[</span><span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span><span class="n">acc</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))]</span>
-  <span class="k">return</span> <span class="n">nmap_acc</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">nmap_acc</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_SeqLenDim</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+<div class="viewcode-block" id="_SeqLenDim"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._SeqLenDim">[docs]</a><span class="k">def</span> <span class="nf">_SeqLenDim</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns the 0-th dim size of tensors in nmap.</span>
 
 <span class="sd">  This is the max sequence length according to the shape of the inputs.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    nmap: A NestedMap of tensors. Every tensor&#39;s 0-th dim has the same size.</span>
+<span class="sd">    nmap: A `.NestedMap` of tensors. Every tensor&#39;s 0-th dim has the same size.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A scalar tensor which is the size of 0-th dim of every tensors in nmap.</span>
@@ -263,26 +271,26 @@
   <span class="k">assert</span> <span class="n">xs</span><span class="p">,</span> <span class="s1">&#39;nmap is empty.&#39;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
       <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_same_dim0</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="s1">&#39;recurrent._SeqLen&#39;</span><span class="p">)]):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span></div>
 
 
-<span class="k">def</span> <span class="nf">_FlattenPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">):</span>
+<div class="viewcode-block" id="_FlattenPadding"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._FlattenPadding">[docs]</a><span class="k">def</span> <span class="nf">_FlattenPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns padding reduced to have only the time dimension.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">padding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">padding</span>
   <span class="n">r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">padding</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_SeqPaddingLength</span><span class="p">(</span><span class="n">inputs_nmap</span><span class="p">):</span>
+<div class="viewcode-block" id="_SeqPaddingLength"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._SeqPaddingLength">[docs]</a><span class="k">def</span> <span class="nf">_SeqPaddingLength</span><span class="p">(</span><span class="n">inputs_nmap</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns the lengths of paddings at the beginning and end of the sequence.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    inputs_nmap: A NestedMap of tensors that may have &#39;padding&#39;</span>
+<span class="sd">    inputs_nmap: A `.NestedMap` of tensors that may have &#39;padding&#39;</span>
 <span class="sd">                 Every tensor&#39;s 0-th dim has the same size.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    [padding length at the beginning, padding length at the end]</span>
+<span class="sd">    padding length at the beginning, padding length at the end</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">padding</span> <span class="o">=</span> <span class="n">inputs_nmap</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;padding&#39;</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">padding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -296,18 +304,18 @@
   <span class="n">padding_begin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding_end</span><span class="p">,</span> <span class="n">time</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span>
       <span class="n">time</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">mask_reverse</span> <span class="o">*</span> <span class="n">numbers</span><span class="p">))</span>
-  <span class="k">return</span> <span class="p">[</span><span class="n">padding_begin</span><span class="p">,</span> <span class="n">padding_end</span><span class="p">]</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">padding_begin</span><span class="p">,</span> <span class="n">padding_end</span><span class="p">]</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Flatten</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Flattens every NestedMap in nmap_list and concatenate them.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="_Flatten"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Flatten">[docs]</a><span class="k">def</span> <span class="nf">_Flatten</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Flattens every `.NestedMap` in nmap_list and concatenate them.&quot;&quot;&quot;</span>
   <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">nmap_list</span><span class="p">:</span>
     <span class="n">ret</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-  <span class="k">return</span> <span class="n">ret</span>
+  <span class="k">return</span> <span class="n">ret</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Pack</span><span class="p">(</span><span class="n">flatten</span><span class="p">,</span> <span class="n">nmap_list</span><span class="p">):</span>
+<div class="viewcode-block" id="_Pack"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Pack">[docs]</a><span class="k">def</span> <span class="nf">_Pack</span><span class="p">(</span><span class="n">flatten</span><span class="p">,</span> <span class="n">nmap_list</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Packs the list of tensors according to nested maps in nmap_list.</span>
 
 <span class="sd">  _Pack is loosely the inverse of _Flatten.</span>
@@ -318,6 +326,7 @@
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A list of NestedMap, say ret is the returned list. We have</span>
+
 <span class="sd">      1. len(ret) == len(nmap_list);</span>
 <span class="sd">      2. recursively, ret[i] has the same keys as nmap_list[i];</span>
 <span class="sd">      3. _Flatten(ret) == flatten;</span>
@@ -331,18 +340,18 @@
     <span class="n">ret</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flatten</span><span class="p">[:</span><span class="n">num</span><span class="p">])]</span>
     <span class="n">flatten</span> <span class="o">=</span> <span class="n">flatten</span><span class="p">[</span><span class="n">num</span><span class="p">:]</span>
   <span class="k">assert</span> <span class="ow">not</span> <span class="n">flatten</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;flatten does not match nmap_list.&#39;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">ret</span>
+  <span class="k">return</span> <span class="n">ret</span></div>
 
 
-<span class="k">def</span> <span class="nf">_EmptyAcc</span><span class="p">(</span><span class="n">slen</span><span class="p">,</span> <span class="n">nmap</span><span class="p">):</span>
+<div class="viewcode-block" id="_EmptyAcc"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._EmptyAcc">[docs]</a><span class="k">def</span> <span class="nf">_EmptyAcc</span><span class="p">(</span><span class="n">slen</span><span class="p">,</span> <span class="n">nmap</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates a set of accumulators for tensors in nmap.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    slen: A scalar tensor.</span>
-<span class="sd">    nmap: A NestedMap of tensors.</span>
+<span class="sd">    nmap: A `.NestedMap` of tensors.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap with the same keys as nmap. ret.key, a tensor, has the</span>
+<span class="sd">    A `.NestedMap` with the same keys as nmap. ret.key, a tensor, has the</span>
 <span class="sd">    same dtype as nmap.key. The tensor&#39;s shape has 1 more dimension</span>
 <span class="sd">    than the tensor nmap.key. The extra 0-th dimension is of size</span>
 <span class="sd">    slen. E.g., if slen=10 and nmap.key&#39;s shape is [3, 5], then,</span>
@@ -353,54 +362,54 @@
     <span class="k">return</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([[</span><span class="n">slen</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Fill</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Fill</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_EmptyLike</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+<div class="viewcode-block" id="_EmptyLike"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._EmptyLike">[docs]</a><span class="k">def</span> <span class="nf">_EmptyLike</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates a set of empty initialized tensors.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    nmap: A NestedMap of tensors.</span>
+<span class="sd">    nmap: A `.NestedMap` of tensors.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap of tensors. Each tensor has the same shape and dtype as</span>
+<span class="sd">    A `.NestedMap` of tensors. Each tensor has the same shape and dtype as</span>
 <span class="sd">    its corresponding tensor in nmap. And each tensor is initialized.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_EmptyCaptures</span><span class="p">():</span>
+<div class="viewcode-block" id="_EmptyCaptures"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._EmptyCaptures">[docs]</a><span class="k">def</span> <span class="nf">_EmptyCaptures</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Creates an empty implicit capture map for when capture is not supported.&quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">captures</span><span class="o">=</span><span class="p">[])</span>
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">captures</span><span class="o">=</span><span class="p">[])</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Add</span><span class="p">(</span><span class="n">nmap_x</span><span class="p">,</span> <span class="n">nmap_y</span><span class="p">):</span>
+<div class="viewcode-block" id="_Add"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Add">[docs]</a><span class="k">def</span> <span class="nf">_Add</span><span class="p">(</span><span class="n">nmap_x</span><span class="p">,</span> <span class="n">nmap_y</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adds tensors in nmap_x with respective tensors in nmap_y.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    nmap_x: A NestedMap of tensors.</span>
-<span class="sd">    nmap_y: A NestedMap of tensors.</span>
+<span class="sd">    nmap_x: A `.NestedMap` of tensors.</span>
+<span class="sd">    nmap_y: A `.NestedMap` of tensors.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap of tensors. ret.key = nmap_x.key + nmap_y.key for every key.</span>
+<span class="sd">    A `.NestedMap` of tensors. ret.key = nmap_x.key + nmap_y.key for every key.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">x_lst</span> <span class="o">=</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
   <span class="n">y_lst</span> <span class="o">=</span> <span class="n">nmap_y</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
   <span class="n">z</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_lst</span><span class="p">,</span> <span class="n">y_lst</span><span class="p">):</span>
     <span class="n">z</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
-  <span class="k">return</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">z</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">z</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Dtypes</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
+<div class="viewcode-block" id="_Dtypes"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Dtypes">[docs]</a><span class="k">def</span> <span class="nf">_Dtypes</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns all tensors&#39; data types in a list.&quot;&quot;&quot;</span>
   <span class="n">flatten</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">nmap_list</span><span class="p">:</span>
     <span class="n">flatten</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-  <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">flatten</span><span class="p">]</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">flatten</span><span class="p">]</span></div>
 
 
-<span class="k">def</span> <span class="nf">_ConvertNoneGradientToZeros</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">dxs</span><span class="p">):</span>
+<div class="viewcode-block" id="_ConvertNoneGradientToZeros"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._ConvertNoneGradientToZeros">[docs]</a><span class="k">def</span> <span class="nf">_ConvertNoneGradientToZeros</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">dxs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Sanitize dxs so that None becomes zeros appropriately.</span>
 
 <span class="sd">  Args:</span>
@@ -408,7 +417,7 @@
 <span class="sd">    dxs: A list of tensors. dxs[i] corresponds to xs[i]&#39;s gradient.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap same as dxs with None replaced by a zero tensor.</span>
+<span class="sd">    A `.NestedMap` same as dxs with None replaced by a zero tensor.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">xs_lst</span> <span class="o">=</span> <span class="n">_Flatten</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
   <span class="n">dxs_lst</span> <span class="o">=</span> <span class="n">_Flatten</span><span class="p">(</span><span class="n">dxs</span><span class="p">)</span>
@@ -421,15 +430,15 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">rets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dx</span><span class="p">)</span>
 
-  <span class="k">return</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">,</span> <span class="n">dxs</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">_Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">,</span> <span class="n">dxs</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_TransformDType</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+<div class="viewcode-block" id="_TransformDType"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._TransformDType">[docs]</a><span class="k">def</span> <span class="nf">_TransformDType</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
-      <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span>
+      <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span> <span class="k">else</span> <span class="n">x</span><span class="p">)</span></div>
 
 
-<span class="k">class</span> <span class="nc">_Recurrent</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_Recurrent"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Recurrent">[docs]</a><span class="k">class</span> <span class="nc">_Recurrent</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A helper class to construct a recurrent neural net.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -448,13 +457,13 @@
 <span class="sd">      cell_grad: A python function which computes:</span>
 <span class="sd">         dtheta, dstate0, dinputs[t, :] = cell_grad(</span>
 <span class="sd">           theta, state0, inputs[t, :], extras, dstate1)</span>
-<span class="sd">      theta: weights. A NestedMap.</span>
-<span class="sd">      state0: initial state. A NestedMap.</span>
-<span class="sd">      inputs: inputs. A NestedMap.</span>
-<span class="sd">      extras: A NestedMap of Tensors. The 2nd return value of every</span>
-<span class="sd">        invocation of cell_fn is a NestedMap with matching keys and shapes</span>
+<span class="sd">      theta: weights. A `.NestedMap`.</span>
+<span class="sd">      state0: initial state. A `.NestedMap`.</span>
+<span class="sd">      inputs: inputs. A `.NestedMap`.</span>
+<span class="sd">      extras: A `.NestedMap` of Tensors. The 2nd return value of every</span>
+<span class="sd">        invocation of cell_fn is a `.NestedMap` with matching keys and shapes</span>
 <span class="sd">        of this &#39;extras&#39;.</span>
-<span class="sd">      implicit_captures: A NestedMap corresponding to implicit captures of</span>
+<span class="sd">      implicit_captures: A `.NestedMap` corresponding to implicit captures of</span>
 <span class="sd">        the cell_fn. If empty/None, implicit captures are either not present</span>
 <span class="sd">        or disallowed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -884,29 +893,32 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="n">Forward</span>
 
-  <span class="k">def</span> <span class="nf">Compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="_Recurrent.Compute"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Recurrent.Compute">[docs]</a>  <span class="k">def</span> <span class="nf">Compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">_Pack</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
             <span class="o">*</span><span class="n">_Flatten</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])),</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])[:</span><span class="mi">2</span><span class="p">]</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">_GetCellGrad</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_GetCellGrad"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._GetCellGrad">[docs]</a><span class="k">def</span> <span class="nf">_GetCellGrad</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns the gradient function for cell_fn.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    cell_fn: The recurrent neural net&#39;s cell function.</span>
 <span class="sd">    cell_grad: If not None, cell_fn&#39;s gradient function.</span>
-<span class="sd">    implicit_captures: NestedMap of implicit captures that cell_fn</span>
+<span class="sd">    implicit_captures: `.NestedMap` of implicit captures that cell_fn</span>
 <span class="sd">        does. If None, then no captures are supported.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    Returns cell_grad if not None. Otherwise, assume cell_fn is a python</span>
-<span class="sd">    function representing the recurrent neural net&#39;s cell function, i.e.,</span>
+<span class="sd">    function representing the recurrent neural net&#39;s cell function, i.e.::</span>
+
 <span class="sd">      cell_fn: (theta, state0, inputs) -&gt; (state1, extra)</span>
-<span class="sd">    returns its default gradient python function, i.e.,</span>
-<span class="sd">      cell_grad: (theta, state0, inputs, extras, captured, dstate1) -&gt; (</span>
-<span class="sd">                  dtheta, dstate0, dinputs)</span>
+
+<span class="sd">    returns its default gradient python function, i.e.::</span>
+
+<span class="sd">      cell_grad: (theta, state0, inputs, extras, captured, dstate1) -&gt;</span>
+<span class="sd">          (dtheta, dstate0, dinputs)</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">if</span> <span class="n">cell_grad</span><span class="p">:</span>
@@ -941,10 +953,10 @@
                                        <span class="n">_Pack</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span>
                                              <span class="p">[</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">]))</span>
 
-  <span class="k">return</span> <span class="n">CellGrad</span>
+  <span class="k">return</span> <span class="n">CellGrad</span></div>
 
 
-<span class="k">def</span> <span class="nf">_WrapAccumulatorCellFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">):</span>
+<div class="viewcode-block" id="_WrapAccumulatorCellFn"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._WrapAccumulatorCellFn">[docs]</a><span class="k">def</span> <span class="nf">_WrapAccumulatorCellFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wrap a cell_fn to propagate accumulators.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">WrappedCellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -960,10 +972,10 @@
     <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Reset</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span>
 
-  <span class="k">return</span> <span class="n">WrappedCellFn</span>
+  <span class="k">return</span> <span class="n">WrappedCellFn</span></div>
 
 
-<span class="k">def</span> <span class="nf">_WrapAccumulatorCellGradFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">):</span>
+<div class="viewcode-block" id="_WrapAccumulatorCellGradFn"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._WrapAccumulatorCellGradFn">[docs]</a><span class="k">def</span> <span class="nf">_WrapAccumulatorCellGradFn</span><span class="p">(</span><span class="n">accumulator_layer</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wrap a cell grad function to disable accumulators.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">WrappedCellGradFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">):</span>
@@ -974,18 +986,18 @@
     <span class="n">accumulator_layer</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">Enable</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span>
 
-  <span class="k">return</span> <span class="n">WrappedCellGradFn</span>
+  <span class="k">return</span> <span class="n">WrappedCellGradFn</span></div>
 
 
-<span class="k">def</span> <span class="nf">_IsSingleTimeStep</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="_IsSingleTimeStep"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._IsSingleTimeStep">[docs]</a><span class="k">def</span> <span class="nf">_IsSingleTimeStep</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns True only if the time dimension of inputs is 1.&quot;&quot;&quot;</span>
   <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
     <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">dims</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">value</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
       <span class="k">return</span> <span class="kc">False</span>
-  <span class="k">return</span> <span class="kc">True</span>
+  <span class="k">return</span> <span class="kc">True</span></div>
 
 
-<span class="k">def</span> <span class="nf">_ReflectOnCellFn</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span>
+<div class="viewcode-block" id="_ReflectOnCellFn"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._ReflectOnCellFn">[docs]</a><span class="k">def</span> <span class="nf">_ReflectOnCellFn</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span>
                      <span class="n">theta</span><span class="p">,</span>
                      <span class="n">state0</span><span class="p">,</span>
                      <span class="n">inputs</span><span class="p">,</span>
@@ -996,14 +1008,14 @@
 <span class="sd">  Args:</span>
 <span class="sd">    cell_fn: A python function that computes:</span>
 <span class="sd">      state1, extras = cell_fn(theta, state0, inputs[t, :])</span>
-<span class="sd">    theta: weights. A NestedMap.</span>
-<span class="sd">    state0: initial state. A NestedMap.</span>
-<span class="sd">    inputs: inputs. A NestedMap.</span>
+<span class="sd">    theta: weights. A `.NestedMap`.</span>
+<span class="sd">    state0: initial state. A `.NestedMap`.</span>
+<span class="sd">    inputs: inputs. A `.NestedMap`.</span>
 <span class="sd">    accumulator_layer: Whether the cell function must be run in the context</span>
 <span class="sd">        of the given accumulator layer.</span>
-<span class="sd">    check_stateful_ops: if True, raise a ValueError if cell_fn is stateful.</span>
+<span class="sd">    check_stateful_ops: if True, raise a `ValueError` if cell_fn is stateful.</span>
 <span class="sd">  Returns:</span>
-<span class="sd">    NestedMap of implicit captures that the cell_fn takes.</span>
+<span class="sd">    `.NestedMap` of implicit captures that the cell_fn takes.</span>
 <span class="sd">  Raises:</span>
 <span class="sd">    ValueError: cell_fn is stateful.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -1035,19 +1047,19 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;cell_fn contains stateful ops: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">Fwd</span><span class="o">.</span><span class="n">stateful_ops</span><span class="p">)</span>
 
-  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">captured</span><span class="o">=</span><span class="n">captured_inputs</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">captured</span><span class="o">=</span><span class="n">captured_inputs</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_NestedMapCopier</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
+<div class="viewcode-block" id="_NestedMapCopier"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._NestedMapCopier">[docs]</a><span class="k">def</span> <span class="nf">_NestedMapCopier</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a function that will DeepCopy the map on each call.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">Copier</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
 
-  <span class="k">return</span> <span class="n">Copier</span>
+  <span class="k">return</span> <span class="n">Copier</span></div>
 
 
-<span class="k">def</span> <span class="nf">_RecurrentSingleTimeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">):</span>
+<div class="viewcode-block" id="_RecurrentSingleTimeStep"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._RecurrentSingleTimeStep">[docs]</a><span class="k">def</span> <span class="nf">_RecurrentSingleTimeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Short-cut for the single timestep without explicit cell_grad case.&quot;&quot;&quot;</span>
   <span class="c1"># The seqlen length is staticly known as 1. Hence, we just need to</span>
   <span class="c1"># call cell_fn once without putting it into a loop.</span>
@@ -1056,7 +1068,7 @@
   <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
   <span class="n">state1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">(),</span> <span class="n">inputs</span><span class="p">)</span>
   <span class="n">acc_state</span> <span class="o">=</span> <span class="n">state1</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-  <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span>
+  <span class="k">return</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span></div>
 
 
 <div class="viewcode-block" id="Recurrent"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent.Recurrent">[docs]</a><span class="k">def</span> <span class="nf">Recurrent</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span>
@@ -1070,55 +1082,60 @@
               <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Compute a recurrent neural net.</span>
 
-<span class="sd">  Roughly, Recurrent() computes the following:</span>
-<span class="sd">    state = state0</span>
-<span class="sd">    for t in inputs&#39; sequence length:</span>
-<span class="sd">      state = cell_fn(theta, state, inputs[t, :])</span>
-<span class="sd">      accumulate_state[t, :] = state</span>
-<span class="sd">    return accumulate_state, state</span>
+<span class="sd">  Roughly, `Recurrent()` computes the following::</span>
 
-<span class="sd">  theta, state, inputs are all NestedMap objects.</span>
+<span class="sd">      state = state0</span>
+<span class="sd">      for t in inputs&#39; sequence length:</span>
+<span class="sd">        state = cell_fn(theta, state, inputs[t, :])</span>
+<span class="sd">        accumulate_state[t, :] = state</span>
+<span class="sd">      return accumulate_state, state</span>
 
-<span class="sd">  inputs[t, :] means taking a slice out from every tensor in the</span>
-<span class="sd">  NestedMap inputs.</span>
+<span class="sd">  `theta`, `state`, `inputs` are all `.NestedMap` objects.</span>
 
-<span class="sd">  accumulate_state[t, :] = state means that we stash every tensor in</span>
-<span class="sd">  &#39;state&#39; into a slice of the corresponding tensor in</span>
-<span class="sd">  accumulate_state.</span>
+<span class="sd">  `inputs[t, :]` means taking a slice out from every tensor in the</span>
+<span class="sd">  `.NestedMap` `inputs`.</span>
 
-<span class="sd">  cell_fn is a python callable computing (building up a TensorFlow</span>
-<span class="sd">  graph) the recurrent neural network&#39;s one forward step. cell_fn must not</span>
-<span class="sd">  contain any stateful op. Two calls of cell_fn must describe two identical</span>
+<span class="sd">  `accumulate_state[t, :] = state` means that we stash every tensor in</span>
+<span class="sd">  `state` into a slice of the corresponding tensor in</span>
+<span class="sd">  `accumulate_state`.</span>
+
+<span class="sd">  `cell_fn` is a python callable computing (building up a TensorFlow</span>
+<span class="sd">  graph) the recurrent neural network&#39;s one forward step. `cell_fn` must not</span>
+<span class="sd">  contain any stateful ops. Two calls of `cell_fn` must describe two identical</span>
 <span class="sd">  computations.</span>
 
-<span class="sd">  By construction, Recurrent()&#39;s backward computation does not access</span>
-<span class="sd">  any intermediate values computed by cell_fn during forward</span>
-<span class="sd">  computation. We may extend Recurrent() to support that by taking a</span>
-<span class="sd">  customized backward function of cell_fn.</span>
+<span class="sd">  By construction, `Recurrent()`&#39;s backward computation does not access</span>
+<span class="sd">  any intermediate values computed by `cell_fn` during forward</span>
+<span class="sd">  computation. We may extend `Recurrent()` to support that by taking a</span>
+<span class="sd">  customized backward function of `cell_fn`.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    theta: weights. A NestedMap.</span>
-<span class="sd">    state0: initial state. A NestedMap.</span>
-<span class="sd">    inputs: inputs. A NestedMap.</span>
-<span class="sd">    cell_fn: A python function, which computes:</span>
-<span class="sd">      state1, extras = cell_fn(theta, state0, inputs[t, :])</span>
-<span class="sd">    cell_grad: A python function which computes:</span>
-<span class="sd">      dtheta, dstate0, dinputs[t, :], dcaptured = cell_grad(</span>
-<span class="sd">        theta, state0, inputs[t, :], extras, dstate1)</span>
-<span class="sd">      If there are no captured tensors in cell_fn, dcaptured can be returned</span>
-<span class="sd">      as None. Captured tensors with custom cell_grad is currently unsupported,</span>
+<span class="sd">    theta: weights. A `.NestedMap`.</span>
+<span class="sd">    state0: initial state. A `.NestedMap`.</span>
+<span class="sd">    inputs: inputs. A `.NestedMap`.</span>
+<span class="sd">    cell_fn: A python function, which computes::</span>
+
+<span class="sd">        state1, extras = cell_fn(theta, state0, inputs[t, :])</span>
+
+<span class="sd">    cell_grad: A python function which computes::</span>
+
+<span class="sd">        dtheta, dstate0, dinputs[t, :], dcaptured = cell_grad(</span>
+<span class="sd">            theta, state0, inputs[t, :], extras, dstate1)</span>
+
+<span class="sd">      If there are no captured tensors in `cell_fn`, `dcaptured` can be returned</span>
+<span class="sd">      as None. Captured tensors with custom `cell_grad` is currently unsupported</span>
 <span class="sd">      so this return value is reserved for future expansion.</span>
-<span class="sd">    extras: A NestedMap of Tensors. The 2nd return value of every</span>
-<span class="sd">      invocation of cell_fn is a NestedMap with matching keys and shapes</span>
-<span class="sd">      of  this &#39;extras&#39;.</span>
-<span class="sd">    check_stateful_ops: if True, raise a ValueError if cell_fn is stateful.</span>
+<span class="sd">    extras: A `.NestedMap` of Tensors. The 2nd return value of every</span>
+<span class="sd">      invocation of `cell_fn` is a `.NestedMap` with matching keys and shapes</span>
+<span class="sd">      of `extras`.</span>
+<span class="sd">    check_stateful_ops: if True, raise a `ValueError` if `cell_fn` is stateful.</span>
 <span class="sd">    accumulator_layer: If provided, then accumulators on this layer will be</span>
-<span class="sd">      managed such that they carry to the final state in FProp and are</span>
-<span class="sd">      disabled for gradients. Uses the state key &#39;accumulators&#39;.</span>
-<span class="sd">    allow_implicit_capture: Whether to allow the cell_fn to implicitly</span>
-<span class="sd">      capture tensors. Only allowed if an explicit cell_grad is not given.</span>
+<span class="sd">      managed such that they carry to the final state in `FProp` and are</span>
+<span class="sd">      disabled for gradients. Uses the state key `accumulators`.</span>
+<span class="sd">    allow_implicit_capture: Whether to allow the `cell_fn` to implicitly</span>
+<span class="sd">      capture tensors. Only allowed if an explicit `cell_grad` is not given.</span>
 <span class="sd">  Returns:</span>
-<span class="sd">    accumulate_state and the final state.</span>
+<span class="sd">    `accumulate_state` and the final state.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">inputs</span> <span class="o">=</span> <span class="n">_TransformDType</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
 

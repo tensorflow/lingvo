@@ -214,13 +214,13 @@
       <span class="c1"># Construct the model.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lm&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_TrimIfPossibleThenTranspose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+<div class="viewcode-block" id="LanguageModel._TrimIfPossibleThenTranspose"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.LanguageModel._TrimIfPossibleThenTranspose">[docs]</a>  <span class="k">def</span> <span class="nf">_TrimIfPossibleThenTranspose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
     <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
       <span class="n">data</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_len</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">data</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LanguageModel.FPropTower"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.LanguageModel.FPropTower">[docs]</a>  <span class="k">def</span> <span class="nf">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -261,16 +261,16 @@
     <span class="sd">&quot;&quot;&quot;Clip LSTM gradients.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      var_grad: a NestedMap of (variable, gradient). You can view</span>
-<span class="sd">      var_grad as an ordered list of (key, (var, grad)) tuples. Every</span>
-<span class="sd">      key of var_grad exists in vmap. Every variable in vmap that</span>
-<span class="sd">      contributes to loss must exist in var_grad. Every var of var_grad</span>
-<span class="sd">      must exist in vmap.  grad is the corresponding gradient computed</span>
-<span class="sd">      for var. grad is guaranteed to be not None.</span>
+<span class="sd">      var_grad: a `.NestedMap` of (variable, gradient). You can view</span>
+<span class="sd">        `var_grad` as an ordered list of (key, (var, grad)) tuples. Every</span>
+<span class="sd">        key of `var_grad` exists in `vmap`. Every variable in `vmap` that</span>
+<span class="sd">        contributes to loss must exist in `var_grad`. Every var of `var_grad`</span>
+<span class="sd">        must exist in `vmap`. `grad` is the corresponding gradient computed</span>
+<span class="sd">        for `var`. `grad` is guaranteed to be not None.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      adjusted version of var_grad that has clipped the LSTM gradients</span>
-<span class="sd">      if self.params.max_lstm_gradient_norm is set.</span>
+<span class="sd">      adjusted version of `var_grad` that has clipped the LSTM gradients</span>
+<span class="sd">      if `self.params.max_lstm_gradient_norm` is set.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>

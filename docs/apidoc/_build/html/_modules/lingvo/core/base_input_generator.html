@@ -229,10 +229,10 @@
     <span class="sd">&quot;&quot;&quot;The current input batch, not preprocessed.</span>
 
 <span class="sd">    This is meant to be overridden by subclasses, but not called directly.</span>
-<span class="sd">    Callers should use GetPreprocessedInputBatch().</span>
+<span class="sd">    Callers should use `GetPreprocessedInputBatch()`.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap of input tensors. Each tensor&#39;s dim-0 must be the same</span>
+<span class="sd">      A `.NestedMap` of input tensors. Each tensor&#39;s dim-0 must be the same</span>
 <span class="sd">      and denotes the batch dimension.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
@@ -324,7 +324,7 @@
 <span class="sd">      num_splits: The number of splits.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A list of NestedMaps. Each NestedMap represents the input</span>
+<span class="sd">      A list of `.NestedMap`. Each `.NestedMap` represents the input</span>
 <span class="sd">      tensors in one split.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">num_splits</span> <span class="o">&gt;=</span> <span class="mi">1</span>
@@ -392,15 +392,15 @@
     <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputOpBucketingArgs</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">args</span></div>
 
-  <span class="k">def</span> <span class="nf">_InputOpBucketingArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._InputOpBucketingArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._InputOpBucketingArgs">[docs]</a>  <span class="k">def</span> <span class="nf">_InputOpBucketingArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1000000000</span><span class="p">],</span>
         <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">InputBatchSize</span><span class="p">()],</span>
-    <span class="p">}</span>
+    <span class="p">}</span></div>
 
-  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;&quot;Read and return input batch from a string file_pattern.</span>
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read and return input batch from a string file_pattern.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      file_pattern: A string file pattern.</span>
@@ -408,17 +408,17 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A tf.Tensor or nested map of tf.Tensor</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
-  <span class="k">def</span> <span class="nf">_BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;&quot;Read and return input batch from p.file_pattern.</span>
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read and return input batch from `p.file_pattern`.</span>
 
-<span class="sd">    p.file_pattern may be a string file_pattern or a</span>
-<span class="sd">    list of &lt;file_pattern, weight&gt; pairs.</span>
+<span class="sd">    `p.file_pattern` may be a string file_pattern or a</span>
+<span class="sd">    list of (file_pattern, weight) pairs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tf.Tensor or nested map of tf.Tensor same</span>
-<span class="sd">      as self._DataSourceFromFilePattern()</span>
+<span class="sd">      A tf.Tensor or nested map of tf.Tensor same as</span>
+<span class="sd">      `self._DataSourceFromFilePattern()`.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
@@ -441,7 +441,7 @@
           <span class="k">for</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">input_file_pattern</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">data_source</span></div>
+    <span class="k">return</span> <span class="n">data_source</span></div></div>
 
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseSequenceInputGenerator</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">):</span>
@@ -515,14 +515,14 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No input batch size is defined.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span></div>
 
-  <span class="k">def</span> <span class="nf">_InputOpBucketingArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseSequenceInputGenerator._InputOpBucketingArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator._InputOpBucketingArgs">[docs]</a>  <span class="k">def</span> <span class="nf">_InputOpBucketingArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;bucket_batch_limit </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">bucket_batch_limit</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">,</span>
         <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">:</span> <span class="n">bucket_batch_limit</span><span class="p">,</span>
-    <span class="p">}</span>
+    <span class="p">}</span></div>
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator.StringsToIds"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.StringsToIds">[docs]</a>  <span class="k">def</span> <span class="nf">StringsToIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                    <span class="n">strs</span><span class="p">,</span>
@@ -534,19 +534,20 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      strs: A vector of strings.</span>
-<span class="sd">      is_source: A bool to indicate whether to use source_max_length to pad</span>
+<span class="sd">      is_source: A bool to indicate whether to use `source_max_length` to pad</span>
 <span class="sd">        &#39;strs&#39;.</span>
 <span class="sd">      external_max_length: An int providing the max_length for strs.</span>
 <span class="sd">      external_append_eos: Bool or None. If None, will be ignored and</span>
-<span class="sd">        params.append_eos will be used. If bool, will determine if an eos</span>
+<span class="sd">        `params.append_eos` will be used. If bool, will determine if an eos</span>
 <span class="sd">        symbol will be added to tokens.</span>
 <span class="sd">      key: A string key in case the model has multiple tokenizers.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (ids, labels, paddings): Tensors with the same shape [batch, maxlen].</span>
-<span class="sd">      ids[i, j] is the input token id of i-th sample for j-th step.</span>
-<span class="sd">      labels[i, j] is the target token id of i-th sample for j-th step.</span>
-<span class="sd">      paddings[i, j] is 1 iff i-th sample&#39;s j-th step is padded.</span>
+<span class="sd">      A tuple (ids, labels, paddings) with the same shape [batch, maxlen].</span>
+
+<span class="sd">      - ids[i, j] is the input token id of i-th sample for j-th step.</span>
+<span class="sd">      - labels[i, j] is the target token id of i-th sample for j-th step.</span>
+<span class="sd">      - paddings[i, j] is 1 iff i-th sample&#39;s j-th step is padded.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
@@ -576,7 +577,7 @@
 <span class="sd">      key: A string key in case the model has multiple tokenizers.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      sequences: A vector of shape [batch]. The converted string sequence.</span>
+<span class="sd">      sequences - A vector of shape [batch]. The converted string sequence.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
@@ -588,12 +589,12 @@
 <div class="viewcode-block" id="BaseTinyDatasetInput"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseTinyDatasetInput">[docs]</a><span class="k">class</span> <span class="nc">BaseTinyDatasetInput</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Input generator for tiny dataset which are stored in tf checkpoint.</span>
 
-<span class="sd">  Input batch (b: batch size, h: height, w: width, d: depth):</span>
-<span class="sd">    raw: Samples. [b, h, w, d].</span>
-<span class="sd">    data: Preprocessed samples. [b, h, w, d].</span>
-<span class="sd">    label: Labels. [b].</span>
-<span class="sd">    weight: [b]. weight[i] is 1.0 if i-th sample is considered to</span>
-<span class="sd">      be a real example. Otherwise, weight[i] is 0.0.</span>
+<span class="sd">      | Input batch (b: batch size, h: height, w: width, d: depth):</span>
+<span class="sd">      |   raw: Samples. [b, h, w, d].</span>
+<span class="sd">      |   data: Preprocessed samples. [b, h, w, d].</span>
+<span class="sd">      |   label: Labels. [b].</span>
+<span class="sd">      |   weight: [b]. weight[i] is 1.0 if i-th sample is considered to</span>
+<span class="sd">      |     be a real example. Otherwise, weight[i] is 0.0.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BaseTinyDatasetInput.Params"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseTinyDatasetInput.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -644,8 +645,8 @@
       <span class="n">ret</span><span class="p">[</span><span class="s1">&#39;sample_ids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sample_ids</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 
-  <span class="k">def</span> <span class="nf">_Preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">raw</span></div>
+<div class="viewcode-block" id="BaseTinyDatasetInput._Preprocess"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseTinyDatasetInput._Preprocess">[docs]</a>  <span class="k">def</span> <span class="nf">_Preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">raw</span></div></div>
 </pre></div>
 
            </div>

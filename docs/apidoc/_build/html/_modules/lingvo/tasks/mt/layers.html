@@ -253,7 +253,7 @@
     <span class="sd">&quot;&quot;&quot;Transforms source sequence of Tensors with Transformers layers.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      transformer_input: A sequence of input Tensors of [time, batch, dim]</span>
 <span class="sd">        shape.</span>
@@ -263,12 +263,13 @@
 <span class="sd">         [time, batch] shape.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (outputs, out_paddings, segment_ids) pair. Outputs is of the shape [time,</span>
-<span class="sd">      batch, depth], and out_paddings is of the shape [time, batch].  If</span>
+<span class="sd">      (outputs, out_paddings, segment_ids) tuple. `outputs` is of the shape</span>
+<span class="sd">      [time, batch, depth], and `out_paddings` has shape [time, batch]. If</span>
 <span class="sd">      is_transparent is True, can return a list of num_transformer_layers</span>
-<span class="sd">      tensors of shape [time, batch, depth] if p.is_eval is False, and a [time,</span>
-<span class="sd">      batch, depth, num_transparent_outputs] tensor if p.is_eval is True.</span>
-<span class="sd">      If packed_input is True, also returns segment_id, otherwise returns None.</span>
+<span class="sd">      tensors of shape [time, batch, depth] if `p.is_eval` is False, and a</span>
+<span class="sd">      [time, batch, depth, num_transparent_outputs] tensor if `p.is_eval` is</span>
+<span class="sd">      True. If packed_input is True, also returns segment_id, otherwise returns</span>
+<span class="sd">      None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>

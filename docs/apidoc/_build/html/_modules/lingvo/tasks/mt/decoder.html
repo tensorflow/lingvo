@@ -228,7 +228,7 @@
       <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;smoother&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_FPropSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MTBaseDecoder._FPropSoftmax"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                     <span class="n">theta</span><span class="p">,</span>
                     <span class="n">softmax_input</span><span class="p">,</span>
                     <span class="n">target_labels</span><span class="p">,</span>
@@ -238,9 +238,9 @@
     <span class="sd">&quot;&quot;&quot;Computes cross-entropy loss given the softmax input, labels and weights.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
-<span class="sd">      softmax_input: A tensor of shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">      softmax_input: A tensor of shape [time, batch, p.softmax.input_dim].</span>
 <span class="sd">      target_labels: A matrix of tf.int32. [time, batch].</span>
 <span class="sd">      target_weights: A matrix of params.dtype. [time, batch].</span>
 <span class="sd">      target_paddings: A matrix of params.dtype. [time, batch].</span>
@@ -314,7 +314,7 @@
           <span class="n">correct_next_preds</span> <span class="o">/</span> <span class="n">num_preds</span><span class="p">,</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">)</span>
       <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">num_preds</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ret_dict</span>
+    <span class="k">return</span> <span class="n">ret_dict</span></div>
 
 <div class="viewcode-block" id="MTBaseDecoder.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="n">segment_id</span> <span class="o">=</span> <span class="kc">None</span>
@@ -324,7 +324,7 @@
                               <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span><span class="p">),</span>
                               <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">),</span> <span class="n">segment_id</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_TruncateTargetSequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+<div class="viewcode-block" id="MTBaseDecoder._TruncateTargetSequence"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._TruncateTargetSequence">[docs]</a>  <span class="k">def</span> <span class="nf">_TruncateTargetSequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Truncate padded time steps from all sequences.&quot;&quot;&quot;</span>
     <span class="c1"># The following tensors are all in the [batch, time] shape.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -354,9 +354,9 @@
     <span class="n">targets</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">target_labels</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_length</span><span class="p">]</span>
     <span class="n">targets</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">target_weights</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_length</span><span class="p">]</span>
     <span class="n">targets</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">target_paddings</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_length</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">targets</span>
+    <span class="k">return</span> <span class="n">targets</span></div>
 
-  <span class="k">def</span> <span class="nf">_AddAttenProbsSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">):</span>
+<div class="viewcode-block" id="MTBaseDecoder._AddAttenProbsSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddAttenProbsSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Add image summary of attention probs.</span>
 
 <span class="sd">    Args:</span>
@@ -393,7 +393,7 @@
           <span class="n">PlotAttention</span><span class="p">,</span>
           <span class="n">title</span><span class="o">=</span><span class="s1">&#39;atten_probs_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span>
           <span class="n">set_x_label</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
-    <span class="n">fig</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span></div>
+    <span class="n">fig</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="MTDecoderV1"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1">[docs]</a><span class="k">class</span> <span class="nc">MTDecoderV1</span><span class="p">(</span><span class="n">MTBaseDecoder</span><span class="p">,</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
@@ -558,17 +558,18 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">x</span></div>
 
-<div class="viewcode-block" id="MTDecoderV1.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/ComputePredictions&#39;</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
                          <span class="n">src_segment_id</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decodes &#39;targets&#39; given encoded source.</span>
+    <span class="sd">&quot;&quot;&quot;Decodes `targets` given encoded source.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      source_encs: source encoding, of shape [time, batch, depth].</span>
 <span class="sd">      source_paddings: source encoding&#39;s padding, of shape [time, batch].</span>
 <span class="sd">      targets: A dict of string to tensors representing the targets one try to</span>
-<span class="sd">          predict. Each tensor in targets is of shape [batch, time].</span>
+<span class="sd">        predict. Each tensor in targets is of shape [batch, time].</span>
 <span class="sd">      src_segment_id: source segment id, of shape [time, batch].</span>
 
 <span class="sd">    Returns:</span>
@@ -630,7 +631,7 @@
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">feed_attention_context_vec_to_softmax</span><span class="p">:</span>
           <span class="n">xs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">atten_ctxs</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">xs</span></div>
+        <span class="k">return</span> <span class="n">xs</span>
 
 <div class="viewcode-block" id="MTDecoderV1.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="n">segment_id</span> <span class="o">=</span> <span class="kc">None</span>
@@ -640,11 +641,12 @@
                               <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span><span class="p">),</span>
                               <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">),</span> <span class="n">segment_id</span><span class="p">)</span></div>
 
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/InitDecoder&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_InitDecoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns initial decoder states.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this layer and</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">          its children layers.</span>
 <span class="sd">      source_encs: source encoding, of shape [time, batch, depth].</span>
 <span class="sd">      source_paddings: source encoding&#39;s padding, of shape [time, batch].</span>
@@ -683,6 +685,7 @@
     <span class="k">assert</span> <span class="n">atten_states</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="n">rnn_states</span><span class="p">,</span> <span class="n">atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">atten_states</span>
 
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/DecodeStep&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">step_paddings</span><span class="p">,</span> <span class="n">prev_atten_context</span><span class="p">,</span>
                   <span class="n">rnn_states</span><span class="p">,</span> <span class="n">prev_atten_states</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decode one step.&quot;&quot;&quot;</span>
@@ -730,27 +733,27 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">cur_atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">new_rnn_states</span><span class="p">,</span> <span class="n">step_out</span><span class="p">,</span>
             <span class="n">atten_states</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_GetAttentionInitState</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MTDecoderV1._GetAttentionInitState"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._GetAttentionInitState">[docs]</a>  <span class="k">def</span> <span class="nf">_GetAttentionInitState</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the attention initialization state.</span>
 
-<span class="sd">    It is valid to call this after _DecoderInit(). Inference subclasses use</span>
+<span class="sd">    It is valid to call this after `_DecoderInit()`. Inference subclasses use</span>
 <span class="sd">    this to split computation across subgraph boundaries.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      NestedMap of attention source states.</span>
+<span class="sd">      `.NestedMap` of attention source states.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">GetInitializationSourceState</span><span class="p">()</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">GetInitializationSourceState</span><span class="p">()</span></div>
 
-  <span class="k">def</span> <span class="nf">_SetAttentionInitState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_init_state</span><span class="p">):</span>
+<div class="viewcode-block" id="MTDecoderV1._SetAttentionInitState"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._SetAttentionInitState">[docs]</a>  <span class="k">def</span> <span class="nf">_SetAttentionInitState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_init_state</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sets the attention initialization state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      new_init_state: NestedMap compatible with that returned from</span>
-<span class="sd">      _GetAttentionSourceState.</span>
+<span class="sd">      new_init_state: `.NestedMap` compatible with that returned from</span>
+<span class="sd">        `_GetAttentionSourceState`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">SetInitializationSourceState</span><span class="p">(</span><span class="n">new_init_state</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">SetInitializationSourceState</span><span class="p">(</span><span class="n">new_init_state</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MTDecoderV1._InitBeamSearchStateCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                    <span class="n">source_encs</span><span class="p">,</span>
                                    <span class="n">source_paddings</span><span class="p">,</span>
                                    <span class="n">num_hyps_per_beam</span><span class="p">,</span>
@@ -761,16 +764,20 @@
 <span class="sd">      source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
 <span class="sd">      source_paddings: A tensor of shape [src_len, src_batch].</span>
 <span class="sd">      num_hyps_per_beam: An int, number hyps to keep for source sentence.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
+<span class="sd">      additional_source_info: a `.NestedMap` of tensors containing extra context</span>
 <span class="sd">          information about the source that may be useful for decoding.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">      initial_results: a NestedMap of initial results.</span>
-<span class="sd">          atten_probs: The initial attention probs, of shape [tgt_batch,</span>
-<span class="sd">              src_len].</span>
-<span class="sd">      states: a NestedMap of initial model states.</span>
-<span class="sd">          rnn_states: Initial state of the RNN.</span>
-<span class="sd">          atten_context: Initial attention context vector.</span>
-<span class="sd">          atten_states: Initial attention state.</span>
+<span class="sd">      A tuple (initial_results, states).</span>
+<span class="sd">        initial_results: a `.NestedMap` of initial results.</span>
+<span class="sd">          atten_probs:</span>
+<span class="sd">            The initial attention probs, of shape [tgt_batch, src_len].</span>
+<span class="sd">        states: a `.NestedMap` of initial model states.</span>
+<span class="sd">          rnn_states:</span>
+<span class="sd">            Initial state of the RNN.</span>
+<span class="sd">          atten_context:</span>
+<span class="sd">            Initial attention context vector.</span>
+<span class="sd">          atten_states:</span>
+<span class="sd">            Initial attention state.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># additional_source_info is currently not used.</span>
     <span class="k">del</span> <span class="n">additional_source_info</span>
@@ -786,8 +793,9 @@
         <span class="s1">&#39;atten_context&#39;</span><span class="p">:</span> <span class="n">init_atten_context</span><span class="p">,</span>
         <span class="s1">&#39;atten_probs&#39;</span><span class="p">:</span> <span class="n">atten_probs</span><span class="p">,</span>
         <span class="s1">&#39;atten_states&#39;</span><span class="p">:</span> <span class="n">atten_states</span><span class="p">,</span>
-    <span class="p">})</span>
+    <span class="p">})</span></div>
 
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/PreBeamSearchStepCallback&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_PreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                  <span class="n">source_encs</span><span class="p">,</span>
                                  <span class="n">source_paddings</span><span class="p">,</span>
@@ -801,21 +809,26 @@
 <span class="sd">      source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
 <span class="sd">      source_paddings: A tensor of shape [src_len, src_batch].</span>
 <span class="sd">      step_ids: A tensor of shape [tgt_batch, 1].</span>
-<span class="sd">      states: A NestedMap of tensors representing states that the clients</span>
+<span class="sd">      states: A `.NestedMap` of tensors representing states that the clients</span>
 <span class="sd">          would like to keep track of for each of the active hyps.</span>
 <span class="sd">      num_hyps_per_beam: Beam size.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
+<span class="sd">      additional_source_info: a `.NestedMap` of tensors containing extra context</span>
 <span class="sd">          information about the source that may be useful for decoding.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">      results: A NestedMap of beam search results.</span>
-<span class="sd">          atten_probs: The updated attention probs, of shape [tgt_batch,</span>
-<span class="sd">              src_len].</span>
-<span class="sd">          log_probs: Log prob for each of the tokens in the target vocab. This</span>
-<span class="sd">              is of shape [tgt_batch, vocab_size].</span>
-<span class="sd">      out_states: A NestedMap. The updated states.</span>
-<span class="sd">          rnn_states: Last state of the RNN.</span>
-<span class="sd">          atten_context: Updated attention context vector.</span>
-<span class="sd">          atten_states: Updates attention states.</span>
+<span class="sd">      A tuple (results, out_states).</span>
+<span class="sd">      results: A `.NestedMap` of beam search results.</span>
+<span class="sd">        atten_probs:</span>
+<span class="sd">          The updated attention probs, of shape [tgt_batch, src_len].</span>
+<span class="sd">        log_probs:</span>
+<span class="sd">          Log prob for each of the tokens in the target vocab. This is of shape</span>
+<span class="sd">          [tgt_batch, vocab_size].</span>
+<span class="sd">      out_states: A `.NestedMap`. The updated states.</span>
+<span class="sd">        rnn_states:</span>
+<span class="sd">          Last state of the RNN.</span>
+<span class="sd">        atten_context:</span>
+<span class="sd">          Updated attention context vector.</span>
+<span class="sd">        atten_states:</span>
+<span class="sd">          Updates attention states.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># additional_source_info is currently not used.</span>
@@ -855,14 +868,14 @@
 
     <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span>
 
-  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="MTDecoderV1._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                   <span class="n">source_encs</span><span class="p">,</span>
                                   <span class="n">source_paddings</span><span class="p">,</span>
                                   <span class="n">new_step_ids</span><span class="p">,</span>
                                   <span class="n">states</span><span class="p">,</span>
                                   <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># There is nothing to do here.</span>
-    <span class="k">return</span> <span class="n">states</span>
+    <span class="k">return</span> <span class="n">states</span></div>
 
 <div class="viewcode-block" id="MTDecoderV1.BeamSearchDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">source_encs</span><span class="p">,</span>
@@ -876,12 +889,12 @@
 <span class="sd">      source_paddings: source encoding&#39;s padding, of shape [time, batch].</span>
 <span class="sd">      num_hyps_per_beam_override: If set to a value &lt;= 0, this parameter is</span>
 <span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to</span>
-<span class="sd">        override p.num_hyps_per_beam.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
+<span class="sd">        override `p.num_hyps_per_beam`.</span>
+<span class="sd">      additional_source_info: a `.NestedMap` of tensors containing extra context</span>
 <span class="sd">          information about the source that may be useful for decoding.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      BeamSearchDecodeOutput, a namedtuple containing the decode results</span>
+<span class="sd">      BeamSearchDecodeOutput, a namedtuple containing the decode results.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">additional_source_info</span>  <span class="c1"># Unused.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
@@ -980,25 +993,25 @@
       <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;beam_search&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
+<div class="viewcode-block" id="TransformerDecoder._FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._FProp">[docs]</a>  <span class="k">def</span> <span class="nf">_FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
              <span class="n">src_segment_id</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decodes &#39;targets&#39; given encoded source.</span>
+    <span class="sd">&quot;&quot;&quot;Decodes `targets` given encoded source.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
-<span class="sd">          layer and its children layers.</span>
-<span class="sd">      source_encs: source encoding. When p.is_transparent is False, it is a</span>
-<span class="sd">          tensor of shape [time, batch, depth]. When p.is_transparent is True,</span>
-<span class="sd">          it is a tensor of shape [time, batch, depth, num_trans_layers] if</span>
-<span class="sd">          p.is_eval is True, and a list of num_trans_layers tensors of shape</span>
-<span class="sd">          [time, batch, depth] if p.is_eval is False.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      source_encs: source encoding. When `p.is_transparent` is False, it is a</span>
+<span class="sd">        tensor of shape [time, batch, depth]. When `p.is_transparent` is True,</span>
+<span class="sd">        it is a tensor of shape [time, batch, depth, num_trans_layers] if</span>
+<span class="sd">        `p.is_eval` is True, and a list of `num_trans_layers` tensors of shape</span>
+<span class="sd">        [time, batch, depth] if `p.is_eval` is False.</span>
 <span class="sd">      source_paddings: source encoding&#39;s padding, of shape [time, batch].</span>
 <span class="sd">      targets: A dict of string to tensors representing the targets one try to</span>
-<span class="sd">          predict. Each tensor in targets is of shape [batch, time].</span>
+<span class="sd">        predict. Each tensor in targets is of shape [batch, time].</span>
 <span class="sd">      src_segment_id: source segment id, of shape [time, batch].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Output of the last decoder layer: [target_time, target_batch, source_dim]</span>
+<span class="sd">      Output of last decoder layer, [target_time, target_batch, source_dim].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">time</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -1068,30 +1081,30 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
 
-      <span class="k">return</span> <span class="n">layer_out</span>
+      <span class="k">return</span> <span class="n">layer_out</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.ExtendStep"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">new_ids</span><span class="p">,</span>
                  <span class="n">t</span><span class="p">,</span> <span class="n">prefix_states</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extend prefix as represeted by &#39;prefix_states&#39; by one more step.</span>
+    <span class="sd">&quot;&quot;&quot;Extend prefix as represeted by `prefix_states` by one more step.</span>
 
 <span class="sd">    This function is expected to be called during fast decoding of Transformer</span>
 <span class="sd">    models.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
-<span class="sd">          layer and its children layers.</span>
-<span class="sd">      source_encs: source encoding, of shape [time, batch, depth].</span>
-<span class="sd">          Can be [time, bs, depth, num_trans_layers] if is_transparent is set.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      source_encs: source encoding, of shape [time, batch, depth]. Can be [time,</span>
+<span class="sd">        bs, depth, num_trans_layers] if is_transparent is set.</span>
 <span class="sd">      source_paddings: source encoding&#39;s padding, of shape [time, batch].</span>
-<span class="sd">      new_ids: new input ids, of shape [batch]</span>
+<span class="sd">      new_ids: new input ids, of shape [batch].</span>
 <span class="sd">      t: a scalar, the current time step, 0-based.</span>
-<span class="sd">      prefix_states: a NestedMap representing the prefix that has already been</span>
-<span class="sd">          decoded.</span>
+<span class="sd">      prefix_states: a `.NestedMap` representing the prefix that has already</span>
+<span class="sd">        been decoded.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A pair (last_decoder_out, prefix_states), where last_decoder_out is the</span>
-<span class="sd">      output of the last decoder layer. It is a tensor of shape [batch,</span>
-<span class="sd">      model_dim], and prefix_states is the update prefix states.</span>
+<span class="sd">      output of the last decoder layer of shape [batch, model_dim], and</span>
+<span class="sd">      `prefix_states` is the update prefix states.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">time</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
@@ -1131,16 +1144,16 @@
 
 <div class="viewcode-block" id="TransformerDecoder.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
                          <span class="n">src_segment_id</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decodes &#39;targets&#39; given encoded source.</span>
+    <span class="sd">&quot;&quot;&quot;Decodes `targets` given encoded source.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
-<span class="sd">          layer and its children layers.</span>
-<span class="sd">      source_encs: source encoding, of shape [time, batch, depth].</span>
-<span class="sd">          Can be [time, batch, depth, num_layers] if is_transparent is set.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      source_encs: source encoding, of shape [time, batch, depth]. Can be [time,</span>
+<span class="sd">        batch, depth, num_layers] if is_transparent is set.</span>
 <span class="sd">      source_paddings: source encoding&#39;s padding, of shape [time, batch].</span>
 <span class="sd">      targets: A dict of string to tensors representing the targets one try to</span>
-<span class="sd">          predict. Each tensor in targets is of shape [batch, time].</span>
+<span class="sd">        predict. Each tensor in targets is of shape [batch, time].</span>
 <span class="sd">      src_segment_id: source segment id, of shape [time, batch].</span>
 
 <span class="sd">    Returns:</span>
@@ -1149,7 +1162,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
                        <span class="n">src_segment_id</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="TransformerDecoder._InitBeamSearchStateCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                    <span class="n">source_encs</span><span class="p">,</span>
                                    <span class="n">source_paddings</span><span class="p">,</span>
                                    <span class="n">num_hyps_per_beam</span><span class="p">,</span>
@@ -1161,16 +1174,20 @@
 <span class="sd">          Can be [time, batch, depth, num_layers] if is_transparent is set.</span>
 <span class="sd">      source_paddings: A tensor of shape [src_len, src_batch].</span>
 <span class="sd">      num_hyps_per_beam: An int, number hyps to keep for source sentence.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
+<span class="sd">      additional_source_info: a `.NestedMap` of tensors containing extra context</span>
 <span class="sd">          information about the source that may be useful for decoding.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">      initial_results: a NestedMap of initial results.</span>
-<span class="sd">          atten_probs: The initial attention probs, of shape [tgt_batch,</span>
-<span class="sd">              src_len].</span>
-<span class="sd">      states: a NestedMap of initial model states.</span>
-<span class="sd">          source_encs: A tensor of shape [src_batch, src_len, source_dim].</span>
-<span class="sd">          source_paddings: A tensor of shape [src_batch, src_len].</span>
-<span class="sd">          target_ids: Initial empty list of decoded ids. [num_hyps, 0]</span>
+<span class="sd">      A tuple (initial_results, states).</span>
+<span class="sd">        initial_results: a `.NestedMap` of initial results.</span>
+<span class="sd">          atten_probs:</span>
+<span class="sd">            The initial attention probs, of shape [tgt_batch, src_len].</span>
+<span class="sd">        states: a `.NestedMap` of initial model states.</span>
+<span class="sd">          source_encs:</span>
+<span class="sd">            A tensor of shape [src_batch, src_len, source_dim].</span>
+<span class="sd">          source_paddings:</span>
+<span class="sd">            A tensor of shape [src_batch, src_len].</span>
+<span class="sd">          target_ids:</span>
+<span class="sd">            Initial empty list of decoded ids. [num_hyps, 0].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># additional_source_info is currently not used.</span>
@@ -1198,9 +1215,9 @@
     <span class="k">return</span> <span class="n">initial_results</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
         <span class="s1">&#39;prefix_states&#39;</span><span class="p">:</span> <span class="n">prefix_states</span><span class="p">,</span>
         <span class="s1">&#39;time_step&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="p">})</span>
+    <span class="p">})</span></div>
 
-  <span class="k">def</span> <span class="nf">_PreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="TransformerDecoder._PreBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                  <span class="n">source_encs</span><span class="p">,</span>
                                  <span class="n">source_paddings</span><span class="p">,</span>
                                  <span class="n">step_ids</span><span class="p">,</span>
@@ -1214,21 +1231,26 @@
 <span class="sd">          Can be [time, batch, depth, num_layers] if is_transparent is set.</span>
 <span class="sd">      source_paddings: A tensor of shape [src_len, src_batch].</span>
 <span class="sd">      step_ids: A tensor of shape [tgt_batch, 1].</span>
-<span class="sd">      states: A NestedMap of tensors representing states that the clients</span>
+<span class="sd">      states: A `.NestedMap` of tensors representing states that the clients</span>
 <span class="sd">          would like to keep track of for each of the active hyps.</span>
 <span class="sd">      num_hyps_per_beam: Beam size.</span>
-<span class="sd">      additional_source_info: a NestedMap of tensors containing extra context</span>
+<span class="sd">      additional_source_info: a `.NestedMap` of tensors containing extra context</span>
 <span class="sd">          information about the source that may be useful for decoding.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">      results: A NestedMap of beam search results.</span>
-<span class="sd">          atten_probs: The updated attention probs, of shape [tgt_batch,</span>
-<span class="sd">              src_len].</span>
-<span class="sd">          log_probs: Log prob for each of the tokens in the target vocab. This</span>
-<span class="sd">              is of shape [tgt_batch, vocab_size].</span>
-<span class="sd">      out_states: A NestedMap. The updated states.</span>
-<span class="sd">         source_encs: A tensor of shape [src_batch, src_len, source_dim].</span>
-<span class="sd">         source_paddings: A tensor of shape [src_batch, src_len].</span>
-<span class="sd">         target_ids: Updated list of decoded ids. [num_hyps, Num of decoded ids]</span>
+<span class="sd">      A tuple (results, out_states).</span>
+<span class="sd">        results: A `.NestedMap` of beam search results.</span>
+<span class="sd">          atten_probs:</span>
+<span class="sd">            The updated attention probs, of shape [tgt_batch, src_len].</span>
+<span class="sd">          log_probs:</span>
+<span class="sd">            Log prob for each of the tokens in the target vocab. This is of</span>
+<span class="sd">            shape [tgt_batch, vocab_size].</span>
+<span class="sd">        out_states: A `.NestedMap`. The updated states.</span>
+<span class="sd">           source_encs:</span>
+<span class="sd">             A tensor of shape [src_batch, src_len, source_dim].</span>
+<span class="sd">           source_paddings:</span>
+<span class="sd">             A tensor of shape [src_batch, src_len].</span>
+<span class="sd">           target_ids:</span>
+<span class="sd">             Updated list of decoded ids. [num_hyps, Num of decoded ids].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># additional_source_info is currently not used.</span>
@@ -1268,16 +1290,16 @@
         <span class="s1">&#39;log_probs&#39;</span><span class="p">:</span> <span class="n">log_probs</span><span class="p">,</span>
     <span class="p">})</span>
 
-    <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span>
+    <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span></div>
 
-  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="TransformerDecoder._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                   <span class="n">source_encs</span><span class="p">,</span>
                                   <span class="n">source_paddings</span><span class="p">,</span>
                                   <span class="n">new_step_ids</span><span class="p">,</span>
                                   <span class="n">states</span><span class="p">,</span>
                                   <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># There is nothing to do here.</span>
-    <span class="k">return</span> <span class="n">states</span>
+    <span class="k">return</span> <span class="n">states</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.BeamSearchDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">source_encs</span><span class="p">,</span>

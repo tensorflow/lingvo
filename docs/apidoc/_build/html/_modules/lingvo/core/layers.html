@@ -212,7 +212,7 @@
     <span class="sd">&quot;&quot;&quot;Identity mapping.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: The inputs tensor.  Shaped [..., input_dim].</span>
 <span class="sd">      *args: Arguments to be ignored.</span>
@@ -272,7 +272,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span> <span class="o">=</span> <span class="mf">0.001</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decay</span>
 
-  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="BatchNormLayer._Moments"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer._Moments">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">_Moments</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">enable_cross_replica_sum_on_tpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes mean and variance over the valid data points in inputs.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">mask</span><span class="o">.</span><span class="n">dtype</span>
@@ -303,13 +303,13 @@
     <span class="n">variance</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">sum_vv</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">sum_vv</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span>
     <span class="p">],</span> <span class="n">sum_vv</span> <span class="o">/</span> <span class="n">count_v</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span>
+    <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span></div>
 
 <div class="viewcode-block" id="BatchNormLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply batch normalization.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: The inputs tensor.  Shaped [..., dim].</span>
 <span class="sd">      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as</span>
@@ -394,7 +394,7 @@
         <span class="n">flops</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="n">flops_per_element</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">_ComputeOutputPadding</span><span class="p">(</span><span class="n">in_padding</span><span class="p">,</span> <span class="n">stride</span><span class="p">):</span>
+<div class="viewcode-block" id="_ComputeOutputPadding"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers._ComputeOutputPadding">[docs]</a><span class="k">def</span> <span class="nf">_ComputeOutputPadding</span><span class="p">(</span><span class="n">in_padding</span><span class="p">,</span> <span class="n">stride</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes paddings for convolution and pooling output.</span>
 
 <span class="sd">  Let the stride on the time axis be ts and the input sequence length be</span>
@@ -407,8 +407,7 @@
 <span class="sd">    stride: The time-stride between adjacent windows.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    out_padding: The new padding tensor of size [batch,</span>
-<span class="sd">        ceil(time / stride)].</span>
+<span class="sd">    out_padding, The new padding tensor of size [batch, ceil(time / stride)].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">in_padding</span>
@@ -434,7 +433,7 @@
   <span class="c1"># A timestep becomes a padded step as long as one of the underlying</span>
   <span class="c1"># t_stride steps is a padded one.</span>
   <span class="n">out_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">out_padding</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">out_padding</span>
+  <span class="k">return</span> <span class="n">out_padding</span></div>
 
 
 <div class="viewcode-block" id="ConvLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvLayer">[docs]</a><span class="k">class</span> <span class="nc">ConvLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
@@ -564,7 +563,7 @@
     <span class="n">oc</span> <span class="o">=</span> <span class="n">f_outc</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">ot</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">oc</span><span class="p">])</span></div>
 
-  <span class="k">def</span> <span class="nf">_ApplyConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="ConvLayer._ApplyConv"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvLayer._ApplyConv">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
     <span class="n">strides</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
@@ -602,13 +601,13 @@
       <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]])</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]])</span></div>
 
 <div class="viewcode-block" id="ConvLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply convolution to inputs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: The inputs tensor. It is expected to be of shape [batch,</span>
 <span class="sd">          time, frequency, channel]. The time dimension corresponds to</span>
@@ -750,7 +749,7 @@
     <span class="sd">&quot;&quot;&quot;Apply projection to inputs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: The inputs tensor.  Shaped [..., input_dim].</span>
 <span class="sd">      paddings: The paddings tensor.  Shaped [..., 1], where all but the last</span>
@@ -783,7 +782,7 @@
       <span class="c1"># lastly, zeroing out padded states.</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">QRPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="n">out</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_ApplyAffineTransformation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="ProjectionLayer._ApplyAffineTransformation"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._ApplyAffineTransformation">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyAffineTransformation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
     <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
@@ -802,7 +801,7 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">]],</span> <span class="mi">0</span><span class="p">))</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;affine_bias&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">out</span></div>
+    <span class="k">return</span> <span class="n">out</span></div></div>
 
 
 <div class="viewcode-block" id="FCLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FCLayer">[docs]</a><span class="k">class</span> <span class="nc">FCLayer</span><span class="p">(</span><span class="n">ProjectionLayer</span><span class="p">):</span>
@@ -867,7 +866,7 @@
     <span class="sd">&quot;&quot;&quot;Apply pooling to inputs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: The inputs tensor. It is expected to be of shape [batch, time,</span>
 <span class="sd">          frequency, channel]. The time dimension corresponds to the height</span>
@@ -983,8 +982,8 @@
 <span class="sd">      ids: A rank-N int32 tensor.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      embs: A rank-(N+1) params.dtype tensor. embs[indices, :] is the</span>
-<span class="sd">        embedding vector for ids[indices].</span>
+<span class="sd">      A rank-(N+1) params.dtype tensor.</span>
+<span class="sd">      embs[indices, :] is the embedding vector for ids[indices].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
@@ -1199,8 +1198,8 @@
 <span class="sd">      ids: A rank-N int32 tensor.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A rank-(N+1) params.dtype tensor. embs[indices, :] is the</span>
-<span class="sd">      embedding vector for ids[indices].</span>
+<span class="sd">      A rank-(N+1) params.dtype tensor.</span>
+<span class="sd">      embs[indices, :] is the embedding vector for ids[indices].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">():</span>
@@ -1221,8 +1220,7 @@
 <span class="sd">  Implements the positional embedding layer from &#39;Attention is All You Need&#39;,</span>
 <span class="sd">  the Transformer Network.</span>
 
-<span class="sd">  Note, code and comments are adapted from:</span>
-<span class="sd">    tensor2tensor/layers/common_attention.py</span>
+<span class="sd">  Code and comments are adapted from tensor2tensor/layers/common_attention.py</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="PositionalEmbeddingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PositionalEmbeddingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1260,14 +1258,14 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_PosEmbeddingsFromPositions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+<div class="viewcode-block" id="PositionalEmbeddingLayer._PosEmbeddingsFromPositions"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PositionalEmbeddingLayer._PosEmbeddingsFromPositions">[docs]</a>  <span class="k">def</span> <span class="nf">_PosEmbeddingsFromPositions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generates the positional embeddings given the position tensor.</span>
 
 <span class="sd">    Factors out the common code from FProp and FPropWithPosition. Returns</span>
 <span class="sd">    positional embeddings corresponding to the input position tensor.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      position: Position tensor of dtype float and shape [bs, seq_length] to</span>
 <span class="sd">        generate positional embeddings.</span>
@@ -1294,7 +1292,7 @@
     <span class="n">signal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">trainable_scaling</span><span class="p">:</span>
       <span class="n">signal</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">trainable_scaling_init</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">signal</span>
+    <span class="k">return</span> <span class="n">signal</span></div>
 
 <div class="viewcode-block" id="PositionalEmbeddingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PositionalEmbeddingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generates a Tensor of sinusoids with different frequencies.</span>
@@ -1317,7 +1315,7 @@
 <span class="sd">    the channels dimension.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      seq_length: Sequence length of the embeddings to be generated</span>
 
@@ -1337,7 +1335,7 @@
 <span class="sd">    to FProp description for details of sinusoidal positional embeddings.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      position_tensor: Position tensor of shape [bs, seq_length] to generate</span>
 <span class="sd">        positional embeddings.</span>
@@ -1375,7 +1373,7 @@
     <span class="sd">&quot;&quot;&quot;Computes cross entropy.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_FProp2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="SoftmaxLayer._FProp2D"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer._FProp2D">[docs]</a>  <span class="k">def</span> <span class="nf">_FProp2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">theta</span><span class="p">,</span>
                <span class="n">inputs</span><span class="p">,</span>
                <span class="n">class_weights</span><span class="p">,</span>
@@ -1383,7 +1381,7 @@
                <span class="n">class_probabilities</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Specialized FProp for matrix inputs.&quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-        <span class="s1">&#39;Subclasses of SoftmaxLayer must implement _FProp2D&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;Subclasses of SoftmaxLayer must implement _FProp2D&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SoftmaxLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">theta</span><span class="p">,</span>
@@ -1398,7 +1396,7 @@
 <span class="sd">    provided.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: a list of a single tensor, or a single tensor with the shape</span>
 <span class="sd">        [..., input_dim].</span>
@@ -1410,16 +1408,17 @@
 <span class="sd">          float values indicating class-membership probabilities.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap containing the following fields:</span>
-<span class="sd">        logits: with shape [..., num_classes]. Unnormalized softmax&#39;s logits.</span>
-<span class="sd">        per_example_argmax: with shape [...]. argmax of i-th example.</span>
-<span class="sd">        per_example_xent: with shape [...]. Cross entropy between i-th example&#39;s</span>
-<span class="sd">          prediction and its label.</span>
-<span class="sd">        per_example_weight: with shape [...]. class_weights casted to</span>
-<span class="sd">          this layer&#39;s dtype.</span>
-<span class="sd">        total_xent: A scalar. The sum of per_example_weight * per_example_xent.</span>
-<span class="sd">        total_weight: A scalar. The sum of per_example_weight.</span>
-<span class="sd">        avg_xent: A scalar. total_loss / total_weight.</span>
+<span class="sd">      A `.NestedMap` containing the following fields</span>
+
+<span class="sd">      - logits: with shape [..., num_classes]. Unnormalized softmax&#39;s logits.</span>
+<span class="sd">      - per_example_argmax: with shape [...]. argmax of i-th example.</span>
+<span class="sd">      - per_example_xent: with shape [...]. Cross entropy between i-th example&#39;s</span>
+<span class="sd">        prediction and its label.</span>
+<span class="sd">      - per_example_weight: with shape [...]. class_weights casted to</span>
+<span class="sd">        this layer&#39;s dtype.</span>
+<span class="sd">      - total_xent: A scalar. The sum of per_example_weight * per_example_xent.</span>
+<span class="sd">      - total_weight: A scalar. The sum of per_example_weight.</span>
+<span class="sd">      - avg_xent: A scalar. total_loss / total_weight.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -1512,13 +1511,13 @@
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_GetInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleFullSoftmax._GetInputs"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._GetInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_GetInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
       <span class="k">return</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">inputs</span>
+    <span class="k">return</span> <span class="n">inputs</span></div>
 
-  <span class="k">def</span> <span class="nf">_ConcatWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleFullSoftmax._ConcatWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._ConcatWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_ConcatWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Add per-step noise if configured so.</span>
     <span class="n">concat_axis</span> <span class="o">=</span> <span class="mi">1</span>
@@ -1532,9 +1531,9 @@
     <span class="n">new_theta</span><span class="o">.</span><span class="n">wm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddPerStepVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
         <span class="n">weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">concat_axis</span><span class="p">))</span>
     <span class="n">new_theta</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddPerStepVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">biases</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">new_theta</span>
+    <span class="k">return</span> <span class="n">new_theta</span></div>
 
-  <span class="k">def</span> <span class="nf">_LogitsUsingConcatenatedWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleFullSoftmax._LogitsUsingConcatenatedWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_LogitsUsingConcatenatedWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
@@ -1554,13 +1553,13 @@
       <span class="n">abs_min</span> <span class="o">=</span> <span class="o">-</span><span class="n">abs_max</span>  <span class="c1"># pylint: disable=invalid-unary-operand-type</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">abs_min</span><span class="p">,</span> <span class="n">abs_max</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the logits computed before the softmax.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: a list of a single tensor, or a single tensor with the shape</span>
 <span class="sd">        [N, input_dim].</span>
@@ -1571,7 +1570,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LogitsUsingConcatenatedWeights</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetInputs</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span></div>
 
-  <span class="k">def</span> <span class="nf">_XentLossByChunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleFullSoftmax._XentLossByChunk"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._XentLossByChunk">[docs]</a>  <span class="k">def</span> <span class="nf">_XentLossByChunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes per-example xent loss between activation and class_ids.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -1624,9 +1623,9 @@
     <span class="k">def</span> <span class="nf">GetBatch</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:</span><span class="n">batch</span><span class="p">]</span>
 
-    <span class="k">return</span> <span class="n">GetBatch</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">xent</span><span class="p">),</span> <span class="n">GetBatch</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">amax</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">GetBatch</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">xent</span><span class="p">),</span> <span class="n">GetBatch</span><span class="p">(</span><span class="n">acc</span><span class="o">.</span><span class="n">amax</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_FProp2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="SimpleFullSoftmax._FProp2D"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._FProp2D">[docs]</a>  <span class="k">def</span> <span class="nf">_FProp2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">theta</span><span class="p">,</span>
                <span class="n">inputs</span><span class="p">,</span>
                <span class="n">class_weights</span><span class="p">,</span>
@@ -1685,11 +1684,11 @@
         <span class="n">per_example_weight</span><span class="o">=</span><span class="n">label_weights</span><span class="p">,</span>
         <span class="n">total_xent</span><span class="o">=</span><span class="n">total_xent</span><span class="p">,</span>
         <span class="n">total_weight</span><span class="o">=</span><span class="n">total_weights</span><span class="p">,</span>
-        <span class="n">avg_xent</span><span class="o">=</span><span class="n">total_xent</span> <span class="o">/</span> <span class="n">total_weights</span><span class="p">)</span></div>
+        <span class="n">avg_xent</span><span class="o">=</span><span class="n">total_xent</span> <span class="o">/</span> <span class="n">total_weights</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FeedForwardNet"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet">[docs]</a><span class="k">class</span> <span class="nc">FeedForwardNet</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;&quot;A simple multiple layer feedforward network.</span>
+  <span class="sd">&quot;&quot;&quot;A simple multiple layer feedforward network.</span>
 
 <span class="sd">  This class represents a stack of fully connected feedforward network. Each</span>
 <span class="sd">  layer in the network can be configured for whether or not to have batch-norm</span>
@@ -1872,7 +1871,7 @@
     <span class="sd">&quot;&quot;&quot;Apply dropout to inputs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: The inputs tensor.</span>
 <span class="sd">    Returns:</span>
@@ -1900,7 +1899,7 @@
     <span class="sd">&quot;&quot;&quot;Apply dropout to inputs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: The inputs tensor.</span>
 <span class="sd">    Returns:</span>
@@ -1949,7 +1948,7 @@
     <span class="sd">&quot;&quot;&quot;Applies normalization over the last dimension (layer).</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A tensor of shape [..., hidden_dim].</span>
 <span class="sd">    Returns:</span>
@@ -2024,7 +2023,7 @@
     <span class="sd">&quot;&quot;&quot;Apply all convolution sets to inputs and concatenate outputs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: The inputs tensor. It is expected to be of shape [batch, time,</span>
 <span class="sd">          frequency, channel]. The time dimension corresponds to the height</span>
@@ -2033,13 +2032,15 @@
 <span class="sd">      paddings: The paddings tensor. It is expected to be of shape [batch,</span>
 <span class="sd">          time].</span>
 <span class="sd">    Returns:</span>
-<span class="sd">      out: output tensor. Expected to be of shape [batch, time_mod,</span>
-<span class="sd">          frequency_mod, out_channel_1 + out_channel_2 ...] where time_mod and</span>
-<span class="sd">          frequency_mod depend on the conv layer strides and out_channel_i is</span>
-<span class="sd">          the output channel size of the i-th conv layer in the set.</span>
-<span class="sd">      output_paddings: Modified paddings tensor generated using</span>
-<span class="sd">          _ComputeOutputPadding within ConvLayer.FProp. Expected to be of the</span>
-<span class="sd">          shape [batch, time_mod].</span>
+<span class="sd">      A tuple (out, output_paddings).</span>
+
+<span class="sd">      - out: output tensor. Expected to be of shape [batch, time_mod,</span>
+<span class="sd">        frequency_mod, out_channel_1 + out_channel_2 ...] where time_mod and</span>
+<span class="sd">        frequency_mod depend on the conv layer strides and out_channel_i is</span>
+<span class="sd">        the output channel size of the i-th conv layer in the set.</span>
+<span class="sd">      - output_paddings: Modified paddings tensor generated using</span>
+<span class="sd">        `_ComputeOutputPadding` within `ConvLayer.FProp`. Expected to be of the</span>
+<span class="sd">        shape [batch, time_mod].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
@@ -2095,7 +2096,7 @@
     <span class="sd">&quot;&quot;&quot;Convert class_ids to 1hot and smooth by neighborhood.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      target_paddings: float32 matrix [bs, seq_len]</span>
 <span class="sd">      target_labels: int32 matrix [bs, seq_len]. This stores the target</span>
@@ -2106,8 +2107,8 @@
 <span class="sd">        generator input_batch.tgt.ids</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      tensor [bs, seq_len, num_classes] denoting a smoothed</span>
-<span class="sd">        distribution over num_classes</span>
+<span class="sd">      A tensor [bs, seq_len, num_classes] denoting a smoothed distribution over</span>
+<span class="sd">      num_classes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">target_ids</span>  <span class="c1"># Unused.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2176,7 +2177,7 @@
     <span class="sd">&quot;&quot;&quot;Convert target_labels to 1hot and smooth uniformly.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      target_paddings: float32 matrix [bs, seq_len]</span>
 <span class="sd">      target_labels: int32 matrix [bs, seq_len]. This stores the target</span>
@@ -2187,8 +2188,8 @@
 <span class="sd">        generator input_batch.tgt.ids</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      tensor of float32 [bs, seq_len, num_classes] denoting a smoothed</span>
-<span class="sd">        distribution over num_classes</span>
+<span class="sd">      A tensor of float32 [bs, seq_len, num_classes] denoting a smoothed</span>
+<span class="sd">      distribution over num_classes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">target_paddings</span>  <span class="c1"># Unused by FProp.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2221,7 +2222,7 @@
 
 
 <div class="viewcode-block" id="HighwaySkipLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.HighwaySkipLayer">[docs]</a><span class="k">class</span> <span class="nc">HighwaySkipLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;&quot;A highway skip layer.</span>
+  <span class="sd">&quot;&quot;&quot;A highway skip layer.</span>
 
 <span class="sd">  This class represents a highway skip layer, which takes multiple</span>
 <span class="sd">  inputs (from different layers of the network) and gates them.</span>
@@ -2276,13 +2277,13 @@
     <span class="sd">&quot;&quot;&quot;Fprop for Highway Skip layer.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
-<span class="sd">       x: feature at the lower layer.</span>
-<span class="sd">       transformed_x: transformation of x at a higher layer.</span>
-<span class="sd">       paddings: padding applied to the features.</span>
+<span class="sd">      x: feature at the lower layer.</span>
+<span class="sd">      transformed_x: transformation of x at a higher layer.</span>
+<span class="sd">      paddings: padding applied to the features.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">       layer_out: Activations after forward propagation.</span>
+<span class="sd">      layer_out - activations after forward propagation.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">carry_gate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -2347,7 +2348,7 @@
 <span class="sd">    update the moving avgs and forces to clip the gradients to 0.0.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      grad_norm: A float scalar tensor.</span>
 <span class="sd">      has_nan: A boolean scalar tensor to indicate if the current batch has nan.</span>
@@ -2463,7 +2464,7 @@
     <span class="sd">&quot;&quot;&quot;Combines the list of input tensors into a single tensor.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A list of tensors of shape [time, batch, hidden_dim]</span>
 <span class="sd">    Returns:</span>

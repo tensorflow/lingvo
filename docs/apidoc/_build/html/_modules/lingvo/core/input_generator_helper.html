@@ -174,10 +174,12 @@
 
 <span class="sd">  Assigns each split floor(batch_size/num_splits) and round-robins</span>
 <span class="sd">  the remainder (if any) to each split.</span>
-<span class="sd">  Example:</span>
-<span class="sd">   batch_size: [5]</span>
-<span class="sd">   num_splits: 3</span>
-<span class="sd">   returns: [2, 2, 1]</span>
+
+<span class="sd">  Example::</span>
+
+<span class="sd">    batch_size: [5]</span>
+<span class="sd">    num_splits: 3</span>
+<span class="sd">    returns: [2, 2, 1]</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    batch_size: tensor of rank 0, size of tensor to be split</span>
@@ -201,14 +203,15 @@
 
 
 <div class="viewcode-block" id="SplitTensors"><a class="viewcode-back" href="../../../lingvo.core.input_generator_helper.html#lingvo.core.input_generator_helper.SplitTensors">[docs]</a><span class="k">def</span> <span class="nf">SplitTensors</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Splits tensors in &#39;xs&#39; evenly into num_splits along the 1st dimenion.</span>
+  <span class="sd">&quot;&quot;&quot;Splits tensors in `xs` evenly into num_splits along the 1st dimenion.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    xs: A tuple of tensors. Each tensor&#39;s 1st dimension is the same size.</span>
 <span class="sd">    num_splits: A python integer.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A tuple of lists of tensors, num elements in the tuple = len(xs)</span>
+<span class="sd">    A tuple of lists of tensors, num elements in the tuple = len(xs).</span>
+
 <span class="sd">    i-th element in each list corresponds to i-th split of each tensor in xs</span>
 <span class="sd">    along the first dimension of each tensor.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -236,15 +239,16 @@
 
 
 <div class="viewcode-block" id="SplitDictOfTensors"><a class="viewcode-back" href="../../../lingvo.core.input_generator_helper.html#lingvo.core.input_generator_helper.SplitDictOfTensors">[docs]</a><span class="k">def</span> <span class="nf">SplitDictOfTensors</span><span class="p">(</span><span class="n">t_dict</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Splits tensors in &#39;t_dict&#39; evenly into num_splits along the 1st dimenion.</span>
+  <span class="sd">&quot;&quot;&quot;Splits tensors in `t_dict` evenly into `num_splits` along the 1st dimenion.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    t_dict: A dictionary of tensors.</span>
-<span class="sd">      Each tensor&#39;s 1st dimension is the same size.</span>
+<span class="sd">    t_dict: A dictionary of tensors. Each tensor&#39;s 1st dimension is the same</span>
+<span class="sd">      size.</span>
 <span class="sd">    num_splits: A python integer.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A list of dictionaries of tensors, num elements in the list = num_splits</span>
+
 <span class="sd">    i-th dictionary in the list corresponds to i-th split of each tensor</span>
 <span class="sd">    along the first dimension of each tensor for each key in the original dict.</span>
 <span class="sd">  &quot;&quot;&quot;</span>

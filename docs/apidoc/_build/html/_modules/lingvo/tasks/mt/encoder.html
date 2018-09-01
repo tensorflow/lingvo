@@ -185,7 +185,7 @@
 
 <div class="viewcode-block" id="MTEncoderV1.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderV1.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Configs for MTEncoderV1.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Configs for `MTEncoderV1`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MTEncoderV1</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lstm_tpl&#39;</span><span class="p">,</span>
@@ -294,19 +294,19 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="n">cap</span><span class="p">,</span> <span class="n">cap</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MTEncoderV1.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderV1.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Encodes source as represented by &#39;inputs&#39; and &#39;paddings&#39;.</span>
+    <span class="sd">&quot;&quot;&quot;Encodes source as represented by `inputs` and `paddings`.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: Named tuple with the weights for all the encoder layers.</span>
-<span class="sd">      input_batch: A NestedMap with fields:</span>
-<span class="sd">        ids - The inputs tensor. It is expected to be of shape [batch, time]</span>
-<span class="sd">        paddings - The paddings tensor. It is expected to be of shape</span>
-<span class="sd">             [batch, time].</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      input_batch: A `.NestedMap` with fields:</span>
+<span class="sd">        - ids: The inputs tensor. It is expected to be of shape [batch, time].</span>
+<span class="sd">        - paddings: The paddings tensor. Expected shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (outputs, out_paddings, src_segment_id) pair.</span>
-<span class="sd">      Outputs is of the shape [time, batch, depth], and out_paddings is of the</span>
-<span class="sd">      shape [time, batch]. src_segment_id should have the shape</span>
+<span class="sd">      (outputs, out_paddings, src_segment_id) tuple.</span>
+<span class="sd">      `outputs` is of the shape [time, batch, depth], and `out_paddings` is of</span>
+<span class="sd">      the shape [time, batch]. `src_segment_id` should have the shape</span>
 <span class="sd">      [time, batch] if packed inputs are supported by the model (and all</span>
 <span class="sd">      layers), or None otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -353,7 +353,7 @@
 
 <div class="viewcode-block" id="MTEncoderUniRNN.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderUniRNN.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Configs for MTEncoderUniRNN.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Configs for `MTEncoderUniRNN`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MTEncoderUniRNN</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lstm_tpl&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -444,22 +444,6 @@
       <span class="k">return</span> <span class="n">x</span></div>
 
 <div class="viewcode-block" id="MTEncoderUniRNN.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderUniRNN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Encodes source as represented by &#39;inputs&#39; and &#39;paddings&#39;.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: Named tuple with the weights for all the encoder layers.</span>
-<span class="sd">      input_batch: A NestedMap with fields:</span>
-<span class="sd">        ids - The inputs tensor. It is expected to be of shape [batch, time]</span>
-<span class="sd">        paddings - The paddings tensor. It is expected to be of shape</span>
-<span class="sd">             [batch, time].</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      (outputs, out_paddings, src_segment_id) pair.</span>
-<span class="sd">      Outputs is of the shape [time, batch, depth], and out_paddings is of the</span>
-<span class="sd">      shape [time, batch]. src_segment_id should have the shape</span>
-<span class="sd">      [time, batch] if packed inputs are supported by the model (and all</span>
-<span class="sd">      layers), or None otherwise.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">src_segment_id</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
@@ -500,7 +484,7 @@
 
 <div class="viewcode-block" id="MTEncoderBiRNN.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNN.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Configs for MTEncoderBiRNN.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Configs for `MTEncoderBiRNN`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MTEncoderBiRNN</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lstm_tpl&#39;</span><span class="p">,</span>
@@ -618,22 +602,6 @@
       <span class="k">return</span> <span class="n">x</span></div>
 
 <div class="viewcode-block" id="MTEncoderBiRNN.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Encodes source as represented by &#39;inputs&#39; and &#39;paddings&#39;.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: Named tuple with the weights for all the encoder layers.</span>
-<span class="sd">      input_batch: A NestedMap with fields:</span>
-<span class="sd">        ids - The inputs tensor. It is expected to be of shape [batch, time]</span>
-<span class="sd">        paddings - The paddings tensor. It is expected to be of shape</span>
-<span class="sd">             [batch, time].</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      (outputs, out_paddings, src_segment_id) pair.</span>
-<span class="sd">      Outputs is of the shape [time, batch, depth], and out_paddings is of the</span>
-<span class="sd">      shape [time, batch]. src_segment_id should have the shape</span>
-<span class="sd">      [time, batch] if packed inputs are supported by the model (and all</span>
-<span class="sd">      layers), or None otherwise.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
@@ -690,7 +658,7 @@
 
 <div class="viewcode-block" id="TransformerEncoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerEncoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Configs for TransformerEncoder.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Configs for `TransformerEncoder`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerEncoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
 
     <span class="c1"># Embedding related</span>
@@ -762,20 +730,20 @@
     <span class="sd">&quot;&quot;&quot;Embeds source ids and transforms with TransformerStack.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
-<span class="sd">      input_batch: A NestedMap with fields:</span>
-<span class="sd">        ids - The inputs tensor. It is expected to be of shape [batch, time]</span>
-<span class="sd">        paddings - The paddings tensor. It is expected to be of shape</span>
-<span class="sd">             [batch, time].</span>
+<span class="sd">      input_batch: A `.NestedMap` with fields:</span>
+
+<span class="sd">        - ids: The inputs tensor. It is expected to be of shape [batch, time].</span>
+<span class="sd">        - paddings: The paddings tensor. Expected shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (outputs, out_paddings, src_segment_id) pair. Outputs is of the shape</span>
-<span class="sd">      [time, batch, depth], and out_paddings is of the shape [time, batch]</span>
-<span class="sd">      outputs can be a list of output tensors if is_transparent is set in</span>
-<span class="sd">      transformer_stack. src_segment_id should</span>
-<span class="sd">      have the shape [time, batch] if packed inputs are supported by the model</span>
-<span class="sd">      (and all layers), or None otherwise.</span>
+<span class="sd">      (outputs, out_paddings, src_segment_id) tuple. `outputs` is of the shape</span>
+<span class="sd">      [time, batch, depth], and `out_paddings` has shape [time, batch].</span>
+<span class="sd">      `outputs` can be a list of output tensors if is_transparent is set in</span>
+<span class="sd">      transformer_stack. `src_segment_id` should have the shape [time, batch]</span>
+<span class="sd">      if packed inputs are supported by the model (and all layers), or None</span>
+<span class="sd">      otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>

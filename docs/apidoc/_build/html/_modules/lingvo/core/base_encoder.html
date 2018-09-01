@@ -177,29 +177,30 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="BaseEncoder.FProp"><a class="viewcode-back" href="../../../lingvo.core.base_encoder.html#lingvo.core.base_encoder.BaseEncoder.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Encodes source as represented by &#39;inputs&#39; and &#39;paddings&#39;.</span>
+    <span class="sd">&quot;&quot;&quot;Encodes source as represented by `inputs` and `paddings`.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
-<span class="sd">      inputs: The inputs tensor. It is expected to be of shape</span>
-<span class="sd">      [batch, time, ...].</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: The inputs tensor. It is expected to be of shape [batch, time,</span>
+<span class="sd">        ...].</span>
 <span class="sd">      paddings: The paddings tensor. It is expected to be of shape [batch,</span>
-<span class="sd">          time].</span>
-<span class="sd">      segment_id: source segment id, of shape [batch, time]. This input is</span>
-<span class="sd">          meant to support multiple samples in a single training sequence. The</span>
-<span class="sd">          id identifiess the sample that the input at the corresponding</span>
-<span class="sd">          time-step belongs to. For example, if the two examples packed together</span>
-<span class="sd">          are [&#39;good&#39;, &#39;day&#39;] -&gt; [&#39;guten-tag&#39;] and [&#39;thanks&#39;] -&gt; [&#39;danke&#39;]</span>
-<span class="sd">          to produce [&#39;good&#39;, &#39;day&#39;, &#39;thanks&#39;] -&gt; [&#39;guten-tag&#39;, &#39;danke&#39;], the</span>
-<span class="sd">          source segment ids would be [0, 0, 1] and target segment ids would be</span>
-<span class="sd">          [0, 1]. These ids are meant to enable masking computations for</span>
-<span class="sd">          different examples from each other.</span>
-<span class="sd">          Models or layers than don&#39;t support packed inputs should pass None.</span>
+<span class="sd">        time].</span>
+<span class="sd">      segment_id: source segment id, of shape [batch, time]. This input is meant</span>
+<span class="sd">        to support multiple samples in a single training sequence. The id</span>
+<span class="sd">        identifiess the sample that the input at the corresponding time-step</span>
+<span class="sd">        belongs to. For example, if the two examples packed together are</span>
+<span class="sd">        [&#39;good&#39;, &#39;day&#39;] -&gt; [&#39;guten-tag&#39;] and [&#39;thanks&#39;] -&gt; [&#39;danke&#39;] to produce</span>
+<span class="sd">        [&#39;good&#39;, &#39;day&#39;, &#39;thanks&#39;] -&gt; [&#39;guten-tag&#39;, &#39;danke&#39;], the source segment</span>
+<span class="sd">        ids would be [0, 0, 1] and target segment ids would be [0, 1]. These ids</span>
+<span class="sd">        are meant to enable masking computations for different examples from</span>
+<span class="sd">        each other. Models or layers than don&#39;t support packed inputs should</span>
+<span class="sd">        pass None.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">      (outputs, out_paddings, src_segment_ids) triple.</span>
-<span class="sd">      Outputs is of the shape [time, batch, depth], and out_paddings is of the</span>
-<span class="sd">      shape [time, batch, 1]. src_segment_ids should have the shape</span>
+<span class="sd">      `outputs` is of the shape [time, batch, depth], and `out_paddings` is of</span>
+<span class="sd">      the shape [time, batch, 1]. src_segment_ids should have the shape</span>
 <span class="sd">      [time, batch] if packed inputs are supported by the model (and all</span>
 <span class="sd">      layers), or None otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>

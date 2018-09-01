@@ -169,27 +169,6 @@
 <span id="lingvo-tasks-mt-params-base-config-module"></span><h1>lingvo.tasks.mt.params.base_config module<a class="headerlink" href="#module-lingvo.tasks.mt.params.base_config" title="Permalink to this headline">¶</a></h1>
 <p>Several functions to initialize typical values of dataset parameters.</p>
 <dl class="function">
-<dt id="lingvo.tasks.mt.params.base_config.InitTestDatasetParams">
-<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">InitTestDatasetParams</code><span class="sig-paren">(</span><em>vocab_size=None</em>, <em>params=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#InitTestDatasetParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.InitTestDatasetParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initializes typical values for test and dev datasets.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>vocab_size</strong> – the number of tokens in your vocabulary.</li>
-<li><strong>params</strong> – initial Params value, e.g. NmtInputMultiSource.Params().</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a Params object</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
 <dt id="lingvo.tasks.mt.params.base_config.InitTrainDatasetParams">
 <code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">InitTrainDatasetParams</code><span class="sig-paren">(</span><em>vocab_size=None</em>, <em>params=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#InitTrainDatasetParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.InitTrainDatasetParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Initializes typical values for train datasets.</p>
@@ -200,11 +179,32 @@
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>vocab_size</strong> – the number of tokens in your vocabulary. The default is None
 because this parameter is often not used.</li>
-<li><strong>params</strong> – initial Params value, e.g. NmtInputMultiSource.Params().</li>
+<li><strong>params</strong> – initial Params value, e.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">NmtInput.Params()</span></code>.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a Params object</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code> object.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.mt.params.base_config.InitTestDatasetParams">
+<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">InitTestDatasetParams</code><span class="sig-paren">(</span><em>vocab_size=None</em>, <em>params=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#InitTestDatasetParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.InitTestDatasetParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initializes typical values for test and dev datasets.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>vocab_size</strong> – the number of tokens in your vocabulary.</li>
+<li><strong>params</strong> – initial Params value, e.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">NmtInput.Params()</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code> object.</p>
 </td>
 </tr>
 </tbody>
@@ -220,6 +220,49 @@ because this parameter is often not used.</li>
 <dt id="lingvo.tasks.mt.params.base_config.InitTransformerTrainBuckets">
 <code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">InitTransformerTrainBuckets</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#InitTransformerTrainBuckets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.InitTransformerTrainBuckets" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.mt.params.base_config.SetupTransformerParams">
+<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">SetupTransformerParams</code><span class="sig-paren">(</span><em>name</em>, <em>vocab_size</em>, <em>model_dim</em>, <em>hidden_dim</em>, <em>num_heads</em>, <em>num_layers</em>, <em>learning_rate</em>, <em>warmup_steps</em>, <em>residual_dropout_prob=0.1</em>, <em>input_dropout_prob=0.0</em>, <em>atten_dropout_prob=0.0</em>, <em>relu_dropout_prob=0.0</em>, <em>label_smoothing_uncertainty=0.1</em>, <em>is_transparent=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#SetupTransformerParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.SetupTransformerParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Common model setup for different transformer models.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> – An identifier for an instance of a transformer model.</li>
+<li><strong>vocab_size</strong> – an integer representing the size of the vocabulary, probably
+16000 or 32000.</li>
+<li><strong>model_dim</strong> – dimension of the transformer block (column)</li>
+<li><strong>hidden_dim</strong> – dimension of Feed-Forward neural network in each layer</li>
+<li><strong>num_heads</strong> – number of attention heads to use for the transformer</li>
+<li><strong>num_layers</strong> – number of layers in the transformer</li>
+<li><strong>learning_rate</strong> – learning rate for Adam. For the base model, we use 1.0; for
+the big model, 3.0</li>
+<li><strong>warmup_steps</strong> – warmup steps for <code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerLearningRateSchedule</span></code>. For the
+base model, we use 4000; for the big model, 40000</li>
+<li><strong>residual_dropout_prob</strong> – dropout prob to the output of each sub-layer before
+it is added to the sub-layer input</li>
+<li><strong>input_dropout_prob</strong> – dropout prob to the sums of the token embeddings and the
+position embeddings</li>
+<li><strong>atten_dropout_prob</strong> – dropout prob to the attention weights in each
+Transformer attention sub-layer</li>
+<li><strong>relu_dropout_prob</strong> – dropout prob to the inner layer output (ReLU activation)
+in each Transformer feed-forward sub-layer</li>
+<li><strong>label_smoothing_uncertainty</strong> – if this value is 0, no label smoothing will be
+applied</li>
+<li><strong>is_transparent</strong> – If set, decoder layers attend to weighted combinations of
+encoder layers.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A Params object containing the parameters that specify a transformer model
+(Vaswani 2017)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="lingvo.tasks.mt.params.base_config.SetupTransformerDecoder">
@@ -251,49 +294,6 @@ and positional embeddings as well context vectors (attention values).</li>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Encoder params.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.tasks.mt.params.base_config.SetupTransformerParams">
-<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">SetupTransformerParams</code><span class="sig-paren">(</span><em>name</em>, <em>vocab_size</em>, <em>model_dim</em>, <em>hidden_dim</em>, <em>num_heads</em>, <em>num_layers</em>, <em>learning_rate</em>, <em>warmup_steps</em>, <em>residual_dropout_prob=0.1</em>, <em>input_dropout_prob=0.0</em>, <em>atten_dropout_prob=0.0</em>, <em>relu_dropout_prob=0.0</em>, <em>label_smoothing_uncertainty=0.1</em>, <em>is_transparent=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#SetupTransformerParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.SetupTransformerParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Common model setup for different transformer models.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>name</strong> – An identifier for an instance of a transformer model.</li>
-<li><strong>vocab_size</strong> – an integer representing the size of the vocabulary, probably
-16000 or 32000.</li>
-<li><strong>model_dim</strong> – dimension of the transformer block (column)</li>
-<li><strong>hidden_dim</strong> – dimension of Feed-Forward neural network in each layer</li>
-<li><strong>num_heads</strong> – number of attention heads to use for the transformer</li>
-<li><strong>num_layers</strong> – number of layers in the transformer</li>
-<li><strong>learning_rate</strong> – learning rate for Adam. For the base model, we use 1.0; for
-the big model, 3.0</li>
-<li><strong>warmup_steps</strong> – warmup steps for TransformerLearningRateSchedule. For the base
-model, we use 4000; for the big model, 40000</li>
-<li><strong>residual_dropout_prob</strong> – dropout prob to the output of each sub-layer before
-it is added to the sub-layer input</li>
-<li><strong>input_dropout_prob</strong> – dropout prob to the sums of the token embeddings and the
-position embeddings</li>
-<li><strong>atten_dropout_prob</strong> – dropout prob to the attention weights in each
-Transformer attention sub-layer</li>
-<li><strong>relu_dropout_prob</strong> – dropout prob to the inner layer output (ReLU activation)
-in each Transformer feed-forward sub-layer</li>
-<li><strong>label_smoothing_uncertainty</strong> – if this value is 0, no label smoothing will be
-applied</li>
-<li><strong>is_transparent</strong> – If set, decoder layers attend to weighted combinations of
-encoder layers.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A Params object containing the parameters that specify a transformer model
-(Vaswani 2017)</p>
 </td>
 </tr>
 </tbody>

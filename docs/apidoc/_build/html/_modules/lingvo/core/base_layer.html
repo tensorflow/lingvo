@@ -171,11 +171,11 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
 
-<span class="k">class</span> <span class="nc">_LocalLayerStack</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
+<div class="viewcode-block" id="_LocalLayerStack"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer._LocalLayerStack">[docs]</a><span class="k">class</span> <span class="nc">_LocalLayerStack</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">_LocalLayerStack</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">layer_stack</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">layer_stack</span> <span class="o">=</span> <span class="p">[]</span></div>
 
 
 <span class="n">_LAYER_STACK</span> <span class="o">=</span> <span class="n">_LocalLayerStack</span><span class="p">()</span>
@@ -246,7 +246,7 @@
   <span class="sd">&quot;&quot;&quot;A decorator for layer&#39;s __init__.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    func: The __init__ method of LayerBase&#39;s subclasses.</span>
+<span class="sd">    func: The __init__ method of `LayerBase`&#39;s subclasses.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A decorator wrapper for layer&#39;s initializer.</span>
@@ -295,14 +295,14 @@
 
   <span class="c1"># Set to an inference driver name if this is an inference specialization</span>
   <span class="c1"># class.</span>
-  <span class="n">INFERENCE_DRIVER_NAME</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="n">_INFERENCE_DRIVER_NAME</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="LayerBase.Params"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the layer params.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;Cls that this param object is associated with.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inference_driver_name&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">INFERENCE_DRIVER_NAME</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inference_driver_name&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_INFERENCE_DRIVER_NAME</span><span class="p">,</span>
              <span class="s1">&#39;Name of the inference driver used to construct this layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Name of this layer object.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dtype&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s1">&#39;Datatype to use.&#39;</span><span class="p">)</span>
@@ -334,7 +334,7 @@
 
 <div class="viewcode-block" id="LayerBase.CopyBaseParams"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.CopyBaseParams">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">CopyBaseParams</span><span class="p">(</span><span class="n">from_params</span><span class="p">,</span> <span class="n">to_params</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Copies LayerBase params from &#39;from_params&#39; to &#39;to_params&#39;.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Copies LayerBase params from `from_params` to `to_params`.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">from_params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">LayerBase</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">to_params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">LayerBase</span><span class="p">)</span>
     <span class="c1"># Copy-over the LayerBase params.</span>
@@ -395,30 +395,31 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_fns</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
 <div class="viewcode-block" id="LayerBase.FPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.FPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">FPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calls FProp.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Calls `FProp`.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerBase.FProp"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Forward propagation.</span>
 
 <span class="sd">    The central interface that subclasses should implement. The caller</span>
-<span class="sd">    calls FProp with a theta dictionary. E.g.,</span>
+<span class="sd">    calls `FProp` with a `theta` dictionary. E.g.::</span>
+
 <span class="sd">        foo = InstanceOfASubClassOfFoo(params)</span>
 <span class="sd">        y = foo.FProp(foo.theta, x)</span>
 
-<span class="sd">    The implementation of FProp() computes a function given</span>
-<span class="sd">    the theta and the inputs. E.g.,</span>
+<span class="sd">    The implementation of `FProp()` computes a function given</span>
+<span class="sd">    the theta and the inputs. E.g.::</span>
 
-<span class="sd">       subs = self.children</span>
-<span class="sd">       inputs = args[0]</span>
-<span class="sd">       a0 = subs.linear.FProp(theta.linear, inputs)</span>
-<span class="sd">       a1 = subs.softmax.FProp(theta.softmax, a0)</span>
-<span class="sd">       # The same layer applied twice.</span>
-<span class="sd">       a2 = subs.linear.FProp(theta.linear, a1)</span>
-<span class="sd">       return a2</span>
+<span class="sd">        subs = self.children</span>
+<span class="sd">        inputs = args[0]</span>
+<span class="sd">        a0 = subs.linear.FProp(theta.linear, inputs)</span>
+<span class="sd">        a1 = subs.softmax.FProp(theta.softmax, a0)</span>
+<span class="sd">        # The same layer applied twice.</span>
+<span class="sd">        a2 = subs.linear.FProp(theta.linear, a1)</span>
+<span class="sd">        return a2</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      *args: List args.</span>
 <span class="sd">      **kwargs: Keyward args.</span>
@@ -430,31 +431,33 @@
 
 <div class="viewcode-block" id="LayerBase.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns metadata about the FProp computation for this layer.</span>
+    <span class="sd">&quot;&quot;&quot;Returns metadata about the `FProp` computation for this layer.</span>
 
-<span class="sd">    !!!Experimental features!!! Don&#39;t use or depend on it without consulting</span>
-<span class="sd">       lingvo authors.</span>
+<span class="sd">    **Experimental feature.**</span>
+<span class="sd">    Don&#39;t use or depend on it without consulting Lingvo authors.</span>
 
-<span class="sd">    E.g.,</span>
-<span class="sd">      p = SomeComplexLayer.Params()</span>
-<span class="sd">      meta = p.cls.FPropMeta(p, tf.TensorShape([128, 20, 50, 32]))</span>
+<span class="sd">    E.g.::</span>
 
-<span class="sd">    meta.flops gives an estimate count of floating point operations done by</span>
-<span class="sd">    one FProp given an input tensor of shape [128, 20, 50, 32].</span>
-<span class="sd">    meta.out_shapes is a tuple of tensor shapes, which tells you what shape</span>
+<span class="sd">        p = SomeComplexLayer.Params()</span>
+<span class="sd">        meta = p.cls.FPropMeta(p, tf.TensorShape([128, 20, 50, 32]))</span>
+
+<span class="sd">    `meta.flops` gives an estimate count of floating point operations done by</span>
+<span class="sd">    one `FProp` given an input tensor of shape [128, 20, 50, 32].</span>
+<span class="sd">    `meta.out_shapes` is a tuple of tensor shapes, which tells you what shape</span>
 <span class="sd">    of tensors this layer will return.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      params: The param of a layer of this layer type. *args, **kwargs:</span>
-<span class="sd">        Corresponds to *args and **kwargs of FProp methods.  Each value of *args</span>
-<span class="sd">        and **kwargs is a fully specified TensorShape representing the concrete</span>
-<span class="sd">        shape of the tensor being forward propagated.</span>
+<span class="sd">      params: The param of a layer of this layer type.</span>
+<span class="sd">      *args: Corresponds to FProp with Tensors replaced by `TensorShape`.</span>
+<span class="sd">      **kwargs: Corresponds to FProp with Tensors replaced by `TensorShape`.</span>
+
 <span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap of fields:</span>
-<span class="sd">        flops - The estimated number of floating point operations incurred by</span>
-<span class="sd">          this fprop.</span>
-<span class="sd">        out_shapes - A tuple of tf.TensorShape. I.e., out_shapes[i] represents</span>
-<span class="sd">          the shape of the i-th returned tensor of the fprop.</span>
+<span class="sd">      A `.NestedMap` with</span>
+
+<span class="sd">      - flops - The estimated number of floating point operations incurred by</span>
+<span class="sd">        this fprop.</span>
+<span class="sd">      - out_shapes - A tuple of `tf.TensorShape`. I.e., `out_shapes[i]`</span>
+<span class="sd">        represents the shape of the `i`-th returned tensor of the fprop.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;FPropMeta of </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">cls</span><span class="p">)</span></div>
 
@@ -465,7 +468,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">children</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns children layers of this layer in a NestedMap.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Returns children layers of this layer in a `.NestedMap`.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span>
 
   <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -477,7 +480,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns variables of this layer and its children in a NestedMap.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Returns variables of this layer and its children in a `.NestedMap`.&quot;&quot;&quot;</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
       <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
@@ -485,7 +488,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">theta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns theta of this layer and its children in a NestedMap.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Returns theta of this layer and its children in a `.NestedMap`.&quot;&quot;&quot;</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
     <span class="n">should_cast</span> <span class="o">=</span> <span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
@@ -509,7 +512,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">accumulators</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a NestedMap of Accumulator instances for this and children.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Returns `.NestedMap` of `Accumulator` instances for this and children.&quot;&quot;&quot;</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">accumulators</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">acc</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_accumulators</span><span class="p">):</span>
       <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">acc</span>
@@ -520,7 +523,7 @@
     <span class="sd">&quot;&quot;&quot;Returns a read-only view of layer local functions.</span>
 
 <span class="sd">    Functions can be accessed by index ([&#39;name&#39;]) or attribute notation</span>
-<span class="sd">    (fns.foo).</span>
+<span class="sd">    (`fns.foo`).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Read-only attribute accessible dict view of the layer&#39;s function library.</span>
@@ -528,20 +531,21 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ReadOnlyAttrDictView</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_fns</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LayerBase.AddFunction"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.AddFunction">[docs]</a>  <span class="k">def</span> <span class="nf">AddFunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">replace</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Adds a function to the layer&#39;s &#39;fns&#39; collection.</span>
+    <span class="sd">&quot;&quot;&quot;Adds a function to the layer&#39;s `fns` collection.</span>
 
 <span class="sd">    This should be used to add op-like functions specific to the operation</span>
-<span class="sd">    of the layer and its children. Such functions should be added in __init__</span>
+<span class="sd">    of the layer and its children. Such functions should be added in `__init__`</span>
 <span class="sd">    and may either be raw python functions or TensorFlow Defuns. This</span>
 <span class="sd">    facility is just a mechanism for organizing them and having basic checks</span>
 <span class="sd">    on name collisions.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      name: The name of the function. It will be accessible as self.fns.{name}.</span>
+<span class="sd">      name: The function name. It will be accessible as `self.fns.{name}`.</span>
 <span class="sd">      f: The function body.</span>
 <span class="sd">      replace: Whether to replace an existing function (default False).</span>
+
 <span class="sd">    Raises:</span>
-<span class="sd">      AttributeError: If the function already exists (and replace=False).</span>
+<span class="sd">      AttributeError: If the function already exists and replace == False.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">replace</span><span class="p">:</span>
@@ -550,7 +554,7 @@
             <span class="s1">&#39;Function &quot;</span><span class="si">%s</span><span class="s1">&quot; is already defined on layer &quot;</span><span class="si">%r</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="p">))</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_private_fns</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span></div>
 
-  <span class="k">def</span> <span class="nf">_CheckName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerBase._CheckName"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase._CheckName">[docs]</a>  <span class="k">def</span> <span class="nf">_CheckName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Asserts name&#39;s validity.&quot;&quot;&quot;</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">,</span> <span class="p">(</span>
@@ -561,49 +565,52 @@
         <span class="n">name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
     <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_accumulators</span><span class="p">,</span> <span class="p">(</span>
         <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exists in global_accumulator: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-        <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_accumulators</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+        <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_accumulators</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span></div>
 
-  <span class="k">def</span> <span class="nf">_VariableCollections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">LAYER_WT</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_vars&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)]</span>
+<div class="viewcode-block" id="LayerBase._VariableCollections"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase._VariableCollections">[docs]</a>  <span class="k">def</span> <span class="nf">_VariableCollections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">LAYER_WT</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_vars&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)]</span></div>
 
 <div class="viewcode-block" id="LayerBase.RegisterAccumulator"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.RegisterAccumulator">[docs]</a>  <span class="k">def</span> <span class="nf">RegisterAccumulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">acc</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Registers an accumulator for this layer.</span>
 
 <span class="sd">    An accumulator is used to propagate some state to a future point,</span>
-<span class="sd">    where it is acted on (typically as part of PostTrainingStepUpdate). This</span>
-<span class="sd">    mechanism allows for aribitrarily nested parts of a model to export state</span>
+<span class="sd">    where it is acted on (typically as part of `PostTrainingStepUpdate`). This</span>
+<span class="sd">    mechanism allows for arbitrarily nested parts of a model to export state</span>
 <span class="sd">    back to the global scope. Accumulators must be specially handled</span>
-<span class="sd">    when crossing into Defun or recurrent scopes. By abstracting the mechanism,</span>
-<span class="sd">    it allows all such state to be handled uniformly and generically.</span>
+<span class="sd">    when crossing into `Defun` or recurrent scopes. By abstracting the</span>
+<span class="sd">    mechanism, it allows all such state to be handled uniformly and generically.</span>
 
-<span class="sd">    Example (typically from __init__):</span>
-<span class="sd">      class MyAccumulator(base_layer.Accumulator):</span>
-<span class="sd">        def DefaultValue(self):</span>
-<span class="sd">          # [count, min, max]</span>
-<span class="sd">          return tf.convert_to_tensor([0.0, 0.0, 0.0])</span>
-<span class="sd">        def Update(self, state1):</span>
-<span class="sd">          state0 = self.GetValue()</span>
-<span class="sd">          self.SetValue(tf.stack([</span>
-<span class="sd">              state0[0] + state1[0],</span>
-<span class="sd">              tf.minimum(state0[1], state1[1]),</span>
-<span class="sd">              tf.maximum(state0[2], state1[2])]))</span>
+<span class="sd">    Example (typically from `__init__`)::</span>
 
-<span class="sd">      self.RegisterAccumulator(&#39;mytracker&#39;, acc)</span>
+<span class="sd">        class MyAccumulator(base_layer.Accumulator):</span>
+<span class="sd">          def DefaultValue(self):</span>
+<span class="sd">            # [count, min, max]</span>
+<span class="sd">            return tf.convert_to_tensor([0.0, 0.0, 0.0])</span>
+<span class="sd">          def Update(self, state1):</span>
+<span class="sd">            state0 = self.GetValue()</span>
+<span class="sd">            self.SetValue(tf.stack([</span>
+<span class="sd">                state0[0] + state1[0],</span>
+<span class="sd">                tf.minimum(state0[1], state1[1]),</span>
+<span class="sd">                tf.maximum(state0[2], state1[2])]))</span>
 
-<span class="sd">    Later, access the current value and update it:</span>
-<span class="sd">      acc = self.accumulators.mytracker</span>
-<span class="sd">      acc.Update(tf.convert_to_tensor([1.0, batch_min, batch_max]))</span>
+<span class="sd">        self.RegisterAccumulator(&#39;mytracker&#39;, acc)</span>
 
-<span class="sd">    Then, typically in PostTrainingUpdateStep:</span>
-<span class="sd">      acc = self.accumulator.mytracker.GetValue()</span>
-<span class="sd">      acc_value = acc.GetValue()</span>
-<span class="sd">      # Do something with the value.</span>
-<span class="sd">      acc.Reset()</span>
+<span class="sd">    Later, access the current value and update it::</span>
+
+<span class="sd">        acc = self.accumulators.mytracker</span>
+<span class="sd">        acc.Update(tf.convert_to_tensor([1.0, batch_min, batch_max]))</span>
+
+<span class="sd">    Then, typically in `PostTrainingStepUpdate`::</span>
+
+<span class="sd">        acc = self.accumulator.mytracker.GetValue()</span>
+<span class="sd">        acc_value = acc.GetValue()</span>
+<span class="sd">        # Do something with the value.</span>
+<span class="sd">        acc.Reset()</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: The accumulator name. Shares a namespace with children, vars and</span>
 <span class="sd">          extra theta.</span>
-<span class="sd">      acc: An Accumulator instance.</span>
+<span class="sd">      acc: An `Accumulator` instance.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_accumulators</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">acc</span></div>
@@ -612,7 +619,7 @@
     <span class="sd">&quot;&quot;&quot;Recursively gets values of all accumulators.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Nested map of name:Tensor for each registered accumulator.</span>
+<span class="sd">      `.NestedMap` of Tensors for each registered accumulator.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">acc</span><span class="p">:</span> <span class="n">acc</span><span class="o">.</span><span class="n">GetValue</span><span class="p">())</span></div>
 
@@ -620,7 +627,7 @@
     <span class="sd">&quot;&quot;&quot;Recursively sets the values of all accumulators from a map.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      new_values_nmap: NestedMap of accumulator name:Tensor.</span>
+<span class="sd">      new_values_nmap: `.NestedMap` of accumulator name:Tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">accumulator_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">accumulators</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="n">value_list</span> <span class="o">=</span> <span class="n">new_values_nmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
@@ -628,19 +635,20 @@
       <span class="n">acc</span><span class="o">.</span><span class="n">SetValue</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerBase.CreateVariable"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.CreateVariable">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create a variable.</span>
+    <span class="sd">&quot;&quot;&quot;Create a variable of this layer according to the parameter `var_params`.</span>
 
-<span class="sd">    Create a variable of this layer according to the parameter var_params. E.g.,</span>
+<span class="sd">    E.g.::</span>
 
-<span class="sd">       def __init__(self, ...):    # A layer&#39;s constructor</span>
-<span class="sd">          self.CreateVariable(&#39;weight&#39;, py_utils.WeightParams(shape=[100, 100]))</span>
+<span class="sd">        def __init__(self, ...):    # A layer&#39;s constructor</span>
+<span class="sd">          self.CreateVariable(</span>
+<span class="sd">              &#39;weight&#39;, py_utils.WeightParams(shape=[100, 100]))</span>
 
-<span class="sd">    theta_fn is used to apply a simple transformation on the created</span>
+<span class="sd">    `theta_fn` is used to apply a simple transformation on the created</span>
 <span class="sd">    variable&#39;s value before used by the forward computation. E.g., to</span>
 <span class="sd">    add the global variational noise according to this layer&#39;s</span>
-<span class="sd">    parameter, one can do:</span>
+<span class="sd">    parameter, one can do::</span>
 
-<span class="sd">       def __init__(self, ...):    # A layer&#39;s constructor</span>
+<span class="sd">        def __init__(self, ...):    # A layer&#39;s constructor</span>
 <span class="sd">          self.CreateVariable(</span>
 <span class="sd">            name=&#39;weight&#39;,</span>
 <span class="sd">            var_params=py_utils.WeightParams(shape=[100, 100]),</span>
@@ -648,12 +656,12 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: Variable name which is used as the key into vars/theta.</span>
-<span class="sd">      var_params: Params used to create the variable.</span>
-<span class="sd">      theta_fn: A python function takes a variable&#39;s value and returns</span>
-<span class="sd">        a new value to be used later for computation. Its signature must be</span>
+<span class="sd">      var_params: `Params` used to create the variable.</span>
+<span class="sd">      theta_fn: A python function that takes a variable&#39;s value and returns a</span>
+<span class="sd">        new value to be used later for computation. Its signature must be</span>
 <span class="sd">        (tf.Tensor) -&gt; (tf.Tensor).</span>
-<span class="sd">      *args: List of args passed to py_utils.CreateVariable.</span>
-<span class="sd">      **kwargs: Keyword args passed to py_utils.CreateVariable.</span>
+<span class="sd">      *args: List of args passed to `.py_utils.CreateVariable`.</span>
+<span class="sd">      **kwargs: Keyword args passed to `.py_utils.CreateVariable`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="n">value</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -663,7 +671,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
 <div class="viewcode-block" id="LayerBase.AddExtraTheta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.AddExtraTheta">[docs]</a>  <span class="k">def</span> <span class="nf">AddExtraTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_name</span><span class="p">,</span> <span class="n">theta_value</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Add extra theta that doesn&#39;t directly correspond to vars.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Add extra `theta` that doesn&#39;t directly correspond to `vars`.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">theta_name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">theta_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta_value</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_extra_theta</span><span class="p">[</span><span class="n">theta_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta_value</span></div>
@@ -674,17 +682,19 @@
 <div class="viewcode-block" id="LayerBase.CreateChild"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.CreateChild">[docs]</a>  <span class="k">def</span> <span class="nf">CreateChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a sub layer.</span>
 
-<span class="sd">    The created sub layer can be access by &#39;name&#39;. E.g.,</span>
+<span class="sd">    The created sub layer can be accessed by `name`. E.g.::</span>
 
-<span class="sd">      self.CreateChild(&#39;foo&#39;, ...)</span>
-<span class="sd">      self.foo.FProp...</span>
-<span class="sd">    or</span>
-<span class="sd">      self.children[&#39;foo&#39;].Fprop...</span>
-<span class="sd">      self.children.foo.Fprop...</span>
+<span class="sd">        self.CreateChild(&#39;foo&#39;, ...)</span>
+<span class="sd">        self.foo.FProp...</span>
+
+<span class="sd">    or::</span>
+
+<span class="sd">        self.children[&#39;foo&#39;].Fprop...</span>
+<span class="sd">        self.children.foo.Fprop...</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: Sub layer name which is used as the key into vars/theta.</span>
-<span class="sd">      params: Hyperparams object to instantiate a layer.</span>
+<span class="sd">      params: `Hyperparams` object to instantiate a layer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
@@ -696,18 +706,20 @@
 <div class="viewcode-block" id="LayerBase.CreateChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.CreateChildren">[docs]</a>  <span class="k">def</span> <span class="nf">CreateChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">params_list</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a list of sub layers.</span>
 
-<span class="sd">    The created sub layer list can be access by &#39;name&#39;. E.g.,</span>
+<span class="sd">    The created sub layer list can be accessed by `name`. E.g.::</span>
 
-<span class="sd">      self.CreateChildren(&#39;foo&#39;, ...)</span>
-<span class="sd">      self.foo[10].FProp...</span>
-<span class="sd">    or</span>
-<span class="sd">      self.children[&#39;foo&#39;][10].Fprop...</span>
-<span class="sd">      self.children.foo[10].Fprop...</span>
+<span class="sd">        self.CreateChildren(&#39;foo&#39;, ...)</span>
+<span class="sd">        self.foo[10].FProp...</span>
+
+<span class="sd">    or::</span>
+
+<span class="sd">        self.children[&#39;foo&#39;][10].Fprop...</span>
+<span class="sd">        self.children.foo[10].Fprop...</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: The name for the sub layers, which is used as the key</span>
 <span class="sd">        into vars/theta.</span>
-<span class="sd">      params_list: Hyperparams objects to instantiate a list of layers.</span>
+<span class="sd">      params_list: `Hyperparams` objects to instantiate a list of layers.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
@@ -738,23 +750,23 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">children</span></div>
 
-  <span class="k">def</span> <span class="nf">_AutoAddChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">child</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Record that a layer &#39;child&#39; is instantiated by this layer.</span>
+<div class="viewcode-block" id="LayerBase._AutoAddChild"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase._AutoAddChild">[docs]</a>  <span class="k">def</span> <span class="nf">_AutoAddChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">child</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Record that a layer `child` is instantiated by this layer.</span>
 
-<span class="sd">    This is a method only called by base_layer.initializer decorator.</span>
+<span class="sd">    This is a method only called by `base_layer.initializer` decorator.</span>
 <span class="sd">    Subclasses should not call this method.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      child: A sub-layer of this layer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_CheckInvariants</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerBase._CheckInvariants"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase._CheckInvariants">[docs]</a>  <span class="k">def</span> <span class="nf">_CheckInvariants</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyChildren</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyVarsAndTheta</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyVarsAndTheta</span><span class="p">()</span></div>
 
-  <span class="k">def</span> <span class="nf">_VerifyChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Verify all children created by this layer are via CreateChild(ren).&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="LayerBase._VerifyChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase._VerifyChildren">[docs]</a>  <span class="k">def</span> <span class="nf">_VerifyChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Verify all children created by this layer are via `CreateChild(ren)`.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">FindCreatedChildren</span><span class="p">(</span><span class="n">parents</span><span class="p">):</span>
       <span class="n">created_children</span> <span class="o">=</span> <span class="p">[]</span>
@@ -769,9 +781,9 @@
         <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
     <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">created_children</span><span class="p">,</span> <span class="p">(</span>
-          <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is not created by LayerBase.CreateChild(ren).&#39;</span> <span class="o">%</span> <span class="n">v</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+          <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is not created by LayerBase.CreateChild(ren).&#39;</span> <span class="o">%</span> <span class="n">v</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_VerifyVarsAndTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerBase._VerifyVarsAndTheta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase._VerifyVarsAndTheta">[docs]</a>  <span class="k">def</span> <span class="nf">_VerifyVarsAndTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Verify that vars and theta have the same nested structure.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">MatchKeys</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
@@ -788,13 +800,13 @@
 
     <span class="c1"># Make sure whatever not in self.vars are in self._extra_theta</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-      <span class="k">assert</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_theta</span>
+      <span class="k">assert</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span> <span class="ow">or</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extra_theta</span></div>
 
 <div class="viewcode-block" id="LayerBase.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns a TF node which will be invoked at each training step.</span>
+    <span class="sd">&quot;&quot;&quot;Returns a TF op which will be invoked at each training step.</span>
 
-<span class="sd">    Subclasses of Layers can implement this method. The method should return a</span>
-<span class="sd">    TF node which will be invoked during training after gradients are applied.</span>
+<span class="sd">    Subclasses of `LayerBase` can implement this method. The method should</span>
+<span class="sd">    return a TF op to be invoked during training after gradients are applied.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      global_step: the global step.</span>

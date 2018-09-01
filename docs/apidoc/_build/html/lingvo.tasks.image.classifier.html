@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.tasks.image.classifier_test module" href="lingvo.tasks.image.classifier_test.html" />
+    <link rel="next" title="lingvo.tasks.image.input_generator module" href="lingvo.tasks.image.input_generator.html" />
     <link rel="prev" title="lingvo.tasks.image.params.mnist module" href="lingvo.tasks.image.params.mnist.html" /> 
 
   
@@ -177,6 +177,12 @@
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="lingvo.tasks.image.classifier.BaseClassifier._AddSummary">
+<code class="descname">_AddSummary</code><span class="sig-paren">(</span><em>batch</em>, <em>prediction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#BaseClassifier._AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.BaseClassifier._AddSummary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds image summaries for the batch.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -184,18 +190,10 @@
 <em class="property">class </em><code class="descclassname">lingvo.tasks.image.classifier.</code><code class="descname">ModelV1</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.image.classifier.BaseClassifier" title="lingvo.tasks.image.classifier.BaseClassifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.image.classifier.BaseClassifier</span></code></a></p>
 <p>CNNs with maxpooling followed by a softmax.</p>
-<dl class="method">
-<dt id="lingvo.tasks.image.classifier.ModelV1.CreateDecoderMetrics">
-<code class="descname">CreateDecoderMetrics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1.CreateDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates a dict of decoder metrics to be updated via PostProcessDecodeOut.</p>
-<p>Returns a dict mapping from string keys to BaseMetric objects.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.image.classifier.ModelV1.Decode">
-<code class="descname">Decode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1.Decode" title="Permalink to this definition">¶</a></dt>
-<dd><p>Constructs the inference graph for eval decoding.</p>
-<p>Returns a dict of tensors as decoder output.</p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.image.classifier.ModelV1.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
@@ -207,9 +205,9 @@
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing variable values of this
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this
 task copied to this tower’s devices.</li>
-<li><strong>input_batch</strong> – A nested map object containing input tensors to this tower.</li>
+<li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
 </ul>
 </td>
 </tr>
@@ -220,36 +218,37 @@ task copied to this tower’s devices.</li>
 </table>
 </dd></dl>
 
-<dl class="classmethod">
-<dt id="lingvo.tasks.image.classifier.ModelV1.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
+<dl class="method">
+<dt id="lingvo.tasks.image.classifier.ModelV1.Decode">
+<code class="descname">Decode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1.Decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference graph for eval decoding.</p>
+<p>Returns a dict of Tensors as decoder output.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.image.classifier.ModelV1.CreateDecoderMetrics">
+<code class="descname">CreateDecoderMetrics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1.CreateDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dict of decoder metrics for <a class="reference internal" href="#lingvo.tasks.image.classifier.ModelV1.PostProcessDecodeOut" title="lingvo.tasks.image.classifier.ModelV1.PostProcessDecodeOut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PostProcessDecodeOut</span></code></a> to update.</p>
+<p>Returns a dict mapping from string keys to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a> objects.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.image.classifier.ModelV1.PostProcessDecodeOut">
 <code class="descname">PostProcessDecodeOut</code><span class="sig-paren">(</span><em>dec_out_dict</em>, <em>dec_metrics_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1.PostProcessDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1.PostProcessDecodeOut" title="Permalink to this definition">¶</a></dt>
-<dd><p>Post-processes decoder out, and updates contents of decode_metrics_dict.</p>
+<dd><p>Post-processes decoder out and updates contents of <code class="xref py py-obj docutils literal notranslate"><span class="pre">decode_metrics_dict</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>decode_out_dict</strong> – A dictionary of Tensors fetched.</li>
-<li><strong>decode_metrics_dict</strong> – A dict mapping from string key to BaseMetric object
-as created by CreateDecoderMetrics.</li>
+<li><strong>decode_metrics_dict</strong> – A dict mapping from string key to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a>
+object as created by <a class="reference internal" href="#lingvo.tasks.image.classifier.ModelV1.CreateDecoderMetrics" title="lingvo.tasks.image.classifier.ModelV1.CreateDecoderMetrics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CreateDecoderMetrics</span></code></a>.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
-<dt>a list of (key, value) pairs that can be saved</dt>
-<dd><p class="first last">(i.e. of type str, bytes, or unicode).</p>
-</dd>
-</dl>
-</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">output_key_value_pairs</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">output_key_value_pairs - a list of (key, value) pairs that can be saved
+(i.e. of type str, bytes, or unicode).</p>
 </td>
 </tr>
 </tbody>
@@ -263,6 +262,12 @@ as created by CreateDecoderMetrics.</li>
 <em class="property">class </em><code class="descclassname">lingvo.tasks.image.classifier.</code><code class="descname">ModelV2</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.image.classifier.BaseClassifier" title="lingvo.tasks.image.classifier.BaseClassifier"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.image.classifier.BaseClassifier</span></code></a></p>
 <p>CNNs followed by a softmax.</p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.image.classifier.ModelV2.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.tasks.image.classifier.ModelV2.FPropTower">
 <code class="descname">FPropTower</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2.FPropTower"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2.FPropTower" title="Permalink to this definition">¶</a></dt>
@@ -272,9 +277,9 @@ as created by CreateDecoderMetrics.</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing variable values of this
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this
 task copied to this tower’s devices.</li>
-<li><strong>input_batch</strong> – A nested map object containing input tensors to this tower.</li>
+<li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
 </ul>
 </td>
 </tr>
@@ -283,12 +288,6 @@ task copied to this tower’s devices.</li>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.tasks.image.classifier.ModelV2.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
 </dd></dl>
 
 </dd></dl>
@@ -303,7 +302,7 @@ task copied to this tower’s devices.</li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.tasks.image.classifier_test.html" class="btn btn-neutral float-right" title="lingvo.tasks.image.classifier_test module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.tasks.image.input_generator.html" class="btn btn-neutral float-right" title="lingvo.tasks.image.input_generator module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.tasks.image.params.mnist.html" class="btn btn-neutral" title="lingvo.tasks.image.params.mnist module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

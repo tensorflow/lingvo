@@ -176,40 +176,43 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
 
 
-<span class="k">def</span> <span class="nf">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<div class="viewcode-block" id="_HistogramSummary"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell._HistogramSummary">[docs]</a><span class="k">def</span> <span class="nf">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adds a histogram summary for &#39;v&#39; into the default tf graph.&quot;&quot;&quot;</span>
-  <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+  <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span></div>
 
 
 <span class="n">RNN_CELL_WT</span> <span class="o">=</span> <span class="s1">&#39;rnn_cell_weight_variable&#39;</span>
 
 
-<span class="k">def</span> <span class="nf">_FPropDtype</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">params</span><span class="o">.</span><span class="n">dtype</span>
+<div class="viewcode-block" id="_FPropDtype"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell._FPropDtype">[docs]</a><span class="k">def</span> <span class="nf">_FPropDtype</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">params</span><span class="o">.</span><span class="n">dtype</span></div>
 
 
 <div class="viewcode-block" id="RNNCell"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.RNNCell">[docs]</a><span class="k">class</span> <span class="nc">RNNCell</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
+  <span class="c1"># pylint: disable=line-too-long</span>
   <span class="sd">&quot;&quot;&quot;RNN cells.</span>
 
-<span class="sd">  RNNCell represents recurrent state in a NestedMap.</span>
+<span class="sd">  RNNCell represents recurrent state in a `.NestedMap`.</span>
 
-<span class="sd">  zero_state(batch_size) returns the initial state, which is defined</span>
-<span class="sd">  by each subclass.  From the state, each subclass defines GetOutput()</span>
+<span class="sd">  `zero_state(batch_size)` returns the initial state, which is defined</span>
+<span class="sd">  by each subclass. From the state, each subclass defines `GetOutput()`</span>
 <span class="sd">  to extract the output tensor.</span>
 
-<span class="sd">  RNNCell.FProp defines the forward function:</span>
-<span class="sd">    (theta, state0, inputs) -&gt; state1, extras</span>
+<span class="sd">  `RNNCell.FProp` defines the forward function::</span>
 
-<span class="sd">  All arguments and return values are NestedMap. Each subclass defines</span>
-<span class="sd">  what fields these NestedMap are expected to have.  &#39;extras&#39; is a</span>
-<span class="sd">  NestedMap containing some intermediate results FProp computes to</span>
+<span class="sd">      (theta, state0, inputs) -&gt; state1, extras</span>
+
+<span class="sd">  All arguments and return values are `.NestedMap`. Each subclass defines</span>
+<span class="sd">  what fields these `.NestedMap` are expected to have. `extras` is a</span>
+<span class="sd">  `.NestedMap` containing some intermediate results `FProp` computes to</span>
 <span class="sd">  facilitate the backprop.</span>
 
-<span class="sd">  zero_state(batch_size), state0 and state1 are all compatible</span>
-<span class="sd">  NestedMaps (see NestedMap.IsCompatible). I.e., they have the same</span>
-<span class="sd">  keys recursively. Furthermore, the corresponding tensors in these</span>
-<span class="sd">  NestedMaps have the same shape and dtype.</span>
+<span class="sd">  `zero_state(batch_size)`, `state0` and `state1` are all compatible</span>
+<span class="sd">  `.NestedMap` (see `.NestedMap.IsCompatible`).</span>
+<span class="sd">  I.e., they have the same keys recursively. Furthermore, the corresponding</span>
+<span class="sd">  tensors in these `.NestedMap` have the same shape and dtype.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># pylint: enable=line-too-long</span>
 
 <div class="viewcode-block" id="RNNCell.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.RNNCell.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -236,8 +239,8 @@
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">,</span> <span class="p">(</span>
         <span class="s1">&#39;We do not support per step VN in RNN cells.&#39;</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_VariableCollections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">RNN_CELL_WT</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_vars&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)]</span>
+<div class="viewcode-block" id="RNNCell._VariableCollections"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.RNNCell._VariableCollections">[docs]</a>  <span class="k">def</span> <span class="nf">_VariableCollections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">RNN_CELL_WT</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_vars&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)]</span></div>
 
 <div class="viewcode-block" id="RNNCell.zero_state"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.RNNCell.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the initial state given the batch size.&quot;&quot;&quot;</span>
@@ -255,14 +258,16 @@
     <span class="sd">&quot;&quot;&quot;Forward function.</span>
 
 <span class="sd">    The default implementation here assumes the cell forward</span>
-<span class="sd">    function is composed of two functions:</span>
-<span class="sd">      _Gates(_Mix(theta, state0, inputs), theta, state0, inputs)</span>
-<span class="sd">    The result of _Mix is stashed in extras to facilitate backprop.</span>
+<span class="sd">    function is composed of two functions::</span>
 
-<span class="sd">    _ResetState is optionally applied if reset_cell_state is True. The RNN</span>
-<span class="sd">    Layer should provide reset_mask inputs in addition to other inputs.</span>
-<span class="sd">    reset_mask inputs are expected to be 0 at timesteps where state0 should be</span>
-<span class="sd">    reset to default (zeros) before running _Mix() and _Gates(), and 1</span>
+<span class="sd">        _Gates(_Mix(theta, state0, inputs), theta, state0, inputs)</span>
+
+<span class="sd">    The result of `_Mix` is stashed in `extras` to facilitate backprop.</span>
+
+<span class="sd">    `_ResetState` is optionally applied if `reset_cell_state` is True. The RNN</span>
+<span class="sd">    layer should provide `reset_mask` inputs in addition to other inputs.</span>
+<span class="sd">    `reset_mask` inputs are expected to be 0 at timesteps where state0 should be</span>
+<span class="sd">    reset to default (zeros) before running `_Mix()` and `_Gates()`, and 1</span>
 <span class="sd">    otherwise. This is meant to support use cases like packed inputs, where</span>
 <span class="sd">    multiple samples are fed in a single input example sequence, and need to be</span>
 <span class="sd">    masked from each other. For example, if the two examples packed together</span>
@@ -273,14 +278,15 @@
 <span class="sd">    different examples from each other.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
-<span class="sd">      state0: The previous recurrent state. A NestedMap.</span>
-<span class="sd">      inputs: The inputs to the cell. A NestedMap.</span>
+<span class="sd">      state0: The previous recurrent state. A `.NestedMap`.</span>
+<span class="sd">      inputs: The inputs to the cell. A `.NestedMap`.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      state1: The next recurrent state. A NestedMap.</span>
-<span class="sd">      extras: Intermediate results to faciliate backprop. A NestedMap.</span>
+<span class="sd">      A tuple (state1, extras).</span>
+<span class="sd">      - state1: The next recurrent state. A `.NestedMap`.</span>
+<span class="sd">      - extras: Intermediate results to faciliate backprop. A `.NestedMap`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">inputs_arity</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">)</span>
@@ -337,18 +343,21 @@
   <span class="sd">&quot;&quot;&quot;Simple LSTM cell.</span>
 
 <span class="sd">  theta:</span>
-<span class="sd">    wm: the parameter weight matrix. All gates combined.</span>
-<span class="sd">    b: the combined bias vector.</span>
+
+<span class="sd">  - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">  - b: the combined bias vector.</span>
 
 <span class="sd">  state:</span>
-<span class="sd">    m: the lstm output. [batch, cell_nodes]</span>
-<span class="sd">    c: the lstm cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
 
 <span class="sd">  inputs:</span>
-<span class="sd">    act: a list of input activations. [batch, input_nodes]</span>
-<span class="sd">    padding: the padding. [batch, 1].</span>
-<span class="sd">    reset_mask: optional 0/1 float input to support packed input training.</span>
-<span class="sd">        Shape [batch, 1]</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
+<span class="sd">  - reset_mask: optional 0/1 float input to support packed input training.</span>
+<span class="sd">    Shape [batch, 1]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LSTMCellSimple.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimple.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -487,22 +496,22 @@
       <span class="n">zero_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;zero_c&#39;</span><span class="p">,</span> <span class="n">zero_c</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">zero_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">zero_c</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellSimple._ResetState"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimple._ResetState">[docs]</a>  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">state</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span>
     <span class="n">state</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">c</span>
-    <span class="k">return</span> <span class="n">state</span>
+    <span class="k">return</span> <span class="n">state</span></div>
 
 <div class="viewcode-block" id="LSTMCellSimple.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimple.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
 
-  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellSimple._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimple._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
     <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
     <span class="n">mixed</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">wm</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;fc&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">mixed</span>
+    <span class="k">return</span> <span class="n">mixed</span></div>
 
-  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellSimple._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimple._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
@@ -544,9 +553,9 @@
       <span class="n">new_m</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span><span class="n">new_m</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;m_output_projection&#39;</span><span class="p">)</span>
 
     <span class="c1"># Apply Zoneout.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_ApplyZoneOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellSimple._ApplyZoneOut"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimple._ApplyZoneOut">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyZoneOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply Zoneout and returns the updated states.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -565,30 +574,35 @@
                     <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span> <span class="n">m_random_uniform</span><span class="p">)</span>
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LSTMCellGrouped"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellGrouped">[docs]</a><span class="k">class</span> <span class="nc">LSTMCellGrouped</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;LSTM cell with groups.</span>
 
-<span class="sd">  Grouping: based on &quot;Factorization tricks for LSTM networks&quot;:</span>
-<span class="sd">    https://arxiv.org/abs/1703.10722.</span>
+<span class="sd">  Grouping: based on &quot;Factorization tricks for LSTM networks&quot;.</span>
+<span class="sd">  https://arxiv.org/abs/1703.10722.</span>
+
 <span class="sd">  Shuffling: adapted from &quot;ShuffleNet: An Extremely Efficient Convolutional</span>
-<span class="sd">    Neural Network for Mobile Devices&quot;: https://arxiv.org/abs/1707.01083.</span>
+<span class="sd">  Neural Network for Mobile Devices&quot;. https://arxiv.org/abs/1707.01083.</span>
 
 <span class="sd">  theta:</span>
-<span class="sd">    groups: a list of child LSTM cells.</span>
+
+<span class="sd">  - groups: a list of child LSTM cells.</span>
 
 <span class="sd">  state:</span>
-<span class="sd">    A NestedMap containing &#39;groups&#39;, a list of NestedMaps, each with:</span>
-<span class="sd">      m: the lstm output. [batch, cell_nodes // num_groups]</span>
-<span class="sd">      c: the lstm cell state. [batch, cell_nodes // num_groups]</span>
+
+<span class="sd">    A `.NestedMap` containing &#39;groups&#39;, a list of `.NestedMap`, each with:</span>
+
+<span class="sd">    - m: the lstm output. [batch, cell_nodes // num_groups]</span>
+<span class="sd">    - c: the lstm cell state. [batch, cell_nodes // num_groups]</span>
 
 <span class="sd">  inputs:</span>
-<span class="sd">    act: a list of input activations. [batch, input_nodes]</span>
-<span class="sd">    padding: the padding. [batch, 1].</span>
-<span class="sd">    reset_mask: optional 0/1 float input to support packed input training.</span>
-<span class="sd">        Shape [batch, 1]</span>
+
+<span class="sd">  -  act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  -  padding: the padding. [batch, 1].</span>
+<span class="sd">  -  reset_mask: optional 0/1 float input to support packed input training.</span>
+<span class="sd">     Shape [batch, 1]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LSTMCellGrouped.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellGrouped.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -659,14 +673,15 @@
 <span class="sd">    shuffling between groups.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
-<span class="sd">      state0: The previous recurrent state. A NestedMap.</span>
-<span class="sd">      inputs: The inputs to the cell. A NestedMap.</span>
+<span class="sd">      state0: The previous recurrent state. A `.NestedMap`.</span>
+<span class="sd">      inputs: The inputs to the cell. A `.NestedMap`.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      state1: The next recurrent state. A list.</span>
-<span class="sd">      extras: An empty NestedMap.</span>
+<span class="sd">      A tuple (state1, extras).</span>
+<span class="sd">      - state1: The next recurrent state. A list.</span>
+<span class="sd">      - extras: An empty `.NestedMap`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">split_inputs_act</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SplitRecursively</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">)</span>
@@ -681,7 +696,7 @@
       <span class="n">state1</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child_state1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div>
 
-  <span class="k">def</span> <span class="nf">_ShuffleShards</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shards</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellGrouped._ShuffleShards"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellGrouped._ShuffleShards">[docs]</a>  <span class="k">def</span> <span class="nf">_ShuffleShards</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shards</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Shuffles shards across groups.</span>
 
 <span class="sd">    Args:</span>
@@ -694,14 +709,16 @@
 <span class="sd">      scattered across output groups.</span>
 
 <span class="sd">      For example, if we have 3 groups, each with 4 shards:</span>
-<span class="sd">        Group 0: 0_0, 0_1, 0_2, 0_3</span>
-<span class="sd">        Group 1: 1_0, 1_1, 1_2, 1_3</span>
-<span class="sd">        Group 2: 2_0, 2_1, 2_2, 2_3</span>
+
+<span class="sd">      | Group 0: 0_0, 0_1, 0_2, 0_3</span>
+<span class="sd">      | Group 1: 1_0, 1_1, 1_2, 1_3</span>
+<span class="sd">      | Group 2: 2_0, 2_1, 2_2, 2_3</span>
 
 <span class="sd">      The shuffled output will be:</span>
-<span class="sd">        Group 0: 0_0, 1_1, 2_2, 0_3</span>
-<span class="sd">        Group 1: 1_0, 2_1, 0_2, 1_3</span>
-<span class="sd">        Group 2: 2_0, 0_1, 1_2, 2_3</span>
+
+<span class="sd">      | Group 0: 0_0, 1_1, 2_2, 0_3</span>
+<span class="sd">      | Group 1: 1_0, 2_1, 0_2, 1_3</span>
+<span class="sd">      | Group 2: 2_0, 0_1, 1_2, 2_3</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">shards</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shuffle_shards</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">)</span>
@@ -711,7 +728,7 @@
         <span class="n">shuffled_shards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
             <span class="n">shards</span><span class="p">[((</span><span class="n">group_i</span> <span class="o">+</span> <span class="n">shuffle_i</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shuffle_shards</span>
                    <span class="o">+</span> <span class="n">shuffle_i</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">shuffled_shards</span></div>
+    <span class="k">return</span> <span class="n">shuffled_shards</span></div></div>
 
 
 <span class="c1"># TODO(yonghui): Merge this cell with the LSTMCellSimple cell.</span>
@@ -752,7 +769,7 @@
     <span class="n">random_seeds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">random_seed1</span><span class="p">,</span> <span class="n">random_seed2</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">zero_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">zero_c</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">random_seeds</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_ApplyZoneOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellSimpleDeterministic._ApplyZoneOut"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic._ApplyZoneOut">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyZoneOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply Zoneout and returns the updated states.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">random_seed1</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -786,7 +803,7 @@
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">r</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">r</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">,</span> <span class="n">r</span><span class="o">=</span><span class="n">r</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LSTMCellSimpleDeterministic.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update the global_step value.&quot;&quot;&quot;</span>
@@ -803,17 +820,20 @@
 <span class="sd">  only clipping is performed.</span>
 
 <span class="sd">  theta:</span>
-<span class="sd">    wm: the parameter weight matrix. All gates combined.</span>
-<span class="sd">    cap: the cell value cap.</span>
+
+<span class="sd">  - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">  - cap: the cell value cap.</span>
 
 <span class="sd">  state:</span>
-<span class="sd">    m: the lstm output. [batch, cell_nodes]</span>
-<span class="sd">    c: the lstm cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
 
 <span class="sd">  inputs:</span>
-<span class="sd">    act: a list of input activations. [batch, input_nodes]</span>
-<span class="sd">    padding: the padding. [batch, 1].</span>
-<span class="sd">    reset_mask: optional 0/1 float input to support packed input training.</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
+<span class="sd">  - reset_mask: optional 0/1 float input to support packed input training.</span>
 <span class="sd">    [batch, 1]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
@@ -867,16 +887,16 @@
 <div class="viewcode-block" id="QuantizedLSTMCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QuantizedLSTMCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
 
-  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizedLSTMCell._ResetState"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QuantizedLSTMCell._ResetState">[docs]</a>  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">state</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span>
     <span class="n">state</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">c</span>
-    <span class="k">return</span> <span class="n">state</span>
+    <span class="k">return</span> <span class="n">state</span></div>
 
-  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizedLSTMCell._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QuantizedLSTMCell._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizedLSTMCell._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QuantizedLSTMCell._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
     <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">xmw</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
@@ -890,24 +910,27 @@
 
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LSTMCellCuDNNCompliant"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant">[docs]</a><span class="k">class</span> <span class="nc">LSTMCellCuDNNCompliant</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;LSTMCell compliant with variables with CuDNN-LSTM layout.</span>
 
 <span class="sd">  theta:</span>
-<span class="sd">    wb: the cudnn LSTM weight.</span>
+
+<span class="sd">  - wb: the cudnn LSTM weight.</span>
 
 <span class="sd">  state:</span>
-<span class="sd">    m: the lstm output. [batch, cell_nodes]</span>
-<span class="sd">    c: the lstm cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
 
 <span class="sd">  inputs:</span>
-<span class="sd">    act: a list of input activations. [batch, input_nodes]</span>
-<span class="sd">    padding: the padding. [batch, 1].</span>
-<span class="sd">    reset_mask: optional 0/1 float input to support packed input training.</span>
-<span class="sd">        Shape [batch, 1]</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
+<span class="sd">  - reset_mask: optional 0/1 float input to support packed input training.</span>
+<span class="sd">    Shape [batch, 1]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LSTMCellCuDNNCompliant.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -959,23 +982,23 @@
 <div class="viewcode-block" id="LSTMCellCuDNNCompliant.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
 
-  <span class="k">def</span> <span class="nf">_WeightAndBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellCuDNNCompliant._WeightAndBias"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant._WeightAndBias">[docs]</a>  <span class="k">def</span> <span class="nf">_WeightAndBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="n">cudnn_rnn_utils</span><span class="o">.</span><span class="n">RecoverLSTMCellSimpleWeightsFromCuDNN</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">wb</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">,</span>
-        <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">)</span>
+        <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellCuDNNCompliant._ResetState"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant._ResetState">[docs]</a>  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">state</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span>
     <span class="n">state</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">c</span>
-    <span class="k">return</span> <span class="n">state</span>
+    <span class="k">return</span> <span class="n">state</span></div>
 
-  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellCuDNNCompliant._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
     <span class="n">wm</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WeightAndBias</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">wm</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">wm</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LSTMCellCuDNNCompliant._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WeightAndBias</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
     <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
@@ -992,7 +1015,7 @@
     <span class="n">new_c</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">*</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span> <span class="o">+</span> <span class="n">new_c</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCell"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell">[docs]</a><span class="k">class</span> <span class="nc">LayerNormalizedLSTMCell</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
@@ -1004,18 +1027,21 @@
 <span class="sd">  https://arxiv.org/pdf/1607.06450.pdf</span>
 
 <span class="sd">  theta:</span>
-<span class="sd">    wm: the parameter weight matrix. All gates combined.</span>
-<span class="sd">    b: the combined bias vector.</span>
+
+<span class="sd">  - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">  - b: the combined bias vector.</span>
 
 <span class="sd">  state:</span>
-<span class="sd">    m: the lstm output. [batch, cell_nodes]</span>
-<span class="sd">    c: the lstm cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
 
 <span class="sd">  inputs:</span>
-<span class="sd">    act: a list of input activations. [batch, input_nodes]</span>
-<span class="sd">    padding: the padding. [batch, 1].</span>
-<span class="sd">    reset_mask: optional 0/1 float input to support packed input training.</span>
-<span class="sd">        Shape [batch, 1]</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
+<span class="sd">  - reset_mask: optional 0/1 float input to support packed input training.</span>
+<span class="sd">    Shape [batch, 1]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCell.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1103,17 +1129,17 @@
 <div class="viewcode-block" id="LayerNormalizedLSTMCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
 
-  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerNormalizedLSTMCell._ResetState"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell._ResetState">[docs]</a>  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">state</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span>
     <span class="n">state</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">c</span>
-    <span class="k">return</span> <span class="n">state</span>
+    <span class="k">return</span> <span class="n">state</span></div>
 
-  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerNormalizedLSTMCell._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Input activations must be of list type!&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">),</span> <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerNormalizedLSTMCell._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
     <span class="c1"># Unpack the variables (weight and bias) into individual variables.</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1182,7 +1208,7 @@
                     <span class="n">params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">,</span> <span class="n">m_random_uniform</span><span class="p">)</span>
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCellSimple"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple">[docs]</a><span class="k">class</span> <span class="nc">LayerNormalizedLSTMCellSimple</span><span class="p">(</span><span class="n">LSTMCellSimple</span><span class="p">):</span>
@@ -1192,18 +1218,21 @@
 <span class="sd">  https://arxiv.org/pdf/1607.06450.pdf</span>
 
 <span class="sd">  theta:</span>
-<span class="sd">    wm: the parameter weight matrix. All gates combined.</span>
-<span class="sd">    b: the combined bias vector.</span>
+
+<span class="sd">  - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">  - b: the combined bias vector.</span>
 
 <span class="sd">  state:</span>
-<span class="sd">    m: the lstm output. [batch, cell_nodes]</span>
-<span class="sd">    c: the lstm cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
 
 <span class="sd">  inputs:</span>
-<span class="sd">    act: a list of input activations. [batch, input_nodes]</span>
-<span class="sd">    padding: the padding. [batch, 1].</span>
-<span class="sd">    reset_mask: optional 0/1 float input to support packed input training.</span>
-<span class="sd">        Shape [batch, 1]</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
+<span class="sd">  - reset_mask: optional 0/1 float input to support packed input training.</span>
+<span class="sd">    Shape [batch, 1]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCellSimple.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1226,7 +1255,7 @@
           <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale&#39;</span><span class="p">,</span> <span class="n">ln_scale_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LayerNormalizedLSTMCellSimple._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">xmw</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LayerNormalizedLSTMCellSimple</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_Mix</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -1264,23 +1293,26 @@
       <span class="n">x_norm</span> <span class="o">=</span> <span class="n">_LayerNorm</span><span class="p">(</span><span class="n">x_reshaped</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_norm</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">_PerGateLayerNorm</span><span class="p">(</span><span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">ln_scale</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">_PerGateLayerNorm</span><span class="p">(</span><span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">ln_scale</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="ConvLSTMCell"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell">[docs]</a><span class="k">class</span> <span class="nc">ConvLSTMCell</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Convolution LSTM cells.</span>
 
 <span class="sd">  theta:</span>
-<span class="sd">    wm: the parameter weight matrix. All gates combined.</span>
-<span class="sd">    b: the combined bias vector.</span>
+
+<span class="sd">  - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">  - b: the combined bias vector.</span>
 
 <span class="sd">  state:</span>
-<span class="sd">    m: the lstm output. cell_shape</span>
-<span class="sd">    c: the lstm cell state. cell_shape</span>
+
+<span class="sd">  - m: the lstm output. cell_shape</span>
+<span class="sd">  - c: the lstm cell state. cell_shape</span>
 
 <span class="sd">  inputs:</span>
-<span class="sd">    act: a list of input activations. input_shape.</span>
-<span class="sd">    padding: the padding. [batch].</span>
+
+<span class="sd">  - act: a list of input activations. input_shape.</span>
+<span class="sd">  - padding: the padding. [batch].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ConvLSTMCell.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1361,16 +1393,16 @@
 <div class="viewcode-block" id="ConvLSTMCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
 
-  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="ConvLSTMCell._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
     <span class="c1"># Concate on channels.</span>
     <span class="n">xm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">3</span><span class="p">)</span>
     <span class="c1"># TODO(yonghui): Possibly change the data_format to NCHW to speed</span>
     <span class="c1"># up conv2d kernel on gpu.</span>
     <span class="n">xmw</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">xm</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;SAME&#39;</span><span class="p">,</span> <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">xmw</span>
+    <span class="k">return</span> <span class="n">xmw</span></div>
 
-  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="ConvLSTMCell._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Bias is applied to channels.</span>
@@ -1399,29 +1431,33 @@
                     <span class="n">m_random_uniform</span><span class="p">)</span>
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="SRUCell"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.SRUCell">[docs]</a><span class="k">class</span> <span class="nc">SRUCell</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;SRU cell.</span>
 
 <span class="sd">  From this paper: https://arxiv.org/abs/1709.02755</span>
+
 <span class="sd">  This is a simple implementation that can be used as a drop-in replacement for</span>
 <span class="sd">  another RNN. It doesn&#39;t do the performance tricks that an SRU is capable of,</span>
 <span class="sd">  like unrolling matrix computations over time. This is just a basic</span>
 <span class="sd">  implementation. It does the 4-matrix implementation found in appendix C.</span>
 
 <span class="sd">  theta:</span>
-<span class="sd">    wm: the parameter weight matrix. All gates combined.</span>
-<span class="sd">    b: the combined bias vector.</span>
+
+<span class="sd">  - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">  - b: the combined bias vector.</span>
 
 <span class="sd">  state:</span>
-<span class="sd">    m: the sru output. [batch, cell_nodes]</span>
-<span class="sd">    c: the sru cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  - m: the sru output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the sru cell state. [batch, cell_nodes]</span>
 
 <span class="sd">  inputs:</span>
-<span class="sd">    act: a list of input activations. [batch, input_nodes]</span>
-<span class="sd">    padding: the padding. [batch, 1].</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="SRUCell.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.SRUCell.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1482,11 +1518,11 @@
 <div class="viewcode-block" id="SRUCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.SRUCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
 
-  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="SRUCell._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.SRUCell._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="SRUCell._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.SRUCell._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">x_t2</span><span class="p">,</span> <span class="n">resized</span><span class="p">,</span> <span class="n">f_t</span><span class="p">,</span> <span class="n">r_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
@@ -1506,33 +1542,37 @@
                   <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="n">c_t</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">h_t</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">h_t</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">c_t</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">h_t</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">c_t</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="QRNNPoolingCell"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QRNNPoolingCell">[docs]</a><span class="k">class</span> <span class="nc">QRNNPoolingCell</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;This implements just the &quot;pooling&quot; part of a quasi-RNN or SRU.</span>
 
 <span class="sd">  From these papers:</span>
-<span class="sd">   https://arxiv.org/abs/1611.01576</span>
-<span class="sd">   https://arxiv.org/abs/1709.02755</span>
+
+<span class="sd">  - https://arxiv.org/abs/1611.01576</span>
+<span class="sd">  - https://arxiv.org/abs/1709.02755</span>
 
 <span class="sd">  The pooling part implements gates for recurrence. These architectures split</span>
 <span class="sd">  the transform (conv or FC) from the gating/recurrent part. This cell can</span>
 <span class="sd">  do either the quasi-RNN style or SRU style pooling operation based on params.</span>
 
-<span class="sd">  If you want all of the functionality in one RNN cell, use &quot;SRUCell&quot; instead.</span>
+<span class="sd">  If you want all of the functionality in one RNN cell, use `SRUCell` instead.</span>
 
 <span class="sd">  theta:</span>
+
 <span class="sd">    Has the trainable zero state. Other weights are done outside the recurrent</span>
 <span class="sd">    loop.</span>
 
 <span class="sd">  state:</span>
-<span class="sd">    m: the qrnn output. [batch, cell_nodes]</span>
-<span class="sd">    c: the qrnn cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  - m: the qrnn output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the qrnn cell state. [batch, cell_nodes]</span>
 
 <span class="sd">  inputs:</span>
-<span class="sd">    act: a list of input activations. [batch, input_nodes * num_rnn_matrices]</span>
-<span class="sd">    padding: the padding. [batch, 1].</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes * num_rnn_matrices]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="QRNNPoolingCell.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QRNNPoolingCell.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1576,12 +1616,12 @@
 <div class="viewcode-block" id="QRNNPoolingCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QRNNPoolingCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
 
-  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="QRNNPoolingCell._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QRNNPoolingCell._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
     <span class="c1"># Just do identity. The convolution part of the QRNN has to be done earlier.</span>
-    <span class="k">return</span> <span class="n">inputs</span><span class="o">.</span><span class="n">act</span>
+    <span class="k">return</span> <span class="n">inputs</span><span class="o">.</span><span class="n">act</span></div>
 
-  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="QRNNPoolingCell._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QRNNPoolingCell._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_formula</span> <span class="o">==</span> <span class="s1">&#39;quasi_ifo&#39;</span><span class="p">:</span>
@@ -1609,9 +1649,9 @@
       <span class="n">new_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">new_c</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">)</span>
 
     <span class="c1"># Apply Zoneout.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_ApplyZoneOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">):</span>
+<div class="viewcode-block" id="QRNNPoolingCell._ApplyZoneOut"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.QRNNPoolingCell._ApplyZoneOut">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyZoneOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply Zoneout and returns the updated states.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -1627,7 +1667,7 @@
                     <span class="n">m_random_uniform</span><span class="p">)</span>
     <span class="n">new_c</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
     <span class="n">new_m</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

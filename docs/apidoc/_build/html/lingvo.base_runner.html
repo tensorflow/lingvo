@@ -29,7 +29,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.base_trial module" href="lingvo.base_trial.html" />
-    <link rel="prev" title="lingvo.tools.wpm_encoder_test module" href="lingvo.tools.wpm_encoder_test.html" /> 
+    <link rel="prev" title="lingvo.tools.wpm_encoder module" href="lingvo.tools.wpm_encoder.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -85,13 +85,9 @@
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.base_runner module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_trial.html">lingvo.base_trial module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lingvo.model_import_test.html">lingvo.model_import_test module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_imports.html">lingvo.model_imports module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_registry.html">lingvo.model_registry module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lingvo.model_registry_test.html">lingvo.model_registry_test module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lingvo.models_test.html">lingvo.models_test module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.trainer.html">lingvo.trainer module</a></li>
-<li class="toctree-l3"><a class="reference internal" href="lingvo.trainer_test.html">lingvo.trainer_test module</a></li>
 </ul>
 </li>
 </ul>
@@ -168,12 +164,108 @@
 <dl class="class">
 <dt id="lingvo.base_runner.BaseRunner">
 <em class="property">class </em><code class="descclassname">lingvo.base_runner.</code><code class="descname">BaseRunner</code><span class="sig-paren">(</span><em>params</em>, <em>model_task_name</em>, <em>logdir</em>, <em>tf_master</em>, <em>trial=&lt;lingvo.base_trial.NoOpTrial object&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for all jobs.</p>
 <dl class="attribute">
 <dt id="lingvo.base_runner.BaseRunner.params">
 <code class="descname">params</code><a class="headerlink" href="#lingvo.base_runner.BaseRunner.params" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._SetStatusMessage">
+<code class="descname">_SetStatusMessage</code><span class="sig-paren">(</span><em>message</em>, <em>retrying=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._SetStatusMessage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._SetStatusMessage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update the status message for this task.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._ShouldStop">
+<code class="descname">_ShouldStop</code><span class="sig-paren">(</span><em>sess</em>, <em>step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._ShouldStop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._ShouldStop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._WriteToLog">
+<code class="descname">_WriteToLog</code><span class="sig-paren">(</span><em>text</em>, <em>logdir</em>, <em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._WriteToLog"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._WriteToLog" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logs <code class="xref py py-obj docutils literal notranslate"><span class="pre">text</span></code> and saves it under <code class="xref py py-obj docutils literal notranslate"><span class="pre">logdir/filename</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._GetSaver">
+<code class="descname">_GetSaver</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._GetSaver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._GetSaver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a saver.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._LoadCheckpointForEval">
+<code class="descname">_LoadCheckpointForEval</code><span class="sig-paren">(</span><em>sess</em>, <em>checkpoint_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._LoadCheckpointForEval"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._LoadCheckpointForEval" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load the checkpoint for evaluation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._FindNewCheckpoint">
+<code class="descname">_FindNewCheckpoint</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._FindNewCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._FindNewCheckpoint" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._RunLoop">
+<code class="descname">_RunLoop</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._RunLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._RunLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs <code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_func</span></code>, retrying on expected errors.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._LoopEnqueue">
+<code class="descname">_LoopEnqueue</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._LoopEnqueue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._LoopEnqueue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the enqueue op in a loop.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._GetSession">
+<code class="descname">_GetSession</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._GetSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._GetSession" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.base_runner.BaseRunner._GetTtlDir">
+<em class="property">classmethod </em><code class="descname">_GetTtlDir</code><span class="sig-paren">(</span><em>path</em>, <em>duration</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._GetTtlDir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._GetTtlDir" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a path to a time-limited directory under dir if required.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._CreateSummaryWriter">
+<code class="descname">_CreateSummaryWriter</code><span class="sig-paren">(</span><em>logdir</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._CreateSummaryWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._CreateSummaryWriter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates and returns a tf summary writer.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._WriteSummaries">
+<code class="descname">_WriteSummaries</code><span class="sig-paren">(</span><em>summary_writer</em>, <em>job_name</em>, <em>global_step</em>, <em>summaries</em>, <em>text_filename=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._WriteSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._WriteSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct the summary and write them to the summary writer.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>summary_writer</strong> – The summary writer to use.</li>
+<li><strong>job_name</strong> – The name of the job that tries to write this summary.</li>
+<li><strong>global_step</strong> – The checkpoint used for eval is generated at this step.</li>
+<li><strong>summaries</strong> – a dict from keys to <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> protobuf messages.</li>
+<li><strong>text_filename</strong> – If not None, writes the summary to the text file.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._WriteKeyValuePairs">
+<code class="descname">_WriteKeyValuePairs</code><span class="sig-paren">(</span><em>filename</em>, <em>key_value_pairs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._WriteKeyValuePairs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._WriteKeyValuePairs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes <code class="xref py py-obj docutils literal notranslate"><span class="pre">key_value_pairs</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">filename</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._ExportMetrics">
+<code class="descname">_ExportMetrics</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._ExportMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._ExportMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exports metrics externally.</p>
+</dd></dl>
 
 </dd></dl>
 
@@ -190,7 +282,7 @@
         <a href="lingvo.base_trial.html" class="btn btn-neutral float-right" title="lingvo.base_trial module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tools.wpm_encoder_test.html" class="btn btn-neutral" title="lingvo.tools.wpm_encoder_test module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tools.wpm_encoder.html" class="btn btn-neutral" title="lingvo.tools.wpm_encoder module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

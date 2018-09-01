@@ -436,14 +436,14 @@
 
 <div class="viewcode-block" id="LinearRampupExponentialDecayScaledByNumSplitSchedule"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule.html#lingvo.core.lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="p">(</span>
     <span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A learning rate schedule does the following.</span>
+  <span class="sd">&quot;&quot;&quot;A learning rate schedule that does the following.</span>
 
-<span class="sd">    1. The peak learning rate multiplier is scaled by num splits,</span>
-<span class="sd">    (often the same as #replicas during sbatch splitting synchronous</span>
-<span class="sd">    training).</span>
-<span class="sd">    2. The multiplier ramps up linearly from 1 to the peak initially.</span>
-<span class="sd">    3. The multiplier stays constant until the exponential decay starts.</span>
-<span class="sd">    4. The multiplier is capped at max.</span>
+<span class="sd">  1. The peak learning rate multiplier is scaled by num splits,</span>
+<span class="sd">     (often the same as #replicas during batch splitting synchronous</span>
+<span class="sd">     training).</span>
+<span class="sd">  2. The multiplier ramps up linearly from 1 to the peak initially.</span>
+<span class="sd">  3. The multiplier stays constant until the exponential decay starts.</span>
+<span class="sd">  4. The multiplier is capped at max.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LinearRampupExponentialDecayScaledByNumSplitSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule.html#lingvo.core.lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -511,15 +511,15 @@
 
 
 <div class="viewcode-block" id="LinearRampupPiecewiseConstantSchedule"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule.html#lingvo.core.lr_schedule.LinearRampupPiecewiseConstantSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupPiecewiseConstantSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A learning rate schedule does the following.</span>
+  <span class="sd">&quot;&quot;&quot;A learning rate schedule that does the following.</span>
 
-<span class="sd">    1. The learning rate is scaled by #split * lrs[i]</span>
-<span class="sd">      (often #split is the same as #replicas during batch splitting synchronous</span>
-<span class="sd">      training).</span>
-<span class="sd">    2. The multiplier ramps up linearly from 0 to the peak(lrs[0]) at</span>
-<span class="sd">       boundaries[0].</span>
-<span class="sd">    3. After peak, the multiplier stays lrs[i] when step falls into</span>
-<span class="sd">       [boundaries[i], boundaries[i+1])</span>
+<span class="sd">  1. The learning rate is scaled by #split * lrs[i]</span>
+<span class="sd">     (often #split is the same as #replicas during batch splitting synchronous</span>
+<span class="sd">     training).</span>
+<span class="sd">  2. The multiplier ramps up linearly from 0 to the peak(lrs[0]) at</span>
+<span class="sd">     boundaries[0].</span>
+<span class="sd">  3. After peak, the multiplier stays lrs[i] when step falls into</span>
+<span class="sd">     [boundaries[i], boundaries[i+1])</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LinearRampupPiecewiseConstantSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule.html#lingvo.core.lr_schedule.LinearRampupPiecewiseConstantSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -579,12 +579,14 @@
 <span class="sd">  This reads a file containing a history of values of a selected metric versus</span>
 <span class="sd">  global step (file is recorded by the evaler loop in the trainer). Decay</span>
 <span class="sd">  depends on these variables:</span>
-<span class="sd">    best_step - step at which optimum metric value occurred in history file</span>
-<span class="sd">    last_step - last step recorded in history file</span>
-<span class="sd">    ref_step - most recent decay step or best_step</span>
-<span class="sd">    cur_factor - current multiplier on initial learning rate</span>
 
-<span class="sd">  The decay algorithm is:</span>
+<span class="sd">    - best_step - step at which optimum metric value occurred in history file</span>
+<span class="sd">    - last_step - last step recorded in history file</span>
+<span class="sd">    - ref_step - most recent decay step or best_step</span>
+<span class="sd">    - cur_factor - current multiplier on initial learning rate</span>
+
+<span class="sd">  The decay algorithm is::</span>
+
 <span class="sd">    ref_step = max(ref_step, best_step)</span>
 <span class="sd">    if last_step - ref_step &gt; window:</span>
 <span class="sd">      cur_factor = max(cur_factor * decay, min_factor)</span>

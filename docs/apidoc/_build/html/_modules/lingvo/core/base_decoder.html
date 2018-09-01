@@ -178,25 +178,25 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="BaseDecoder.FProp"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">src_encs</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">src_segment_id</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decodes &#39;targets&#39; given encoded source.</span>
+    <span class="sd">&quot;&quot;&quot;Decodes `targets` given encoded source.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
-<span class="sd">        layer and its children layers.</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      src_encs: source encoding, of shape [time, batch, depth].</span>
 <span class="sd">      src_enc_paddings: source encoding padding, of shape [time, batch].</span>
 <span class="sd">      targets: A dict of string to tensors representing the targets one try to</span>
-<span class="sd">          predict.</span>
+<span class="sd">        predict.</span>
 <span class="sd">      src_segment_id: source segment id, of shape [time, batch]. This input is</span>
-<span class="sd">          meant to support multiple samples in a single training sequence. The</span>
-<span class="sd">          id identifies the sample that the input at the corresponding</span>
-<span class="sd">          time-step belongs to. For example, if the two examples packed together</span>
-<span class="sd">          are [&#39;good&#39;, &#39;day&#39;] -&gt; [&#39;guten-tag&#39;] and [&#39;thanks&#39;] -&gt; [&#39;danke&#39;]</span>
-<span class="sd">          to produce [&#39;good&#39;, &#39;day&#39;, &#39;thanks&#39;] -&gt; [&#39;guten-tag&#39;, &#39;danke&#39;], the</span>
-<span class="sd">          source segment ids would be [0, 0, 1] and target segment ids would be</span>
-<span class="sd">          [0, 1]. These ids are meant to enable masking computations for</span>
-<span class="sd">          different examples from each other.</span>
-<span class="sd">          Models or layers than don&#39;t support packed inputs should pass None.</span>
+<span class="sd">        meant to support multiple samples in a single training sequence. The id</span>
+<span class="sd">        identifies the sample that the input at the corresponding time-step</span>
+<span class="sd">        belongs to. For example, if the two examples packed together are</span>
+<span class="sd">        [&#39;good&#39;, &#39;day&#39;] -&gt; [&#39;guten-tag&#39;] and [&#39;thanks&#39;] -&gt; [&#39;danke&#39;] to produce</span>
+<span class="sd">        [&#39;good&#39;, &#39;day&#39;, &#39;thanks&#39;] -&gt; [&#39;guten-tag&#39;, &#39;danke&#39;], the source segment</span>
+<span class="sd">        ids would be [0, 0, 1] and target segment ids would be [0, 1]. These ids</span>
+<span class="sd">        are meant to enable masking computations for different examples from</span>
+<span class="sd">        each other. Models or layers than don&#39;t support packed inputs should</span>
+<span class="sd">        pass None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A map from metric name (a python string) to a tuple (value, weight).</span>
@@ -234,14 +234,16 @@
     <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">target_eos_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span>
 
 <div class="viewcode-block" id="BaseBeamSearchDecoder.BeamSearchDecode"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_encs</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">):</span>
+    <span class="c1"># pylint: disable=line-too-long</span>
     <span class="sd">&quot;&quot;&quot;Performs beam search based decoding.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      src_encs: source encoding, of shape [time, batch, depth].</span>
 <span class="sd">      src_enc_paddings: source encoding padding, of shape [time, batch].</span>
 <span class="sd">    returns:</span>
-<span class="sd">      BeamSearchDecodeOutput, A namedtuple whose elements are tensor.</span>
+<span class="sd">      `.BeamSearchDecodeOutput`, A namedtuple whose elements are tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># pylint: enable=line-too-long</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div></div>
 </pre></div>
 

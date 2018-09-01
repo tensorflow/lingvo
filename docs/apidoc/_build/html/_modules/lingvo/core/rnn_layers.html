@@ -183,7 +183,7 @@
 <span class="n">assert_shape_match</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span>
 
 
-<span class="k">def</span> <span class="nf">_AssertCellParamsCuDNNCompatible</span><span class="p">(</span><span class="n">p_cell</span><span class="p">):</span>
+<div class="viewcode-block" id="_AssertCellParamsCuDNNCompatible"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers._AssertCellParamsCuDNNCompatible">[docs]</a><span class="k">def</span> <span class="nf">_AssertCellParamsCuDNNCompatible</span><span class="p">(</span><span class="n">p_cell</span><span class="p">):</span>
   <span class="k">if</span> <span class="n">p_cell</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellCuDNNCompliant</span><span class="p">:</span>
     <span class="k">return</span>
   <span class="k">else</span><span class="p">:</span>
@@ -192,10 +192,10 @@
     <span class="k">assert</span> <span class="n">p_cell</span><span class="o">.</span><span class="n">cell_value_cap</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="n">p_cell</span><span class="o">.</span><span class="n">forget_gate_bias</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p_cell</span><span class="o">.</span><span class="n">output_nonlinearity</span>
-    <span class="k">assert</span> <span class="n">p_cell</span><span class="o">.</span><span class="n">zo_prob</span> <span class="o">==</span> <span class="mf">0.0</span>
+    <span class="k">assert</span> <span class="n">p_cell</span><span class="o">.</span><span class="n">zo_prob</span> <span class="o">==</span> <span class="mf">0.0</span></div>
 
 
-<span class="k">def</span> <span class="nf">_ReversePaddedSequence</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+<div class="viewcode-block" id="_ReversePaddedSequence"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers._ReversePaddedSequence">[docs]</a><span class="k">def</span> <span class="nf">_ReversePaddedSequence</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
   <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Reverse inputs based on paddings.</span>
 
 <span class="sd">  Only reverse the unpadded portion of \&#39;inputs\&#39;. It assumes inputs are only</span>
@@ -211,17 +211,17 @@
   <span class="n">inversed_paddings</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
   <span class="n">inputs_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">inversed_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inputs_length</span><span class="p">,</span> <span class="n">seq_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">batch_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inputs_length</span><span class="p">,</span> <span class="n">seq_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">batch_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_GeneratePackedInputResetMask</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">is_reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="_GeneratePackedInputResetMask"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers._GeneratePackedInputResetMask">[docs]</a><span class="k">def</span> <span class="nf">_GeneratePackedInputResetMask</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">is_reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Generates mask inputs for RNN cells from segment_id.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      segment_id: A tensor of shape [time, batch_size, 1]</span>
 <span class="sd">      is_reverse: True if inputs are fed to the RNN in reverse order.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">      reset_mask: a tensor of shape [time, batch_size, 1]. Set to 0 for samples</span>
+<span class="sd">      reset_mask - a tensor of shape [time, batch_size, 1]. Set to 0 for samples</span>
 <span class="sd">      where state needs to be reset (at example boundaries), and 1 otherwise.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">segment_id_left</span> <span class="o">=</span> <span class="n">segment_id</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -238,7 +238,7 @@
     <span class="n">reset_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">reset_mask</span><span class="p">,</span> <span class="n">mask_padding</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">reset_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">mask_padding</span><span class="p">,</span> <span class="n">reset_mask</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">reset_mask</span>
+  <span class="k">return</span> <span class="n">reset_mask</span></div>
 
 
 <div class="viewcode-block" id="RNN"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.RNN">[docs]</a><span class="k">class</span> <span class="nc">RNN</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
@@ -268,7 +268,7 @@
     <span class="sd">&quot;&quot;&quot;Compute RNN forward pass.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A single tensor or a tuple of tensors with cardinality equal to</span>
 <span class="sd">          rnn_cell.inputs_arity. For every input tensor, the first dimension is</span>
@@ -333,7 +333,7 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed inputs are currently not &#39;</span>
                                      <span class="s1">&#39;supported by Static RNN Base&#39;</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_GetCellTpls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="StackedRNNBase._GetCellTpls"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedRNNBase._GetCellTpls">[docs]</a>  <span class="k">def</span> <span class="nf">_GetCellTpls</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
       <span class="n">cell_tpls</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_layers</span>
@@ -351,7 +351,7 @@
       <span class="c1"># input, hence, we have this assertion. We can relax it later by</span>
       <span class="c1"># allowing more parameterization of the layers.</span>
       <span class="k">assert</span> <span class="n">cell_tpls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">==</span> <span class="n">cell_tpls</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">num_input_nodes</span>
-    <span class="k">return</span> <span class="n">cell_tpls</span></div>
+    <span class="k">return</span> <span class="n">cell_tpls</span></div></div>
 
 
 <div class="viewcode-block" id="StackedFRNNLayerByLayer"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedFRNNLayerByLayer">[docs]</a><span class="k">class</span> <span class="nc">StackedFRNNLayerByLayer</span><span class="p">(</span><span class="n">StackedRNNBase</span><span class="p">):</span>
@@ -387,7 +387,7 @@
     <span class="sd">&quot;&quot;&quot;Compute RNN forward pass.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A single tensor of shape [time, batch, dims].</span>
 <span class="sd">      paddings: A single tensor of shape [time, batch, 1].</span>
@@ -445,7 +445,7 @@
     <span class="sd">&quot;&quot;&quot;Compute RNN forward pass.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A single tensor or a tuple of tensors with cardinality equal to</span>
 <span class="sd">          rnn_cell.inputs_arity. For every input tensor, the first dimension is</span>
@@ -555,14 +555,14 @@
 <div class="viewcode-block" id="BidirectionalFRNN.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute bidi-RNN forward pass.</span>
 
-<span class="sd">    rcell_forward unroll the sequence in the forward direction and</span>
-<span class="sd">    rcell_backward unroll the sequence in the backward direction. The</span>
+<span class="sd">    `rcell_forward` unroll the sequence in the forward direction and</span>
+<span class="sd">    `rcell_backward` unroll the sequence in the backward direction. The</span>
 <span class="sd">    outputs are concatenated in the last output dim.</span>
 
-<span class="sd">    See FRNN.FProp for more details.</span>
+<span class="sd">    See `FRNN.FProp` for more details.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A single tensor or a tuple of tensors with cardinality equal to</span>
 <span class="sd">          rnn_cell.inputs_arity. For every input tensor, the first dimension is</span>
@@ -648,14 +648,14 @@
 <div class="viewcode-block" id="BidirectionalRNN.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalRNN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute bidi-RNN forward pass.</span>
 
-<span class="sd">    rcell_forward is responsible for unrolling the sequence in the forward</span>
-<span class="sd">    direction and rcell_backward in the backward direction. Output from forward</span>
-<span class="sd">    and backward rnns are concatenated on the last output dim.</span>
+<span class="sd">    `rcell_forward` is responsible for unrolling the sequence in the forward</span>
+<span class="sd">    direction and `rcell_backward` in the backward direction. Output from</span>
+<span class="sd">    forward and backward rnns are concatenated on the last output dim.</span>
 
-<span class="sd">    See RNN.FProp() for more details.</span>
+<span class="sd">    See `RNN.FProp()` for more details.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A single tensor or a tuple of tensors with cardinality equal to</span>
 <span class="sd">          rnn_cell.inputs_arity. For every input tensor, the first dimension is</span>
@@ -702,13 +702,13 @@
     <span class="n">p</span><span class="o">.</span><span class="n">sequence_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">sequence_length</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;brnn&#39;</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_PadSequenceToLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_input</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_value</span><span class="p">):</span>
+<div class="viewcode-block" id="BidirectionalRNNV2._PadSequenceToLength"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalRNNV2._PadSequenceToLength">[docs]</a>  <span class="k">def</span> <span class="nf">_PadSequenceToLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_input</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_value</span><span class="p">):</span>
     <span class="n">t_input</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
         <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t_input</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">length</span><span class="p">)],</span> <span class="n">t_input</span><span class="p">)</span>
     <span class="n">pad_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([[</span><span class="n">length</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t_input</span><span class="p">)[</span><span class="mi">0</span><span class="p">]],</span>
                            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t_input</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]],</span> <span class="mi">0</span><span class="p">)</span>
     <span class="n">padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">pad_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">t_input</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">+</span> <span class="n">pad_value</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">t_input</span><span class="p">,</span> <span class="n">padding</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">t_input</span><span class="p">,</span> <span class="n">padding</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BidirectionalRNNV2.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalRNNV2.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute bidi-RNN forward pass.</span>
@@ -720,7 +720,7 @@
 <span class="sd">    See RNN.FProp() for more details.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A single tensor or a tuple of tensors with cardinality equal to</span>
 <span class="sd">          rnn_cell.inputs_arity. For every input tensor, the first dimension is</span>
@@ -759,7 +759,7 @@
   <span class="sd">&quot;&quot;&quot;A single layer of unidirectional LSTM with Cudnn impl.</span>
 
 <span class="sd">  Runs training with CuDNN on GPU, and eval using a FRNN with properly</span>
-<span class="sd">  configured LSTMCellSimple cell.</span>
+<span class="sd">  configured `LSTMCellSimple` cell.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="CuDNNLSTM.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.CuDNNLSTM.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -833,7 +833,7 @@
 <span class="sd">    compatible with different hardwares.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A tensor of [seq_length, batch_size, num_input_nodes]</span>
 <span class="sd">      paddings: A tensor of [seq_length, batch_size, 1]</span>
@@ -954,14 +954,14 @@
 <span class="sd">    compatible with different hardwares.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A tensor of [seq_length, batch_size, num_input_nodes]</span>
 <span class="sd">      paddings: A tensor of [seq_length, batch_size, 1]</span>
 <span class="sd">    Returns:</span>
 <span class="sd">      A tensor of [seq_length, batch_size, 2 * num_output_nodes]</span>
 
-<span class="sd">    See DRNN.FProp() for more details.</span>
+<span class="sd">    See `DRNN.FProp()` for more details.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
@@ -982,14 +982,14 @@
       <span class="k">return</span> <span class="n">output</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">_ConcatLastDim</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="_ConcatLastDim"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers._ConcatLastDim">[docs]</a><span class="k">def</span> <span class="nf">_ConcatLastDim</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Concatenates all args along the last dimension.&quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_ShiftRight</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
+<div class="viewcode-block" id="_ShiftRight"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers._ShiftRight">[docs]</a><span class="k">def</span> <span class="nf">_ShiftRight</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">xs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Shifts xs[:-1] one step to the right and attaches x0 on the left.&quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([[</span><span class="n">x0</span><span class="p">],</span> <span class="n">xs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([[</span><span class="n">x0</span><span class="p">],</span> <span class="n">xs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="FRNNWithAttention"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.FRNNWithAttention">[docs]</a><span class="k">class</span> <span class="nc">FRNNWithAttention</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
@@ -1050,7 +1050,7 @@
     <span class="sd">&quot;&quot;&quot;A wrapper of InitForSourcePacked of child attention layer.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      src_encs: A tensor of shape [source_seq_length, batch_size, source_dim].</span>
 <span class="sd">      src_paddings: A tensor of shape [source_seq_length, batch_size].</span>
@@ -1064,7 +1064,7 @@
 <span class="sd">        support packed inputs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      packed_src: A NestedMap containing packed source.</span>
+<span class="sd">      packed_src - A `.NestedMap` containing packed source.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">atten</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span>
 
@@ -1097,15 +1097,15 @@
     <span class="sd">&quot;&quot;&quot;Initial state of this layer.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      src_encs: A tensor of shape [source_seq_length, batch_size, source_dim].</span>
-<span class="sd">      packed_src: A NestedMap containing packed source.</span>
+<span class="sd">      packed_src: A `.NestedMap` containing packed source.</span>
 <span class="sd">      batch_size: Batch size.</span>
 <span class="sd">      atten_state_dim: Attention state dim when using zero_atten_state</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      state0: A NestedMap containing initial states of RNN and attention.</span>
+<span class="sd">      state0 - A `.NestedMap` containing initial states of RNN and attention.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1160,7 +1160,7 @@
     <span class="sd">&quot;&quot;&quot;Forward propagate through a rnn layer with attention.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      src_encs: A tensor of shape [source_seq_length, batch_size, source_dim].</span>
 <span class="sd">      src_paddings: A tensor of shape [source_seq_length, batch_size].</span>
@@ -1179,10 +1179,12 @@
 <span class="sd">      segment_id: A tensor of [time, batch, 1].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      atten_context: a tensor of [time, batch, attention.hidden_dim].</span>
-<span class="sd">      rnn_output: a tensor of [time, batch, rcell.num_output_nodes].</span>
-<span class="sd">      atten_probs: a tensor of [time, batch, source_seq_length].</span>
-<span class="sd">      final_state: The final recurrent state.</span>
+<span class="sd">      A tuple (atten_context, rnn_output, atten_probs, final_state).</span>
+
+<span class="sd">      - atten_context: a tensor of [time, batch, attention.hidden_dim].</span>
+<span class="sd">      - rnn_output: a tensor of [time, batch, rcell.num_output_nodes].</span>
+<span class="sd">      - atten_probs: a tensor of [time, batch, source_seq_length].</span>
+<span class="sd">      - final_state: The final recurrent state.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
@@ -1280,10 +1282,6 @@
   <span class="sd">&quot;&quot;&quot;RNN layer intertwined with an attention layer for multiple sources.</span>
 
 <span class="sd">  Allows different attention params per source, if attention is not shared.</span>
-
-<span class="sd">  Attributes:</span>
-<span class="sd">    rnn_cell: Reference to the RNN cell of this layer.</span>
-<span class="sd">    attention: Reference to the attention layer(s) of this layer.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="MultiSourceFRNNWithAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.MultiSourceFRNNWithAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1315,10 +1313,12 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">rnn_cell</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reference to the RNN cell of this layer.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cell</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">attention</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reference to the attention layer(s) of this layer.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">attentions</span>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1367,19 +1367,20 @@
     <span class="sd">&quot;&quot;&quot;Computes initial states for attention layer(s).</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
-<span class="sd">      src_encs: A nested map object containing source encoding tensors,</span>
+<span class="sd">      src_encs: A `.NestedMap` object containing source encoding tensors,</span>
 <span class="sd">        each of shape [source_seq_length, batch_size, source_dim]. Children</span>
 <span class="sd">        names of the nested map is defined by source_names.</span>
-<span class="sd">      src_paddings: A nested map object contraining source padding tensors,</span>
+<span class="sd">      src_paddings: A `.NestedMap` object contraining source padding tensors,</span>
 <span class="sd">        each of shape [source_seq_length, batch_size]. Children names of the</span>
 <span class="sd">        nested map is defined by source_names.</span>
 <span class="sd">      batch_size: Scalar Tensor of type int, for initial state shape.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      state0: Initial attention-rnn state in a NestedMap. Zeros for the rnn</span>
+<span class="sd">      state0 - Initial attention-rnn state in a NestedMap. Zeros for the rnn</span>
 <span class="sd">      initial state, and merger output for attention initial state.</span>
+
 <span class="sd">      Transformed source vectors and transposed source vectors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
@@ -1426,20 +1427,22 @@
     <span class="sd">&quot;&quot;&quot;Forward propagate through a RNN layer with attention(s).</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
-<span class="sd">      src_encs: A nested map object containing source encoding tensors,</span>
+<span class="sd">      src_encs: A `.NestedMap` object containing source encoding tensors,</span>
 <span class="sd">        each of shape [source_seq_length, batch_size, source_dim]. Children</span>
 <span class="sd">        names of the nested map is defined by source_names.</span>
-<span class="sd">      src_paddings: A nested map object contraining source padding tensors,</span>
+<span class="sd">      src_paddings: A `.NestedMap` object contraining source padding tensors,</span>
 <span class="sd">        each of shape [source_seq_length, batch_size]. Children names of the</span>
 <span class="sd">        nested map is defined by source_names.</span>
 <span class="sd">      inputs: A tensor of [time, batch, dims].</span>
 <span class="sd">      paddings: A tensor of [time, batch, 1].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      atten_context: a tensor of [time, batch, attention.hidden_dim].</span>
-<span class="sd">      rnn_output: a tensor of [time, batch, p.cell.num_output_nodes].</span>
+<span class="sd">      A tuple (atten_context, rnn_output)</span>
+
+<span class="sd">      - atten_context: a tensor of [time, batch, attention.hidden_dim].</span>
+<span class="sd">      - rnn_output: a tensor of [time, batch, p.cell.num_output_nodes].</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: dtype mismatch of attention layers.</span>
@@ -1566,10 +1569,10 @@
 <span class="sd">    bak_rnn unroll the sequence in the backward direction. The</span>
 <span class="sd">    outputs are concatenated in the last output dim.</span>
 
-<span class="sd">    See FRNN.FProp for more details.</span>
+<span class="sd">    See `FRNN.FProp` for more details.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      inputs: A list of the fwd and bak tensors. Each item in the list should be</span>
 <span class="sd">        A single tensor or a tuple of tensors with cardinality equal to</span>

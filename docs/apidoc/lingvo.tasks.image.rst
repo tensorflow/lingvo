@@ -19,7 +19,5 @@ Submodules
 .. toctree::
 
    lingvo.tasks.image.classifier
-   lingvo.tasks.image.classifier_test
    lingvo.tasks.image.input_generator
-   lingvo.tasks.image.input_generator_test
 

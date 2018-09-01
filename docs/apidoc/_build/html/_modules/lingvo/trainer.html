@@ -156,15 +156,19 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
+<span class="c1"># pylint: disable=line-too-long</span>
 <span class="sd">&quot;&quot;&quot;Trainer.</span>
 
 <span class="sd">To run locally:</span>
-<span class="sd">$ bazel build -c opt lingvo:trainer</span>
-<span class="sd">$ bazel-bin/lingvo/trainer --logtostderr --model=image.mnist.LeNet5 --mode=sync</span>
-<span class="sd">--logdir=/tmp/lenet5 --run_locally=cpu</span>
 
-<span class="sd">To use GPU, add --config=cuda to build command and set --run_locally=gpu.</span>
+<span class="sd">.. code-block:: bash</span>
+
+<span class="sd">  $ bazel build -c opt lingvo:trainer</span>
+<span class="sd">  $ bazel-bin/lingvo/trainer --logtostderr --model=image.mnist.LeNet5 --mode=sync --logdir=/tmp/lenet5 --run_locally=cpu</span>
+
+<span class="sd">To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># pylint: enable=line-too-long</span>
 
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
@@ -255,7 +259,7 @@
 
 
 <span class="c1"># useful for debugging.</span>
-<span class="k">def</span> <span class="nf">_StartShell</span><span class="p">(</span><span class="n">local_ns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_StartShell"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer._StartShell">[docs]</a><span class="k">def</span> <span class="nf">_StartShell</span><span class="p">(</span><span class="n">local_ns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="c1"># An interactive shell is useful for debugging/development.</span>
   <span class="kn">import</span> <span class="nn">IPython</span>  <span class="c1"># pylint: disable=g-import-not-at-top</span>
 
@@ -263,10 +267,10 @@
   <span class="k">if</span> <span class="n">local_ns</span><span class="p">:</span>
     <span class="n">user_ns</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">local_ns</span><span class="p">)</span>
   <span class="n">user_ns</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="nb">globals</span><span class="p">())</span>
-  <span class="n">IPython</span><span class="o">.</span><span class="n">start_ipython</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[],</span> <span class="n">user_ns</span><span class="o">=</span><span class="n">user_ns</span><span class="p">)</span>
+  <span class="n">IPython</span><span class="o">.</span><span class="n">start_ipython</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[],</span> <span class="n">user_ns</span><span class="o">=</span><span class="n">user_ns</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_ModelAnalysis</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+<div class="viewcode-block" id="_ModelAnalysis"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer._ModelAnalysis">[docs]</a><span class="k">def</span> <span class="nf">_ModelAnalysis</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a text showing variable sizes and their total size.&quot;&quot;&quot;</span>
 
   <span class="k">class</span> <span class="nc">Analyzer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -297,7 +301,7 @@
   <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
   <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">100</span>
   <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">total #params: </span><span class="si">%10d</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">analyzer</span><span class="o">.</span><span class="n">total</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">total</span>
+  <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">total</span></div>
 
 
 <div class="viewcode-block" id="Controller"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller">[docs]</a><span class="k">class</span> <span class="nc">Controller</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
@@ -342,7 +346,7 @@
 <div class="viewcode-block" id="Controller.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;controller/enqueue_op/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Controller._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="n">gsteps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span>
@@ -412,9 +416,9 @@
 
         <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">now</span> <span class="o">&lt;</span> <span class="n">next_iteration_seconds</span><span class="p">:</span>
-          <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">next_iteration_seconds</span> <span class="o">-</span> <span class="n">now</span><span class="p">)</span>
+          <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="n">next_iteration_seconds</span> <span class="o">-</span> <span class="n">now</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+<div class="viewcode-block" id="Controller._RestoreIfNeeded"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">_RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized</span><span class="p">))</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">:</span>
       <span class="k">return</span>
@@ -466,13 +470,13 @@
     <span class="p">]</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialize variables: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">uninitialized_vars</span><span class="p">])</span>
-    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span><span class="n">uninitialized_vars</span><span class="p">))</span>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span><span class="n">uninitialized_vars</span><span class="p">))</span></div>
 
-  <span class="k">def</span> <span class="nf">_SummarizeValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+<div class="viewcode-block" id="Controller._SummarizeValue"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._SummarizeValue">[docs]</a>  <span class="k">def</span> <span class="nf">_SummarizeValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span>
-        <span class="n">metrics</span><span class="o">.</span><span class="n">CreateScalarSummary</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">steps</span><span class="p">)</span>
+        <span class="n">metrics</span><span class="o">.</span><span class="n">CreateScalarSummary</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">steps</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_RecordStepRate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_steps</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">):</span>
+<div class="viewcode-block" id="Controller._RecordStepRate"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._RecordStepRate">[docs]</a>  <span class="k">def</span> <span class="nf">_RecordStepRate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_steps</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the overall step rate and adds a summary.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">current_steps</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">))</span>
     <span class="c1"># Keeps a relative long history to compute a smooth steps/second.</span>
@@ -489,7 +493,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">current_steps</span><span class="p">,</span>
                          <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/sec&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">rate</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">current_steps</span><span class="p">,</span> <span class="s1">&#39;examples/sec&#39;</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">rate</span><span class="p">,</span> <span class="n">example_rate</span></div>
+    <span class="k">return</span> <span class="n">rate</span><span class="p">,</span> <span class="n">example_rate</span></div></div>
 
 
 <div class="viewcode-block" id="Trainer"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer">[docs]</a><span class="k">class</span> <span class="nc">Trainer</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
@@ -529,9 +533,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_start_up_delay_steps</span> <span class="o">=</span> <span class="p">(((</span><span class="n">worker_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">worker_id</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span> <span class="o">*</span>
                                   <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">start_up_delay_steps</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_SummarizeValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">writer</span><span class="p">):</span>
+<div class="viewcode-block" id="Trainer._SummarizeValue"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer._SummarizeValue">[docs]</a>  <span class="k">def</span> <span class="nf">_SummarizeValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">writer</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">writer</span><span class="p">:</span>
-      <span class="n">writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">CreateScalarSummary</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">steps</span><span class="p">)</span>
+      <span class="n">writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">CreateScalarSummary</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">steps</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trainer.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
@@ -539,7 +543,7 @@
 <div class="viewcode-block" id="Trainer.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer/enqueue_op/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Trainer._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
@@ -614,7 +618,7 @@
           <span class="n">next_status_step</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="n">status_interval_steps</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ModelPostUpdate</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ModelPostUpdate</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Evaler"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler">[docs]</a><span class="k">class</span> <span class="nc">Evaler</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
@@ -654,7 +658,7 @@
 <div class="viewcode-block" id="Evaler.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Evaler._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The main loop.&quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
@@ -666,7 +670,7 @@
           <span class="k">break</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">EvalLatestCheckpoint</span><span class="p">()</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Evaluation finished.&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Evaluation finished.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Evaler.EvalLatestCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler.EvalLatestCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">EvalLatestCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs eval once on the latest checkpoint.&quot;&quot;&quot;</span>
@@ -679,7 +683,7 @@
         <span class="k">return</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_EvalOnce</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_EvalOnce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+<div class="viewcode-block" id="Evaler._EvalOnce"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler._EvalOnce">[docs]</a>  <span class="k">def</span> <span class="nf">_EvalOnce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs evaluation for a batch of samples.</span>
 
 <span class="sd">    Args:</span>
@@ -728,7 +732,7 @@
     <span class="n">is_final</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
     <span class="n">should_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span>
                                                 <span class="n">metrics_dict</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">should_stop</span> <span class="ow">or</span> <span class="n">is_final</span></div>
+    <span class="k">return</span> <span class="n">should_stop</span> <span class="ow">or</span> <span class="n">is_final</span></div></div>
 
 
 <div class="viewcode-block" id="GetDecoderDir"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.GetDecoderDir">[docs]</a><span class="k">def</span> <span class="nf">GetDecoderDir</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="n">decoder_type</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">):</span>
@@ -739,7 +743,7 @@
   <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="n">decoder_dir</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_GetCheckpointIdForDecodeOut</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+<div class="viewcode-block" id="_GetCheckpointIdForDecodeOut"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer._GetCheckpointIdForDecodeOut">[docs]</a><span class="k">def</span> <span class="nf">_GetCheckpointIdForDecodeOut</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Retrieve the checkpoint id for the decoder out file.</span>
 
 <span class="sd">  Finds the checkpoint id in the checkpoint file name and compares to global</span>
@@ -761,7 +765,7 @@
         <span class="s1">&#39;Checkpoint id </span><span class="si">%d</span><span class="s1"> != global step </span><span class="si">%d</span><span class="s1">. &#39;</span>
         <span class="s1">&#39;Will use checkpoint id from checkpoint file for &#39;</span>
         <span class="s1">&#39;writing decoder output.&#39;</span><span class="p">,</span> <span class="n">ckpt_id_from_file</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">ckpt_id_from_file</span>
+  <span class="k">return</span> <span class="n">ckpt_id_from_file</span></div>
 
 
 <div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
@@ -802,7 +806,7 @@
 <div class="viewcode-block" id="Decoder.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Decoder._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span><span class="n">inline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
@@ -813,7 +817,7 @@
         <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FindNewCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
           <span class="k">break</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Decoding finished.&#39;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Decoding finished.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder.GetDecodeOutPath"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder.GetDecodeOutPath">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">GetDecodeOutPath</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">decoder_dir</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="p">):</span>
@@ -822,7 +826,7 @@
     <span class="k">return</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">out_dir</span><span class="p">,</span> <span class="s1">&#39;decoder_out_</span><span class="si">%09d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">checkpoint_id</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder.DecodeCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder.DecodeCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Decodes samples_per_summary examples using params in checkpoint_path.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Decodes `samples_per_summary` examples using `checkpoint_path`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">params</span>
     <span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">samples_per_summary</span><span class="p">:</span>
@@ -915,7 +919,7 @@
 
 <div class="viewcode-block" id="RunnerManager.MaybeConfigRunDistributed"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunDistributed">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">MaybeConfigRunDistributed</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;If given a FLAGS.cluster_spec, create a server and update flags.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;If given a `FLAGS.cluster_spec`, create a server and update flags.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="p">:</span>
       <span class="k">return</span>
     <span class="n">job_specs</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
@@ -957,7 +961,7 @@
 
 <div class="viewcode-block" id="RunnerManager.UpdateClusterParamsFromFlags"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.UpdateClusterParamsFromFlags">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">job_name</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Update Params with a training cluster configuration from flags.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Update `cfg` with a training cluster configuration from flags.&quot;&quot;&quot;</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="n">job_name</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">task</span>
@@ -985,7 +989,7 @@
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_replicas</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span></div>
 
-  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="RunnerManager._CreateRunner"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager._CreateRunner">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_CreateRunner</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">,</span>
                     <span class="n">trial</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a runner.&quot;&quot;&quot;</span>
@@ -1019,22 +1023,22 @@
       <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_server</span><span class="p">:</span>
         <span class="bp">cls</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> is not supported&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> is not supported&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="RunnerManager.CreateRunners"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.CreateRunners">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">CreateRunners</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">jobs</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
                     <span class="n">trial</span><span class="o">=</span><span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">()):</span>
-    <span class="sd">&quot;&quot;&quot;Creates a list of runners based on FLAGS.mode.</span>
+    <span class="sd">&quot;&quot;&quot;Creates a list of runners based on `FLAGS.mode`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      jobs: a list of runner jobs.</span>
-<span class="sd">      model_name: name of a registered ModelParams class.</span>
+<span class="sd">      model_name: name of a registered `ModelParams` class.</span>
 <span class="sd">      logdir: the directory used for logging, usually on CNS.</span>
-<span class="sd">      trial: optional Trial object, used for reporting measures and early</span>
-<span class="sd">          stopping.</span>
+<span class="sd">      trial: optional `Trial` object, used for reporting measures and early</span>
+<span class="sd">        stopping.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A list of BaseRunners, one per job in &#39;jobs&#39;.</span>
+<span class="sd">      A list of `.BaseRunner`, one per job in `jobs`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">runners</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1053,10 +1057,12 @@
 
 <div class="viewcode-block" id="RunnerManager.StartRunners"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.StartRunners">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">StartRunners</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">runners</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Runs &#39;runners&#39; in parallel threads. Returns when all of them finish.</span>
+    <span class="sd">&quot;&quot;&quot;Runs `runners` in parallel threads.</span>
+
+<span class="sd">    Returns when all of them finish.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      runners: a list of BaseRunners.</span>
+<span class="sd">      runners: a list of `.BaseRunner`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      None.</span>

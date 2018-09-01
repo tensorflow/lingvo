@@ -182,7 +182,7 @@
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
-<span class="k">def</span> <span class="nf">_CustomShortDebugString</span><span class="p">(</span><span class="n">tf_example</span><span class="p">):</span>
+<div class="viewcode-block" id="_CustomShortDebugString"><a class="viewcode-back" href="../../../lingvo.tools.print_tf_records.html#lingvo.tools.print_tf_records._CustomShortDebugString">[docs]</a><span class="k">def</span> <span class="nf">_CustomShortDebugString</span><span class="p">(</span><span class="n">tf_example</span><span class="p">):</span>
   <span class="n">text</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">tf_example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span><span class="p">)):</span>
     <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;bytes_list&#39;</span><span class="p">):</span>
@@ -196,10 +196,10 @@
     <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;int64_list&#39;</span><span class="p">):</span>
       <span class="n">value_string</span> <span class="o">=</span> <span class="nb">repr</span><span class="p">(</span><span class="n">value</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
     <span class="n">text</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value_string</span><span class="p">)]</span>
-  <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+  <span class="k">return</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_PrintHeader</span><span class="p">(</span><span class="n">tf_example</span><span class="p">):</span>
+<div class="viewcode-block" id="_PrintHeader"><a class="viewcode-back" href="../../../lingvo.tools.print_tf_records.html#lingvo.tools.print_tf_records._PrintHeader">[docs]</a><span class="k">def</span> <span class="nf">_PrintHeader</span><span class="p">(</span><span class="n">tf_example</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Prints table of contents.&quot;&quot;&quot;</span>
   <span class="c1"># Typically, tf.Examples have the same features.</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;==== FEATURES ====&#39;</span><span class="p">)</span>
@@ -212,10 +212,10 @@
     <span class="k">elif</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;int64_list&#39;</span><span class="p">):</span>
       <span class="n">type_string</span> <span class="o">=</span> <span class="s1">&#39;int64&#39;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: [</span><span class="si">%s</span><span class="s1">]&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">type_string</span><span class="p">)</span>
-  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;====&#39;</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;====&#39;</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_PrintFiles</span><span class="p">():</span>
+<div class="viewcode-block" id="_PrintFiles"><a class="viewcode-back" href="../../../lingvo.tools.print_tf_records.html#lingvo.tools.print_tf_records._PrintFiles">[docs]</a><span class="k">def</span> <span class="nf">_PrintFiles</span><span class="p">():</span>
   <span class="n">entry</span> <span class="o">=</span> <span class="mi">0</span>
   <span class="k">for</span> <span class="n">filepath</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Glob</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">input_filepattern</span><span class="p">):</span>
     <span class="n">records</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">python_io</span><span class="o">.</span><span class="n">tf_record_iterator</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
@@ -240,7 +240,7 @@
           <span class="n">ex</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;== Record [</span><span class="si">%d</span><span class="s1">]</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">text_format</span><span class="p">)</span>
       <span class="n">entry</span> <span class="o">+=</span> <span class="mi">1</span>
-  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;== Total entries: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;== Total entries: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../lingvo.tools.print_tf_records.html#lingvo.tools.print_tf_records.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>

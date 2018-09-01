@@ -168,18 +168,18 @@
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 
 
-<span class="k">def</span> <span class="nf">_IsUnicode</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
-  <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)</span>
+<div class="viewcode-block" id="_IsUnicode"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._IsUnicode">[docs]</a><span class="k">def</span> <span class="nf">_IsUnicode</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+  <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+<div class="viewcode-block" id="_ToUnicode"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._ToUnicode">[docs]</a><span class="k">def</span> <span class="nf">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">_IsUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">line</span>
+  <span class="k">return</span> <span class="n">line</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Tokenize</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+<div class="viewcode-block" id="_Tokenize"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._Tokenize">[docs]</a><span class="k">def</span> <span class="nf">_Tokenize</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="NGrams"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.NGrams">[docs]</a><span class="k">def</span> <span class="nf">NGrams</span><span class="p">(</span><span class="n">lst</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
@@ -201,12 +201,12 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">separator_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_separator_type</span> <span class="o">=</span> <span class="n">separator_type</span>
 
-  <span class="k">def</span> <span class="nf">_UnsegmentWpm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+<div class="viewcode-block" id="Unsegmenter._UnsegmentWpm"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.Unsegmenter._UnsegmentWpm">[docs]</a>  <span class="k">def</span> <span class="nf">_UnsegmentWpm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_WPM_SEPARATOR</span><span class="p">,</span>
-                                                     <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                                                     <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
 
-  <span class="k">def</span> <span class="nf">_UnsegmentBpe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_BPE_SEPARATOR</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+<div class="viewcode-block" id="Unsegmenter._UnsegmentBpe"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.Unsegmenter._UnsegmentBpe">[docs]</a>  <span class="k">def</span> <span class="nf">_UnsegmentBpe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_BPE_SEPARATOR</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
 
   <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_separator_type</span> <span class="o">==</span> <span class="s1">&#39;bpe&#39;</span><span class="p">:</span>

@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.test_utils_test module" href="lingvo.core.test_utils_test.html" />
+    <link rel="next" title="lingvo.core.tokenizers module" href="lingvo.core.tokenizers.html" />
     <link rel="prev" title="lingvo.core.test_helper module" href="lingvo.core.test_helper.html" /> 
 
   
@@ -166,9 +166,31 @@
 <span id="lingvo-core-test-utils-module"></span><h1>lingvo.core.test_utils module<a class="headerlink" href="#module-lingvo.core.test_utils" title="Permalink to this headline">¶</a></h1>
 <p>Helpers for unittests.</p>
 <dl class="function">
+<dt id="lingvo.core.test_utils._ReplaceOneLineInFile">
+<code class="descclassname">lingvo.core.test_utils.</code><code class="descname">_ReplaceOneLineInFile</code><span class="sig-paren">(</span><em>fpath</em>, <em>linenum</em>, <em>old</em>, <em>new</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#_ReplaceOneLineInFile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils._ReplaceOneLineInFile" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.test_utils.ReplaceGoldenSingleFloat">
+<code class="descclassname">lingvo.core.test_utils.</code><code class="descname">ReplaceGoldenSingleFloat</code><span class="sig-paren">(</span><em>old</em>, <em>float_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#ReplaceGoldenSingleFloat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils.ReplaceGoldenSingleFloat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.test_utils.ReplaceGoldenStackAnalysis">
+<code class="descclassname">lingvo.core.test_utils.</code><code class="descname">ReplaceGoldenStackAnalysis</code><span class="sig-paren">(</span><em>new_float_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#ReplaceGoldenStackAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils.ReplaceGoldenStackAnalysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Analyze the stack trace to figure out how to update the golden value.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.test_utils.CompareToGoldenSingleFloat">
 <code class="descclassname">lingvo.core.test_utils.</code><code class="descname">CompareToGoldenSingleFloat</code><span class="sig-paren">(</span><em>testobj</em>, <em>v1</em>, <em>v2</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#CompareToGoldenSingleFloat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils.CompareToGoldenSingleFloat" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.test_utils.PickEveryN">
+<code class="descclassname">lingvo.core.test_utils.</code><code class="descname">PickEveryN</code><span class="sig-paren">(</span><em>np_arr</em>, <em>step=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#PickEveryN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils.PickEveryN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flattens <code class="xref py py-obj docutils literal notranslate"><span class="pre">np_arr</span></code> and keeps one value every step values.</p>
+</dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.test_utils.ComputeNumericGradient">
@@ -199,23 +221,6 @@ value is set to 0.</p>
 </table>
 </dd></dl>
 
-<dl class="function">
-<dt id="lingvo.core.test_utils.PickEveryN">
-<code class="descclassname">lingvo.core.test_utils.</code><code class="descname">PickEveryN</code><span class="sig-paren">(</span><em>np_arr</em>, <em>step=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#PickEveryN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils.PickEveryN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flattens np_arr and keeps one value every step values.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.core.test_utils.ReplaceGoldenSingleFloat">
-<code class="descclassname">lingvo.core.test_utils.</code><code class="descname">ReplaceGoldenSingleFloat</code><span class="sig-paren">(</span><em>old</em>, <em>float_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#ReplaceGoldenSingleFloat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils.ReplaceGoldenSingleFloat" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="function">
-<dt id="lingvo.core.test_utils.ReplaceGoldenStackAnalysis">
-<code class="descclassname">lingvo.core.test_utils.</code><code class="descname">ReplaceGoldenStackAnalysis</code><span class="sig-paren">(</span><em>new_float_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#ReplaceGoldenStackAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.test_utils.ReplaceGoldenStackAnalysis" title="Permalink to this definition">¶</a></dt>
-<dd><p>Analyze the stack trace to figure out how to update the golden value.</p>
-</dd></dl>
-
 </div>
 
 
@@ -226,7 +231,7 @@ value is set to 0.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.test_utils_test.html" class="btn btn-neutral float-right" title="lingvo.core.test_utils_test module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.tokenizers.html" class="btn btn-neutral float-right" title="lingvo.core.tokenizers module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.core.test_helper.html" class="btn btn-neutral" title="lingvo.core.test_helper module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

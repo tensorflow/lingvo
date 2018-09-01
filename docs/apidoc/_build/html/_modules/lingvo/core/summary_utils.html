@@ -187,7 +187,7 @@
 <span class="sd">    padding: A tensor of binary paddings shaped [batch, seqlen].</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    seq_lens: A tensor of shape [batch] containing the non-padded length of each</span>
+<span class="sd">    seq_lens, A tensor of shape [batch] containing the non-padded length of each</span>
 <span class="sd">      element of plot_tensor along the batch dimension.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">seq_lens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -295,7 +295,7 @@
 <span class="sd">  Args:</span>
 <span class="sd">    params: A layer hyperparams.</span>
 <span class="sd">    name: A name string for summary.</span>
-<span class="sd">    vs_gs: A NestedMap or a list of NestedMap of (variable, gradient).</span>
+<span class="sd">    vs_gs: A `.NestedMap` or a list of `.NestedMap` of (variable, gradient).</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    norm of variables, and norm of gradients.</span>

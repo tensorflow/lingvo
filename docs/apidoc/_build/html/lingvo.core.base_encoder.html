@@ -170,49 +170,49 @@
 <em class="property">class </em><code class="descclassname">lingvo.core.base_encoder.</code><code class="descname">BaseEncoder</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_encoder.html#BaseEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_encoder.BaseEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
 <p>Base class for all encoders.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.base_encoder.BaseEncoder.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_encoder.html#BaseEncoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_encoder.BaseEncoder.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.core.base_encoder.BaseEncoder.FProp">
 <code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em>, <em>segment_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_encoder.html#BaseEncoder.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_encoder.BaseEncoder.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Encodes source as represented by ‘inputs’ and ‘paddings’.</p>
+<dd><p>Encodes source as represented by <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">paddings</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>inputs</strong> – The inputs tensor. It is expected to be of shape</li>
-<li><strong>time</strong><strong>, </strong><strong>..</strong><strong>]</strong><strong></strong> (<em>[</em><em>batch</em><em>,</em>) – </li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>inputs</strong> – The inputs tensor. It is expected to be of shape [batch, time,
+…].</li>
 <li><strong>paddings</strong> – The paddings tensor. It is expected to be of shape [batch,
 time].</li>
-<li><strong>segment_id</strong> – source segment id, of shape [batch, time]. This input is
-meant to support multiple samples in a single training sequence. The
-id identifiess the sample that the input at the corresponding
-time-step belongs to. For example, if the two examples packed together
-are [‘good’, ‘day’] -&gt; [‘guten-tag’] and [‘thanks’] -&gt; [‘danke’]
-to produce [‘good’, ‘day’, ‘thanks’] -&gt; [‘guten-tag’, ‘danke’], the
-source segment ids would be [0, 0, 1] and target segment ids would be
-[0, 1]. These ids are meant to enable masking computations for
-different examples from each other.
-Models or layers than don’t support packed inputs should pass None.</li>
+<li><strong>segment_id</strong> – source segment id, of shape [batch, time]. This input is meant
+to support multiple samples in a single training sequence. The id
+identifiess the sample that the input at the corresponding time-step
+belongs to. For example, if the two examples packed together are
+[‘good’, ‘day’] -&gt; [‘guten-tag’] and [‘thanks’] -&gt; [‘danke’] to produce
+[‘good’, ‘day’, ‘thanks’] -&gt; [‘guten-tag’, ‘danke’], the source segment
+ids would be [0, 0, 1] and target segment ids would be [0, 1]. These ids
+are meant to enable masking computations for different examples from
+each other. Models or layers than don’t support packed inputs should
+pass None.</li>
 </ul>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(outputs, out_paddings, src_segment_ids) triple.
-Outputs is of the shape [time, batch, depth], and out_paddings is of the
-shape [time, batch, 1]. src_segment_ids should have the shape
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs</span></code> is of the shape [time, batch, depth], and <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_paddings</span></code> is of
+the shape [time, batch, 1]. src_segment_ids should have the shape
 [time, batch] if packed inputs are supported by the model (and all
 layers), or None otherwise.</p>
 </td>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.core.base_encoder.BaseEncoder.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_encoder.html#BaseEncoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_encoder.BaseEncoder.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
 </dd></dl>
 
 </dd></dl>

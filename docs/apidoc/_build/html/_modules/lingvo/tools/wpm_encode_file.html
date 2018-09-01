@@ -187,31 +187,31 @@
 <span class="n">BOW_STR</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\xe2\x96\x81</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">_ReplaceSpaces</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">BOW_STR</span> <span class="o">+</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">BOW_STR</span><span class="p">)</span>
+<div class="viewcode-block" id="_ReplaceSpaces"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encode_file.html#lingvo.tools.wpm_encode_file._ReplaceSpaces">[docs]</a><span class="k">def</span> <span class="nf">_ReplaceSpaces</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">BOW_STR</span> <span class="o">+</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="sa">u</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">BOW_STR</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_MakeBytesFeature</span><span class="p">(</span><span class="n">unicode_array</span><span class="p">):</span>
+<div class="viewcode-block" id="_MakeBytesFeature"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encode_file.html#lingvo.tools.wpm_encode_file._MakeBytesFeature">[docs]</a><span class="k">def</span> <span class="nf">_MakeBytesFeature</span><span class="p">(</span><span class="n">unicode_array</span><span class="p">):</span>
   <span class="n">value</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_bytes</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">unicode_array</span><span class="p">]</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">bytes_list</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">BytesList</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">bytes_list</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">BytesList</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_MakeInt64Feature</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">int64_list</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Int64List</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">))</span>
+<div class="viewcode-block" id="_MakeInt64Feature"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encode_file.html#lingvo.tools.wpm_encode_file._MakeInt64Feature">[docs]</a><span class="k">def</span> <span class="nf">_MakeInt64Feature</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">int64_list</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Int64List</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_MakeFloatFeature</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">float_list</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">FloatList</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">))</span>
+<div class="viewcode-block" id="_MakeFloatFeature"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encode_file.html#lingvo.tools.wpm_encode_file._MakeFloatFeature">[docs]</a><span class="k">def</span> <span class="nf">_MakeFloatFeature</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Feature</span><span class="p">(</span><span class="n">float_list</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">FloatList</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">value</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_AssertTextFormat</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+<div class="viewcode-block" id="_AssertTextFormat"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encode_file.html#lingvo.tools.wpm_encode_file._AssertTextFormat">[docs]</a><span class="k">def</span> <span class="nf">_AssertTextFormat</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
   <span class="k">assert</span> <span class="ow">not</span> <span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;&lt;s&gt;&#39;</span><span class="p">)</span>
   <span class="k">assert</span> <span class="ow">not</span> <span class="n">text</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;&lt;/s&gt;&#39;</span><span class="p">)</span>
   <span class="k">assert</span> <span class="ow">not</span> <span class="n">text</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;&lt;S&gt;&#39;</span><span class="p">)</span>
-  <span class="k">assert</span> <span class="ow">not</span> <span class="n">text</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;&lt;/S&gt;&#39;</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="ow">not</span> <span class="n">text</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;&lt;/S&gt;&#39;</span><span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">_MakeTfExample</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="n">source_text</span><span class="p">,</span> <span class="n">target_text</span><span class="p">):</span>
+<div class="viewcode-block" id="_MakeTfExample"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encode_file.html#lingvo.tools.wpm_encode_file._MakeTfExample">[docs]</a><span class="k">def</span> <span class="nf">_MakeTfExample</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="n">source_text</span><span class="p">,</span> <span class="n">target_text</span><span class="p">):</span>
   <span class="c1"># By convention:</span>
   <span class="c1"># * source always ends in &lt;/s&gt;, never starts with &lt;s&gt;.</span>
   <span class="c1"># * target never ends in &lt;/s&gt;, always starts with &lt;s&gt;.</span>
@@ -241,18 +241,18 @@
       <span class="s1">&#39;target_weight&#39;</span><span class="p">:</span> <span class="n">_MakeFloatFeature</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">tgt_l</span><span class="p">)),</span>
       <span class="s1">&#39;natural_order&#39;</span><span class="p">:</span> <span class="n">_MakeInt64Feature</span><span class="p">([</span><span class="mi">1</span><span class="p">]),</span>
   <span class="p">}</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Features</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="n">feature</span><span class="p">))</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Example</span><span class="p">(</span><span class="n">features</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Features</span><span class="p">(</span><span class="n">feature</span><span class="o">=</span><span class="n">feature</span><span class="p">))</span></div>
 
 
-<span class="k">def</span> <span class="nf">_Prepropcess</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+<div class="viewcode-block" id="_Prepropcess"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encode_file.html#lingvo.tools.wpm_encode_file._Prepropcess">[docs]</a><span class="k">def</span> <span class="nf">_Prepropcess</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
     <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
   <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
   <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &lt;/s&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">text</span>
+  <span class="k">return</span> <span class="n">text</span></div>
 
 
-<span class="k">def</span> <span class="nf">_RunEncoding</span><span class="p">():</span>
+<div class="viewcode-block" id="_RunEncoding"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encode_file.html#lingvo.tools.wpm_encode_file._RunEncoding">[docs]</a><span class="k">def</span> <span class="nf">_RunEncoding</span><span class="p">():</span>
   <span class="n">enc</span> <span class="o">=</span> <span class="n">wpm_encoder</span><span class="o">.</span><span class="n">WpmEncoder</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">wpm_filepath</span><span class="p">)</span>
   <span class="n">pairs</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">source_filepaths</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">target_filepaths</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">))</span>
@@ -277,7 +277,7 @@
               <span class="k">continue</span>
             <span class="c1"># tf.logging.vlog(5, &#39;Ex: %s&#39;, ex)</span>
             <span class="n">encoded</span> <span class="o">=</span> <span class="n">ex</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">()</span>
-            <span class="n">outf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span>
+            <span class="n">outf</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encode_file.html#lingvo.tools.wpm_encode_file.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>

@@ -202,14 +202,15 @@
 <span class="sd">      strs: A vector of strings.</span>
 <span class="sd">      max_length: An int providing the max_length for strs.</span>
 <span class="sd">      external_append_eos: Bool or None. If None, will be ignored and</span>
-<span class="sd">        params.append_eos will be used. If bool, will determine if an eos</span>
+<span class="sd">        `params.append_eos` will be used. If bool, will determine if an eos</span>
 <span class="sd">        symbol will be added to tokens.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (ids, labels, paddings): Tensors with the same shape [batch, maxlen].</span>
-<span class="sd">      ids[i, j] is the input token id of i-th sample for j-th step.</span>
-<span class="sd">      labels[i, j] is the target token id of i-th sample for j-th step.</span>
-<span class="sd">      paddings[i, j] is 1 iff i-th sample&#39;s j-th step is padded.</span>
+<span class="sd">      A tuple (ids, labels, paddings) with the same shape [batch, maxlen].</span>
+
+<span class="sd">      - ids[i, j] is the input token id of i-th sample for j-th step.</span>
+<span class="sd">      - labels[i, j] is the target token id of i-th sample for j-th step.</span>
+<span class="sd">      - paddings[i, j] is 1 iff i-th sample&#39;s j-th step is padded.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
@@ -229,8 +230,8 @@
       <span class="n">paddings</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_length</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span></div>
 
-  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">):</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="BaseTokenizer._StringsToIdsImpl"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer._StringsToIdsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTokenizer.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Converts ids back to strings.</span>
@@ -243,7 +244,7 @@
 <span class="sd">        tokens for the i-th sequence.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      sequences: A vector of shape [batch]. The converted string sequence.</span>
+<span class="sd">      sequences - A vector of shape [batch]. The converted string sequence.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
@@ -258,9 +259,9 @@
 <span class="sd">  and punctuation symbols.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleTokenizer._StringsToIdsImpl"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.SimpleTokenizer._StringsToIdsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">label_to_token_id</span><span class="p">(</span>
-        <span class="n">strs</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="o">=</span><span class="n">append_eos</span><span class="p">)</span>
+        <span class="n">strs</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="o">=</span><span class="n">append_eos</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleTokenizer.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.SimpleTokenizer.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">id_to_token</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">)</span></div></div>
@@ -284,14 +285,14 @@
   <span class="k">def</span> <span class="nf">_vocab_file_params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;token_vocab_filepath&#39;</span><span class="p">,</span> <span class="s1">&#39;ngram_vocab_filepath&#39;</span><span class="p">]</span>
 
-  <span class="k">def</span> <span class="nf">_CheckParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="VocabFileTokenizer._CheckParams"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.VocabFileTokenizer._CheckParams">[docs]</a>  <span class="k">def</span> <span class="nf">_CheckParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">num_params_specified</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
         <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vocab_file_params</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">num_params_specified</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Exactly one vocab file should be specified!&#39;</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Exactly one vocab file should be specified!&#39;</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">):</span>
+<div class="viewcode-block" id="VocabFileTokenizer._StringsToIdsImpl"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.VocabFileTokenizer._StringsToIdsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckParams</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -302,7 +303,7 @@
           <span class="n">append_eos</span><span class="o">=</span><span class="n">append_eos</span><span class="p">,</span>
           <span class="n">vocab_filepath</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">token_vocab_filepath</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">ngram_vocab_filepath</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;ngram vocab StringsToIds is not supported.&#39;</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;ngram vocab StringsToIds is not supported.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="VocabFileTokenizer.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.VocabFileTokenizer.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckParams</span><span class="p">()</span>

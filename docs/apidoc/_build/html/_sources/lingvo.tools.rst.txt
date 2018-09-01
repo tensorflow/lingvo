@@ -15,5 +15,4 @@ Submodules
    lingvo.tools.print_tf_records
    lingvo.tools.wpm_encode_file
    lingvo.tools.wpm_encoder
-   lingvo.tools.wpm_encoder_test
 

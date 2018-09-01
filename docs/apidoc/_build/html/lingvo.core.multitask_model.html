@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.multitask_model_test module" href="lingvo.core.multitask_model_test.html" />
+    <link rel="next" title="lingvo.core.optimizer module" href="lingvo.core.optimizer.html" />
     <link rel="prev" title="lingvo.core.model_helper module" href="lingvo.core.model_helper.html" /> 
 
   
@@ -166,15 +166,13 @@
 <span id="lingvo-core-multitask-model-module"></span><h1>lingvo.core.multitask_model module<a class="headerlink" href="#module-lingvo.core.multitask_model" title="Permalink to this headline">¶</a></h1>
 <p>Multitask models.</p>
 <dl class="class">
-<dt id="lingvo.core.multitask_model.RegExSharedVariableModel">
-<em class="property">class </em><code class="descclassname">lingvo.core.multitask_model.</code><code class="descname">RegExSharedVariableModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.multitask_model.SharedEncoderModel">
+<em class="property">class </em><code class="descclassname">lingvo.core.multitask_model.</code><code class="descname">SharedEncoderModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel" title="lingvo.core.base_model.MultiTaskModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.MultiTaskModel</span></code></a></p>
-<p>Multitask models that share variables across different tasks.</p>
-<p>Note, do NOT use this model unless you know exactly what you are trying to do
-and you have verified that it indeed achieves what you would have expected.</p>
+<p>Multitask model that shares encoder between tasks.</p>
 <dl class="classmethod">
-<dt id="lingvo.core.multitask_model.RegExSharedVariableModel.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.multitask_model.SharedEncoderModel.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderModel.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
@@ -194,13 +192,15 @@ and you have verified that it indeed achieves what you would have expected.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.multitask_model.SharedEncoderModel">
-<em class="property">class </em><code class="descclassname">lingvo.core.multitask_model.</code><code class="descname">SharedEncoderModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderModel" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.multitask_model.RegExSharedVariableModel">
+<em class="property">class </em><code class="descclassname">lingvo.core.multitask_model.</code><code class="descname">RegExSharedVariableModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel" title="lingvo.core.base_model.MultiTaskModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.MultiTaskModel</span></code></a></p>
-<p>Multitask model that shares encoder between tasks.</p>
+<p>Multitask models that share variables across different tasks.</p>
+<p>Note, do NOT use this model unless you know exactly what you are trying to do
+and you have verified that it indeed achieves what you would have expected.</p>
 <dl class="classmethod">
-<dt id="lingvo.core.multitask_model.SharedEncoderModel.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderModel.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.multitask_model.RegExSharedVariableModel.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
@@ -216,7 +216,7 @@ and you have verified that it indeed achieves what you would have expected.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.multitask_model_test.html" class="btn btn-neutral float-right" title="lingvo.core.multitask_model_test module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.optimizer.html" class="btn btn-neutral float-right" title="lingvo.core.optimizer module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.core.model_helper.html" class="btn btn-neutral" title="lingvo.core.model_helper module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

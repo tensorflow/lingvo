@@ -173,20 +173,20 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
 
-<span class="k">class</span> <span class="nc">_LocalClusterStack</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
+<div class="viewcode-block" id="_LocalClusterStack"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._LocalClusterStack">[docs]</a><span class="k">class</span> <span class="nc">_LocalClusterStack</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">_LocalClusterStack</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span></div>
 
 
 <span class="n">_CLUSTER_STACK</span> <span class="o">=</span> <span class="n">_LocalClusterStack</span><span class="p">()</span>
 
 
-<span class="k">class</span> <span class="nc">_Cluster</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_Cluster"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster">[docs]</a><span class="k">class</span> <span class="nc">_Cluster</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;The whole training cluster from a single task&#39;s point of view.&quot;&quot;&quot;</span>
 
-  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="_Cluster._JobSpec"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster._JobSpec">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_JobSpec</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">replicas</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Construct a job spec param with the given number of replicas.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -204,9 +204,9 @@
              <span class="s1">&#39;a split and place the backward lstm on device 1. etc.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpus_per_replica&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The number of tpu cores to use per replica.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_tpu_hosts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The number of tpu hosts.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="_Cluster.Params"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults parameters for a cluster.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -242,14 +242,14 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_JobSpec</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;The input job.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;evaler&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_JobSpec</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;The evaler job.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_JobSpec</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;The decoder job.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="_Cluster._MakeDeviceString"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster._MakeDeviceString">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_MakeDeviceString</span><span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span> <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">):</span>
     <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/replica:0/task:</span><span class="si">%d</span><span class="s1">/device:</span><span class="si">%s</span><span class="s1">:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">task_id</span><span class="p">,</span>
-                                                  <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">)</span>
+                                                  <span class="n">device_name</span><span class="p">,</span> <span class="n">device_id</span><span class="p">)</span></div>
 
-  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="_Cluster.ListDevices"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.ListDevices">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">ListDevices</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lists devices in the job.</span>
 
@@ -269,11 +269,11 @@
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">replicas</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">gpus_per_replica</span><span class="p">):</span>
           <span class="n">ret</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_MakeDeviceString</span><span class="p">(</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="s1">&#39;GPU&#39;</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ret</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
 
-  <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="_Cluster._cluster_stack"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster._cluster_stack">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">_cluster_stack</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">_CLUSTER_STACK</span>
+    <span class="k">return</span> <span class="n">_CLUSTER_STACK</span></div>
 
   <span class="k">def</span> <span class="nf">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">_CLUSTER_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -450,7 +450,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="s1">&#39;&#39;</span>
 
-  <span class="k">def</span> <span class="nf">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device_index</span><span class="p">):</span>
+<div class="viewcode-block" id="_Cluster.WorkerDeviceInModelSplit"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.WorkerDeviceInModelSplit">[docs]</a>  <span class="k">def</span> <span class="nf">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device_index</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the device to use for &#39;device_index&#39; for the current model split.</span>
 
 <span class="sd">    Args:</span>
@@ -468,9 +468,9 @@
           <span class="n">model_split</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">))</span>
       <span class="n">devices_per_split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_devices_per_split</span>
       <span class="k">return</span> <span class="n">devices</span><span class="p">[</span><span class="n">devices_per_split</span> <span class="o">*</span> <span class="n">model_split</span>
-                     <span class="o">+</span> <span class="n">device_index</span> <span class="o">%</span> <span class="n">devices_per_split</span><span class="p">]</span>
+                     <span class="o">+</span> <span class="n">device_index</span> <span class="o">%</span> <span class="n">devices_per_split</span><span class="p">]</span></div>
 
-  <span class="k">def</span> <span class="nf">GetPlacer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_Cluster.GetPlacer"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.GetPlacer">[docs]</a>  <span class="k">def</span> <span class="nf">GetPlacer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a device function for placing ops within the cluster.</span>
 
 <span class="sd">    Args:</span>
@@ -488,7 +488,7 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="k">elif</span> <span class="n">strategy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">_LeastLoadedPlacer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">DeviceFunction</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported placement policy: &#39;</span><span class="p">,</span> <span class="n">strategy</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported placement policy: &#39;</span><span class="p">,</span> <span class="n">strategy</span><span class="p">)</span></div></div>
 
 
 <span class="c1"># Ops that must be placed on the &#39;ps&#39; devices.</span>
@@ -505,8 +505,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span> <span class="o">=</span> <span class="n">cluster</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_devices</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">job_spec</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_AssignVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unimplemented&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="VarPlacer._AssignVar"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster.VarPlacer._AssignVar">[docs]</a>  <span class="k">def</span> <span class="nf">_AssignVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unimplemented&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="VarPlacer.DeviceFunction"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster.VarPlacer.DeviceFunction">[docs]</a>  <span class="k">def</span> <span class="nf">DeviceFunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Choose a device for &#39;op&#39;.</span>
@@ -533,7 +533,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_devices</span><span class="p">[</span><span class="n">task</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span></div></div>
 
 
-<span class="k">class</span> <span class="nc">_LeastLoadedPlacer</span><span class="p">(</span><span class="n">VarPlacer</span><span class="p">):</span>
+<div class="viewcode-block" id="_LeastLoadedPlacer"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._LeastLoadedPlacer">[docs]</a><span class="k">class</span> <span class="nc">_LeastLoadedPlacer</span><span class="p">(</span><span class="n">VarPlacer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Placer which places a variable on the least loaded var device.</span>
 
 <span class="sd">  We use total byte sizes of variables placed on a device to indicate</span>
@@ -548,7 +548,7 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_LeastLoadedPlacer : </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var_devices</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_space_pq</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">var_devices</span><span class="p">]</span>
 
-  <span class="k">def</span> <span class="nf">_AssignVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_op</span><span class="p">):</span>
+<div class="viewcode-block" id="_LeastLoadedPlacer._AssignVar"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._LeastLoadedPlacer._AssignVar">[docs]</a>  <span class="k">def</span> <span class="nf">_AssignVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_op</span><span class="p">):</span>
     <span class="n">size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">(</span><span class="n">var_op</span><span class="o">.</span><span class="n">get_attr</span><span class="p">(</span><span class="s1">&#39;dtype&#39;</span><span class="p">))</span><span class="o">.</span><span class="n">size</span>
     <span class="n">shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">var_op</span><span class="o">.</span><span class="n">get_attr</span><span class="p">(</span><span class="s1">&#39;shape&#39;</span><span class="p">))</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_space_pq</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;No ps devices to use.&#39;</span><span class="p">)</span>
@@ -564,7 +564,7 @@
     <span class="n">heapq</span><span class="o">.</span><span class="n">heappush</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_space_pq</span><span class="p">,</span> <span class="p">(</span><span class="n">allocated</span><span class="p">,</span> <span class="n">device</span><span class="p">))</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Place variable </span><span class="si">%s</span><span class="s1"> on </span><span class="si">%s</span><span class="s1"> </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var_op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span>
                     <span class="n">allocated</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">device</span>
+    <span class="k">return</span> <span class="n">device</span></div></div>
 </pre></div>
 
            </div>

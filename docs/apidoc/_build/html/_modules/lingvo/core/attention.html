@@ -170,18 +170,19 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">quant_utils</span>
 
 
-<span class="k">def</span> <span class="nf">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prng_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_ApplyAttentionDropout"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention._ApplyAttentionDropout">[docs]</a><span class="k">def</span> <span class="nf">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prng_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Apply attention dropout according to the given parameters.</span>
 
-<span class="sd">  If params.atten_dropout_deterministic is set to True, the dropout will be</span>
-<span class="sd">  fully deterministic (requires for `step_state` and `prng_seed`).</span>
+<span class="sd">  If `params.atten_dropout_deterministic` is set to True, the dropout will be</span>
+<span class="sd">  fully deterministic (requires `step_state` and `prng_seed`).</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    params: The parameters of attention layer.</span>
 <span class="sd">    x: A float Tensor on which to apply dropout.</span>
-<span class="sd">    step_state: (Optional) A NestedMap contains &#39;global_step&#39; and &#39;time_step&#39;.</span>
+<span class="sd">    step_state: (Optional) A `.NestedMap` with `global_step` and `time_step`.</span>
 <span class="sd">      Required for deterministic dropout.</span>
 <span class="sd">    prng_seed: (Optional) An int seed for pseudo random number generator.</span>
 <span class="sd">      Required for deterministic dropout.</span>
@@ -207,7 +208,7 @@
                                          <span class="n">seeds</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">random_seed</span> <span class="k">else</span> <span class="n">prng_seed</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="BaseAttentionLayer"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">BaseAttentionLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
@@ -251,31 +252,32 @@
                           <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Initialize attention for the given source vectors.</span>
 
-<span class="sd">    Must set _source_init_done to True in the function.</span>
+<span class="sd">    Must set `_source_init_done` to True in the function.</span>
+
+<span class="sd">    Note: `source_segment_id`, if present, should always have the same shape as</span>
+<span class="sd">    `source_padding`.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A single tensor of shape [time, batch_size, source_dim].</span>
 <span class="sd">      source_contexts: A single tensor of shape [time, batch_size, some_dim].</span>
 <span class="sd">      source_padding: A tensor of shape [time, batch_size].</span>
 <span class="sd">      source_segment_id: A tensor of shape [time, batch_size].</span>
-<span class="sd">          source_segment_id is not None for packed inputs where one training</span>
-<span class="sd">          example may pack multiple sequences.</span>
-
-<span class="sd">    Note: source_segment_id, if present, should always have the same shape as</span>
-<span class="sd">    source_padding.</span>
+<span class="sd">        source_segment_id is not None for packed inputs where one training</span>
+<span class="sd">        example may pack multiple sequences.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple (concated_source_vecs, concated_source_contexts, source_padding,</span>
-<span class="sd">               source_segment_id),</span>
-<span class="sd">      where concated_source_vecs is a tensor of shape [time, batch_size,</span>
-<span class="sd">      hidden_dim], concated_source_contexts is a tensor of shape [batch_size,</span>
-<span class="sd">      time, some_dim], source_padding is a tensor of shape [time,</span>
-<span class="sd">      batch_size], source_segment_id is a tensor of shape [time, batch_size].</span>
-<span class="sd">      Note the mismatch between concated_source_vecs and</span>
-<span class="sd">      concated_source_contexts. In concated_source_vecs, time is the first dim,</span>
-<span class="sd">      while it is the second dim in concated_source_contexts.</span>
+<span class="sd">      source_segment_id), where `concated_source_vecs` is a tensor of shape</span>
+<span class="sd">      [time, batch_size, hidden_dim], `concated_source_contexts` is a tensor</span>
+<span class="sd">      of shape [batch_size, time, some_dim], `source_padding` is a tensor of</span>
+<span class="sd">      shape [time, batch_size], `source_segment_id` is a tensor of shape</span>
+<span class="sd">      [time, batch_size].</span>
+
+<span class="sd">      Note the mismatch between `concated_source_vecs` and</span>
+<span class="sd">      `concated_source_contexts`. In `concated_source_vecs`, time is the first</span>
+<span class="sd">      dim, while it is the second dim in `concated_source_contexts`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>
 
@@ -292,36 +294,38 @@
                                      <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
+<span class="sd">    Note: `concated_source_vecs` are the vectors that are used to compute the</span>
+<span class="sd">    attention score between the `query_vec` and each `concated_source_vec`.</span>
+<span class="sd">    The `concated_source_contexts` are the vectors that compose the result.</span>
+<span class="sd">    The attention context vector is computed as a weighted average of the</span>
+<span class="sd">    `concated_source_contexts`, using the scores that were computed using</span>
+<span class="sd">    `concated_source_vecs`.</span>
+
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
-<span class="sd">      concated_source_vecs: Concated source vectors with shape [time,</span>
-<span class="sd">        batch_size, hidden_dim].</span>
-<span class="sd">      concated_source_contexts: Concated source contexts with shape [</span>
-<span class="sd">        batch_size, time, context_dim].</span>
+<span class="sd">      concated_source_vecs: Concated source vectors with shape</span>
+<span class="sd">        [time, batch_size, hidden_dim].</span>
+<span class="sd">      concated_source_contexts: Concated source contexts with shape</span>
+<span class="sd">        [ batch_size, time, context_dim].</span>
 <span class="sd">      source_padding: Source padding with shape [time, batch_size].</span>
 <span class="sd">      source_segment_id: Source segment ids with shape [time, batch_size].</span>
 <span class="sd">      query_vec: a tensor of shape [batch_size, query_dim].</span>
 <span class="sd">      attention_state: previous attention state.</span>
-<span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
-<span class="sd">        If not None, it should be of shape [target_batch_size,</span>
-<span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A NestedMap containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
+<span class="sd">      per_step_source_padding: Source sequence padding to apply at this step. If</span>
+<span class="sd">        not None, it should have shape [target_batch_size, source_seq_length].</span>
+<span class="sd">      step_state: A `.NestedMap` containing `global_step` and `time_step`.</span>
 <span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [batch_size].</span>
 
-<span class="sd">    Note: concated_source_vecs are the vectors that are used to compute the</span>
-<span class="sd">    attention score between the query_vec and each concated_source_vec.</span>
-<span class="sd">    The concated_source_contexts are the vectors that compose the result.</span>
-<span class="sd">    The attention context vector is computed as a weighted average of the</span>
-<span class="sd">    concated_source_contexts, using the scores that were computed using</span>
-<span class="sd">    concated_source_vecs.</span>
-
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector:     [batch_size, context_dim]</span>
-<span class="sd">      The attention probability vector: [batch_size, time]</span>
-<span class="sd">      The new attention mechanism state: possibly nested tuple of tensors with</span>
-<span class="sd">        dimensions [target_batch....]</span>
+<span class="sd">      A tuple of 3 elements.</span>
+<span class="sd">        The attention context vector:</span>
+<span class="sd">          [batch_size, context_dim]</span>
+<span class="sd">        The attention probability vector:</span>
+<span class="sd">          [batch_size, time]</span>
+<span class="sd">        The new attention mechanism state:</span>
+<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>
 
@@ -334,27 +338,29 @@
                            <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
-<span class="sd">    Unlike ComputeContextVectorWithSource, which explicitly asks for the source</span>
+<span class="sd">    Unlike `ComputeContextVectorWithSource` which explicitly asks for the source</span>
 <span class="sd">    tensors (concated_source_vecs, concated_source_contexts, source_padding),</span>
-<span class="sd">    ComputeContextVector uses the class&#39; internal variables.</span>
+<span class="sd">    `ComputeContextVector` uses the class&#39; internal variables.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      query_vec: a tensor of shape [batch_size, query_dim].</span>
 <span class="sd">      attention_state: previous attention state.</span>
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A NestedMap containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
+<span class="sd">      step_state: A `.NestedMap` containing `global_step` and `time_step`.</span>
 <span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [batch_size].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector.</span>
-<span class="sd">      The attention probability vector.</span>
-<span class="sd">      The new attention mechanism state: possibly nested tuple of tensors with</span>
-<span class="sd">        dimensions [target_batch....]</span>
+<span class="sd">      A tuple of 3 elements.</span>
+
+<span class="sd">      * The attention context vector.</span>
+<span class="sd">      * The attention probability vector.</span>
+<span class="sd">      * The new attention mechanism state: possibly nested tuple of tensors with</span>
+<span class="sd">        dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_init_done</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
@@ -365,16 +371,16 @@
 <div class="viewcode-block" id="BaseAttentionLayer.GetInitializationSourceState"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer.GetInitializationSourceState">[docs]</a>  <span class="k">def</span> <span class="nf">GetInitializationSourceState</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the attention initialization state.</span>
 
-<span class="sd">    The base class only preserves the concated_source_vecs,</span>
-<span class="sd">    concated_source_contexts and source_padding. If subclasses use more</span>
+<span class="sd">    The base class only preserves the `concated_source_vecs`,</span>
+<span class="sd">    `concated_source_contexts` and `source_padding`. If subclasses use more</span>
 <span class="sd">    state than this and need to interact with inference code that must</span>
-<span class="sd">    fetch and reload state, this and SetInitializationSourceState must</span>
+<span class="sd">    fetch and reload state, this and `SetInitializationSourceState` must</span>
 <span class="sd">    be overridden.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A NestedMap of Tensors that can be preserved and reset via</span>
-<span class="sd">      SetInitializationSourceState() at a later point. This allows, for example,</span>
-<span class="sd">      for attention computations to span session runs.</span>
+<span class="sd">      A `.NestedMap` of Tensors that can be preserved and reset via</span>
+<span class="sd">      `SetInitializationSourceState()` at a later point. This allows, for</span>
+<span class="sd">      example, for attention computations to span session runs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_init_done</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
@@ -386,8 +392,8 @@
     <span class="sd">&quot;&quot;&quot;Sets the attention initialization state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      new_init_state: A NestedMap matching what was returned from</span>
-<span class="sd">      GetInitializationSourceState, which will return this layer to that</span>
+<span class="sd">      new_init_state: A `.NestedMap` matching what was returned from</span>
+<span class="sd">      `GetInitializationSourceState`, which will return this layer to that</span>
 <span class="sd">      initialization state.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_source_init_done</span> <span class="o">=</span> <span class="kc">True</span>
@@ -395,12 +401,12 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_concated_source_contexts</span> <span class="o">=</span> <span class="n">new_init_state</span><span class="o">.</span><span class="n">concated_source_contexts</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_source_padding</span> <span class="o">=</span> <span class="n">new_init_state</span><span class="o">.</span><span class="n">source_padding</span></div>
 
-  <span class="k">def</span> <span class="nf">_PaddedSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">padding</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseAttentionLayer._PaddedSoftmax"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer._PaddedSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">_PaddedSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">padding</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Performs a softmax as if padding were applied after exponentiation.</span>
 
 <span class="sd">    The default implementation uses numerical techniques to approximate this</span>
-<span class="sd">    with a standard tf.nn.softmax (using large negative logits for padded</span>
-<span class="sd">    values). It defers to a Defun that may be replaced on low-range</span>
+<span class="sd">    with a standard `tf.nn.softmax` (using large negative logits for padded</span>
+<span class="sd">    values). It defers to a `Defun` that may be replaced on low-range</span>
 <span class="sd">    implementations with a version that is numerically correct.</span>
 
 <span class="sd">    Args:</span>
@@ -415,20 +421,20 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
             <span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
     <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">padding</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_UpdatePaddingWithPackedInputMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">source_segment_ids</span><span class="p">,</span>
+<div class="viewcode-block" id="BaseAttentionLayer._UpdatePaddingWithPackedInputMask"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer._UpdatePaddingWithPackedInputMask">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdatePaddingWithPackedInputMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">source_segment_ids</span><span class="p">,</span>
                                         <span class="n">query_segment_ids</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates an attention mask based on source and query segment ids.</span>
 
 <span class="sd">    This creates a mask that removes invalid attention, where the query vector</span>
 <span class="sd">    might assign some weight to neighboring sequences in a packed input example.</span>
-<span class="sd">    Assumes n = target_batch // source_batch.</span>
+<span class="sd">    Assumes `n = target_batch // source_batch`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      padding: Padding for logits, a tensor of shape [time, n, source_batch].</span>
-<span class="sd">      source_segment_ids: a tensor of shape [time, source_batch]</span>
-<span class="sd">      query_segment_ids: a tensor of shape [target_batch]</span>
+<span class="sd">      source_segment_ids: a tensor of shape [time, source_batch].</span>
+<span class="sd">      query_segment_ids: a tensor of shape [target_batch].</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Logits with mask applied.</span>
@@ -440,7 +446,7 @@
     <span class="n">padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">source_segment_ids</span><span class="p">,</span> <span class="n">query_segment_ids</span><span class="p">),</span> <span class="n">padding</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">padding</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">padding</span></div>
+    <span class="k">return</span> <span class="n">padding</span></div></div>
 
 
 <div class="viewcode-block" id="AdditiveAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.AdditiveAttention">[docs]</a><span class="k">class</span> <span class="nc">AdditiveAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">):</span>
@@ -455,7 +461,7 @@
 
 <div class="viewcode-block" id="AdditiveAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.AdditiveAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Params for this AdditiveAttention class.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Params for this `AdditiveAttention` class.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AdditiveAttention</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of source nodes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;query_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of query nodes.&#39;</span><span class="p">)</span>
@@ -470,7 +476,7 @@
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Constructs an AdditiveAttention object.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Constructs an `AdditiveAttention` object.&quot;&quot;&quot;</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">AdditiveAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
@@ -698,7 +704,7 @@
     <span class="sd">&quot;&quot;&quot;Packs source vectors. Does not change attention state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A single tensor of shape [time, batch_size, source_dim].</span>
 <span class="sd">      source_contexts: A single tensor of shape [time, batch_size, some_dim].</span>
@@ -726,7 +732,7 @@
     <span class="sd">&quot;&quot;&quot;Initialize attention for the given source vectors.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A single tensor of shape [time, batch_size, source_dim].</span>
 <span class="sd">      source_contexts: A single tensor of shape [time, batch_size, some_dim].</span>
@@ -764,38 +770,41 @@
                                      <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
+<span class="sd">    Note: `concated_source_vecs` are the vectors that are used to compute the</span>
+<span class="sd">    attention score between the `query_vec` and each `concated_source_vec`.</span>
+<span class="sd">    The `concated_source_contexts` are the vectors that compose the result.</span>
+<span class="sd">    The attention context vector is computed as a weighted average of the</span>
+<span class="sd">    `concated_source_contexts`, using the scores that were computed using</span>
+<span class="sd">    `concated_source_vecs`.</span>
+
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      concated_source_vecs: Concated source vectors with shape [time,</span>
 <span class="sd">        batch_size, hidden_dim].</span>
-<span class="sd">      concated_source_contexts: Concated source contexts with shape [</span>
-<span class="sd">        batch_size, time, context_dim].</span>
+<span class="sd">      concated_source_contexts: Concated source contexts with shape o</span>
+<span class="sd">        [batch_size, time, context_dim].</span>
 <span class="sd">      source_padding: Source padding with shape [time, batch_size].</span>
 <span class="sd">      source_segment_id: Tensor of source segment ids, with shape [time,</span>
 <span class="sd">        batch_size].</span>
 <span class="sd">      query_vec: a tensor of shape [batch_size, query_dim].</span>
 <span class="sd">      attention_state: previous attention state. It is not used in</span>
-<span class="sd">          AdditiveAttention, and is simply passed through.</span>
+<span class="sd">          `AdditiveAttention`, and is simply passed through.</span>
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A NestedMap containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
+<span class="sd">      step_state: A `.NestedMap` containing `global_step` and `time_step`.</span>
 <span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [batch_size]</span>
 
-<span class="sd">    Note: concated_source_vecs are the vectors that are used to compute the</span>
-<span class="sd">    attention score between the query_vec and each concated_source_vec.</span>
-<span class="sd">    The concated_source_contexts are the vectors that compose the result.</span>
-<span class="sd">    The attention context vector is computed as a weighted average of the</span>
-<span class="sd">    concated_source_contexts, using the scores that were computed using</span>
-<span class="sd">    concated_source_vecs.</span>
-
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector:     [batch_size, context_dim]</span>
-<span class="sd">      The attention probability vector: [batch_size, time]</span>
-<span class="sd">      The new attention mechanism state: possibly nested tuple of tensors with</span>
-<span class="sd">        dimensions [target_batch....]</span>
+<span class="sd">      A tuple of 3 elements.</span>
+<span class="sd">        The attention context vector:</span>
+<span class="sd">          [batch_size, context_dim]</span>
+<span class="sd">        The attention probability vector:</span>
+<span class="sd">          [batch_size, time]</span>
+<span class="sd">        The new attention mechanism state:</span>
+<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -835,7 +844,7 @@
 
 <div class="viewcode-block" id="DotProductAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.DotProductAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Params for DotProductAttention.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Params for `DotProductAttention`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DotProductAttention</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of source nodes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;query_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of query nodes.&#39;</span><span class="p">)</span>
@@ -1022,7 +1031,7 @@
     <span class="sd">&quot;&quot;&quot;Packs source vectors. Does not change attention state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A tensor of shape [time, source_batch, source_dim].</span>
 <span class="sd">      source_contexts: A tensor of shape [time, source_batch, context_dim].</span>
@@ -1030,13 +1039,15 @@
 <span class="sd">      source_segment_id: A tensor of shape [time, source_batch].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tuple (concated_source_vecs, concated_source_contexts, source_padding),</span>
-<span class="sd">      where concated_source_vecs is a tensor of shape [time, batch_size,</span>
-<span class="sd">      hidden_dim], concated_source_contexts is a tensor of shape [batch_size,</span>
-<span class="sd">      time, some_dim] and source_padding is a tensor of shape [time,</span>
-<span class="sd">      batch_size]. Note the mismatch between concated_source_vecs and</span>
-<span class="sd">      concated_source_contexts. In concated_source_vecs, time is the first dim,</span>
-<span class="sd">      while it is the second dim in concated_source_contexts.</span>
+<span class="sd">      A tuple (concated_source_vecs, concated_source_contexts, source_padding)</span>
+<span class="sd">      where `concated_source_vecs` is a tensor of shape [time, batch_size,</span>
+<span class="sd">      hidden_dim], `concated_source_contexts` is a tensor of shape</span>
+<span class="sd">      [batch_size, time, some_dim] and `source_padding` is a tensor of shape</span>
+<span class="sd">      [time, batch_size].</span>
+
+<span class="sd">      Note the mismatch between `concated_source_vecs` and</span>
+<span class="sd">      `concated_source_contexts`. In `concated_source_vecs`, time is the first</span>
+<span class="sd">      dim, while it is the second dim in `concated_source_contexts`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)</span>
     <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
@@ -1054,7 +1065,7 @@
     <span class="sd">&quot;&quot;&quot;Initialize attention for the given source vectors.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A tensor of shape [time, source_batch, source_dim].</span>
 <span class="sd">      source_contexts: A tensor of shape [time, source_batch, context_dim].</span>
@@ -1096,7 +1107,7 @@
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      concated_source_vecs: Concated source vectors with shape [time,</span>
 <span class="sd">        source_batch, hidden_dim].</span>
@@ -1124,10 +1135,13 @@
 <span class="sd">    concated_source_vecs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector:     [target_batch, context_dim]</span>
-<span class="sd">      The attention probability vector: [target_batch, time]</span>
-<span class="sd">      The new attention mechanism state: possibly nested tuple of tensors with</span>
-<span class="sd">        dimensions [target_batch....]</span>
+<span class="sd">      A tuple of 3 elements.</span>
+<span class="sd">        The attention context vector:</span>
+<span class="sd">          [batch_size, context_dim]</span>
+<span class="sd">        The attention probability vector:</span>
+<span class="sd">          [batch_size, time]</span>
+<span class="sd">        The new attention mechanism state:</span>
+<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">source_sequence_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -1150,30 +1164,31 @@
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">attention_state</span></div></div>
 
 
-<span class="k">def</span> <span class="nf">_RecursiveReshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+<div class="viewcode-block" id="_RecursiveReshape"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention._RecursiveReshape">[docs]</a><span class="k">def</span> <span class="nf">_RecursiveReshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
   <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">return</span> <span class="kc">None</span>
   <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">x</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="n">_RecursiveReshape</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">shape</span><span class="p">))</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">2</span> <span class="k">else</span> <span class="n">x</span></div>
 
 
-<div class="viewcode-block" id="MultiHeadedAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiHeadedAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiHeadedAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">,</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Attention with multiple attention heads.</span>
 
 <span class="sd">  Conceptually, the algorithm works as follows:</span>
-<span class="sd">    1. Source vectors (attention keys) are first projected to vectors of dim</span>
-<span class="sd">    p.hidden_dim.</span>
-<span class="sd">    2. Query vectors are projected to vectors of dim p.hidden_dim as well.</span>
-<span class="sd">    3. Context vectors (attention values) are not projected.</span>
-<span class="sd">    4. Source vectors, query vectors and context vectors are all split into</span>
-<span class="sd">    p.num_attention_heads chunks.</span>
-<span class="sd">    5. The inner atten mechanism is computed separately on each of the chunks.</span>
-<span class="sd">    6. Attention contexts from each of the chunk are concatenated to form the</span>
-<span class="sd">    final context.</span>
-<span class="sd">    7. Attention probs from each of the chunk are averaged to form the final</span>
-<span class="sd">    attention prob.</span>
+
+<span class="sd">  1. Source vectors (attention keys) are first projected to vectors of dim</span>
+<span class="sd">     p.hidden_dim.</span>
+<span class="sd">  2. Query vectors are projected to vectors of dim p.hidden_dim as well.</span>
+<span class="sd">  3. Context vectors (attention values) are not projected.</span>
+<span class="sd">  4. Source vectors, query vectors and context vectors are all split into</span>
+<span class="sd">     p.num_attention_heads chunks.</span>
+<span class="sd">  5. The inner atten mechanism is computed separately on each of the chunks.</span>
+<span class="sd">  6. Attention contexts from each of the chunk are concatenated to form the</span>
+<span class="sd">     final context.</span>
+<span class="sd">  7. Attention probs from each of the chunk are averaged to form the final</span>
+<span class="sd">     attention prob.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="MultiHeadedAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1204,6 +1219,14 @@
         <span class="s1">&#39;If True, computed context is post projected into&#39;</span>
         <span class="s1">&#39; ctx_post_proj_dim.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of post projection nodes.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Often the attention context output needs to be concated</span>
+    <span class="c1"># with tensors from another layer. This allows them to share</span>
+    <span class="c1"># quantization parameters. By convention, all attention layers</span>
+    <span class="c1"># need to include their context output vectors in this domain.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                     <span class="s1">&#39;Quantization domain for attention context.&#39;</span><span class="p">)</span>
+
     <span class="n">p</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
@@ -1214,6 +1237,16 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;source_proj_add&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;query_proj_add&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;ctx_pre_proj_add&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO: Remove the p.is_eval check below once brop quant within defun is</span>
+    <span class="c1"># fixed on the training side. This is less than ideal as-is because</span>
+    <span class="c1"># training will just trend to match downstream quant constraints vs force</span>
+    <span class="c1"># alignment.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
+        <span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;ctx_post_proj_add&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;atten_context&#39;</span><span class="p">)</span>
 
     <span class="n">pc_bias</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
@@ -1292,7 +1325,7 @@
     <span class="sd">&quot;&quot;&quot;Initialize attention for the given source vectors.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A tensor of shape [time, source_batch, source_dim].</span>
 <span class="sd">      source_contexts: A tensor of shape [time, source_batch, context_dim].</span>
@@ -1316,7 +1349,8 @@
     <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_concated_source_vecs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_concated_source_contexts</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_source_padding</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_segment_id</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MultiHeadedAttention.PackSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention.PackSource">[docs]</a>  <span class="k">def</span> <span class="nf">PackSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MultiHeadedAttention/PackSource&#39;</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">PackSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">theta</span><span class="p">,</span>
                  <span class="n">source_vecs</span><span class="p">,</span>
                  <span class="n">source_contexts</span><span class="p">,</span>
@@ -1325,7 +1359,7 @@
     <span class="sd">&quot;&quot;&quot;Packs source vectors. Does not change attention state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A tensor of shape [time, source_batch, source_dim].</span>
 <span class="sd">      source_contexts: A tensor of shape [time, source_batch, context_dim].</span>
@@ -1344,6 +1378,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_source_proj</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_query_proj</span><span class="p">:</span>
@@ -1359,10 +1394,14 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init__0b&#39;</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_source_proj</span><span class="p">:</span>
           <span class="n">source_projected</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+              <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
                   <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_vec_depth</span><span class="p">]),</span>
-                  <span class="n">theta</span><span class="o">.</span><span class="n">source_proj</span><span class="p">))</span>
-          <span class="n">source_projected</span> <span class="o">+=</span> <span class="n">theta</span><span class="o">.</span><span class="n">source_proj_b</span>
+                  <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">source_proj</span><span class="p">),</span>
+                  <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">))</span>
+          <span class="n">source_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
+              <span class="n">source_projected</span><span class="p">,</span>
+              <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">source_proj_b</span><span class="p">),</span>
+              <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;source_proj_add&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">source_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_vec_depth</span><span class="p">])</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init__1&#39;</span><span class="p">):</span>
@@ -1377,10 +1416,14 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ctx_pre_proj</span><span class="p">:</span>
           <span class="n">source_context_depth</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
-          <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+          <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_context_depth</span><span class="p">]),</span>
-              <span class="n">theta</span><span class="o">.</span><span class="n">ctx_proj</span><span class="p">)</span>
-          <span class="n">source_contexts_projected</span> <span class="o">+=</span> <span class="n">theta</span><span class="o">.</span><span class="n">ctx_proj_b</span>
+              <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_proj</span><span class="p">),</span>
+              <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">)</span>
+          <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
+              <span class="n">source_contexts_projected</span><span class="p">,</span>
+              <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_proj_b</span><span class="p">),</span>
+              <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_pre_proj_add&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">source_contexts</span>
         <span class="n">source_contexts_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
@@ -1404,9 +1447,10 @@
            <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">source_projected</span><span class="p">,</span> <span class="n">source_contexts_reshaped</span><span class="p">,</span>
            <span class="n">source_padding_replicated</span><span class="p">,</span> <span class="n">source_segment_id_repl</span><span class="p">)</span>
       <span class="k">return</span> <span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span>
-              <span class="n">source_segment_id</span><span class="p">)</span></div>
+              <span class="n">source_segment_id</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MultiHeadedAttention.ExtendSourcePacked"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention.ExtendSourcePacked">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendSourcePacked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">new_source_vecs</span><span class="p">,</span> <span class="n">new_source_contexts</span><span class="p">,</span>
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MultiHeadedAttention/ExtendSourcePacked&#39;</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">ExtendSourcePacked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">new_source_vecs</span><span class="p">,</span> <span class="n">new_source_contexts</span><span class="p">,</span>
                          <span class="n">new_source_paddings</span><span class="p">,</span> <span class="n">new_source_segment_ids</span><span class="p">,</span>
                          <span class="n">cached_prev_source_vecs</span><span class="p">,</span> <span class="n">cached_prev_source_contexts</span><span class="p">,</span>
                          <span class="n">cached_prev_source_paddings</span><span class="p">,</span>
@@ -1414,7 +1458,7 @@
     <span class="sd">&quot;&quot;&quot;Extend cached source_vecs and source_contexts by one more timestep.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      new_source_vecs: A tensor of shape [source_batch, source_dim].</span>
 <span class="sd">      new_source_contexts: A tensor of shape [source_batch, context_dim].</span>
@@ -1485,16 +1529,19 @@
           <span class="p">[</span><span class="n">cached_prev_source_segment_ids</span><span class="p">,</span> <span class="n">processed_source_segment_ids</span><span class="p">],</span>
           <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="p">(</span><span class="n">cached_source_vecs</span><span class="p">,</span> <span class="n">cached_source_contexts</span><span class="p">,</span> <span class="n">cached_source_paddings</span><span class="p">,</span>
-            <span class="n">cached_source_segment_ids</span><span class="p">)</span></div>
+            <span class="n">cached_source_segment_ids</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MultiHeadedAttention.ZeroAttentionState"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention.ZeroAttentionState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroAttentionState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_seq_length</span><span class="p">,</span> <span class="n">decoder_batch_size</span><span class="p">):</span>
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MultiHeadedAttention/ZeroAttentionState&#39;</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">ZeroAttentionState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_seq_length</span><span class="p">,</span> <span class="n">decoder_batch_size</span><span class="p">):</span>
     <span class="n">zero_att_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ZeroAttentionState</span><span class="p">(</span>
         <span class="n">source_seq_length</span><span class="p">,</span> <span class="n">decoder_batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_attention_heads</span><span class="p">)</span>
     <span class="c1"># [batch * num_heads, length] =&gt; [batch, num_heads * length].</span>
     <span class="n">zero_att_state</span> <span class="o">=</span> <span class="n">_RecursiveReshape</span><span class="p">(</span><span class="n">zero_att_state</span><span class="p">,</span> <span class="p">[</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">zero_att_state</span></div>
+    <span class="k">return</span> <span class="n">zero_att_state</span>
 
-<div class="viewcode-block" id="MultiHeadedAttention.ComputeContextVectorWithSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention.ComputeContextVectorWithSource">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeContextVectorWithSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span>
+      <span class="s1">&#39;MultiHeadedAttention/ComputeContextVectorWithSource&#39;</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">ComputeContextVectorWithSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                      <span class="n">theta</span><span class="p">,</span>
                                      <span class="n">concated_source_vecs</span><span class="p">,</span>
                                      <span class="n">concated_source_contexts</span><span class="p">,</span>
@@ -1508,7 +1555,7 @@
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      concated_source_vecs: Concated source vectors with shape [time,</span>
 <span class="sd">        batch_size, hidden_dim].</span>
@@ -1534,19 +1581,27 @@
 <span class="sd">    concated_source_vecs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector:     [target_batch, context_dim]</span>
-<span class="sd">      The attention probability vector: [target_batch, time]</span>
-<span class="sd">      The new attention mechanism state: possibly nested tuple of tensors with</span>
-<span class="sd">        dimensions [target_batch....]</span>
+<span class="sd">      A tuple of 3 elements.</span>
+<span class="sd">        The attention context vector:</span>
+<span class="sd">          [batch_size, context_dim]</span>
+<span class="sd">        The attention probability vector:</span>
+<span class="sd">          [batch_size, time]</span>
+<span class="sd">        The new attention mechanism state:</span>
+<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
     <span class="n">source_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
     <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_query_proj</span><span class="p">:</span>
-      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">query_proj</span><span class="p">)</span>
-      <span class="n">query_vec_projected</span> <span class="o">+=</span> <span class="n">theta</span><span class="o">.</span><span class="n">query_proj_b</span>
+      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
+          <span class="n">query_vec</span><span class="p">,</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">query_proj</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">)</span>
+      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
+          <span class="n">query_vec_projected</span><span class="p">,</span>
+          <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">query_proj_b</span><span class="p">),</span>
+          <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;query_proj_add&#39;</span><span class="p">)</span>
       <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
           <span class="n">query_vec_projected</span><span class="p">,</span>
           <span class="p">[</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">])</span>
@@ -1579,19 +1634,26 @@
         <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">step_state</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ctx_post_proj</span><span class="p">:</span>
-      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">)</span>
-      <span class="n">ctx_vec</span> <span class="o">+=</span> <span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj_b</span>
-    <span class="n">prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
+          <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">)</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
+          <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj_b</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_add&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(laurenzo): Use a better named range function (we want to represent</span>
+    <span class="c1"># 0..1 probs).</span>
+    <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRSoftmax</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">att_state</span> <span class="o">=</span> <span class="n">_RecursiveReshape</span><span class="p">(</span><span class="n">att_state</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-    <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">att_state</span></div>
+    <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">att_state</span>
 
-<div class="viewcode-block" id="MultiHeadedAttention.ComputeContextVectorWithAttenProbs"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention.ComputeContextVectorWithAttenProbs">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeContextVectorWithAttenProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">packed_context</span><span class="p">,</span>
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span>
+      <span class="s1">&#39;MultiHeadedAttention/ComputeContextVectorWithAttenProbs&#39;</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">ComputeContextVectorWithAttenProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">packed_context</span><span class="p">,</span>
                                          <span class="n">atten_probs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the attention probailities.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      packed_context: Concated source contexts with shape [</span>
 <span class="sd">        batch_size * num_heads, time, context_dim // num_heads].</span>
@@ -1620,9 +1682,11 @@
       <span class="n">ctx_vec_proj</span> <span class="o">+=</span> <span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj_b</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">ctx_vec_proj</span> <span class="o">=</span> <span class="n">ctx_vec</span>
-    <span class="k">return</span> <span class="n">ctx_vec_proj</span><span class="p">,</span> <span class="n">ctx_vec</span></div>
+    <span class="k">return</span> <span class="n">ctx_vec_proj</span><span class="p">,</span> <span class="n">ctx_vec</span>
 
-<div class="viewcode-block" id="MultiHeadedAttention.ComputeContextVectorWithCachedSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention.ComputeContextVectorWithCachedSource">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeContextVectorWithCachedSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span>
+      <span class="s1">&#39;MultiHeadedAttention/ComputeContextVectorWithCachedSource&#39;</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">ComputeContextVectorWithCachedSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                            <span class="n">theta</span><span class="p">,</span>
                                            <span class="n">concated_source_vecs</span><span class="p">,</span>
                                            <span class="n">concated_source_contexts</span><span class="p">,</span>
@@ -1638,7 +1702,7 @@
 <span class="sd">    in source_vecs, source_contexts and source_padding are ordered differently.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      concated_source_vecs: Concated source vectors with shape [source_batch,</span>
 <span class="sd">        time, hidden_dim].</span>
@@ -1692,7 +1756,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span>
         <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">,</span>
-        <span class="n">step_state</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span></div></div>
+        <span class="n">step_state</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="LocationSensitiveAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.LocationSensitiveAttention">[docs]</a><span class="k">class</span> <span class="nc">LocationSensitiveAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">):</span>
@@ -1976,7 +2040,7 @@
     <span class="sd">&quot;&quot;&quot;Initialize attention for the given source vectors.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A single tensor of shape [time, batch_size, source_dim].</span>
 <span class="sd">      source_contexts: A single tensor of shape [time, batch_size, some_dim].</span>
@@ -2027,7 +2091,7 @@
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      concated_source_vecs: Concated source vectors with shape [time,</span>
 <span class="sd">        batch_size, hidden_dim].</span>
@@ -2036,16 +2100,17 @@
 <span class="sd">      source_padding: Source padding with shape [time, batch_size].</span>
 <span class="sd">      source_segment_id: Source segment id with shape [time, batch_size].</span>
 <span class="sd">      query_vec: a tensor of shape [batch_size, query_dim].</span>
-<span class="sd">      attention_state: If params().location_features == [&#39;PREV_PROBS&#39;,</span>
-<span class="sd">                                                         &#39;CUMULATIVE_PROBS&#39;],</span>
-<span class="sd">        then attention_state is a tensor of shape [batch_size, src_len * 2]:</span>
-<span class="sd">          attention_state[:, :, 0] contains previous attention probabilities</span>
-<span class="sd">          attention_state[:, :, 1] contains a sum over previous timesteps of</span>
+<span class="sd">      attention_state: If</span>
+<span class="sd">        `params().location_features == [&#39;PREV_PROBS&#39;, &#39;CUMULATIVE_PROBS&#39;]`,</span>
+<span class="sd">        then `attention_state` is a tensor of shape [batch_size, src_len * 2].</span>
+
+<span class="sd">        - attention_state[:, :, 0] contains previous attention probabilities</span>
+<span class="sd">        - attention_state[:, :, 1] contains a sum over previous timesteps of</span>
 <span class="sd">          attention probabilities.</span>
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A NestedMap containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
+<span class="sd">      step_state: A `.NestedMap` containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
 <span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: Query segment id with shape [batch_size].</span>
 
@@ -2057,10 +2122,13 @@
 <span class="sd">    concated_source_vecs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector:     [batch_size, context_dim]</span>
-<span class="sd">      The attention probability vector: [batch_size, time]</span>
-<span class="sd">      The new attention mechanism state: possibly nested tuple of tensors with</span>
-<span class="sd">        dimensions [target_batch....]</span>
+<span class="sd">      A tuple of 3 elements.</span>
+<span class="sd">        The attention context vector:</span>
+<span class="sd">          [batch_size, context_dim]</span>
+<span class="sd">        The attention probability vector:</span>
+<span class="sd">          [batch_size, time]</span>
+<span class="sd">        The new attention mechanism state:</span>
+<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">source_segment_id</span>
     <span class="k">del</span> <span class="n">query_segment_id</span>
@@ -2134,11 +2202,12 @@
 <div class="viewcode-block" id="MonotonicAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MonotonicAttention">[docs]</a><span class="k">class</span> <span class="nc">MonotonicAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;An attention mechanism which enforces monotonic alignments.</span>
 
-<span class="sd">  This layer implements the monotonic attention mechanism described in ``Online</span>
-<span class="sd">  and Linear-Time Attention by Enforcing Mononotonic Alignments&#39;&#39;</span>
+<span class="sd">  This layer implements the monotonic attention mechanism described in</span>
+<span class="sd">  Online and Linear-Time Attention by Enforcing Mononotonic Alignments</span>
 <span class="sd">  (https://arxiv.org/abs/1704.00784).  It is used in exactly the same way as</span>
 <span class="sd">  AdditiveAttention, but both the attention distribution and the energy function</span>
 <span class="sd">  are different.</span>
+
 <span class="sd">  Rather than using a softmax, this mechanism feeds the attention energy into a</span>
 <span class="sd">  (hard or soft) sigmoid and treats the output as Bernoulli probabilities</span>
 <span class="sd">  representing the probability of attending to a given entry in the input</span>
@@ -2149,10 +2218,14 @@
 <span class="sd">  test time to allow for online and linear-time decoding.  To encourge the train</span>
 <span class="sd">  and test-time behavior to be similar, noise can optionally be added to the</span>
 <span class="sd">  sigmoid activations during training (param pre_sigmoid_noise).  For the energy</span>
-<span class="sd">  function, rather than computing</span>
-<span class="sd">  energy = dot(v, tanh(dot(W, query) + dot(W, encoder_states)))</span>
-<span class="sd">  it computes</span>
-<span class="sd">  energy = dot(g*v/||v||, tanh(dot(W, query) + dot(W, encoder_states) + b)) + r</span>
+<span class="sd">  function, rather than computing::</span>
+
+<span class="sd">    E = dot(v, tanh(dot(W, query) + dot(W, encoder_states)))</span>
+
+<span class="sd">  it computes::</span>
+
+<span class="sd">    E = dot(g*v/||v||, tanh(dot(W, query) + dot(W, encoder_states) + b)) + r</span>
+
 <span class="sd">  where g and r are scalars and b is a vector, and ||v|| is the L2 norm of v.</span>
 <span class="sd">  instead.  These modifications address the fact that the sigmoids in the</span>
 <span class="sd">  monotonic attention mechanism are sensitive to offset and a bit harder to</span>
@@ -2263,7 +2336,7 @@
     <span class="sd">&quot;&quot;&quot;Packs source vectors. Does not change attention state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A single tensor of shape [time, batch_size, source_dim].</span>
 <span class="sd">      source_contexts: A single tensor of shape [time, batch_size, some_dim].</span>
@@ -2291,7 +2364,7 @@
     <span class="sd">&quot;&quot;&quot;Initialize attention for the given source vectors.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A single tensor of shape [time, batch_size, source_dim].</span>
 <span class="sd">      source_contexts: A single tensor of shape [time, batch_size, some_dim].</span>
@@ -2430,7 +2503,7 @@
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      concated_source_vecs: Concated source vectors with shape [time,</span>
 <span class="sd">        batch_size, hidden_dim].</span>
@@ -2455,9 +2528,13 @@
 <span class="sd">    concated_source_vecs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector:     [batch_size, context_dim]</span>
-<span class="sd">      The attention probability vector: [batch_size, time]</span>
-<span class="sd">      The attention probability vector (again, to be interpreted as state).</span>
+<span class="sd">      A tuple of 3 elements.</span>
+<span class="sd">        The attention context vector:</span>
+<span class="sd">          [batch_size, context_dim]</span>
+<span class="sd">        The attention probability vector:</span>
+<span class="sd">          [batch_size, time]</span>
+<span class="sd">        The attention probability vector:</span>
+<span class="sd">          (again, to be interpreted as state).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">source_segment_id</span>
     <span class="k">del</span> <span class="n">query_segment_id</span>
@@ -2608,7 +2685,7 @@
     <span class="sd">&quot;&quot;&quot;Initialize attention for the given source vectors.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_vecs: A single tensor of shape [time, batch_size, source_dim].</span>
 <span class="sd">      source_contexts: A single tensor of shape [time, batch_size, some_dim].</span>
@@ -2655,7 +2732,7 @@
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: A nested map object containing weights&#39; values of this</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this</span>
 <span class="sd">        layer and its children layers.</span>
 <span class="sd">      concated_source_vecs: Concated source vectors with shape [time,</span>
 <span class="sd">        batch_size, hidden_dim].</span>
@@ -2665,12 +2742,13 @@
 <span class="sd">      source_segment_id: Tensor of source segment ids, with shape [time,</span>
 <span class="sd">        batch_size].</span>
 <span class="sd">      query_vec: a tensor of shape [batch_size, query_dim].</span>
-<span class="sd">      attention_state: previous attention state,</span>
-<span class="sd">        then attention_state is a tensor of shape [batch_size, num_mixtures, 4]:</span>
-<span class="sd">          attention_state[:, :, 0] contains previous location</span>
-<span class="sd">          attention_state[:, :, 1] contains previous offset.</span>
-<span class="sd">          attention_state[:, :, 2] contains previous variance.</span>
-<span class="sd">          attention_state[:, :, 3] contains previous prior.</span>
+<span class="sd">      attention_state: previous attention state, a tensor of shape</span>
+<span class="sd">        [batch_size, num_mixtures, 4].</span>
+
+<span class="sd">        - attention_state[:, :, 0] contains previous location</span>
+<span class="sd">        - attention_state[:, :, 1] contains previous offset.</span>
+<span class="sd">        - attention_state[:, :, 2] contains previous variance.</span>
+<span class="sd">        - attention_state[:, :, 3] contains previous prior.</span>
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
@@ -2686,9 +2764,13 @@
 <span class="sd">    concated_source_vecs.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The attention context vector:     [batch_size, context_dim]</span>
-<span class="sd">      The attention probability vector: [batch_size, time]</span>
-<span class="sd">      The new attention state vector.</span>
+<span class="sd">      A tuple of 3 elements.</span>
+<span class="sd">        The attention context vector:</span>
+<span class="sd">          [batch_size, context_dim]</span>
+<span class="sd">        The attention probability vector:</span>
+<span class="sd">          [batch_size, time]</span>
+<span class="sd">        The new attention state vector:</span>
+<span class="sd">          possibly nested tuple of tensors with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">source_segment_id</span>
     <span class="k">del</span> <span class="n">query_segment_id</span>

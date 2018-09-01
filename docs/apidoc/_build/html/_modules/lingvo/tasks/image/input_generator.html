@@ -173,23 +173,23 @@
 <span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 
 
-<span class="k">class</span> <span class="nc">_MnistInputBase</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseTinyDatasetInput</span><span class="p">):</span>
+<div class="viewcode-block" id="_MnistInputBase"><a class="viewcode-back" href="../../../../lingvo.tasks.image.input_generator.html#lingvo.tasks.image.input_generator._MnistInputBase">[docs]</a><span class="k">class</span> <span class="nc">_MnistInputBase</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseTinyDatasetInput</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base input params for MNIST.&quot;&quot;&quot;</span>
 
-  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="_MnistInputBase.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.image.input_generator.html#lingvo.tasks.image.input_generator._MnistInputBase.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults params.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">_MnistInputBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">data_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">uint8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">data_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">28</span><span class="p">,</span> <span class="mi">28</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">label_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">uint8</span>
-    <span class="k">return</span> <span class="n">p</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="nf">_Preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">):</span>
+<div class="viewcode-block" id="_MnistInputBase._Preprocess"><a class="viewcode-back" href="../../../../lingvo.tasks.image.input_generator.html#lingvo.tasks.image.input_generator._MnistInputBase._Preprocess">[docs]</a>  <span class="k">def</span> <span class="nf">_Preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">):</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
         <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">per_image_standardization</span><span class="p">(</span><span class="n">img</span><span class="p">)</span> <span class="k">for</span> <span class="n">img</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">raw</span><span class="p">)])</span>
     <span class="n">data</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">raw</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">data</span>
+    <span class="k">return</span> <span class="n">data</span></div></div>
 
 
 <div class="viewcode-block" id="MnistTrainInput"><a class="viewcode-back" href="../../../../lingvo.tasks.image.input_generator.html#lingvo.tasks.image.input_generator.MnistTrainInput">[docs]</a><span class="k">class</span> <span class="nc">MnistTrainInput</span><span class="p">(</span><span class="n">_MnistInputBase</span><span class="p">):</span>

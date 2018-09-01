@@ -28,8 +28,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.tasks.mt.layers_test module" href="lingvo.tasks.mt.layers_test.html" />
-    <link rel="prev" title="lingvo.tasks.mt.input_generator_test module" href="lingvo.tasks.mt.input_generator_test.html" /> 
+    <link rel="next" title="lingvo.tasks.mt.model module" href="lingvo.tasks.mt.model.html" />
+    <link rel="prev" title="lingvo.tasks.mt.input_generator module" href="lingvo.tasks.mt.input_generator.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -174,6 +174,12 @@
 <p>With optional layer normalization applied to the final output.</p>
 <p>See ‘Attention Is All You Need’ <a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>
 for details.</p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.mt.layers.TransformerStack.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/layers.html#TransformerStack.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.layers.TransformerStack.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configs for TransformerStack.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.tasks.mt.layers.TransformerStack.FProp">
 <code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>transformer_input</em>, <em>paddings</em>, <em>src_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/layers.html#TransformerStack.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.layers.TransformerStack.FProp" title="Permalink to this definition">¶</a></dt>
@@ -183,7 +189,7 @@ for details.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A nested map object containing weights’ values of this
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</li>
 <li><strong>transformer_input</strong> – A sequence of input Tensors of [time, batch, dim]
 shape.</li>
@@ -194,22 +200,17 @@ shape.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(outputs, out_paddings, segment_ids) pair. Outputs is of the shape [time,
-batch, depth], and out_paddings is of the shape [time, batch].  If
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">(outputs, out_paddings, segment_ids) tuple. <code class="xref py py-obj docutils literal notranslate"><span class="pre">outputs</span></code> is of the shape
+[time, batch, depth], and <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_paddings</span></code> has shape [time, batch]. If
 is_transparent is True, can return a list of num_transformer_layers
-tensors of shape [time, batch, depth] if p.is_eval is False, and a [time,
-batch, depth, num_transparent_outputs] tensor if p.is_eval is True.
-If packed_input is True, also returns segment_id, otherwise returns None.</p>
+tensors of shape [time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is False, and a
+[time, batch, depth, num_transparent_outputs] tensor if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is
+True. If packed_input is True, also returns segment_id, otherwise returns
+None.</p>
 </td>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="classmethod">
-<dt id="lingvo.tasks.mt.layers.TransformerStack.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/layers.html#TransformerStack.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.layers.TransformerStack.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Configs for TransformerStack.</p>
 </dd></dl>
 
 </dd></dl>
@@ -224,10 +225,10 @@ If packed_input is True, also returns segment_id, otherwise returns None.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.tasks.mt.layers_test.html" class="btn btn-neutral float-right" title="lingvo.tasks.mt.layers_test module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.tasks.mt.model.html" class="btn btn-neutral float-right" title="lingvo.tasks.mt.model module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.mt.input_generator_test.html" class="btn btn-neutral" title="lingvo.tasks.mt.input_generator_test module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tasks.mt.input_generator.html" class="btn btn-neutral" title="lingvo.tasks.mt.input_generator module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

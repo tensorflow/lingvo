@@ -201,16 +201,16 @@
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trial.OverrideModelParams"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.OverrideModelParams">[docs]</a>  <span class="k">def</span> <span class="nf">OverrideModelParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model_params</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Modifies &#39;model_params&#39; according to trial params.</span>
+    <span class="sd">&quot;&quot;&quot;Modifies `model_params` according to trial params.</span>
 
-<span class="sd">    Through this method a Trial may tweak model hyperparams (e.g., learning</span>
+<span class="sd">    Through this method a `Trial` may tweak model hyperparams (e.g., learning</span>
 <span class="sd">    rate, shape, depth, or width of networks).</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      model_params: the original model hyperparams.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      The modified model_params.</span>
+<span class="sd">      The modified `model_params`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
@@ -234,8 +234,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_next_report_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_interval_seconds</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DoReportTrainingProgress</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">)</span></div>
 
-  <span class="k">def</span> <span class="nf">_DoReportTrainingProgress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="Trial._DoReportTrainingProgress"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial._DoReportTrainingProgress">[docs]</a>  <span class="k">def</span> <span class="nf">_DoReportTrainingProgress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trial.ReportEvalMeasure"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.ReportEvalMeasure">[docs]</a>  <span class="k">def</span> <span class="nf">ReportEvalMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Reports eval measurement and returns whether the trial should stop.&quot;&quot;&quot;</span>
@@ -264,7 +264,6 @@
 <div class="viewcode-block" id="NoOpTrial.ReportEvalMeasure"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ReportEvalMeasure">[docs]</a>  <span class="k">def</span> <span class="nf">ReportEvalMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">metrics_dict</span>  <span class="c1"># Unused</span>
     <span class="k">return</span> <span class="kc">False</span></div></div>
-
 </pre></div>
 
            </div>
