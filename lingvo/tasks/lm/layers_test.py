@@ -146,8 +146,8 @@ class RnnLmNoEmbeddingTest(tf.test.TestCase):
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
-            sess, xent_output.avg_xent, x)
-        self.assertAllClose(grad_symbolic, grad_numeric)
+            sess, xent_output.avg_xent, x, delta=1e-6)
+        self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
   def testDirectFeatures(self,):
     time, batch, dims, vocab = 5, 3, 6, 8
@@ -330,8 +330,8 @@ class RnnLmTest(tf.test.TestCase):
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
-            sess, xent_output.avg_xent, x)
-        self.assertAllClose(grad_symbolic, grad_numeric)
+            sess, xent_output.avg_xent, x, delta=1e-6)
+        self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
 
 class MoeLmTest(tf.test.TestCase):
@@ -470,7 +470,7 @@ class MoeLmTest(tf.test.TestCase):
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
-            sess, xent_output.avg_xent, x, step=step)
+            sess, xent_output.avg_xent, x, step=step, delta=1e-6)
         self.assertAllClose(
             grad_symbolic.reshape([-1])[::step],
             grad_numeric.reshape([-1])[::step])
@@ -544,8 +544,8 @@ class TransformerLmNoEmbeddingTest(tf.test.TestCase):
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
-            sess, xent_output.avg_xent, x)
-        self.assertAllClose(grad_symbolic, grad_numeric, rtol=0.001, atol=0.001)
+            sess, xent_output.avg_xent, x, delta=1e-6)
+        self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
   def testStep(self):
     p = self._testParams(dtype=tf.float32)
@@ -708,8 +708,8 @@ class TransformerLmTest(tf.test.TestCase):
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
-            sess, xent_output.avg_xent, x)
-        self.assertAllClose(grad_symbolic, grad_numeric)
+            sess, xent_output.avg_xent, x, delta=1e-6)
+        self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
 
 if __name__ == '__main__':
