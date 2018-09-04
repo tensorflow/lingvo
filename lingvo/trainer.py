@@ -180,7 +180,7 @@ class Controller(base_runner.BaseRunner):
         self._model.ConstructFPropBPropGraph()
         self._saver = self._GetSaver()
         self._summary_op = tf.summary.merge_all()
-        self._vars = tf.get_collection(tf.GraphKeys.VARIABLES)
+        self._vars = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
         self._uninitialized = tf.report_uninitialized_variables(self._vars)
         self._initialize_all = tf.global_variables_initializer()
         self.initialize_tables = tf.tables_initializer()
