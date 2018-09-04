@@ -172,6 +172,9 @@ custom_kernel_library(
     name = "best_step_op_kernels",
     srcs = ["best_step_op_kernels.cc"],
     op_def_lib = [":x_ops"],
+    deps = [
+        # Implicit tensorflow proto dependency.
+    ],
 )
 
 py_test(

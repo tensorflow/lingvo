@@ -78,15 +78,20 @@ REGISTER_OP("BestStep")
     .Attr("hist_file: string")
     .Attr("tol: float = 0.0")
     .Attr("minimize: bool = true")
+    .Attr("metric: string = \"\"")
     .SetIsStateful()
     .Doc(R"doc(
 
 Determines the best global step from a history file.
 
 best_step: Scalar value for best global step.
-hist_file: Text file containing 'step score' records; lower scores are better.
+hist_file: A text file containing 'step score' records, or a file pattern that
+    matches tf event files in the format of /path_to_file/events.out.tfevents*.
 tol: Difference between previous best score and current score must be greater
 than this amount to trigger update.
+minimize: If the metric is being minimized. Recorded in hist_file, smaller
+    scores are better if True, and bigger scores are better if False.
+metric: The name of the metric being tracked.
 )doc");
 
 REGISTER_OP("BeamSearchStep")

@@ -244,10 +244,14 @@ py_test(
     name = "early_stop_test",
     size = "small",
     srcs = ["early_stop_test.py"],
+    data = [
+        "//lingvo/core/ops/testdata:best_step_testdata",
+    ],
     deps = [
         ":early_stop",
         ":hyperparams",
         # Implicit tensorflow dependency.
+        "//lingvo/core:test_helper",
     ],
 )
 

@@ -10,9 +10,11 @@ package_group(
 filegroup(
     name = "best_step_testdata",
     data = [
+        "events.out.tfevents.test",
         "history.txt",
         "history_bleu.txt",
     ],
+    visibility = [":friends"],
 )
 
 filegroup(
