@@ -1950,37 +1950,36 @@ def StackTensorsRecursively(values):
   return ret
 
 
-def MixByWeight(inputs_with_weights):
+def MixByWeight(inputs, weights):
   """Returns a weighted random choice from the give inputs.
 
   Args:
-    inputs_with_weights: a list of (fn, weight) pairs, where each fn returns
-      a tf.Tensor or a nested structure containing tf.Tensor and weight is a
-      float > 0. Function return types must be consistent across elements.
+    inputs: a list of callables, where each callable returns
+      a tf.Tensor or a nested structure containing tf.Tensor.
+      Function return types must be consistent across elements.
       The tf.Operation to compute the result tensor will only be invoked for
       one input at a time. For example, if each fn represents an input record
       stream, a record will be drawn only from a selected stream while the other
       streams will remain unchanged.
+    weights: a 1D tensor of float > 0 of the same length as inputs.
 
   Returns:
     A probablistic sample from the inputs proportional to the weights. The
     return type will be the same as return type of individual 'fn' from the
     inputs.
   """
-  # Compute weight ranges per input.
-  # A list of (input, (cum_weight_low, cum_weight_high))
-  inputs_with_weight_ranges = []
-  cumulative_weight = 0.0
-  for inp, weight in inputs_with_weights:
-    inputs_with_weight_ranges.append((inp, (cumulative_weight,
-                                            cumulative_weight + weight)))
-    cumulative_weight += weight
+  weights = tf.convert_to_tensor(weights, dtype=tf.float32)
+  weights = with_dependencies([
+      assert_equal(tf.shape(weights), [len(inputs)]),
+      assert_greater_equal(tf.reduce_min(weights), 0.0)
+  ], weights)
 
-  r = tf.random_uniform(shape=[], maxval=cumulative_weight)
+  lower = tf.cumsum(weights, exclusive=True)
+  upper = tf.cumsum(weights, exclusive=False)
+  r = tf.random_uniform(shape=[], maxval=upper[-1])
   return tf.case(
-      [(tf.logical_and(cum_weight_low <= r, r < cum_weight_high), inp)
-       for (inp,
-            (cum_weight_low, cum_weight_high)) in inputs_with_weight_ranges],
+      [(tf.logical_and(lower[i] <= r, r < upper[i]), inputs[i])
+       for i in range(len(inputs))],
       exclusive=True)
 
 

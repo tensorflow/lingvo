@@ -790,19 +790,44 @@ class MixByWeightTest(tf.test.TestCase):
       sess.run(tf.global_variables_initializer())
 
       def _AddFn(var):
+        return lambda: tf.assign_add(var, 1)
 
-        def _Fn():
-          return tf.assign_add(var, 1)
-
-        return _Fn
-
-      op = py_utils.MixByWeight([(_AddFn(var_a), 0.7), (_AddFn(var_b), 0.3)])
+      op = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], [0.7, 0.3])
       for _ in range(100):
         sess.run(op)
       a, b = sess.run([var_a, var_b])
       self.assertEqual(100, a + b)
       self.assertGreater(a, 50)
       self.assertLess(b, 50)
+
+  def testMixByWeightWithDynamicWeights(self):
+    var_a = tf.get_variable('a', trainable=False, initializer=0)
+    var_b = tf.get_variable('b', trainable=False, initializer=0)
+    var_w = tf.get_variable('w', trainable=False, dtype=tf.float32, shape=[2])
+
+    with self.session() as sess:
+      sess.run(tf.global_variables_initializer())
+
+      def _AddFn(var):
+        return lambda: tf.assign_add(var, 1)
+
+      op = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], var_w)
+
+      # all weight goes to 'a'
+      sess.run([tf.assign(var_w, [1.0, 0.0])])
+      for _ in range(10):
+        sess.run(op)
+      a, b = sess.run([var_a, var_b])
+      self.assertEqual(10, a)
+      self.assertEqual(0, b)
+
+      # all weight goes to 'b'
+      sess.run([tf.assign(var_w, [0.0, 1.0])])
+      for _ in range(10):
+        sess.run(op)
+      a, b = sess.run([var_a, var_b])
+      self.assertEqual(10, a)
+      self.assertEqual(10, b)
 
 
 if __name__ == '__main__':

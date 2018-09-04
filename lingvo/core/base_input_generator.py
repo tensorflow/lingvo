@@ -249,7 +249,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     return args
 
   def _InputOpBucketingArgs(self):
-    p = self.params
     return {
         'bucket_upper_bound': [1000000000],
         'bucket_batch_limit': [self.InputBatchSize()],
@@ -292,9 +291,13 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         # only if it will be used.
         return lambda: self._DataSourceFromFilePattern(file_pattern)
 
-      data_source = py_utils.MixByWeight(
-          (_MakeDataSourceFromFilePatternFunc(file_pattern), weight)
-          for file_pattern, weight in input_file_pattern)
+      inputs = []
+      weights = []
+      for (file_pattern, weight) in input_file_pattern:
+        inputs.append(_MakeDataSourceFromFilePatternFunc(file_pattern))
+        weights.append(weight)
+
+      data_source = py_utils.MixByWeight(inputs, weights)
     else:
       raise ValueError()
     return data_source
