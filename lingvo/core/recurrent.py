@@ -36,7 +36,7 @@ This expects the caller to describe the recurrent neural net by specifying:
     gradients of state1 w.r.t. the final loss.
 
 All of `theta`, `state0`, `inputs`, `extras` and `dstate1` are
-`NestedMap` so that they can carry a bunch of tensors around.
+`.NestedMap` so that they can carry a bunch of tensors around.
 """
 
 from __future__ import absolute_import
@@ -172,16 +172,16 @@ def _Flatten(nmap_list):
 
 
 def _Pack(flatten, nmap_list):
-  """Packs the list of tensors according to nested maps in nmap_list.
+  """Packs the list of tensors according to `.NestedMap` in `nmap_list`.
 
-  _Pack is loosely the inverse of _Flatten.
+  `_Pack` is loosely the inverse of `_Flatten`.
 
   Args:
     flatten: A list of tensors.
-    nmap_list: A list of NestedMap.
+    nmap_list: A list of `.NestedMap`.
 
   Returns:
-    A list of NestedMap, say ret is the returned list. We have
+    A list of `.NestedMap`, say ret is the returned list. We have
 
       1. len(ret) == len(nmap_list);
       2. recursively, ret[i] has the same keys as nmap_list[i];

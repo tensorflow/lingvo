@@ -87,14 +87,14 @@ class BeamSearchHelper(base_layer.LayerBase):
           source_encs: A tensor of shape [src_len, src_batch, source_dim].
           source_paddings: A tensor of shape [src_len, src_batch].
           num_hyps_per_beam: An int, number hyps to keep for source sentence.
-          additional_source_info: a NestedMap of tensors containing extra
+          additional_source_info: a `.NestedMap` of tensors containing extra
               information about the source that may be useful for decoding.
         Returns:
-          initial_results: a NestedMap of initial results. It should contain the
-              following tensors at the minimum.
+          initial_results: a `.NestedMap` of initial results. It should contain
+              the following tensors at the minimum.
                   atten_probs: The initial attention probs, of shape [tgt_batch,
                       src_len].
-          states: a NestedMap of tensors representing states that the client
+          states: a `.NestedMap` of tensors representing states that the client
               would like to keep track of for each hyp.
 
   This callback is called once every decoding time step before beam_search_step
@@ -112,12 +112,12 @@ class BeamSearchHelper(base_layer.LayerBase):
           source_encs: A tensor of shape [src_len, src_batch, source_dim].
           source_paddings: A tensor of shape [src_len, src_batch].
           step_ids: A tensor of shape [tgt_batch, 1].
-          in_states: A NestedMap of tensors representing states that the clients
-              would like to keep track of for each of the active hyps.
-          additional_source_info: a NestedMap of tensors containing extra
+          in_states: A `.NestedMap` of tensors representing states that the
+              clients would like to keep track of for each of the active hyps.
+          additional_source_info: a `.NestedMap` of tensors containing extra
               information about the source that may be useful for decoding.
         Returns:
-          results: A NestedMap of beam search results. It should contain
+          results: A `.NestedMap` of beam search results. It should contain
               the 'atten_probs' and 'log_probs' tensors at the minimal.
               Optionally it may contain 'lm_log_probs' if a LM is used during
               decoding and 'is_last_chunk' if it is decoding a neural transducer
@@ -130,8 +130,8 @@ class BeamSearchHelper(base_layer.LayerBase):
               vocab.  If not empty, this is of shape [tgt_batch, vocab_size].
           is_last_chunk: Whether or not each of the hyp is at the end of a
               chunk. If non-empty, it is of shape [tgt_batch, 1]
-          out_states: A NestedMap. The updated states. This 'out_states' should
-              be of the exact same structure as 'in_states'
+          out_states: A `.NestedMap`. The updated states. This 'out_states'
+              should be of the exact same structure as 'in_states'
 
   This callback is called once every decoding time step after beam_search_step
   is called:
@@ -147,11 +147,11 @@ class BeamSearchHelper(base_layer.LayerBase):
           source_encs: The same as above.
           source_paddings: The same as above.
           new_step_ids: Token ids for the next beam search step.
-          other_states: A NestedMap.
-          additional_source_info: a NestedMap of tensors containing extra
+          other_states: A `.NestedMap`.
+          additional_source_info: a `.NestedMap` of tensors containing extra
               information about the source that may be useful for decoding.
         Returns:
-          final_states, A NestedMap.
+          final_states, A `.NestedMap`.
   """
 
   @classmethod

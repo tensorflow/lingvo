@@ -131,7 +131,7 @@ class RNN(base_layer.LayerBase):
           assumed to be time, second dimension batch, and third dimension depth.
       paddings: A tensor. First dim is time, second dim is batch, and third dim
           is expected to be 1.
-      state0: If not None, the initial rnn state in a NestedMap. Defaults
+      state0: If not None, the initial rnn state in a `.NestedMap`. Defaults
         to the cell's zero-state.
 
     Returns:
@@ -247,7 +247,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase):
         layer and its children layers.
       inputs: A single tensor of shape [time, batch, dims].
       paddings: A single tensor of shape [time, batch, 1].
-      state0: If not None, the initial rnn state in a NestedMap. Defaults
+      state0: If not None, the initial rnn state in a `.NestedMap`. Defaults
         to the init state.
 
     Returns:
@@ -308,7 +308,7 @@ class FRNN(base_layer.LayerBase):
           assumed to be time, second dimension batch, and third dimension depth.
       paddings: A tensor. First dim is time, second dim is batch, and third dim
           is expected to be 1.
-      state0: If not None, the initial rnn state in a NestedMap. Defaults
+      state0: If not None, the initial rnn state in a `.NestedMap`. Defaults
         to the cell's zero-state.
       segment_id: A tensor to support packed inputs. First dim is time, second
           dim is batch, and third dim is expected to be 1.
@@ -693,7 +693,7 @@ class CuDNNLSTM(base_layer.LayerBase):
         layer and its children layers.
       inputs: A tensor of [seq_length, batch_size, num_input_nodes]
       paddings: A tensor of [seq_length, batch_size, 1]
-      state0: If not None, the initial rnn state in a NestedMap. Defaults
+      state0: If not None, the initial rnn state in a `.NestedMap`. Defaults
         to the cell's zero-state.
 
     Returns:
@@ -1029,7 +1029,7 @@ class FRNNWithAttention(base_layer.LayerBase):
         for each context. If set to None, the 'src_encs' will be used as
         source context.
       state0: [Optional] If not None, the initial rnn state and attention
-        context in a NestedMap. Defaults to the cell's zero-state.
+        context in a `.NestedMap`. Defaults to the cell's zero-state.
       src_segment_id: A tensor of shape [source_seq_length, batch_size] to
           support masking with packed inputs.
       segment_id: A tensor of [time, batch, 1].
@@ -1227,14 +1227,14 @@ class MultiSourceFRNNWithAttention(base_layer.LayerBase):
         layer and its children layers.
       src_encs: A `.NestedMap` object containing source encoding tensors,
         each of shape [source_seq_length, batch_size, source_dim]. Children
-        names of the nested map is defined by source_names.
+        names of the `.NestedMap` is defined by source_names.
       src_paddings: A `.NestedMap` object contraining source padding tensors,
         each of shape [source_seq_length, batch_size]. Children names of the
-        nested map is defined by source_names.
+        `.NestedMap` is defined by source_names.
       batch_size: Scalar Tensor of type int, for initial state shape.
 
     Returns:
-      state0 - Initial attention-rnn state in a NestedMap. Zeros for the rnn
+      state0 - Initial attention-rnn state in a `.NestedMap`. Zeros for the rnn
       initial state, and merger output for attention initial state.
 
       Transformed source vectors and transposed source vectors.
@@ -1287,10 +1287,10 @@ class MultiSourceFRNNWithAttention(base_layer.LayerBase):
         layer and its children layers.
       src_encs: A `.NestedMap` object containing source encoding tensors,
         each of shape [source_seq_length, batch_size, source_dim]. Children
-        names of the nested map is defined by source_names.
+        names of the `.NestedMap` is defined by source_names.
       src_paddings: A `.NestedMap` object contraining source padding tensors,
         each of shape [source_seq_length, batch_size]. Children names of the
-        nested map is defined by source_names.
+        `.NestedMap` is defined by source_names.
       inputs: A tensor of [time, batch, dims].
       paddings: A tensor of [time, batch, 1].
 
@@ -1360,7 +1360,7 @@ class MultiSourceFRNNWithAttention(base_layer.LayerBase):
                                              query_vec)
       return state1, py_utils.NestedMap()
 
-    # Note that, we have a nested map for each parameter.
+    # Note that, we have a NestedMap for each parameter.
     acc_state, _ = recurrent.Recurrent(
         theta=py_utils.NestedMap(
             rnn=theta.cell,

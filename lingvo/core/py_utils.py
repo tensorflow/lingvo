@@ -326,7 +326,7 @@ class NestedMap(dict):
     assert isinstance(key, six.string_types) and _NAME_PATTERN.match(key), key
 
   def Flatten(self):
-    """Flatten the nested map and returns values in a list."""
+    """Flatten the `.NestedMap` and returns values in a list."""
 
     def Expand(v):
       if isinstance(v, NestedMap):
@@ -345,7 +345,7 @@ class NestedMap(dict):
     return ret
 
   def FlattenItems(self):
-    """Flatten the nested map and returns <key, value> pairs in a list.
+    """Flatten the `.NestedMap` and returns <key, value> pairs in a list.
 
     Returns:
       A list of <key, value> pairs, where keys for nested entries will be
@@ -370,7 +370,7 @@ class NestedMap(dict):
     return Expand(None, self)
 
   def Transform(self, fn):
-    """Returns a copy of this NestedMap with fn applied on each value."""
+    """Returns a copy of this `.NestedMap` with fn applied on each value."""
 
     def DoTransform(v):
       if isinstance(v, NestedMap):
@@ -390,7 +390,7 @@ class NestedMap(dict):
     return ret
 
   def Filter(self, fn):
-    """Returns a copy of this NestedMap with entries that fn(entry) is True."""
+    """Returns a copy of this `.NestedMap` with entries that fn(entry) is True."""
 
     def DoFilter(v):
       if isinstance(v, NestedMap):
@@ -433,7 +433,7 @@ class NestedMap(dict):
     """Returns true if self and other is compatible.
 
     Args:
-      other: Another NestedMap.
+      other: Another `.NestedMap`.
 
     If x and y are two compatible `.NestedMap`, `x.Pack(y.Flatten())`
     produces y and `y.Pack(x.Flatten())` produces x.
@@ -462,7 +462,7 @@ class NestedMap(dict):
     return DoCompare(self, other)
 
   def DebugString(self):
-    """Returns a debug string for this nested map."""
+    """Returns a debug string for this `.NestedMap`."""
 
     def Print(prefix, value):
       """Recursively walk value."""
@@ -938,7 +938,7 @@ def _LogPlacement(label, theta, copy):
   """Logs theta and its copy's device placement."""
 
   def GetDevices(m):
-    """Flatten a NestedMap m and extracts each value's device."""
+    """Flatten a `.NestedMap` m and extracts each value's device."""
     return [x.device for x in m.Flatten()]
 
   tf.logging.info('=== %s ===', label)
@@ -956,7 +956,7 @@ def CreateLocalTheta(theta, device_list=None, label=None):
   Leaves variables intact.
 
   Args:
-    theta: a NestedMap of variables.
+    theta: a `.NestedMap` of variables.
     device_list: list of devices to shard across. If None, defaults
       to a list [''].
     label: Logging label.
@@ -1126,7 +1126,7 @@ def ComputeGradients(loss, vmap):
     vmap: A `.NestedMap` of variables.
 
   Returns:
-    var_grad - a NestedMap of (variable, gradient). You can view
+    var_grad - a `.NestedMap` of (variable, gradient). You can view
     var_grad as an ordered list of (key, (var, grad)) tuples. Every
     key of var_grad exists in vmap. Every variable in vmap that
     contributes to loss must exist in var_grad. Every var of var_grad
@@ -1215,14 +1215,14 @@ def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
   """Adjusts the map of (var, grad) with L2 regularization.
 
   Args:
-    var_grads: a NestedMap of (variable, gradient).
+    var_grads: a `.NestedMap` of (variable, gradient).
     l2_regularizer_weight: L2 regularization weight.
 
   Returns:
     A tuple (l2_loss, var_grads).
 
     - l2_loss: A scalar. The l2 loss.
-    - var_grads: a NestedMap of (variable, gradient) regulated by L2.
+    - var_grads: a `.NestedMap` of (variable, gradient) regulated by L2.
   """
 
   def GetVar(item):
@@ -1292,7 +1292,7 @@ def SplitRecursively(x, num_splits, axis=-1):
     - If 'x' is a list, a list of lists, where each sublist has the same length
       as 'x' and the k'th element in each sublist corresponds to a split of the
       k'th element from 'x'.
-    - If 'x' is a NestedMap, a list of `.NestedMap`, where each field
+    - If 'x' is a `.NestedMap`, a list of `.NestedMap`, where each field
       corresponds to a split from the same field of 'x'.
   """
   if isinstance(x, tf.Tensor):
@@ -1331,7 +1331,7 @@ def ConcatRecursively(splits, axis=-1):
     - If input 'splits' are lists, returns a list of the same length where the
       k'th element represents concatenated data of the k'th element from each
       split.
-    - If input 'splits' are `.NestedMap`, returns a NestedMap with each field
+    - If input 'splits' are `.NestedMap`, returns a `.NestedMap` with each field
       concatenated from corresponding fields of input splits.
 
   Raises:

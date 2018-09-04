@@ -261,7 +261,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       file_pattern: A string file pattern.
 
     Returns:
-      A tf.Tensor or nested map of tf.Tensor
+      A tf.Tensor or `.NestedMap` of tf.Tensor
     """
     raise NotImplementedError()
 
@@ -272,7 +272,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     list of (file_pattern, weight) pairs.
 
     Returns:
-      A tf.Tensor or nested map of tf.Tensor same as
+      A tf.Tensor or `.NestedMap` of tf.Tensor same as
       `self._DataSourceFromFilePattern()`.
 
     Raises:

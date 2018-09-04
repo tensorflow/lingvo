@@ -412,7 +412,7 @@ class AdditiveAttention(BaseAttentionLayer):
         query_vec: [target_batch, query_dim]
         query_segment_id: [target_batch]
         per_step_source_padding: [target_batch, source_length]
-        step_state: A NestedMap containing 'global_step' and 'time_step'.
+        step_state: A `.NestedMap` containing 'global_step' and 'time_step'.
           Required for deterministic dropout.
 
       Note: concated_source_vecs are the vectors that are used to compute the
@@ -480,7 +480,7 @@ class AdditiveAttention(BaseAttentionLayer):
         query_vec: [b, query_dim]
         query_segment_id: [b]
         per_step_source_padding: [b, sl]
-        step_state: A NestedMap containing 'global_step' and 'time_step'.
+        step_state: A `.NestedMap` containing 'global_step' and 'time_step'.
           Required for deterministic dropout.
 
       Returns:
@@ -830,7 +830,7 @@ class DotProductAttention(BaseAttentionLayer):
         query_vec:                [target_batch, source_dim].
         query_segment_id:         [target_batch].
         per_step_source_padding:  [target_batch, source_seq_length]
-        step_state:               A NestedMap containing 'global_step' and
+        step_state:               A `.NestedMap` containing 'global_step' and
                                   'time_step'. Required for deterministic
                                   dropout.
 
@@ -979,7 +979,7 @@ class DotProductAttention(BaseAttentionLayer):
           AdditiveAttention, and is simply passed through.
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch, source_seq_length].
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      step_state: A `.NestedMap` containing 'global_step' and 'time_step'.
         Required for deterministic dropout.
       query_segment_id: Query segment id with shape [target_batch].
 
@@ -1425,7 +1425,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      step_state: A `.NestedMap` containing 'global_step' and 'time_step'.
         Required for deterministic dropout.
       query_segment_id: a tensor of shape [target_batch].
 
@@ -1574,7 +1574,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      step_state: A `.NestedMap` containing 'global_step' and 'time_step'.
         Required for deterministic dropout.
       query_segment_id: a tensor of shape [target_batch].
 
@@ -2372,7 +2372,7 @@ class MonotonicAttention(BaseAttentionLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      step_state: A `.NestedMap` containing 'global_step' and 'time_step'.
         Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size].
 
@@ -2608,7 +2608,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      step_state: A `.NestedMap` containing 'global_step' and 'time_step'.
         Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size]
 

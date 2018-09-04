@@ -211,7 +211,7 @@ class TransformerAttentionLayer(base_layer.LayerBase):
     Returns:
       A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
       representing the output from the current state, and new_state is the new
-      state NestedMap.
+      state `.NestedMap`.
     """
     p = self.params
     assert p.is_masked  # Must be causal attention.
