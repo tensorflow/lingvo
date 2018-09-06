@@ -100,6 +100,7 @@ class StrToVocabTokensOp : public OpKernel {
     bool load_token_ids_from_vocab;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("load_token_ids_from_vocab",
                                      &load_token_ids_from_vocab));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("delimiter", &delimiter_));
     CHECK_GT(maxlen_, 0);
     OP_REQUIRES_OK(ctx,
                    vocab_.Load(vocab_filepath_, load_token_ids_from_vocab));
@@ -135,8 +136,16 @@ class StrToVocabTokensOp : public OpKernel {
 
       string label(t_label(i));
       VLOG(1) << "Label " << label;
-      std::vector<string> tokens =
-          str_util::Split(label, ' ', str_util::SkipWhitespace());
+      std::vector<string> tokens;
+      if (delimiter_.length() > 0) {
+        tokens = str_util::Split(label, delimiter_, str_util::SkipWhitespace());
+      } else {
+        // Split by the empty delimiter.
+        for (int i = 0; i < label.size(); ++i) {
+          tokens.push_back(string(1, label[i]));
+        }
+      }
+
       VLOG(1) << "#Tokens " << tokens.size() << " "
               << str_util::Join(tokens, "/");
       int cur_char = 0;
@@ -162,6 +171,7 @@ class StrToVocabTokensOp : public OpKernel {
   string vocab_filepath_;
   bool append_eos_ = true;
   int maxlen_ = 0;
+  string delimiter_;
   Vocab vocab_;
 };
 

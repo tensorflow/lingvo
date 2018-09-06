@@ -135,6 +135,8 @@ class VocabFileTokenizer(BaseTokenizer):
              'If set, specifies a filepath to the Ngram vocab file.')
     p.Define('ngram_separator', '',
              'string separator to use when joining ngrams.')
+    p.Define('tokens_delimiter', ' ',
+             'The delimiter to split a string to tokens with.')
     return p
 
   @property
@@ -157,25 +159,23 @@ class VocabFileTokenizer(BaseTokenizer):
           strs,
           maxlen=max_length,
           append_eos=append_eos,
-          vocab_filepath=p.token_vocab_filepath)
+          vocab_filepath=p.token_vocab_filepath,
+          delimiter=p.tokens_delimiter)
     elif p.ngram_vocab_filepath:
       raise NotImplementedError('ngram vocab StringsToIds is not supported.')
 
   def IdsToStrings(self, ids, lens):
     self._CheckParams()
     p = self.params
-
     if p.token_vocab_filepath:
-      # Use the ngram_id_to_token op with ' ' as separator since we do not have
-      # the counterpart to str_to_vocab_tokens defined.
-      return py_x_ops.ngram_id_to_token(
-          token_ids=ids,
-          seq_lengths=lens,
-          ngram_vocab_filepath=p.token_vocab_filepath,
-          ngram_separator=' ')
+      ngram_vocab_filepath = p.token_vocab_filepath
+      ngram_separator = p.tokens_delimiter
     elif p.ngram_vocab_filepath:
-      return py_x_ops.ngram_id_to_token(
-          token_ids=ids,
-          seq_lengths=lens,
-          ngram_vocab_filepath=p.ngram_vocab_filepath,
-          ngram_separator=p.ngram_separator)
+      ngram_vocab_filepath = p.ngram_vocab_filepath
+      ngram_separator = p.ngram_separator
+
+    return py_x_ops.ngram_id_to_token(
+        token_ids=ids,
+        seq_lengths=lens,
+        ngram_vocab_filepath=ngram_vocab_filepath,
+        ngram_separator=ngram_separator)

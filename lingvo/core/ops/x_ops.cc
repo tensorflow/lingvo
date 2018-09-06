@@ -397,6 +397,7 @@ REGISTER_OP("StrToVocabTokens")
     .Attr("maxlen: int = 300")
     .Attr("vocab_filepath: string")
     .Attr("load_token_ids_from_vocab: bool = true")
+    .Attr("delimiter: string = ' '")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       auto batch_size = c->Dim(c->input(0), 0);
       int maxlen;
@@ -425,6 +426,7 @@ vocab_filepath: a string, filepath to the vocab file.
 load_token_ids_from_vocab: Whether token ids are present in vocab (i.e. vocab
     contains two colums, one for IDs and one for words).  If false, line numbers
     are used.
+delimiter: The delimiter to split the labels to tokens by.
 )doc");
 
 REGISTER_OP("IdToToken")
