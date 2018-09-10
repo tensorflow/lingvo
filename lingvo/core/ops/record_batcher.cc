@@ -151,45 +151,48 @@ void RecordBatcher::ProcessorLoop() {
     if (iter == opts_.bucket_upper_bound.end()) {
       VLOG(1) << "Skip. bucket out-of-range " << bucket;
       ++total_records_skipped_;
-      continue;
-    }
-    const int id = iter - opts_.bucket_upper_bound.begin();
+    } else {
+      const int id = iter - opts_.bucket_upper_bound.begin();
 
-    // Figure out which buckets we should return to the consumer.
-    // A bucket (id-th) is full.
-    const int64 batch_limit = opts_.bucket_batch_limit[id];
-    if (buckets_[id].size() >= batch_limit) {
-      WaitForToFlushEmpty();
-      if (stop_) return;
+      // Figure out which buckets we should return to the consumer.
+      // A bucket (id-th) is full.
+      const int64 batch_limit = opts_.bucket_batch_limit[id];
       if (buckets_[id].size() >= batch_limit) {
-        CHECK(to_flush_.empty());
-        CHECK_EQ(buckets_[id].size(), batch_limit);
-        to_flush_.push_back({id, std::move(buckets_[id])});
-        buckets_[id].clear();
+        WaitForToFlushEmpty();
+        if (stop_) return;
+        if (buckets_[id].size() >= batch_limit) {
+          CHECK(to_flush_.empty());
+          CHECK_EQ(buckets_[id].size(), batch_limit);
+          to_flush_.push_back({id, std::move(buckets_[id])});
+          buckets_[id].clear();
+        }
       }
-    }
 
-    if (opts_.flush_every_n > 0 && records_yielded_ >= opts_.flush_every_n) {
-      WaitForToFlushEmpty();
-      if (stop_) return;
       if (opts_.flush_every_n > 0 && records_yielded_ >= opts_.flush_every_n) {
-        CHECK(to_flush_.empty());
+        WaitForToFlushEmpty();
+        if (stop_) return;
+        if (opts_.flush_every_n > 0 &&
+            records_yielded_ >= opts_.flush_every_n) {
+          CHECK(to_flush_.empty());
 
-        // Need to flush all buckets.
-        records_yielded_ = 0;
-        for (int i = 0; i < buckets_.size(); ++i) {
-          if (!buckets_[i].empty()) {
-            CHECK_LE(static_cast<int64>(buckets_[i].size()),
-                     opts_.bucket_batch_limit[i]);
-            to_flush_.push_back({i, std::move(buckets_[i])});
-            buckets_[i].clear();
+          // Need to flush all buckets.
+          records_yielded_ = 0;
+          for (int i = 0; i < buckets_.size(); ++i) {
+            if (!buckets_[i].empty()) {
+              CHECK_LE(static_cast<int64>(buckets_[i].size()),
+                       opts_.bucket_batch_limit[i]);
+              to_flush_.push_back({i, std::move(buckets_[i])});
+              buckets_[i].clear();
+            }
           }
         }
       }
+
+      ++records_yielded_;
+      ++total_records_yielded_;
+      buckets_[id].push_back(std::move(sample));
     }
 
-    ++records_yielded_;
-    ++total_records_yielded_;
     if (current_epoch != yielder_->current_epoch()) {
       if (current_epoch < 10) {
         LOG(INFO) << "Past end of epoch " << current_epoch
@@ -203,7 +206,6 @@ void RecordBatcher::ProcessorLoop() {
       }
       current_epoch = yielder_->current_epoch();
     }
-    buckets_[id].push_back(std::move(sample));
   }
 }
 
