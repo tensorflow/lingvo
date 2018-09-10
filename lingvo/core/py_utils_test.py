@@ -240,6 +240,13 @@ class PyUtilsTest(tf.test.TestCase):
       with self.assertRaisesRegexp(tf.errors.InvalidArgumentError, 'NaN'):
         sess.run(py_utils.CheckNumerics(z))
 
+  def testLog(self):
+    with self.session():
+      x = tf.constant([[1, 2], [3, 4]])
+      y = tf.constant([10] * 4)
+      x = py_utils.Log(x, 'testLog', x=x, y=y)
+      self.assertAllEqual(x.eval(), [[1, 2], [3, 4]])
+
   def testGetShape(self):
     a = tf.constant([1])
     self.assertEqual(py_utils.GetShape(a), [1])

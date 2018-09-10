@@ -22,11 +22,12 @@ import contextlib
 import hashlib
 import math
 import re
-import six
 import traceback
+
+import numpy as np
+import six
 from six.moves import range
 from six.moves import zip
-
 import tensorflow as tf
 
 from tensorflow.contrib.model_pruning.python.layers import core_layers as pruning_layers
@@ -161,6 +162,47 @@ def CheckNumerics(inp, message=None, *args, **kwargs):
 def with_dependencies(dependencies, output_tensor):
   with tf.control_dependencies(dependencies):
     return tf.identity(output_tensor)
+
+
+@contextlib.contextmanager
+def _PrintOptions(*args, **kwargs):
+  original = np.get_printoptions()
+  np.set_printoptions(*args, **kwargs)
+  yield
+  np.set_printoptions(**original)
+
+
+def _Print(name, x):
+  with _PrintOptions(linewidth=1000):
+    tf.logging.info('%s = %s', name, np.array_repr(x))
+
+
+def Log(value, prefix, **kwargs):
+  """Prints out values of tensors.
+
+  Useful for debugging. E.g.,
+    x = ... a tf.Tensor ...
+    y = ... a tf.Tensor ...
+    z = compute(x, y)
+    z = Log(z, 'debug compute()', x=x, y=y)
+
+  Args:
+    value: A Tensor. Log happens after this tensor's computed.
+    prefix: Every tensor is logged with this prefix.
+    **kwargs: keywords and tensors. Tensors are logged in the sort order of
+      these keywards.
+
+  Returns:
+    value is returned.
+  """
+
+  # Ensures tensors are printed in order.
+  last = value
+  for k in sorted(kwargs):
+    with tf.control_dependencies([last]):
+      last = tf.py_func(_Print, [prefix + ' : ' + k, kwargs[k]], [])
+  with tf.control_dependencies([last]):
+    return tf.identity(value)
 
 
 def HasRank(tensor, expected_rank):
@@ -1931,6 +1973,27 @@ def PadOrTrimTo(x, shape):
   x = tf.pad(x, tf.stack([zeros, pad], axis=1))
   # If dim-i is larger than shape[i], we slice [0:shape[i]] for dim-i.
   return tf.reshape(tf.slice(x, zeros, shape), shape)
+
+
+def RepeatDim(tensor, multiple, axis):
+  """Copies elements in tensor's axis "multiple" times, like np.repeat."""
+  # x = [[1, 2, 3], [4, 5, 6]]
+  # RepeatDim(x, 1) gives:
+  # [[1, 1, 2, 2, 3, 3]. [4, 4, 5, 5, 6, 6]]
+  # As a comparison tf.tile(x, 1) gives:\
+  # [[1, 2, 3, 1, 2, 3], [4, 5, 6, 4, 5, 6]]
+
+  if multiple == 1:
+    return tensor
+  t_shape = tf.shape(tensor)
+  tensor_dims = tf.concat(
+      [t_shape[:axis], [t_shape[axis] * multiple], t_shape[axis + 1:]], 0)
+  multiple_dims = tf.concat([
+      tf.fill([axis + 1], 1), [multiple],
+      tf.fill([tf.rank(tensor) - axis - 1], 1)
+  ], 0)
+  return tf.reshape(
+      tf.tile(tf.expand_dims(tensor, axis + 1), multiple_dims), tensor_dims)
 
 
 def StackTensorsRecursively(values):
