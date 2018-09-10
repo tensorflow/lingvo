@@ -1215,7 +1215,8 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     p.Define(
         'logits_abs_max', None, 'If not None, logits are clipped to be within'
         ' [-logits_abs_max, logits_abs_max]. This can be a scalar'
-        ' or a scalar tensor.')
+        ' or a scalar tensor. Applies back pressure at training time; ignored'
+        ' for inference.')
     p.Define(
         'chunk_size', 0, 'If non-zero, computes the per example '
         'xent by small chunks along the batch dimension.')
@@ -1403,9 +1404,11 @@ class SimpleFullSoftmax(SoftmaxLayer):
         bias)
 
     # Clip logits by range.
-    # Note that this is generally not used in conjunction with quantization.
+    # Note that this is generally not used in conjunction with quantization and
+    # shouldn't be needed at inference time as the quantized matmul above will
+    # take care of clipping naturally based on the data type and qparams.
     abs_max = p.logits_abs_max
-    if abs_max is not None:
+    if abs_max is not None and not p.is_inference:
       abs_min = -abs_max  # pylint: disable=invalid-unary-operand-type
       logits = tf.clip_by_value(logits, abs_min, abs_max)
 
