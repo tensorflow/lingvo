@@ -61,7 +61,8 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
         lambda x: x.lower().translate(None, string.punctuation), [line],
         tf.string,
         stateful=False)
-    src_ids, _, src_paddings = self.StringsToIds([normalized_line])
+    src_ids, _, src_paddings = self.StringsToIds([normalized_line],
+                                                 is_source=True)
     tgt_weights = 1.0 - tgt_paddings
     bucket_key = tf.to_int32(
         tf.maximum(

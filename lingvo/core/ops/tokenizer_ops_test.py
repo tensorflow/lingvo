@@ -156,6 +156,46 @@ class TokenizerOpsTest(tf.test.TestCase):
                            0., 0., 0., 0., 1., 1., 1., 1., 1., 1.
                        ], [0., 0., 0., 0., 0., 1., 1., 1., 1., 1.]])
 
+  def testStrToVocabTokenTruncates(self):
+    vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
+    with self.session(use_gpu=False) as sess:
+      token_ids, target_ids, paddings = sess.run(
+          py_x_ops.str_to_vocab_tokens(['a b c d e ' * 1000],
+                                       append_eos=True,
+                                       maxlen=5,
+                                       vocab_filepath=vocab))
+      self.assertEqual(token_ids.tolist(), [[1, 5, 6, 7, 8]])
+      self.assertEqual(target_ids.tolist(), [[5, 6, 7, 8, 9]])
+      self.assertEqual(paddings.tolist(), [[0., 0., 0., 0., 0.]])
+
+  def testStrToVocabTokenCustomDelimiter(self):
+    custom_delimiter = '_'
+    vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
+    with self.session(use_gpu=False) as sess:
+      token_ids, target_ids, paddings = sess.run(
+          py_x_ops.str_to_vocab_tokens([custom_delimiter.join('abcde')],
+                                       append_eos=True,
+                                       maxlen=8,
+                                       vocab_filepath=vocab,
+                                       delimiter=custom_delimiter))
+      self.assertEqual(token_ids.tolist(), [[1, 5, 6, 7, 8, 9, 2, 2]])
+      self.assertEqual(target_ids.tolist(), [[5, 6, 7, 8, 9, 2, 2, 2]])
+      self.assertEqual(paddings.tolist(), [[0., 0., 0., 0., 0., 0., 1., 1.]])
+
+  def testStrToVocabTokenSplitToCharacters(self):
+    custom_delimiter = ''
+    vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
+    with self.session(use_gpu=False) as sess:
+      token_ids, target_ids, paddings = sess.run(
+          py_x_ops.str_to_vocab_tokens(['abcde'],
+                                       append_eos=True,
+                                       maxlen=8,
+                                       vocab_filepath=vocab,
+                                       delimiter=custom_delimiter))
+      self.assertEqual(token_ids.tolist(), [[1, 5, 6, 7, 8, 9, 2, 2]])
+      self.assertEqual(target_ids.tolist(), [[5, 6, 7, 8, 9, 2, 2, 2]])
+      self.assertEqual(paddings.tolist(), [[0., 0., 0., 0., 0., 0., 1., 1.]])
+
   def testNgramIdToToken(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_ngrams.txt')
     with self.session(use_gpu=False):

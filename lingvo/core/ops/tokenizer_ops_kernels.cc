@@ -152,14 +152,26 @@ class StrToVocabTokensOp : public OpKernel {
       int cur_char = 0;
       for (const auto& token : tokens) {
         const int token_id = vocab_.TokenToId(token);
-        t_token_ids(i, cur_char + 1) = token_id;
         t_target_ids(i, cur_char) = token_id;
         t_paddings(i, cur_char) = 0.0;
+        // If the number of tokens is longer than the max length - truncate.
+        if (cur_char + 1 >= maxlen_) {
+          cur_char++;
+          LOG(INFO) << "Label: \"" << label << "\" contained " << tokens.size()
+                    << " tokens, and was truncated to size: " << maxlen_ << " ("
+                    << tokens.size() - maxlen_ << " tokens were ignored).";
+          break;
+        }
+        t_token_ids(i, cur_char + 1) = token_id;
         cur_char++;
       }
-      t_target_ids(i, cur_char) = vocab_.eos_id();
-      t_paddings(i, cur_char) = append_eos_ ? 0.0 : 1.0;
-      ++cur_char;
+      if (cur_char < maxlen_) {
+        // There was no truncation, t_token_ids is ahead by 1 over t_target_ids
+        // and t_paddings
+        t_target_ids(i, cur_char) = vocab_.eos_id();
+        t_paddings(i, cur_char) = append_eos_ ? 0.0 : 1.0;
+        ++cur_char;
+      }
       for (; cur_char < maxlen_; ++cur_char) {
         t_token_ids(i, cur_char) = vocab_.eos_id();
         t_target_ids(i, cur_char) = vocab_.eos_id();
