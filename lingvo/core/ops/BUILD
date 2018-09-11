@@ -262,6 +262,8 @@ py_test(
     name = "tokenizer_ops_test",
     srcs = ["tokenizer_ops_test.py"],
     data = [
+        "//lingvo/core/ops/testdata:bpe_codes_vocab",
+        "//lingvo/core/ops/testdata:bpe_words_vocab",
         "//lingvo/core/ops/testdata:test_ngrams",
         "//lingvo/core/ops/testdata:test_vocab",
     ],

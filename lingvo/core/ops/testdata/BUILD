@@ -27,6 +27,16 @@ filegroup(
     data = ["test_ngrams.txt"],
 )
 
+filegroup(
+    name = "bpe_words_vocab",
+    data = ["bpe_words.vocab"],
+)
+
+filegroup(
+    name = "bpe_codes_vocab",
+    data = ["bpe_codes.vocab"],
+)
+
 # Data from "Findings of the 2014 Workshop on Statistical Machine Translation"
 # http://www.aclweb.org/anthology/W14-3302
 filegroup(

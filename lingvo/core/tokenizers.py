@@ -179,3 +179,31 @@ class VocabFileTokenizer(BaseTokenizer):
         seq_lengths=lens,
         ngram_vocab_filepath=ngram_vocab_filepath,
         ngram_separator=ngram_separator)
+
+
+class BpeTokenizer(BaseTokenizer):
+  """Tokenizers that use BPE vocab files and word to id lists for look-up."""
+
+  @classmethod
+  def Params(cls):
+    p = super(BpeTokenizer, cls).Params()
+    p.Define('codes_filepath', None,
+             'Specifies a filepath to the list of bpe codes vocab file.')
+    p.Define('words_to_ids_filepath', None,
+             'Specifies a filepath to the word bpe vocab file.')
+    return p
+
+  def _StringsToIdsImpl(self, strs, max_length, append_eos):
+    p = self.params
+
+    return py_x_ops.bpe_words_to_ids(
+        strs,
+        maxlen=max_length,
+        append_eos=append_eos,
+        tokenization_filepath=p.words_to_ids_filepath)
+
+  def IdsToStrings(self, ids, lens):
+    p = self.params
+
+    return py_x_ops.bpe_ids_to_words(
+        token_ids=ids, seq_lengths=lens, vocab_filepath=p.codes_filepath)
