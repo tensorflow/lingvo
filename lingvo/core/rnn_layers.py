@@ -223,6 +223,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase):
       for (i, cell_tpl) in enumerate(self._GetCellTpls()):
         params = FRNN.Params()
         params.packed_input = p.packed_input
+        params.allow_implicit_capture = p.allow_implicit_capture
         params.name = 'frnn_%d' % i
         params.cell = cell_tpl.Copy()
         params.cell.name = '%s_%d' % (p.name, i)
