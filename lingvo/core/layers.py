@@ -122,7 +122,12 @@ class BatchNormLayer(base_layer.LayerBase):
       # Two statistics.
       _, self._moving_mean = py_utils.CreateVariable(
           'moving_mean', pc, trainable=False)
-      pc.init.scale = 1.0
+
+      pc = py_utils.WeightParams(
+          shape=[p.dim],
+          init=py_utils.WeightInit.Constant(1.0),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
       _, self._moving_variance = py_utils.CreateVariable(
           'moving_variance', pc, trainable=False)
     self._epsilon = 0.001
@@ -1362,9 +1367,11 @@ class SimpleFullSoftmax(SoftmaxLayer):
       for i in range(p.num_shards):
         self.CreateVariable('weight_%d' % i, pc, self.AddGlobalVN)
 
-      pc.shape = [num_classes_per_shard]
-      pc.init.method = 'constant'
-      pc.init.scale = 0.0
+      pc = py_utils.WeightParams(
+          shape=[num_classes_per_shard],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
       for i in range(p.num_shards):
         self.CreateVariable('bias_%d' % i, pc, self.AddGlobalVN)
 

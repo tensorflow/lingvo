@@ -156,11 +156,14 @@ class Params(object):
   """
 
   def __init__(self):
+    self.__dict__['_immutable'] = False
     self._params = {}  # name => _Param
 
   def __setattr__(self, name, value):
-    if name == '_params':
-      self.__dict__['_params'] = value
+    if self._immutable:
+      raise TypeError('This Params instance is immutable.')
+    if name == '_params' or name == '_immutable':
+      self.__dict__[name] = value
     else:
       try:
         self._params[name].Set(value)
@@ -168,8 +171,8 @@ class Params(object):
         raise AttributeError(name)
 
   def __getattr__(self, name):
-    if name == '_params':
-      return self.__dict__['_params']
+    if name == '_params' or name == '_immutable':
+      return self.__dict__[name]
     try:
       return self._params[name].Get()
     except KeyError:
@@ -230,12 +233,18 @@ class Params(object):
     Raises:
       AttributeError: If parameter 'name' is already defined.
     """
+    if self._immutable:
+      raise TypeError('This Params instance is immutable.')
     assert name is not None and isinstance(
         name,
         six.string_types) and (re.match('^[a-z][a-z0-9_]*$', name) is not None)
     if name in self._params:
       raise AttributeError('Parameter %s is already defined' % name)
     self._params[name] = _Param(name, default_value, description)
+
+  def Freeze(self):
+    """Marks this Params as immutable."""
+    self._immutable = True
 
   def _GetNested(self, name):
     """Returns nested param by its name."""
@@ -265,6 +274,8 @@ class Params(object):
     Returns:
       self
     """
+    if self._immutable:
+      raise TypeError('This Params instance is immutable.')
     for name, value in six.iteritems(kwargs):
       # Get nested param.
       param, key = self._GetNested(name)
@@ -313,6 +324,8 @@ class Params(object):
     Returns:
       self
     """
+    if self._immutable:
+      raise TypeError('This Params instance is immutable.')
     for name in args:
       # Get nested param.
       param, key = self._GetNested(name)
@@ -392,6 +405,8 @@ class Params(object):
       AttributeError: text contains invalid parameter key
       ValueError: text contains invalid parameter value
     """
+    if self._immutable:
+      raise TypeError('This Params instance is immutable.')
     kv = {}
     string_continue = None  # None or (key, quote, value)
     for line in text.split('\n'):

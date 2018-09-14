@@ -144,7 +144,7 @@ class PyUtilsTest(tf.test.TestCase):
       var2 = py_utils.CreateVariable('var1', pc)[0]
 
       # An exception should be thrown in this case.
-      pc.init.scale = 2.0
+      pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian(2.0))
       with self.assertRaises(AssertionError):
         py_utils.CreateVariable('var1', pc)
 

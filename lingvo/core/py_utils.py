@@ -356,7 +356,7 @@ class NestedMap(dict):
           '%s; available attributes: %s' % (e, self.__dict__.keys()))
 
   def copy(self):  # Don't delegate w/ super: dict.copy() -> dict.
-    return type(self)(self)
+    return NestedMap(self)
 
   def DeepCopy(self):
     flat_v = self.Flatten()
@@ -598,6 +598,7 @@ class WeightInit(object):
     p.Define('method', method, 'Initialization method.')
     p.Define('scale', scale, 'Initialization scale.')
     p.Define('seed', seed, 'Random seed used to generate initial values.')
+    p.Freeze()
     return p
 
   @staticmethod
@@ -674,6 +675,7 @@ def WeightParams(shape, init=None, dtype=None, collections=None):
   p.Define('init', init, 'Initialization method.')
   p.Define('collections', collections,
            'Variable collections this weight belongs to.')
+  p.Freeze()
   return p
 
 

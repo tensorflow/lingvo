@@ -168,6 +168,34 @@ class ParamsTest(tf.test.TestCase):
     self.assertRaisesRegexp(AssertionError, '^Cannot introspect',
                             lambda: outer.Set(**{'d.foo': 'baz'}))
 
+  def testFreeze(self):
+    p = _params.Params()
+    self.assertRaises(AssertionError, lambda: p.Define('_immutable', 1, ''))
+    self.assertRaisesRegexp(AttributeError, 'foo', lambda: p.Set(foo=4))
+    # We use setattr() because lambda cannot contain explicit assignment.
+    self.assertRaisesRegexp(AttributeError, 'foo', lambda: setattr(p, 'foo', 4))
+    p.Define('foo', 1, '')
+    p.Define('nested', p.Copy(), '')
+    self.assertEqual(p.foo, 1)
+    self.assertEqual(p.Get('foo'), 1)
+    self.assertEqual(p.nested.foo, 1)
+    p.Freeze()
+
+    self.assertRaises(TypeError, lambda: p.Set(foo=2))
+    self.assertEqual(p.Get('foo'), 1)
+    self.assertRaises(TypeError, lambda: setattr(p, 'foo', 3))
+    self.assertEqual(p.foo, 1)
+    self.assertRaises(TypeError, lambda: p.Delete('foo'))
+    self.assertEqual(p.foo, 1)
+    self.assertRaises(TypeError, lambda: p.Define('bar', 1, ''))
+    self.assertRaisesRegexp(AttributeError, 'bar', p.Get, 'bar')
+
+    p.nested.foo = 2
+    self.assertEqual(p.foo, 1)
+    self.assertEqual(p.nested.foo, 2)
+
+    self.assertRaises(TypeError, lambda: setattr(p, '_immutable', False))
+
   def testToString(self):
     outer = _params.Params()
     outer.Define('foo', 1, '')

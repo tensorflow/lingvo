@@ -323,8 +323,7 @@ class AdditiveAttention(BaseAttentionLayer):
     p.Define('query_dim', 0, 'Number of query nodes.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
     # Fill in reasonable default for params init
-    p.params_init.method = 'gaussian_sqrt_dim'
-    p.params_init.scale = 1.0
+    p.params_init = py_utils.WeightInit.GaussianSqrtDim()
     p.Define(
         'same_batch_size', False,
         'True iff the source and target sequence has the same batch size.')
@@ -337,18 +336,24 @@ class AdditiveAttention(BaseAttentionLayer):
     p = self.params
     with tf.variable_scope(p.name):
       pc = py_utils.WeightParams(
-          shape=None,
+          shape=[p.source_dim, p.hidden_dim],
           init=p.params_init,
           dtype=p.dtype,
           collections=['AdditiveAttention_vars'])
-      source_var_shape = [p.source_dim, p.hidden_dim]
-      pc.shape = source_var_shape
       self.CreateVariable('source_var', pc, self.AddGlobalVN)
-      query_var_shape = [p.query_dim, p.hidden_dim]
-      pc.shape = query_var_shape
+
+      pc = py_utils.WeightParams(
+          shape=[p.query_dim, p.hidden_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=['AdditiveAttention_vars'])
       self.CreateVariable('query_var', pc, self.AddGlobalVN)
-      hidden_var_shape = [p.hidden_dim]
-      pc.shape = hidden_var_shape
+
+      pc = py_utils.WeightParams(
+          shape=[p.hidden_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=['AdditiveAttention_vars'])
       self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
 
     # noinline and compiled cannot be set at the same time
@@ -1641,8 +1646,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         'PREV_PROBS, CUMULATIVE_PROBS.')
 
     # Fill in reasonable default for params init
-    p.params_init.method = 'gaussian_sqrt_dim'
-    p.params_init.scale = 1.0
+    p.params_init = py_utils.WeightInit.GaussianSqrtDim()
     return p
 
   @base_layer.initializer
@@ -1659,18 +1663,24 @@ class LocationSensitiveAttention(BaseAttentionLayer):
 
     with tf.variable_scope(name):
       pc = py_utils.WeightParams(
-          shape=None,
+          shape=[p.source_dim, p.hidden_dim],
           init=p.params_init,
           dtype=p.dtype,
           collections=['LocationSensitiveAttention_vars'])
-      source_var_shape = [p.source_dim, p.hidden_dim]
-      pc.shape = source_var_shape
       self.CreateVariable('source_var', pc, self.AddGlobalVN)
-      query_var_shape = [p.query_dim, p.hidden_dim]
-      pc.shape = query_var_shape
+
+      pc = py_utils.WeightParams(
+          shape=[p.query_dim, p.hidden_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=['LocationSensitiveAttention_vars'])
       self.CreateVariable('query_var', pc, self.AddGlobalVN)
-      hidden_var_shape = [p.hidden_dim]
-      pc.shape = hidden_var_shape
+
+      pc = py_utils.WeightParams(
+          shape=[p.hidden_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=['LocationSensitiveAttention_vars'])
       self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
 
       assert p.location_filter_size % 2 == 1
@@ -2100,8 +2110,7 @@ class MonotonicAttention(BaseAttentionLayer):
     p.Define('hidden_bias_init', -1, 'Initial value of hidden bias.')
     p.Define('hard_sigmoid', False, 'Whether to use a hard sigmoid.')
     # Fill in reasonable default for params init
-    p.params_init.method = 'gaussian_sqrt_dim'
-    p.params_init.scale = 1.0
+    p.params_init = py_utils.WeightInit.GaussianSqrtDim()
     return p
 
   @base_layer.initializer
@@ -2121,42 +2130,55 @@ class MonotonicAttention(BaseAttentionLayer):
       p.hard_sigmoid = True
 
     with tf.variable_scope(p.name):
+      # source is the weight matrix for the memory/encoder states
       pc = py_utils.WeightParams(
-          shape=None,
+          shape=[p.source_dim, p.hidden_dim],
           init=p.params_init,
           dtype=p.dtype,
           collections=['MonotonicAttention_vars'])
-      # source is the weight matrix for the memory/encoder states
-      source_var_shape = [p.source_dim, p.hidden_dim]
-      pc.shape = source_var_shape
       self.CreateVariable('source_var', pc, self.AddGlobalVN)
+
       # query is the weight matrix for the query/decoder RNN state
-      query_var_shape = [p.query_dim, p.hidden_dim]
-      pc.shape = query_var_shape
+      pc = py_utils.WeightParams(
+          shape=[p.query_dim, p.hidden_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=['MonotonicAttention_vars'])
       self.CreateVariable('query_var', pc, self.AddGlobalVN)
+
       # hidden is the pre-softmax vector which converts from tanh to scalar
-      hidden_var_shape = [p.hidden_dim]
-      pc.shape = hidden_var_shape
+      pc = py_utils.WeightParams(
+          shape=[p.hidden_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=['MonotonicAttention_vars'])
       self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
 
       # energy_bias is the bias vector which appears inside of tanh
-      energy_bias_shape = [p.hidden_dim]
-      pc.shape = energy_bias_shape
       # Initialize the bias vector to all zeros
-      pc.init.method = 'constant'
-      pc.init.scale = 0.0
+      pc = py_utils.WeightParams(
+          shape=[p.hidden_dim],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=['MonotonicAttention_vars'])
       self.CreateVariable('energy_bias_var', pc)
+
       # hidden_scale is the weight normalization scale for hidden
-      hidden_scale_var_shape = []
-      pc.shape = hidden_scale_var_shape
       # Initialize so that the initial scale is 1/sqrt(hidden_dim)
-      pc.init.scale = 1 / np.sqrt(p.hidden_dim)
+      pc = py_utils.WeightParams(
+          shape=[],
+          init=py_utils.WeightInit.Constant(1 / np.sqrt(p.hidden_dim)),
+          dtype=p.dtype,
+          collections=['MonotonicAttention_vars'])
       self.CreateVariable('hidden_scale_var', pc)
+
       # hidden_bias is the bias scalar applied before the sigmoid
-      hidden_bias_var_shape = []
-      pc.shape = hidden_bias_var_shape
       # Use the hidden_bias_init hyperparam to set the initial value
-      pc.init.scale = p.hidden_bias_init
+      pc = py_utils.WeightParams(
+          shape=[],
+          init=py_utils.WeightInit.Constant(p.hidden_bias_init),
+          dtype=p.dtype,
+          collections=['MonotonicAttention_vars'])
       self.CreateVariable('hidden_bias_var', pc)
 
       # Create seeds for stateless random number generator.
