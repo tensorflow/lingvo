@@ -525,10 +525,10 @@ class Evaler(base_runner.BaseRunner):
         if not path or self._EvalOnce(path, sess):
           break
 
-    self.EvalLatestCheckpoint()
+    self.EvalLatestCheckpoint(path)
     tf.logging.info('Evaluation finished.')
 
-  def EvalLatestCheckpoint(self):
+  def EvalLatestCheckpoint(self, last_path=None):
     """Runs eval once on the latest checkpoint."""
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
@@ -536,6 +536,9 @@ class Evaler(base_runner.BaseRunner):
       path = tf.train.latest_checkpoint(self._train_dir)
       if not path:
         tf.logging.info('No checkpoint available.')
+        return
+      elif path == last_path:
+        tf.logging.info('Latest checkpoint was already evaluated.')
         return
       self._EvalOnce(path, sess)
 

@@ -287,7 +287,9 @@ _tpu_device_assignment = None
 
 def SetTpuDeviceAssignment(tpu_device_assignment):
   global _tpu_device_assignment
-  assert _tpu_device_assignment is None
+  if _tpu_device_assignment is not None:
+    tf.logging.warning('tpu_device_assignment was already set, '
+                       'overwriting with new assignment.')
   _tpu_device_assignment = tpu_device_assignment
 
 

@@ -209,14 +209,45 @@ class BaseRunner(object):
         sess.run(self.initialize_tables)
       gsteps = self._model.global_step
       local_enqueue_steps = 0
+
+      # Avoid calling trial.ShouldStop too often as it can slow down the
+      # infeed queue by adding latency. last_should_stop_check_time tracks
+      # the last time we made the call, and rate limits below.
+      last_should_stop_check_time = 0
+
+      # Global enqueue steps measures how many global steps have data enqueued
+      # for already. We use this to terminate; note that the enqueue op may
+      # hang in session.run if we do not terminate with this check.
+      global_enqueue_steps = None
+
+      # Each session run to the tpu trainer makes tpu_steps_per_loop. We need
+      # to continue enqueueing beyond the max train steps since the tpu_steps
+      # in the loop may exceed the max train steps. adjust_steps makes an
+      # appropriate adjustment.
+      adjust_steps = (
+          self.params.train.tpu_steps_per_loop if py_utils.use_tpu() else 0)
+
       tf.logging.info('params.train.max_steps: %d, enqueue_max_steps: %d',
                       self.params.train.max_steps, FLAGS.enqueue_max_steps)
       while True:
         global_step, = sess.run([gsteps])
+        if global_enqueue_steps is None:
+          global_enqueue_steps = global_step
         if local_enqueue_steps % 1000 == 0:
-          tf.logging.info('Current local_enqueue_steps: %d, global_step: %d',
-                          local_enqueue_steps, global_step)
-        if self._trial.ShouldStop() or self._ShouldStop(sess, global_step):
+          tf.logging.info(
+              'Current global_enqueue_steps: %d, '
+              'local_enqueue_steps: %d, global_step: %d', global_enqueue_steps,
+              local_enqueue_steps, global_step)
+
+        # Check trial.ShouldStop only every 10 seconds
+        trial_should_stop = False
+        if time.time() > last_should_stop_check_time + 10:
+          trial_should_stop = self._trial.ShouldStop()
+          last_should_stop_check_time = time.time()
+
+        if (trial_should_stop or
+            self._ShouldStop(sess, global_enqueue_steps - adjust_steps) or
+            self._ShouldStop(sess, global_step)):
           tf.logging.info('Done. Params.train.max_steps reached.')
           return
         if (FLAGS.enqueue_max_steps > 0 and
@@ -224,6 +255,11 @@ class BaseRunner(object):
           tf.logging.info('Done. FLAGS.enqueue_max_steps reached.')
           return
         local_enqueue_steps += 1
+
+        # There are tpu_infeed_parallism parallel threads enqueuing.
+        # We account for all of them when updating global_enqueue_steps.
+        global_enqueue_steps += self.params.input.tpu_infeed_parallism
+
         sess.run([op])
 
   def _GetSession(self, **kwargs):
