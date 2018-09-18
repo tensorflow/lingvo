@@ -947,7 +947,8 @@ def CreateVariable(name,
     assert cached == p, ('Cached config:\n %s vs new config:\n %s' %
                          (cached.ToText(), p.ToText()))
   else:
-    tf.logging.info('Creating var %s and device %s', var.name, var.device)
+    tf.logging.info('Creating var %s shape=%s on device %s', var.name,
+                    var.shape, var.device)
     all_vars[var] = p.Copy()
     for col in p.collections:
       tf.add_to_collection(col, var)
