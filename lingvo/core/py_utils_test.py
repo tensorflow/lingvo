@@ -371,6 +371,43 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertEqual([_[0] for _ in var_grads.FlattenItems()], ['a'])
       self.assertEqual(var_grads.a[0].name, 'a:0')
 
+  def testSkipL2Regularization(self):
+    with self.session(use_gpu=False) as sess:
+      beta = tf.get_variable(
+          'beta',
+          initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
+      tf.add_to_collection(py_utils.SKIP_L2_REGULARIZATION, beta)
+      gamma = tf.get_variable(
+          'gamma',
+          initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
+      act = tf.constant(np.arange(10).reshape([1, 10]), tf.float32)
+      pred = act * gamma + beta
+      loss = tf.reduce_sum(pred)
+      vmap = py_utils.NestedMap(beta=beta, gamma=gamma)
+      var_grads = py_utils.ComputeGradients(loss, vmap)
+      self.assertEqual(sorted(var_grads.keys()), ['beta', 'gamma'])
+      l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithL2Loss(
+          var_grads, 0.1)
+
+      sess.run(tf.global_variables_initializer())
+      var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run(
+          [var_grads, l2_loss, var_grads_with_l2])
+      print('var_grads_vals = ', var_grads_vals)
+      print('var_grads_with_l2_vals = ', var_grads_with_l2_vals)
+      self.assertAllEqual(var_grads_vals.beta[0],
+                          var_grads_with_l2_vals.beta[0])
+      self.assertAllEqual(var_grads_vals.gamma[0],
+                          var_grads_with_l2_vals.gamma[0])
+      self.assertAllEqual(
+          l2_loss_val, 0.5 * 0.1 * np.sum(np.square(var_grads_vals.gamma[0])))
+
+      # With l2, gradients of be gamma are adjusted.
+      self.assertAllClose(
+          var_grads_with_l2_vals.gamma[1],
+          var_grads_vals.gamma[1] + 0.1 * var_grads_vals.gamma[0])
+      self.assertAllClose(var_grads_with_l2_vals.beta[1],
+                          var_grads_vals.beta[1])
+
   def testAdjustGradientsWithL2Loss(self):
     with self.session(use_gpu=False) as sess:
       emb = tf.get_variable(

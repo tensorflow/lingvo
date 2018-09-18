@@ -1257,6 +1257,9 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
   return vs_gs_scale.Transform(Scale)
 
 
+SKIP_L2_REGULARIZATION = '__lingvo_skip_l2_regularization'
+
+
 def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
   """Adjusts the map of (var, grad) with L2 regularization.
 
@@ -1282,7 +1285,9 @@ def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
       return var
 
   l2_loss = 0.5 * l2_regularizer_weight * SumSquared(
-      var_grads.Transform(GetVar).Flatten())
+      var_grads.Filter(
+          lambda v_g: v_g[0] not in tf.get_collection(SKIP_L2_REGULARIZATION))
+      .Transform(GetVar).Flatten())
 
   def L2Grad(item):
     """Adjusts item's grad w/ L2 loss term."""
@@ -1313,7 +1318,7 @@ def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
         weights = tf.expand_dims(weights, -1)  # [#ids, 1]
         delta = l2_regularizer_weight * weights * values
         grad = tf.IndexedSlices(grad.values + delta, ids)
-    else:
+    elif var not in tf.get_collection(SKIP_L2_REGULARIZATION):
       with tf.device(var.device):
         delta = l2_regularizer_weight * var
       with tf.device(grad.device):
