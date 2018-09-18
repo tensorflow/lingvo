@@ -25,9 +25,6 @@ from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import py_utils
 
-assert_equal = py_utils.assert_equal
-assert_shape_match = py_utils.assert_shape_match
-
 
 class TransformerAttentionLayer(base_layer.LayerBase):
   """Multi-headed attention, add and norm used by 'Attention Is All You Need'.
@@ -152,9 +149,10 @@ class TransformerAttentionLayer(base_layer.LayerBase):
 
     if p.is_masked:
       assert source_vecs is not None
-      query_vec = py_utils.with_dependencies(
-          [assert_shape_match(tf.shape(source_vecs), tf.shape(query_vec))],
-          query_vec)
+      query_vec = py_utils.with_dependencies([
+          py_utils.assert_shape_match(
+              tf.shape(source_vecs), tf.shape(query_vec))
+      ], query_vec)
       # Prepares mask for self-attention
       # [time, time]
       target_time = tf.shape(query_vec)[0]
@@ -654,7 +652,7 @@ class MergerLayer(base_layer.LayerBase):
     if p.merger_op == 'mean':
       # Simply take the mean, all dims must match.
       with tf.control_dependencies([
-          assert_shape_match(tf.shape(t1), tf.shape(t2))
+          py_utils.assert_shape_match(tf.shape(t1), tf.shape(t2))
           for t1, t2 in tensor_pairs
       ]):
         output = tf.add_n(inputs) / n_sources
@@ -662,7 +660,7 @@ class MergerLayer(base_layer.LayerBase):
     elif p.merger_op == 'sum':
       # Sum up all sources, all dims must match.
       with tf.control_dependencies([
-          assert_shape_match(tf.shape(t1), tf.shape(t2))
+          py_utils.assert_shape_match(tf.shape(t1), tf.shape(t2))
           for t1, t2 in tensor_pairs
       ]):
         output = tf.add_n(inputs)
@@ -674,7 +672,7 @@ class MergerLayer(base_layer.LayerBase):
       inputs = py_utils.HasRank(inputs, 4)
 
       with tf.control_dependencies([
-          assert_shape_match(tf.shape(t1), tf.shape(t2))
+          py_utils.assert_shape_match(tf.shape(t1), tf.shape(t2))
           for t1, t2 in tensor_pairs
       ]):
         w = tf.expand_dims(
@@ -690,7 +688,7 @@ class MergerLayer(base_layer.LayerBase):
     elif p.merger_op == 'atten':
       # Apply attention over the concatenated tensor, all dims must match.
       with tf.control_dependencies([
-          assert_shape_match(tf.shape(t1), tf.shape(t2))
+          py_utils.assert_shape_match(tf.shape(t1), tf.shape(t2))
           for t1, t2 in tensor_pairs
       ]):
         inputs = tf.stack(inputs, axis=0)
@@ -703,8 +701,8 @@ class MergerLayer(base_layer.LayerBase):
     elif p.merger_op == 'concat':
       # Concatenate over the last dim, all dims but last must match.
       with tf.control_dependencies([
-          assert_equal(tf.shape(t1)[:-1],
-                       tf.shape(t2)[:-1]) for t1, t2 in tensor_pairs
+          py_utils.assert_equal(tf.shape(t1)[:-1],
+                                tf.shape(t2)[:-1]) for t1, t2 in tensor_pairs
       ]):
         output = tf.concat(inputs, axis=-1)
 

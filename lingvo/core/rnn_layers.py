@@ -36,8 +36,6 @@ from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import rnn_cell
 
-assert_shape_match = py_utils.assert_shape_match
-
 
 def _AssertCellParamsCuDNNCompatible(p_cell):
   if p_cell.cls == rnn_cell.LSTMCellCuDNNCompliant:
@@ -1330,8 +1328,9 @@ class MultiSourceFRNNWithAttention(base_layer.LayerBase):
     # Check if all batch sizes and depths match for source encs and paddings.
     src_name_0 = p.source_names[0]
     src_encs[src_name_0] = py_utils.with_dependencies([
-        assert_shape_match([tf.shape(src_encs[src_name_0])[1], source_dim],
-                           tf.shape(src_encs[src_name_i])[-2:])
+        py_utils.assert_shape_match(
+            [tf.shape(src_encs[src_name_0])[1], source_dim],
+            tf.shape(src_encs[src_name_i])[-2:])
         for src_name_i, source_dim in zip(p.source_names, self._source_dims)
     ], src_encs[src_name_0])
     src_paddings[src_name_0] = py_utils.with_dependencies([
