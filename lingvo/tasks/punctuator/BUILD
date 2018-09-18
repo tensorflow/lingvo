@@ -37,25 +37,16 @@ py_test(
     ],
 )
 
-py_library(
-    name = "model",
-    srcs = ["model.py"],
-    deps = [
-        "//lingvo/core:base_layer",
-        "//lingvo/tasks/mt:model",
-    ],
-)
-
 py_test(
     name = "model_test",
     srcs = ["model_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
+        "//lingvo/tasks/mt:model",
         "//lingvo/tasks/punctuator/testdata:test_vocab",
     ],
     deps = [
         ":input_generator",
-        ":model",
         "//lingvo/core:test_helper",
         "//lingvo/tasks/mt:model_test",
     ],

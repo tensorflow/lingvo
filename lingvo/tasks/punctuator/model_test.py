@@ -21,9 +21,9 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from lingvo.core import test_helper
+from lingvo.tasks.mt import model
 from lingvo.tasks.mt import model_test
 from lingvo.tasks.punctuator import input_generator
-from lingvo.tasks.punctuator import model
 
 
 class PunctuatorModelTest(model_test.TransformerModelTest):
@@ -48,7 +48,7 @@ class PunctuatorModelTest(model_test.TransformerModelTest):
     return p
 
   def _testParams(self):
-    p = model.PunctuatorBase.Params()
+    p = model.TransformerModel.Params()
     p.name = 'test_mdl'
     p.input = self._InputParams()
     p.encoder = self._EncoderParams()
