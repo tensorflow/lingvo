@@ -369,8 +369,9 @@ class Params(object):
         return _SortedDict({k: GetRepr(v) for k, v in six.iteritems(val)})
       if isinstance(val, (list, tuple)):
         return type(val)([GetRepr(v) for v in val])
-      if isinstance(val,
-                    (int, long, float, bool, six.string_types, six.text_type)):
+      if isinstance(
+          val,
+          (six.integer_types, float, bool, six.string_types, six.text_type)):
         return val
       if isinstance(val, tf.DType):
         return val.name
