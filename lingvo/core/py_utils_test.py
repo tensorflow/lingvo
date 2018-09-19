@@ -949,10 +949,8 @@ class PadSequenceDimensionTest(tf.test.TestCase):
     with self.session(use_gpu=False, graph=tf.Graph()):
       x = tf.random_normal(shape=(2, 2, 2, 2), seed=123456)
       length = 4
-      self.assertRaisesWithRegexpMatch(
-          ValueError,
-          'Dimension 0 in both shapes must be equal, but are 2 and 32.*',
-          py_utils.PadSequenceDimension, x, length, 0, (32, 3, 4, 5))
+      self.assertRaises(ValueError, py_utils.PadSequenceDimension, x, length, 0,
+                        (32, 3, 4, 5))
 
 
 class ApplyPaddingTest(tf.test.TestCase):
