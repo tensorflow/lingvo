@@ -214,6 +214,7 @@ class Params(object):
     res = type(self)()
     # pylint: disable=protected-access
     res._params = copy.deepcopy(self._params)
+    res._immutable = self._immutable
     return res
 
   # TODO(sadovsky):

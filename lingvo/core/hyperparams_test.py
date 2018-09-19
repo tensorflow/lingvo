@@ -196,6 +196,10 @@ class ParamsTest(tf.test.TestCase):
 
     self.assertRaises(TypeError, lambda: setattr(p, '_immutable', False))
 
+    # Copies are still immutable.
+    q = p.Copy()
+    self.assertRaises(TypeError, lambda: q.Set(foo=2))
+
   def testToString(self):
     outer = _params.Params()
     outer.Define('foo', 1, '')
