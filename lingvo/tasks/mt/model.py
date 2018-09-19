@@ -134,20 +134,22 @@ class MTBaseModel(base_model.BaseTask):
 
     key_value_pairs = []
     for i in range(num_samples):
-      src, tgt = unsegment(sources[i]), unsegment(targets[i])
-      tf.logging.info('source: %s', src)
-      tf.logging.info('target: %s', tgt)
+      src, tgt = sources[i], targets[i]
+      src_unseg, tgt_unseg = unsegment(src), unsegment(tgt)
+      tf.logging.info('source: %s', src_unseg)
+      tf.logging.info('target: %s', tgt_unseg)
       hyps = topk_decoded[i]
       assert p.decoder.beam_search.num_hyps_per_beam == len(hyps)
-      info_str = u'src: {} tgt: {} '.format(src, tgt)
+      info_str = u'src: {} tgt: {} '.format(src_unseg, tgt_unseg)
       for n, (score, hyp_str) in enumerate(zip(topk_scores[i], hyps)):
-        tf.logging.info('  %f: %s', score, hyp_str)
+        hyp_str_unseg = unsegment(hyp_str)
+        tf.logging.info('  %f: %s', score, hyp_str_unseg)
         info_str += u' hyp{n}: {hyp} score{n}: {score}'.format(
-            n=n, hyp=hyp_str, score=score)
+            n=n, hyp=hyp_str_unseg, score=score)
         # Only aggregate scores of the top hypothesis.
         if n == 0:
           dec_metrics_dict['corpus_bleu'].Update(tgt, hyp_str)
-      key_value_pairs.append((src, info_str))
+      key_value_pairs.append((src_unseg, info_str))
     return key_value_pairs
 
   def CreateDecoderMetrics(self):
