@@ -20,7 +20,8 @@ To run locally:
 .. code-block:: bash
 
   $ bazel build -c opt lingvo:trainer
-  $ bazel-bin/lingvo/trainer --logtostderr --model=image.mnist.LeNet5 --mode=sync --logdir=/tmp/lenet5 --run_locally=cpu
+  $ bazel-bin/lingvo/trainer --logtostderr --model=image.mnist.LeNet5 \
+  --mode=sync --logdir=/tmp/lenet5 --run_locally=cpu
 
 To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.
 """
@@ -189,7 +190,7 @@ class Controller(base_runner.BaseRunner):
 
     self._ExportMetrics(params=self.params)
     self._model_analysis, self._total_num_params = _ModelAnalysis(self._model)
-    tf.logging.error(self._model_analysis)
+    tf.logging.info(self._model_analysis)
     self._WriteToLog(self._model_analysis, self._control_dir,
                      'model_analysis.txt')
     self._WriteToLog(self.params.ToText(), self._control_dir, 'params.txt')
@@ -611,6 +612,7 @@ def _GetCheckpointIdForDecodeOut(checkpoint_path, global_step):
   Args:
    checkpoint_path: path to checkpoint file.
    global_step: int specifying the global step of the model.
+
   Returns:
    Checkpoint id as int.
   """
