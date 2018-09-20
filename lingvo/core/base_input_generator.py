@@ -85,10 +85,10 @@ class BaseInputGenerator(base_layer.LayerBase):
     """The current input batch, not preprocessed.
 
     This is meant to be overridden by subclasses, but not called directly.
-    Callers should use GetPreprocessedInputBatch().
+    Callers should use `GetPreprocessedInputBatch()`.
 
     Returns:
-      A NestedMap of input tensors. Each tensor's dim-0 must be the same
+      A `.NestedMap` of input tensors. Each tensor's dim-0 must be the same
       and denotes the batch dimension.
     """
     raise NotImplementedError('Abstract method')
@@ -180,7 +180,7 @@ class BaseInputGenerator(base_layer.LayerBase):
       num_splits: The number of splits.
 
     Returns:
-      A list of NestedMaps. Each NestedMap represents the input
+      A list of `.NestedMap`. Each `.NestedMap` represents the input
       tensors in one split.
     """
     assert num_splits >= 1
@@ -249,32 +249,31 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     return args
 
   def _InputOpBucketingArgs(self):
-    p = self.params
     return {
         'bucket_upper_bound': [1000000000],
         'bucket_batch_limit': [self.InputBatchSize()],
     }
 
   def _DataSourceFromFilePattern(self, file_pattern):
-    """"Read and return input batch from a string file_pattern.
+    """Read and return input batch from a string file_pattern.
 
     Args:
       file_pattern: A string file pattern.
 
     Returns:
-      A tf.Tensor or nested map of tf.Tensor
+      A tf.Tensor or `.NestedMap` of tf.Tensor
     """
     raise NotImplementedError()
 
   def _BuildDataSource(self):
-    """"Read and return input batch from p.file_pattern.
+    """Read and return input batch from `p.file_pattern`.
 
-    p.file_pattern may be a string file_pattern or a
-    list of <file_pattern, weight> pairs.
+    `p.file_pattern` may be a string file_pattern or a
+    list of (file_pattern, weight) pairs.
 
     Returns:
-      A tf.Tensor or nested map of tf.Tensor same
-      as self._DataSourceFromFilePattern()
+      A tf.Tensor or `.NestedMap` of tf.Tensor same as
+      `self._DataSourceFromFilePattern()`.
 
     Raises:
       ValueError: If unknown token type.
@@ -292,9 +291,13 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         # only if it will be used.
         return lambda: self._DataSourceFromFilePattern(file_pattern)
 
-      data_source = py_utils.MixByWeight(
-          (_MakeDataSourceFromFilePatternFunc(file_pattern), weight)
-          for file_pattern, weight in input_file_pattern)
+      inputs = []
+      weights = []
+      for (file_pattern, weight) in input_file_pattern:
+        inputs.append(_MakeDataSourceFromFilePatternFunc(file_pattern))
+        weights.append(weight)
+
+      data_source = py_utils.MixByWeight(inputs, weights)
     else:
       raise ValueError()
     return data_source
@@ -390,19 +393,20 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
 
     Args:
       strs: A vector of strings.
-      is_source: A bool to indicate whether to use source_max_length to pad
+      is_source: A bool to indicate whether to use `source_max_length` to pad
         'strs'.
       external_max_length: An int providing the max_length for strs.
       external_append_eos: Bool or None. If None, will be ignored and
-        params.append_eos will be used. If bool, will determine if an eos
+        `params.append_eos` will be used. If bool, will determine if an eos
         symbol will be added to tokens.
       key: A string key in case the model has multiple tokenizers.
 
     Returns:
-      (ids, labels, paddings): Tensors with the same shape [batch, maxlen].
-      ids[i, j] is the input token id of i-th sample for j-th step.
-      labels[i, j] is the target token id of i-th sample for j-th step.
-      paddings[i, j] is 1 iff i-th sample's j-th step is padded.
+      A tuple (ids, labels, paddings) with the same shape [batch, maxlen].
+
+      - ids[i, j] is the input token id of i-th sample for j-th step.
+      - labels[i, j] is the target token id of i-th sample for j-th step.
+      - paddings[i, j] is 1 iff i-th sample's j-th step is padded.
 
     Raises:
       ValueError: If unknown token type.
@@ -432,7 +436,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
       key: A string key in case the model has multiple tokenizers.
 
     Returns:
-      sequences: A vector of shape [batch]. The converted string sequence.
+      sequences - A vector of shape [batch]. The converted string sequence.
 
     Raises:
       ValueError: If unknown token type.
@@ -444,12 +448,12 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
 class BaseTinyDatasetInput(BaseInputGenerator):
   """Input generator for tiny dataset which are stored in tf checkpoint.
 
-  Input batch (b: batch size, h: height, w: width, d: depth):
-    raw: Samples. [b, h, w, d].
-    data: Preprocessed samples. [b, h, w, d].
-    label: Labels. [b].
-    weight: [b]. weight[i] is 1.0 if i-th sample is considered to
-      be a real example. Otherwise, weight[i] is 0.0.
+      | Input batch (b: batch size, h: height, w: width, d: depth):
+      |   raw: Samples. [b, h, w, d].
+      |   data: Preprocessed samples. [b, h, w, d].
+      |   label: Labels. [b].
+      |   weight: [b]. weight[i] is 1.0 if i-th sample is considered to
+      |     be a real example. Otherwise, weight[i] is 0.0.
   """
 
   @classmethod

@@ -41,7 +41,7 @@ class MTEncoderV1(base_encoder.BaseEncoder):
 
   @classmethod
   def Params(cls):
-    """Configs for MTEncoderV1."""
+    """Configs for `MTEncoderV1`."""
     p = super(MTEncoderV1, cls).Params()
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     p.Define('lstm_tpl',
@@ -150,19 +150,19 @@ class MTEncoderV1(base_encoder.BaseEncoder):
     return tf.clip_by_value(x, -cap, cap)
 
   def FProp(self, theta, input_batch):
-    """Encodes source as represented by 'inputs' and 'paddings'.
+    """Encodes source as represented by `inputs` and `paddings`.
 
     Args:
-      theta: Named tuple with the weights for all the encoder layers.
-      input_batch: A NestedMap with fields:
-        ids - The inputs tensor. It is expected to be of shape [batch, time]
-        paddings - The paddings tensor. It is expected to be of shape
-             [batch, time].
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      input_batch: A `.NestedMap` with fields:
+        - ids: The inputs tensor. It is expected to be of shape [batch, time].
+        - paddings: The paddings tensor. Expected shape [batch, time].
 
     Returns:
-      (outputs, out_paddings, src_segment_id) pair.
-      Outputs is of the shape [time, batch, depth], and out_paddings is of the
-      shape [time, batch]. src_segment_id should have the shape
+      (outputs, out_paddings, src_segment_id) tuple.
+      `outputs` is of the shape [time, batch, depth], and `out_paddings` is of
+      the shape [time, batch]. `src_segment_id` should have the shape
       [time, batch] if packed inputs are supported by the model (and all
       layers), or None otherwise.
     """
@@ -209,7 +209,7 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
 
   @classmethod
   def Params(cls):
-    """Configs for MTEncoderUniRNN."""
+    """Configs for `MTEncoderUniRNN`."""
     p = super(MTEncoderUniRNN, cls).Params()
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     p.Define('lstm_tpl', rnn_cell.LSTMCellSimple.Params(),
@@ -300,22 +300,6 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
       return x
 
   def FProp(self, theta, input_batch):
-    """Encodes source as represented by 'inputs' and 'paddings'.
-
-    Args:
-      theta: Named tuple with the weights for all the encoder layers.
-      input_batch: A NestedMap with fields:
-        ids - The inputs tensor. It is expected to be of shape [batch, time]
-        paddings - The paddings tensor. It is expected to be of shape
-             [batch, time].
-
-    Returns:
-      (outputs, out_paddings, src_segment_id) pair.
-      Outputs is of the shape [time, batch, depth], and out_paddings is of the
-      shape [time, batch]. src_segment_id should have the shape
-      [time, batch] if packed inputs are supported by the model (and all
-      layers), or None otherwise.
-    """
     p = self.params
     src_segment_id = None
     with tf.name_scope(p.name):
@@ -356,7 +340,7 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
 
   @classmethod
   def Params(cls):
-    """Configs for MTEncoderBiRNN."""
+    """Configs for `MTEncoderBiRNN`."""
     p = super(MTEncoderBiRNN, cls).Params()
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     p.Define('lstm_tpl',
@@ -474,22 +458,6 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
       return x
 
   def FProp(self, theta, input_batch):
-    """Encodes source as represented by 'inputs' and 'paddings'.
-
-    Args:
-      theta: Named tuple with the weights for all the encoder layers.
-      input_batch: A NestedMap with fields:
-        ids - The inputs tensor. It is expected to be of shape [batch, time]
-        paddings - The paddings tensor. It is expected to be of shape
-             [batch, time].
-
-    Returns:
-      (outputs, out_paddings, src_segment_id) pair.
-      Outputs is of the shape [time, batch, depth], and out_paddings is of the
-      shape [time, batch]. src_segment_id should have the shape
-      [time, batch] if packed inputs are supported by the model (and all
-      layers), or None otherwise.
-    """
     p = self.params
     with tf.name_scope(p.name):
       inputs = py_utils.with_dependencies([
@@ -546,7 +514,7 @@ class TransformerEncoder(base_encoder.BaseEncoder):
 
   @classmethod
   def Params(cls):
-    """Configs for TransformerEncoder."""
+    """Configs for `TransformerEncoder`."""
     p = super(TransformerEncoder, cls).Params()
 
     # Embedding related
@@ -618,20 +586,20 @@ class TransformerEncoder(base_encoder.BaseEncoder):
     """Embeds source ids and transforms with TransformerStack.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
-      input_batch: A NestedMap with fields:
-        ids - The inputs tensor. It is expected to be of shape [batch, time]
-        paddings - The paddings tensor. It is expected to be of shape
-             [batch, time].
+      input_batch: A `.NestedMap` with fields:
+
+        - ids: The inputs tensor. It is expected to be of shape [batch, time].
+        - paddings: The paddings tensor. Expected shape [batch, time].
 
     Returns:
-      (outputs, out_paddings, src_segment_id) pair. Outputs is of the shape
-      [time, batch, depth], and out_paddings is of the shape [time, batch]
-      outputs can be a list of output tensors if is_transparent is set in
-      transformer_stack. src_segment_id should
-      have the shape [time, batch] if packed inputs are supported by the model
-      (and all layers), or None otherwise.
+      (outputs, out_paddings, src_segment_id) tuple. `outputs` is of the shape
+      [time, batch, depth], and `out_paddings` has shape [time, batch].
+      `outputs` can be a list of output tensors if is_transparent is set in
+      transformer_stack. `src_segment_id` should have the shape [time, batch]
+      if packed inputs are supported by the model (and all layers), or None
+      otherwise.
     """
     p = self.params
     with tf.name_scope(p.name):

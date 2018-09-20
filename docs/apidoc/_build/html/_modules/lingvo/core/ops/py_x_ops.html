@@ -1,0 +1,276 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.ops.py_x_ops &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.ops.py_x_ops</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.ops.py_x_ops</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Operations.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
+
+<span class="n">gen_x_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">load_op_library</span><span class="p">(</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">resource_loader</span><span class="o">.</span><span class="n">get_path_to_datafile</span><span class="p">(</span><span class="s1">&#39;x_ops.so&#39;</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="s1">&#39;assert_shape_match&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">gen_x_ops</span><span class="p">):</span>
+  <span class="c1"># Static linking:</span>
+  <span class="c1"># pylint: disable=g-import-not-at-top</span>
+  <span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">gen_x_ops</span>
+  <span class="c1"># pylint: enable=g-import-not-at-top</span>
+
+<span class="c1"># Set gen_x_ops function module to py_x_ops so sphinx generates documentation.</span>
+<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="n">v</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">=</span> <span class="s1">&#39;lingvo.core.ops.py_x_ops&#39;</span>
+  <span class="k">except</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="n">assert_shape_match</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">assert_shape_match</span>
+<span class="n">assert_same_dim0</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">assert_same_dim0</span>
+<span class="n">random_permutation_sequence</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">random_permutation_sequence</span>
+
+<span class="n">best_step</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">best_step</span>
+
+<span class="n">beam_search_step</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">beam_search_step</span>
+<span class="n">top_k_terminated_hyps</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">top_k_terminated_hyps</span>
+<span class="n">unpack_hyp</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">unpack_hyp</span>
+<span class="n">hyps_from_beam_search_outs</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">hyps_from_beam_search_outs</span>
+
+<span class="n">cached_call</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">cached_call</span>
+
+<span class="n">label_to_token_id</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">label_to_token_id</span>
+<span class="n">str_to_vocab_tokens</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">str_to_vocab_tokens</span>
+<span class="n">id_to_token</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">id_to_token</span>
+<span class="n">ngram_id_to_token</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">ngram_id_to_token</span>
+
+
+<div class="viewcode-block" id="generic_input"><a class="viewcode-back" href="../../../../lingvo.core.ops.py_x_ops.html#lingvo.core.ops.py_x_ops.generic_input">[docs]</a><span class="k">def</span> <span class="nf">generic_input</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="c1"># pylint: disable=protected-access</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="n">function</span><span class="o">.</span><span class="n">_DefinedFunction</span><span class="p">):</span>
+    <span class="c1"># Helper if processor is a python callable.</span>
+    <span class="n">processor</span> <span class="o">=</span> <span class="n">function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)(</span><span class="n">processor</span><span class="p">)</span>
+  <span class="n">out_types</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">processor</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">output_arg</span>
+  <span class="p">]</span>
+  <span class="k">assert</span> <span class="n">out_types</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is not expected.&#39;</span> <span class="o">%</span> <span class="n">out_types</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
+      <span class="n">processor</span><span class="o">=</span><span class="n">processor</span><span class="p">,</span> <span class="n">out_types</span><span class="o">=</span><span class="n">out_types</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<span class="n">generic_input</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="o">.</span><span class="vm">__doc__</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

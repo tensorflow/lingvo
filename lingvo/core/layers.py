@@ -68,7 +68,7 @@ class IdentityLayer(base_layer.LayerBase):
     """Identity mapping.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: The inputs tensor.  Shaped [..., input_dim].
       *args: Arguments to be ignored.
@@ -165,7 +165,7 @@ class BatchNormLayer(base_layer.LayerBase):
     """Apply batch normalization.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: The inputs tensor.  Shaped [..., dim].
       paddings: The paddings tensor.  Shaped [..., 1], with the same rank as
@@ -263,8 +263,7 @@ def _ComputeOutputPadding(in_padding, stride):
     stride: The time-stride between adjacent windows.
 
   Returns:
-    out_padding: The new padding tensor of size [batch,
-        ceil(time / stride)].
+    out_padding, The new padding tensor of size [batch, ceil(time / stride)].
   """
   if stride == 1:
     return in_padding
@@ -464,7 +463,7 @@ class ConvLayer(base_layer.LayerBase):
     """Apply convolution to inputs.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: The inputs tensor. It is expected to be of shape [batch,
           time, frequency, channel]. The time dimension corresponds to
@@ -606,7 +605,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     """Apply projection to inputs.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: The inputs tensor.  Shaped [..., input_dim].
       paddings: The paddings tensor.  Shaped [..., 1], where all but the last
@@ -723,7 +722,7 @@ class PoolingLayer(base_layer.LayerBase):
     """Apply pooling to inputs.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: The inputs tensor. It is expected to be of shape [batch, time,
           frequency, channel]. The time dimension corresponds to the height
@@ -839,8 +838,8 @@ class EmbeddingLayer(base_layer.LayerBase):
       ids: A rank-N int32 tensor.
 
     Returns:
-      embs: A rank-(N+1) params.dtype tensor. embs[indices, :] is the
-        embedding vector for ids[indices].
+      A rank-(N+1) params.dtype tensor.
+      embs[indices, :] is the embedding vector for ids[indices].
     """
     p = self.params
     ids = tf.convert_to_tensor(ids)
@@ -1055,8 +1054,8 @@ class SimpleEmbeddingLayer(base_layer.LayerBase):
       ids: A rank-N int32 tensor.
 
     Returns:
-      A rank-(N+1) params.dtype tensor. embs[indices, :] is the
-      embedding vector for ids[indices].
+      A rank-(N+1) params.dtype tensor.
+      embs[indices, :] is the embedding vector for ids[indices].
     """
     p = self.params
     if not py_utils.use_xla():
@@ -1077,8 +1076,7 @@ class PositionalEmbeddingLayer(base_layer.LayerBase):
   Implements the positional embedding layer from 'Attention is All You Need',
   the Transformer Network.
 
-  Note, code and comments are adapted from:
-    tensor2tensor/layers/common_attention.py
+  Code and comments are adapted from tensor2tensor/layers/common_attention.py
   """
 
   @classmethod
@@ -1123,7 +1121,7 @@ class PositionalEmbeddingLayer(base_layer.LayerBase):
     positional embeddings corresponding to the input position tensor.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       position: Position tensor of dtype float and shape [bs, seq_length] to
         generate positional embeddings.
@@ -1173,7 +1171,7 @@ class PositionalEmbeddingLayer(base_layer.LayerBase):
     the channels dimension.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       seq_length: Sequence length of the embeddings to be generated
 
@@ -1193,7 +1191,7 @@ class PositionalEmbeddingLayer(base_layer.LayerBase):
     to FProp description for details of sinusoidal positional embeddings.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       position_tensor: Position tensor of shape [bs, seq_length] to generate
         positional embeddings.
@@ -1254,7 +1252,7 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     provided.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: a list of a single tensor, or a single tensor with the shape
         [..., input_dim].
@@ -1266,16 +1264,17 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
           float values indicating class-membership probabilities.
 
     Returns:
-      A NestedMap containing the following fields:
-        logits: with shape [..., num_classes]. Unnormalized softmax's logits.
-        per_example_argmax: with shape [...]. argmax of i-th example.
-        per_example_xent: with shape [...]. Cross entropy between i-th example's
-          prediction and its label.
-        per_example_weight: with shape [...]. class_weights casted to
-          this layer's dtype.
-        total_xent: A scalar. The sum of per_example_weight * per_example_xent.
-        total_weight: A scalar. The sum of per_example_weight.
-        avg_xent: A scalar. total_loss / total_weight.
+      A `.NestedMap` containing the following fields
+
+      - logits: with shape [..., num_classes]. Unnormalized softmax's logits.
+      - per_example_argmax: with shape [...]. argmax of i-th example.
+      - per_example_xent: with shape [...]. Cross entropy between i-th example's
+        prediction and its label.
+      - per_example_weight: with shape [...]. class_weights casted to
+        this layer's dtype.
+      - total_xent: A scalar. The sum of per_example_weight * per_example_xent.
+      - total_weight: A scalar. The sum of per_example_weight.
+      - avg_xent: A scalar. total_loss / total_weight.
     """
     p = self.params
 
@@ -1416,7 +1415,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
     """Returns the logits computed before the softmax.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: a list of a single tensor, or a single tensor with the shape
         [N, input_dim].
@@ -1545,7 +1544,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
 
 class FeedForwardNet(base_layer.LayerBase):
-  """"A simple multiple layer feedforward network.
+  """A simple multiple layer feedforward network.
 
   This class represents a stack of fully connected feedforward network. Each
   layer in the network can be configured for whether or not to have batch-norm
@@ -1728,7 +1727,7 @@ class DropoutLayer(base_layer.LayerBase):
     """Apply dropout to inputs.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: The inputs tensor.
     Returns:
@@ -1756,7 +1755,7 @@ class DeterministicDropoutLayer(base_layer.LayerBase):
     """Apply dropout to inputs.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: The inputs tensor.
     Returns:
@@ -1805,7 +1804,7 @@ class LayerNorm(base_layer.LayerBase):
     """Applies normalization over the last dimension (layer).
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A tensor of shape [..., hidden_dim].
     Returns:
@@ -1880,7 +1879,7 @@ class ConvSetLayer(base_layer.LayerBase):
     """Apply all convolution sets to inputs and concatenate outputs.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: The inputs tensor. It is expected to be of shape [batch, time,
           frequency, channel]. The time dimension corresponds to the height
@@ -1889,13 +1888,15 @@ class ConvSetLayer(base_layer.LayerBase):
       paddings: The paddings tensor. It is expected to be of shape [batch,
           time].
     Returns:
-      out: output tensor. Expected to be of shape [batch, time_mod,
-          frequency_mod, out_channel_1 + out_channel_2 ...] where time_mod and
-          frequency_mod depend on the conv layer strides and out_channel_i is
-          the output channel size of the i-th conv layer in the set.
-      output_paddings: Modified paddings tensor generated using
-          _ComputeOutputPadding within ConvLayer.FProp. Expected to be of the
-          shape [batch, time_mod].
+      A tuple (out, output_paddings).
+
+      - out: output tensor. Expected to be of shape [batch, time_mod,
+        frequency_mod, out_channel_1 + out_channel_2 ...] where time_mod and
+        frequency_mod depend on the conv layer strides and out_channel_i is
+        the output channel size of the i-th conv layer in the set.
+      - output_paddings: Modified paddings tensor generated using
+        `_ComputeOutputPadding` within `ConvLayer.FProp`. Expected to be of the
+        shape [batch, time_mod].
     """
     p = self.params
     inputs = py_utils.with_dependencies([
@@ -1951,7 +1952,7 @@ class LocalizedLabelSmoother(base_layer.LayerBase):
     """Convert class_ids to 1hot and smooth by neighborhood.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       target_paddings: float32 matrix [bs, seq_len]
       target_labels: int32 matrix [bs, seq_len]. This stores the target
@@ -1962,8 +1963,8 @@ class LocalizedLabelSmoother(base_layer.LayerBase):
         generator input_batch.tgt.ids
 
     Returns:
-      tensor [bs, seq_len, num_classes] denoting a smoothed
-        distribution over num_classes
+      A tensor [bs, seq_len, num_classes] denoting a smoothed distribution over
+      num_classes.
     """
     del target_ids  # Unused.
     p = self.params
@@ -2032,7 +2033,7 @@ class UniformLabelSmoother(base_layer.LayerBase):
     """Convert target_labels to 1hot and smooth uniformly.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       target_paddings: float32 matrix [bs, seq_len]
       target_labels: int32 matrix [bs, seq_len]. This stores the target
@@ -2043,8 +2044,8 @@ class UniformLabelSmoother(base_layer.LayerBase):
         generator input_batch.tgt.ids
 
     Returns:
-      tensor of float32 [bs, seq_len, num_classes] denoting a smoothed
-        distribution over num_classes
+      A tensor of float32 [bs, seq_len, num_classes] denoting a smoothed
+      distribution over num_classes.
     """
     del target_paddings  # Unused by FProp.
     p = self.params
@@ -2077,7 +2078,7 @@ class UniformLabelSmoother(base_layer.LayerBase):
 
 
 class HighwaySkipLayer(base_layer.LayerBase):
-  """"A highway skip layer.
+  """A highway skip layer.
 
   This class represents a highway skip layer, which takes multiple
   inputs (from different layers of the network) and gates them.
@@ -2132,13 +2133,13 @@ class HighwaySkipLayer(base_layer.LayerBase):
     """Fprop for Highway Skip layer.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
-       x: feature at the lower layer.
-       transformed_x: transformation of x at a higher layer.
-       paddings: padding applied to the features.
+      x: feature at the lower layer.
+      transformed_x: transformation of x at a higher layer.
+      paddings: padding applied to the features.
     Returns:
-       layer_out: Activations after forward propagation.
+      layer_out - activations after forward propagation.
     """
     p = self.params
     assert self.carry_gate is not None
@@ -2203,7 +2204,7 @@ class GradNormTracker(base_layer.LayerBase):
     update the moving avgs and forces to clip the gradients to 0.0.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       grad_norm: A float scalar tensor.
       has_nan: A boolean scalar tensor to indicate if the current batch has nan.
@@ -2319,7 +2320,7 @@ class WeightedSumLayer(base_layer.LayerBase):
     """Combines the list of input tensors into a single tensor.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       inputs: A list of tensors of shape [time, batch, hidden_dim]
     Returns:

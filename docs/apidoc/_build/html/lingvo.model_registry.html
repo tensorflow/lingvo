@@ -1,0 +1,356 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.model_registry module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.trainer module" href="lingvo.trainer.html" />
+    <link rel="prev" title="lingvo.model_imports module" href="lingvo.model_imports.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.base_runner.html">lingvo.base_runner module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.base_trial.html">lingvo.base_trial module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.model_imports.html">lingvo.model_imports module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.model_registry module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.trainer.html">lingvo.trainer module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+      <li>lingvo.model_registry module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.model_registry.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.model_registry">
+<span id="lingvo-model-registry-module"></span><h1>lingvo.model_registry module<a class="headerlink" href="#module-lingvo.model_registry" title="Permalink to this headline">¶</a></h1>
+<p>Convenience helpers for managing Params for datasets and models.</p>
+<p>Typical usage will be to define and register a subclass of ModelParams
+for each dataset.</p>
+<dl class="function">
+<dt id="lingvo.model_registry._MaybeUpdateParamsFromFlags">
+<code class="descclassname">lingvo.model_registry.</code><code class="descname">_MaybeUpdateParamsFromFlags</code><span class="sig-paren">(</span><em>cfg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_MaybeUpdateParamsFromFlags"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._MaybeUpdateParamsFromFlags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates Model() Params from flags if set.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.model_registry._ModelRegistryHelper">
+<em class="property">class </em><code class="descclassname">lingvo.model_registry.</code><code class="descname">_ModelRegistryHelper</code><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="attribute">
+<dt id="lingvo.model_registry._ModelRegistryHelper._MODEL_PARAMS">
+<code class="descname">_MODEL_PARAMS</code><em class="property"> = {'image.mnist.LeNet5': &lt;class 'lingvo.model_registry.LeNet5'&gt;, 'lm.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax': &lt;class 'lingvo.model_registry.WordLevelOneBwdsSimpleSampledSoftmax'&gt;, 'lm.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmaxTiny': &lt;class 'lingvo.model_registry.WordLevelOneBwdsSimpleSampledSoftmaxTiny'&gt;, 'mt.wmt14_en_de.WmtEnDeTransformerBase': &lt;class 'lingvo.model_registry.WmtEnDeTransformerBase'&gt;, 'mt.wmt14_en_de.WmtEnDeTransformerSmall': &lt;class 'lingvo.model_registry.WmtEnDeTransformerSmall'&gt;}</em><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper._MODEL_PARAMS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper._ClassPathPrefix">
+<em class="property">classmethod </em><code class="descname">_ClassPathPrefix</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper._ClassPathPrefix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper._ClassPathPrefix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper._ModelParamsClassKey">
+<em class="property">classmethod </em><code class="descname">_ModelParamsClassKey</code><span class="sig-paren">(</span><em>src_cls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper._ModelParamsClassKey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper._ModelParamsClassKey" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a string key used for <code class="xref py py-obj docutils literal notranslate"><span class="pre">src_cls</span></code> in the model registry.</p>
+<p>The returned key is a period separated string. E.g., image.mnist.LeNet5. It
+roughly reflects how params files are organized. We put some of the
+directory information into the key to avoid future model name conflicts.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>src_cls</strong> – A subclass of <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseModel" title="lingvo.core.base_model.BaseModel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseModel</span></code></a>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper._GetSourceInfo">
+<em class="property">classmethod </em><code class="descname">_GetSourceInfo</code><span class="sig-paren">(</span><em>src_cls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper._GetSourceInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper._GetSourceInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets a source info string given a source class.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper._RegisterModel">
+<em class="property">classmethod </em><code class="descname">_RegisterModel</code><span class="sig-paren">(</span><em>wrapper_cls</em>, <em>src_cls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper._RegisterModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper._RegisterModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Registers a ModelParams subclass in the global registry.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper._CreateWrapperClass">
+<em class="property">classmethod </em><code class="descname">_CreateWrapperClass</code><span class="sig-paren">(</span><em>src_cls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper._CreateWrapperClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper._CreateWrapperClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a wrapper class for model params that adds source info.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper.RegisterSingleTaskModel">
+<em class="property">classmethod </em><code class="descname">RegisterSingleTaskModel</code><span class="sig-paren">(</span><em>src_cls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper.RegisterSingleTaskModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper.RegisterSingleTaskModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class decorator that registers a <a class="reference internal" href="lingvo.core.base_model_params.html#lingvo.core.base_model_params.SingleTaskModelParams" title="lingvo.core.base_model_params.SingleTaskModelParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SingleTaskModelParams</span></code></a> subclass.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper.RegisterMultiTaskModel">
+<em class="property">classmethod </em><code class="descname">RegisterMultiTaskModel</code><span class="sig-paren">(</span><em>src_cls</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper.RegisterMultiTaskModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper.RegisterMultiTaskModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Class decorator that registers a <a class="reference internal" href="lingvo.core.base_model_params.html#lingvo.core.base_model_params.MultiTaskModelParams" title="lingvo.core.base_model_params.MultiTaskModelParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiTaskModelParams</span></code></a> subclass.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper.GetAllRegisteredClasses">
+<em class="property">static </em><code class="descname">GetAllRegisteredClasses</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper.GetAllRegisteredClasses"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper.GetAllRegisteredClasses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns global registry map from model names to their param classes.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper.GetClass">
+<em class="property">classmethod </em><code class="descname">GetClass</code><span class="sig-paren">(</span><em>class_key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper.GetClass"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper.GetClass" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a ModelParams subclass with the given <code class="xref py py-obj docutils literal notranslate"><span class="pre">class_key</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>class_key</strong> – string key of the ModelParams subclass to return.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A subclass of <a class="reference internal" href="lingvo.core.base_model_params.html#lingvo.core.base_model_params._BaseModelParams" title="lingvo.core.base_model_params._BaseModelParams"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_BaseModelParams</span></code></a>.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">LookupError</span></code> – If no class with the given key has been registered.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.model_registry._ModelRegistryHelper.GetParams">
+<em class="property">classmethod </em><code class="descname">GetParams</code><span class="sig-paren">(</span><em>class_key</em>, <em>dataset_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/model_registry.html#_ModelRegistryHelper.GetParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.model_registry._ModelRegistryHelper.GetParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code> object for given model and dataset, obeying flags.</p>
+<p>In case of default model, params may be updated based on the flags
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">--model_params_override</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">--model_params_file_override</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>class_key</strong> – String class key (i.e. <code class="xref py py-obj docutils literal notranslate"><span class="pre">image.mnist.LeNet5</span></code>).</li>
+<li><strong>dataset_name</strong> – Method to generate dataset params (i.e. ‘Test’).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Full <a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params" title="lingvo.core.hyperparams.Params"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code></a> for the model class.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.model_registry.GetAllRegisteredClasses">
+<code class="descclassname">lingvo.model_registry.</code><code class="descname">GetAllRegisteredClasses</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.model_registry.GetAllRegisteredClasses" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns global registry map from model names to their param classes.</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.trainer.html" class="btn btn-neutral float-right" title="lingvo.trainer module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.model_imports.html" class="btn btn-neutral" title="lingvo.model_imports module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

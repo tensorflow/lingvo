@@ -117,16 +117,16 @@ class LanguageModel(base_model.BaseTask):
     """Clip LSTM gradients.
 
     Args:
-      var_grad: a NestedMap of (variable, gradient). You can view
-      var_grad as an ordered list of (key, (var, grad)) tuples. Every
-      key of var_grad exists in vmap. Every variable in vmap that
-      contributes to loss must exist in var_grad. Every var of var_grad
-      must exist in vmap.  grad is the corresponding gradient computed
-      for var. grad is guaranteed to be not None.
+      var_grad: a `.NestedMap` of (variable, gradient). You can view
+        `var_grad` as an ordered list of (key, (var, grad)) tuples. Every
+        key of `var_grad` exists in `vmap`. Every variable in `vmap` that
+        contributes to loss must exist in `var_grad`. Every var of `var_grad`
+        must exist in `vmap`. `grad` is the corresponding gradient computed
+        for `var`. `grad` is guaranteed to be not None.
 
     Returns:
-      adjusted version of var_grad that has clipped the LSTM gradients
-      if self.params.max_lstm_gradient_norm is set.
+      adjusted version of `var_grad` that has clipped the LSTM gradients
+      if `self.params.max_lstm_gradient_norm` is set.
     """
 
     p = self.params

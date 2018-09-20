@@ -33,6 +33,10 @@ class BestStepOp(tf.test.TestCase):
   def _BleuFile(self):
     return test_helper.test_src_dir_path('core/ops/testdata/history_bleu.txt')
 
+  def _TfEventFile(self):
+    return test_helper.test_src_dir_path(
+        'core/ops/testdata/events.out.tfevents.test')
+
   def testTol0(self):
     g = tf.Graph()
     with g.as_default():
@@ -68,6 +72,15 @@ class BestStepOp(tf.test.TestCase):
       best_step, last_step = sess.run(output)
       self.assertEqual(best_step, 41500)
       self.assertEqual(last_step, 46800)
+
+  def testTfEventAscendingValTol0(self):
+    g = tf.Graph()
+    with g.as_default():
+      output = py_x_ops.best_step(self._TfEventFile(), 0.0, False, 'bleu/dev')
+    with self.session(graph=g) as sess:
+      best_step, last_step = sess.run(output)
+      self.assertEqual(best_step, 102600)
+      self.assertEqual(last_step, 185200)
 
 
 if __name__ == '__main__':

@@ -1,0 +1,585 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.lr_schedule_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.lr_schedule_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.lr_schedule_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for lr_schedule.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">early_stop</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
+
+
+<div class="viewcode-block" id="LearningRateScheduleTest"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest">[docs]</a><span class="k">class</span> <span class="nc">LearningRateScheduleTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testPiecewiseConstant"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testPiecewiseConstant">[docs]</a>  <span class="k">def</span> <span class="nf">testPiecewiseConstant</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">PiecewiseConstantLearningRateSchedule</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      <span class="n">bs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">300000</span><span class="p">,</span> <span class="mi">400000</span><span class="p">,</span> <span class="mi">500000</span><span class="p">]</span>
+      <span class="n">vs</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">]</span>
+      <span class="n">x_ins</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">299999</span><span class="p">,</span> <span class="mi">399999</span><span class="p">,</span> <span class="mi">499999</span><span class="p">,</span> <span class="mi">599999</span><span class="p">]]</span>
+      <span class="n">outs</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">x_ins</span><span class="p">:</span>
+        <span class="n">lrs</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">boundaries</span><span class="o">=</span><span class="n">bs</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="n">vs</span><span class="p">))</span>
+        <span class="n">outs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">],</span> <span class="n">outs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testContinuousLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testContinuousLearningRateSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">testContinuousLearningRateSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">ContinuousLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">start_step</span> <span class="o">=</span> <span class="mi">1000</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">half_life_steps</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">min</span> <span class="o">=</span> <span class="mf">0.1</span>
+    <span class="n">decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">500</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1100</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.5</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1200</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.25</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1300</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.125</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1400</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.1</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">2000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.1</span><span class="p">)</span>
+
+      <span class="c1"># Tests that the decay consistently decreases by half per 100</span>
+      <span class="c1"># steps.</span>
+      <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">1200</span><span class="p">,</span> <span class="mi">25</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span>
+            <span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span>
+            <span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+            <span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span>
+            <span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span> <span class="o">+</span> <span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span> <span class="o">*</span> <span class="mf">2.</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testContinuousLearningRateSchedule_CanOverrideStart"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testContinuousLearningRateSchedule_CanOverrideStart">[docs]</a>  <span class="k">def</span> <span class="nf">testContinuousLearningRateSchedule_CanOverrideStart</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">ContinuousLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">initial_value</span> <span class="o">=</span> <span class="mf">2.0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">start_step</span> <span class="o">=</span> <span class="mi">1000</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">half_life_steps</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">2.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">2.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1100</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1200</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.5</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">decay</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1300</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.25</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testTransformerLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testTransformerLearningRateSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">testTransformerLearningRateSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span> <span class="o">=</span> <span class="mi">4000</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="mi">512</span>
+    <span class="n">lrs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">2000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">3000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4500</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.74693e-07</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000174867</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">2000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.00034956</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">3000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000524253</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000698684</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4500</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000658735</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000624937</span><span class="p">)</span>
+      <span class="c1"># Tests that the schedule peaks at 4000 steps.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">3990</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4010</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+
+      <span class="c1"># Tests that the schedule increases linearly before 4000 steps.</span>
+      <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">4000</span><span class="p">,</span> <span class="mi">200</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+            <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span> <span class="o">*</span> <span class="mf">2.</span><span class="p">,</span>
+            <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span> <span class="o">+</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span> <span class="o">-</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testTransformerLearningRateScheduleWithDecayEnd"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testTransformerLearningRateScheduleWithDecayEnd">[docs]</a>  <span class="k">def</span> <span class="nf">testTransformerLearningRateScheduleWithDecayEnd</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span> <span class="o">=</span> <span class="mi">4000</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="mi">512</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decay_end</span> <span class="o">=</span> <span class="mi">5000</span>
+    <span class="n">lrs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.74693e-07</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">3000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000524253</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000624937</span><span class="p">)</span>
+
+      <span class="c1"># Tests that the schedule peaks at 4000 steps.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">3990</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4010</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+
+      <span class="c1"># Tests that the schedule increases linearly before 4000 steps.</span>
+      <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">300</span><span class="p">,</span> <span class="mi">4000</span><span class="p">,</span> <span class="mi">200</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+            <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span> <span class="o">*</span> <span class="mf">2.</span><span class="p">,</span>
+            <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span> <span class="o">+</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span> <span class="o">+</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">step</span> <span class="o">-</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4999</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5001</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">6000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="c1"># Tests that the schedule is fixed after decay end steps.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4999</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5001</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">6000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testTransformerLearningRateScheduleNoWarmUp"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testTransformerLearningRateScheduleNoWarmUp">[docs]</a>  <span class="k">def</span> <span class="nf">testTransformerLearningRateScheduleNoWarmUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">TransformerLearningRateScheduleNoWarmUp</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">decay_start</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span> <span class="n">model_dim</span><span class="o">=</span><span class="mi">512</span><span class="p">)</span>
+    <span class="n">lrs</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="n">base_params</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">4000</span><span class="p">,</span> <span class="n">model_dim</span><span class="o">=</span><span class="mi">512</span><span class="p">)</span>
+    <span class="n">base_lrs</span> <span class="o">=</span> <span class="n">base_params</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">base_params</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+
+      <span class="c1"># Tests that the schedule is flat up until 4000 steps.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000698684</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">1000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000698684</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">2000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000698684</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">3000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000698684</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000698684</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4500</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000658735</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.000624937</span><span class="p">)</span>
+
+      <span class="c1"># Test that the schedule is identical with transformer-lr after 4k steps</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">base_lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">base_lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4010</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">4010</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">base_lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">5000</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testCombinedLRSchedule"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testCombinedLRSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">testCombinedLRSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">CombinedMinimumLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">schedules</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="mi">2000000</span><span class="p">,</span> <span class="mf">8.</span><span class="p">)),</span>
+        <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mf">2000000.</span><span class="p">,</span> <span class="mf">8.</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="mi">4000000</span><span class="p">,</span> <span class="mf">8.</span><span class="p">)),</span>
+        <span class="n">lr_schedule</span><span class="o">.</span><span class="n">ExponentialLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mf">4000000.</span><span class="p">,</span> <span class="mf">8.</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="mi">8000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">))</span>
+    <span class="p">])</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">lrs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">pts</span> <span class="o">=</span> <span class="p">[[</span><span class="n">i</span><span class="p">,</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10000000</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">pts</span><span class="p">,</span>
+          <span class="p">[</span>
+              <span class="c1"># Linear increasing.</span>
+              <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">1000000</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">],</span>
+              <span class="c1"># Constant</span>
+              <span class="p">[</span><span class="mi">2000000</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">3000000</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+              <span class="c1"># Exponentially decreasing.</span>
+              <span class="p">[</span><span class="mi">4000000</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">5000000</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">6000000</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">7000000</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">8000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">9000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+          <span class="p">])</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testLinearRampupExponentialDecayScaledByNumSplitSchedule"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testLinearRampupExponentialDecayScaledByNumSplitSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">testLinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">warmup</span><span class="o">=</span><span class="mi">250000</span><span class="p">,</span> <span class="n">decay_start</span><span class="o">=</span><span class="mi">32000000</span><span class="p">,</span> <span class="n">decay_end</span><span class="o">=</span><span class="mi">64000000</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">ForTestingWorker</span><span class="p">(</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span> <span class="n">gpus</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+      <span class="n">lrs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">pts</span> <span class="o">=</span> <span class="p">[[</span><span class="n">i</span><span class="p">,</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10000000</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">pts</span><span class="p">,</span>
+          <span class="p">[</span>
+              <span class="c1"># Linear increasing.</span>
+              <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">1000000</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">],</span>
+              <span class="c1"># Constant</span>
+              <span class="p">[</span><span class="mi">2000000</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">3000000</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+              <span class="c1"># Exponentially decreasing.</span>
+              <span class="p">[</span><span class="mi">4000000</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">5000000</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">6000000</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">7000000</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">8000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">9000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+          <span class="p">])</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testLinearRampupExponentialDecayScaledByNumSplitScheduleWarmUpInit"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testLinearRampupExponentialDecayScaledByNumSplitScheduleWarmUpInit">[docs]</a>  <span class="k">def</span> <span class="nf">testLinearRampupExponentialDecayScaledByNumSplitScheduleWarmUpInit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">warmup_init</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">warmup</span><span class="o">=</span><span class="mi">250000</span><span class="p">,</span>
+        <span class="n">decay_start</span><span class="o">=</span><span class="mi">32000000</span><span class="p">,</span>
+        <span class="n">decay_end</span><span class="o">=</span><span class="mi">64000000</span><span class="p">,</span>
+        <span class="nb">min</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">ForTestingWorker</span><span class="p">(</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span> <span class="n">gpus</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+      <span class="n">lrs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">pts</span> <span class="o">=</span> <span class="p">[[</span><span class="n">i</span><span class="p">,</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10000000</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">pts</span><span class="p">,</span>
+          <span class="p">[</span>
+              <span class="c1"># Linear increasing from warmup_init=0.</span>
+              <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">1000000</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span>
+              <span class="c1"># Constant</span>
+              <span class="p">[</span><span class="mi">2000000</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">3000000</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+              <span class="c1"># Exponentially decreasing.</span>
+              <span class="p">[</span><span class="mi">4000000</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">5000000</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">6000000</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">7000000</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">8000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">9000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+          <span class="p">])</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testLinearRampupExponentialDecayScaledByNumSplitScheduleWithCap"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testLinearRampupExponentialDecayScaledByNumSplitScheduleWithCap">[docs]</a>  <span class="k">def</span> <span class="nf">testLinearRampupExponentialDecayScaledByNumSplitScheduleWithCap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">warmup</span><span class="o">=</span><span class="mi">250000</span><span class="p">,</span>
+        <span class="n">decay_start</span><span class="o">=</span><span class="mi">32000000</span><span class="p">,</span>
+        <span class="n">decay_end</span><span class="o">=</span><span class="mi">64000000</span><span class="p">,</span>
+        <span class="nb">min</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="nb">max</span><span class="o">=</span><span class="mf">5.0</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">ForTestingWorker</span><span class="p">(</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span> <span class="n">gpus</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+      <span class="n">lrs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">pts</span> <span class="o">=</span> <span class="p">[[</span><span class="n">i</span><span class="p">,</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10000000</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">pts</span><span class="p">,</span>
+          <span class="p">[</span>
+              <span class="c1"># Linear increasing.</span>
+              <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">1000000</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">],</span>
+              <span class="c1"># Constant</span>
+              <span class="p">[</span><span class="mi">2000000</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">3000000</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">],</span>
+              <span class="c1"># Exponentially decreasing.</span>
+              <span class="p">[</span><span class="mi">4000000</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">5000000</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">6000000</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">7000000</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">8000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">9000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+          <span class="p">])</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testLinearRampupExponentialDecayScaledByNumSplitScheduleWithNumSplits"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testLinearRampupExponentialDecayScaledByNumSplitScheduleWithNumSplits">[docs]</a>  <span class="k">def</span> <span class="nf">testLinearRampupExponentialDecayScaledByNumSplitScheduleWithNumSplits</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">warmup</span><span class="o">=</span><span class="mi">250000</span><span class="p">,</span>
+        <span class="n">decay_start</span><span class="o">=</span><span class="mi">32000000</span><span class="p">,</span>
+        <span class="n">decay_end</span><span class="o">=</span><span class="mi">64000000</span><span class="p">,</span>
+        <span class="nb">min</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="nb">max</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
+        <span class="n">num_splits</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+    <span class="c1"># Increases the number of splits to 32.</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">ForTestingWorker</span><span class="p">(</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span> <span class="n">gpus</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">split_size</span><span class="o">=</span><span class="mi">4</span><span class="p">):</span>
+      <span class="n">lrs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">pts</span> <span class="o">=</span> <span class="p">[[</span><span class="n">i</span><span class="p">,</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10000000</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">)]</span>
+      <span class="c1"># Values are copied from</span>
+      <span class="c1"># testLinearRampupExponentialDecayScaledByNumSplitScheduleWithCap.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">pts</span><span class="p">,</span>
+          <span class="p">[</span>
+              <span class="c1"># Linear increasing.</span>
+              <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">1000000</span><span class="p">,</span> <span class="mf">4.5</span><span class="p">],</span>
+              <span class="c1"># Constant</span>
+              <span class="p">[</span><span class="mi">2000000</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">3000000</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">],</span>
+              <span class="c1"># Exponentially decreasing.</span>
+              <span class="p">[</span><span class="mi">4000000</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">5000000</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">6000000</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">7000000</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">8000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+              <span class="p">[</span><span class="mi">9000000</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">]</span>
+          <span class="p">])</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testDevBasedSchedule"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testDevBasedSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">testDevBasedSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">logdir</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;eval_dev&#39;</span><span class="p">))</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">DevBasedSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tolerance</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">window</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decay</span> <span class="o">=</span> <span class="mf">0.5</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">min_factor</span> <span class="o">=</span> <span class="mf">0.20</span>
+    <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">SetLogdirInMetricHistories</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">logdir</span><span class="p">)</span>
+
+    <span class="n">lrs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">mh</span> <span class="o">=</span> <span class="n">lrs</span><span class="o">.</span><span class="n">_metric_history</span>
+    <span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">local_filesystem</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">)</span>
+      <span class="c1"># best = 1</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">5.0</span><span class="p">)</span>
+      <span class="c1"># best = 2</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+      <span class="c1"># best = 2, out of window</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.5</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+      <span class="c1"># best = 2, ref = 5, in window</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.5</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">9</span><span class="p">,</span> <span class="mf">4.0</span><span class="p">)</span>
+      <span class="c1"># best = 2, ref = 5, out of window</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.25</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mf">3.9</span><span class="p">)</span>
+      <span class="c1"># best = 10</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.25</span><span class="p">)</span>
+
+      <span class="n">mh</span><span class="o">.</span><span class="n">ConditionalAppend</span><span class="p">(</span><span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">mh</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metric</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">)</span>
+      <span class="c1"># best = 10, out of window, min factor</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.20</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LearningRateScheduleTest.testLinearRampupPiecewiseConstantSchedule"><a class="viewcode-back" href="../../../lingvo.core.lr_schedule_test.html#lingvo.core.lr_schedule_test.LearningRateScheduleTest.testLinearRampupPiecewiseConstantSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">testLinearRampupPiecewiseConstantSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupPiecewiseConstantSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">boundaries</span><span class="o">=</span><span class="p">[</span><span class="mi">40</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">96</span><span class="p">],</span>
+        <span class="n">lrs</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">],</span>
+    <span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(),</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">ForTestingWorker</span><span class="p">(</span>
+        <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span> <span class="n">tpus</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
+      <span class="n">lrs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">pts</span> <span class="o">=</span> <span class="p">[[</span><span class="n">i</span><span class="p">,</span> <span class="n">lrs</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="n">pts</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mf">1.6</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mf">3.2</span><span class="p">],</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mf">4.8</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mf">6.4</span><span class="p">],</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">6</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">],</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mf">8.</span><span class="p">],</span> <span class="p">[</span><span class="mi">9</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">],</span> <span class="p">[</span><span class="mi">11</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">],</span>
+                <span class="p">[</span><span class="mi">12</span><span class="p">,</span> <span class="mf">0.08</span><span class="p">],</span> <span class="p">[</span><span class="mi">13</span><span class="p">,</span> <span class="mf">0.008</span><span class="p">],</span> <span class="p">[</span><span class="mi">14</span><span class="p">,</span> <span class="mf">0.008</span><span class="p">]])</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

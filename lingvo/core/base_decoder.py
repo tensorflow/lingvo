@@ -34,25 +34,25 @@ class BaseDecoder(base_layer.LayerBase):
     return p
 
   def FProp(self, theta, src_encs, src_enc_paddings, targets, src_segment_id):
-    """Decodes 'targets' given encoded source.
+    """Decodes `targets` given encoded source.
 
     Args:
-      theta: A nested map object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       src_encs: source encoding, of shape [time, batch, depth].
       src_enc_paddings: source encoding padding, of shape [time, batch].
       targets: A dict of string to tensors representing the targets one try to
-          predict.
+        predict.
       src_segment_id: source segment id, of shape [time, batch]. This input is
-          meant to support multiple samples in a single training sequence. The
-          id identifies the sample that the input at the corresponding
-          time-step belongs to. For example, if the two examples packed together
-          are ['good', 'day'] -> ['guten-tag'] and ['thanks'] -> ['danke']
-          to produce ['good', 'day', 'thanks'] -> ['guten-tag', 'danke'], the
-          source segment ids would be [0, 0, 1] and target segment ids would be
-          [0, 1]. These ids are meant to enable masking computations for
-          different examples from each other.
-          Models or layers than don't support packed inputs should pass None.
+        meant to support multiple samples in a single training sequence. The id
+        identifies the sample that the input at the corresponding time-step
+        belongs to. For example, if the two examples packed together are
+        ['good', 'day'] -> ['guten-tag'] and ['thanks'] -> ['danke'] to produce
+        ['good', 'day', 'thanks'] -> ['guten-tag', 'danke'], the source segment
+        ids would be [0, 0, 1] and target segment ids would be [0, 1]. These ids
+        are meant to enable masking computations for different examples from
+        each other. Models or layers than don't support packed inputs should
+        pass None.
 
     Returns:
       A map from metric name (a python string) to a tuple (value, weight).
@@ -90,12 +90,14 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p.beam_search.target_eos_id = p.target_eos_id
 
   def BeamSearchDecode(self, src_encs, src_enc_paddings):
+    # pylint: disable=line-too-long
     """Performs beam search based decoding.
 
     Args:
       src_encs: source encoding, of shape [time, batch, depth].
       src_enc_paddings: source encoding padding, of shape [time, batch].
     returns:
-      BeamSearchDecodeOutput, A namedtuple whose elements are tensor.
+      `.BeamSearchDecodeOutput`, A namedtuple whose elements are tensors.
     """
+    # pylint: enable=line-too-long
     raise NotImplementedError('Abstract method')

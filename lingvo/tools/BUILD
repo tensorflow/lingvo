@@ -45,3 +45,33 @@ py_binary(
         # Implicit tensorflow dependency.
     ],
 )
+
+py_library(
+    name = "audio_lib",
+    srcs = ["audio_lib.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "audio_lib_test",
+    srcs = ["audio_lib_test.py"],
+    data = [
+        "//lingvo/tools/testdata:audio_data",
+    ],
+    deps = [
+        ":audio_lib",
+        # Implicit tensorflow dependency.
+        "//lingvo/core:test_helper",
+    ],
+)
+
+py_binary(
+    name = "create_asr_features",
+    srcs = ["create_asr_features.py"],
+    deps = [
+        ":audio_lib",
+        # Implicit tensorflow dependency.
+    ],
+)

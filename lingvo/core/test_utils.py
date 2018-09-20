@@ -80,7 +80,7 @@ def CompareToGoldenSingleFloat(testobj, v1, v2, *args, **kwargs):
 
 
 def PickEveryN(np_arr, step=1):
-  """Flattens np_arr and keeps one value every step values."""
+  """Flattens `np_arr` and keeps one value every step values."""
   return np_arr.flatten()[::step]
 
 

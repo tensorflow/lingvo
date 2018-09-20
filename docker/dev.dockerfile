@@ -55,12 +55,15 @@ RUN pip --no-cache-dir install \
         matplotlib \
         numpy \
         pandas \
+        recommonmark \
         scipy \
+        sphinx \
+        sphinx_rtd_theme \
         sklearn \
         && \
     python -m ipykernel.kernelspec
 
-RUN pip install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
+RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
 
 ARG bazel_version=0.16.1
 # This is to install bazel, for development purposes.

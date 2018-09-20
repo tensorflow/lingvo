@@ -1,0 +1,345 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.scorers &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.scorers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.scorers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Helper classes for computing scores.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+
+
+<div class="viewcode-block" id="_IsUnicode"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._IsUnicode">[docs]</a><span class="k">def</span> <span class="nf">_IsUnicode</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+  <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_ToUnicode"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._ToUnicode">[docs]</a><span class="k">def</span> <span class="nf">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">_IsUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">line</span></div>
+
+
+<div class="viewcode-block" id="_Tokenize"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._Tokenize">[docs]</a><span class="k">def</span> <span class="nf">_Tokenize</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="n">string</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="NGrams"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.NGrams">[docs]</a><span class="k">def</span> <span class="nf">NGrams</span><span class="p">(</span><span class="n">lst</span><span class="p">,</span> <span class="n">order</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generator that yields all n-grams of the given order present in lst.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="p">(</span><span class="n">lst</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">order</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span> <span class="o">-</span> <span class="n">order</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="Unsegmenter"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.Unsegmenter">[docs]</a><span class="k">class</span> <span class="nc">Unsegmenter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Un-segments (merges) segmented strings.</span>
+
+<span class="sd">  Used to retain back the original surface form of strings that are encoded</span>
+<span class="sd">  using byte-pair-encoding (BPE), word-piece-models (WPM) or</span>
+<span class="sd">  sentence-piece-models (SPM).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">_BPE_SEPARATOR</span> <span class="o">=</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="s1">&#39;@@ &#39;</span><span class="p">)</span>
+  <span class="n">_WPM_SEPARATOR</span> <span class="o">=</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\xe2\x96\x81</span><span class="s1">&#39;</span><span class="p">)</span>  <span class="c1"># Same for SPM.</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">separator_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_separator_type</span> <span class="o">=</span> <span class="n">separator_type</span>
+
+<div class="viewcode-block" id="Unsegmenter._UnsegmentWpm"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.Unsegmenter._UnsegmentWpm">[docs]</a>  <span class="k">def</span> <span class="nf">_UnsegmentWpm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_WPM_SEPARATOR</span><span class="p">,</span>
+                                                     <span class="s1">&#39; &#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Unsegmenter._UnsegmentBpe"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.Unsegmenter._UnsegmentBpe">[docs]</a>  <span class="k">def</span> <span class="nf">_UnsegmentBpe</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_BPE_SEPARATOR</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span></div>
+
+  <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_separator_type</span> <span class="o">==</span> <span class="s1">&#39;bpe&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_UnsegmentBpe</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_separator_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;wpm&#39;</span><span class="p">,</span> <span class="s1">&#39;spm&#39;</span><span class="p">]:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_UnsegmentWpm</span><span class="p">(</span><span class="n">line</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">line</span></div>
+
+
+<div class="viewcode-block" id="BleuScorer"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.BleuScorer">[docs]</a><span class="k">class</span> <span class="nc">BleuScorer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Scorer to compute BLEU scores to measure translation quality.</span>
+
+<span class="sd">  The BLEU score is the geometric average precision of all token n-grams of</span>
+<span class="sd">  order 1 to max_ngram across all sentences.</span>
+
+<span class="sd">  Successive calls to AddSentence() accumulate statistics which are converted to</span>
+<span class="sd">  an overall score on calls to ComputeOverallScore().</span>
+
+<span class="sd">  Example usage:</span>
+<span class="sd">  &gt;&gt;&gt; scorer = BleuScorer(max_ngram=4)</span>
+<span class="sd">  &gt;&gt;&gt; scorer.AddSentence(&quot;hyp matches ref str&quot;, &quot;hyp matches ref str&quot;)</span>
+<span class="sd">  &gt;&gt;&gt; scorer.AddSentence(&quot;almost right&quot;, &quot;almost write&quot;)</span>
+<span class="sd">  &gt;&gt;&gt; print(scorer.ComputeOverallScore())</span>
+<span class="sd">  0.6687...</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_ngram</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">separator_type</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_max_ngram</span> <span class="o">=</span> <span class="n">max_ngram</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_matches</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_ngram</span><span class="p">)]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_counts</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_ngram</span><span class="p">)]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_num_ref_tokens</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_num_hyp_tokens</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_unsegmenter</span> <span class="o">=</span> <span class="n">Unsegmenter</span><span class="p">(</span><span class="n">separator_type</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">unsegmenter</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unsegmenter</span>
+
+<div class="viewcode-block" id="BleuScorer.AddSentence"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.BleuScorer.AddSentence">[docs]</a>  <span class="k">def</span> <span class="nf">AddSentence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ref_str</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Accumulates ngram statistics for the given ref and hyp string pair.&quot;&quot;&quot;</span>
+    <span class="n">ref_tokens</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_Tokenize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unsegmenter</span><span class="p">(</span><span class="n">ref_str</span><span class="p">)))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_num_ref_tokens</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_tokens</span><span class="p">)</span>
+    <span class="n">hyp_tokens</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">_Tokenize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_unsegmenter</span><span class="p">(</span><span class="n">hyp_str</span><span class="p">)))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_num_hyp_tokens</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyp_tokens</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">order_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_ngram</span><span class="p">):</span>
+      <span class="n">ref_counts</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">(</span><span class="n">NGrams</span><span class="p">(</span><span class="n">ref_tokens</span><span class="p">,</span> <span class="n">order_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+      <span class="n">hyp_matches</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">Counter</span><span class="p">()</span>
+      <span class="n">hyp_count</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">NGrams</span><span class="p">(</span><span class="n">hyp_tokens</span><span class="p">,</span> <span class="n">order_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">hyp_count</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="n">ref_counts</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">count</span><span class="p">:</span>
+          <span class="c1"># Clip hyp_matches so ngrams that are repeated more frequently in hyp</span>
+          <span class="c1"># than ref are not double counted.</span>
+          <span class="n">hyp_matches</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">hyp_matches</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_matches</span><span class="p">[</span><span class="n">order_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">itervalues</span><span class="p">(</span><span class="n">hyp_matches</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_counts</span><span class="p">[</span><span class="n">order_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="n">hyp_count</span></div>
+
+<div class="viewcode-block" id="BleuScorer.ComputeOverallScore"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.BleuScorer.ComputeOverallScore">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeOverallScore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes overall BLEU score from the statistics accumulated so far.&quot;&quot;&quot;</span>
+    <span class="n">score</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">num_nonzero_orders</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">order_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_ngram</span><span class="p">):</span>
+      <span class="n">matches</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_matches</span><span class="p">[</span><span class="n">order_idx</span><span class="p">]</span>
+      <span class="n">total</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_counts</span><span class="p">[</span><span class="n">order_idx</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">matches</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">total</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="n">score</span> <span class="o">+=</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">matches</span> <span class="o">/</span> <span class="n">total</span><span class="p">)</span>
+        <span class="n">num_nonzero_orders</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">num_nonzero_orders</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mf">0.0</span>
+    <span class="n">precision</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">score</span> <span class="o">/</span> <span class="n">num_nonzero_orders</span><span class="p">)</span>
+
+    <span class="n">brevity_penalty</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_hyp_tokens</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_ref_tokens</span><span class="p">:</span>
+      <span class="n">brevity_penalty</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_ref_tokens</span><span class="o">/</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_hyp_tokens</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">brevity_penalty</span> <span class="o">*</span> <span class="n">precision</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

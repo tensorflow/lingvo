@@ -14,10 +14,11 @@
 # ==============================================================================
 """Converts a keras dataset into a tf checkpoint.
 
-```
-  E.g.,
+E.g.
+
+.. code-block:: bash
+
   $ bazel run lingvo/tools:keras2ckpt -- --dataset=mnist
-```
 """
 
 from __future__ import absolute_import

@@ -1,0 +1,665 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.trainer module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="lingvo.model_registry module" href="lingvo.model_registry.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#submodules">Submodules</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.base_runner.html">lingvo.base_runner module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.base_trial.html">lingvo.base_trial module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.model_imports.html">lingvo.model_imports module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.model_registry.html">lingvo.model_registry module</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.trainer module</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+      <li>lingvo.trainer module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.trainer.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.trainer">
+<span id="lingvo-trainer-module"></span><h1>lingvo.trainer module<a class="headerlink" href="#module-lingvo.trainer" title="Permalink to this headline">¶</a></h1>
+<p>Trainer.</p>
+<p>To run locally:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ bazel build -c opt lingvo:trainer
+$ bazel-bin/lingvo/trainer --logtostderr --model<span class="o">=</span>image.mnist.LeNet5 --mode<span class="o">=</span>sync --logdir<span class="o">=</span>/tmp/lenet5 --run_locally<span class="o">=</span>cpu
+</pre></div>
+</div>
+<p>To use GPU, add <code class="xref py py-obj docutils literal notranslate"><span class="pre">--config=cuda</span></code> to build command and set <code class="xref py py-obj docutils literal notranslate"><span class="pre">--run_locally=gpu</span></code>.</p>
+<dl class="function">
+<dt id="lingvo.trainer._StartShell">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">_StartShell</code><span class="sig-paren">(</span><em>local_ns=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_StartShell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._StartShell" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.trainer._ModelAnalysis">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">_ModelAnalysis</code><span class="sig-paren">(</span><em>model</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_ModelAnalysis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._ModelAnalysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a text showing variable sizes and their total size.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.trainer.Controller">
+<em class="property">class </em><code class="descclassname">lingvo.trainer.</code><code class="descname">Controller</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Controller for a training cluster.</p>
+<dl class="method">
+<dt id="lingvo.trainer.Controller.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Controller.StartEnqueueOp">
+<code class="descname">StartEnqueueOp</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller.StartEnqueueOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller.StartEnqueueOp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Controller._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._Loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Controller._RestoreIfNeeded">
+<code class="descname">_RestoreIfNeeded</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._RestoreIfNeeded"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Controller._SummarizeValue">
+<code class="descname">_SummarizeValue</code><span class="sig-paren">(</span><em>steps</em>, <em>tag</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._SummarizeValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._SummarizeValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Controller._RecordStepRate">
+<code class="descname">_RecordStepRate</code><span class="sig-paren">(</span><em>current_steps</em>, <em>total_examples</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Controller._RecordStepRate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Controller._RecordStepRate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the overall step rate and adds a summary.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.trainer.Trainer">
+<em class="property">class </em><code class="descclassname">lingvo.trainer.</code><code class="descname">Trainer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Trainer on non-TPU.</p>
+<dl class="method">
+<dt id="lingvo.trainer.Trainer._SummarizeValue">
+<code class="descname">_SummarizeValue</code><span class="sig-paren">(</span><em>steps</em>, <em>tag</em>, <em>value</em>, <em>writer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer._SummarizeValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer._SummarizeValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Trainer.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Trainer.StartEnqueueOp">
+<code class="descname">StartEnqueueOp</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer.StartEnqueueOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer.StartEnqueueOp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Trainer._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Trainer._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Trainer._Loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.trainer.Evaler">
+<em class="property">class </em><code class="descclassname">lingvo.trainer.</code><code class="descname">Evaler</code><span class="sig-paren">(</span><em>eval_type</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Evaler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Evaler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Evaler.</p>
+<dl class="method">
+<dt id="lingvo.trainer.Evaler.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Evaler.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Evaler.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Evaler._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Evaler._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Evaler._Loop" title="Permalink to this definition">¶</a></dt>
+<dd><p>The main loop.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Evaler.EvalLatestCheckpoint">
+<code class="descname">EvalLatestCheckpoint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Evaler.EvalLatestCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Evaler.EvalLatestCheckpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs eval once on the latest checkpoint.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Evaler._EvalOnce">
+<code class="descname">_EvalOnce</code><span class="sig-paren">(</span><em>path</em>, <em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Evaler._EvalOnce"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Evaler._EvalOnce" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs evaluation for a batch of samples.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> – checkpoint path.</li>
+<li><strong>sess</strong> – the tf Session.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">should_stop.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.trainer.GetDecoderDir">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">GetDecoderDir</code><span class="sig-paren">(</span><em>logdir</em>, <em>decoder_type</em>, <em>model_task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#GetDecoderDir"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.GetDecoderDir" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.trainer._GetCheckpointIdForDecodeOut">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">_GetCheckpointIdForDecodeOut</code><span class="sig-paren">(</span><em>checkpoint_path</em>, <em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_GetCheckpointIdForDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._GetCheckpointIdForDecodeOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve the checkpoint id for the decoder out file.</p>
+<p>Finds the checkpoint id in the checkpoint file name and compares to global
+step. If they diverge, uses the retrieved id and prints a warning.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>checkpoint_path</strong> – path to checkpoint file.</li>
+<li><strong>global_step</strong> – int specifying the global step of the model.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Checkpoint id as int.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.trainer.Decoder">
+<em class="property">class </em><code class="descclassname">lingvo.trainer.</code><code class="descname">Decoder</code><span class="sig-paren">(</span><em>decoder_type</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Decoder.</p>
+<dl class="method">
+<dt id="lingvo.trainer.Decoder.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.Start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Decoder._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder._Loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.Decoder.GetDecodeOutPath">
+<em class="property">classmethod </em><code class="descname">GetDecodeOutPath</code><span class="sig-paren">(</span><em>decoder_dir</em>, <em>checkpoint_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.GetDecodeOutPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.GetDecodeOutPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the path to decode out file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.Decoder.DecodeCheckpoint">
+<code class="descname">DecodeCheckpoint</code><span class="sig-paren">(</span><em>sess</em>, <em>checkpoint_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#Decoder.DecodeCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.Decoder.DecodeCheckpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">samples_per_summary</span></code> examples using <code class="xref py py-obj docutils literal notranslate"><span class="pre">checkpoint_path</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.trainer.RunnerManager">
+<em class="property">class </em><code class="descclassname">lingvo.trainer.</code><code class="descname">RunnerManager</code><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Helper class for managing runners.</p>
+<dl class="class">
+<dt id="lingvo.trainer.RunnerManager.Controller">
+<em class="property">class </em><code class="descname">Controller</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Controller for a training cluster.</p>
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Controller.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Controller.StartEnqueueOp">
+<code class="descname">StartEnqueueOp</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller.StartEnqueueOp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Controller._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._Loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Controller._RecordStepRate">
+<code class="descname">_RecordStepRate</code><span class="sig-paren">(</span><em>current_steps</em>, <em>total_examples</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._RecordStepRate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the overall step rate and adds a summary.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Controller._RestoreIfNeeded">
+<code class="descname">_RestoreIfNeeded</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._RestoreIfNeeded" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Controller._SummarizeValue">
+<code class="descname">_SummarizeValue</code><span class="sig-paren">(</span><em>steps</em>, <em>tag</em>, <em>value</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller._SummarizeValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.trainer.RunnerManager.Trainer">
+<em class="property">class </em><code class="descname">Trainer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Trainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Trainer on non-TPU.</p>
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Trainer.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Trainer.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Trainer.StartEnqueueOp">
+<code class="descname">StartEnqueueOp</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Trainer.StartEnqueueOp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Trainer._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Trainer._Loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Trainer._SummarizeValue">
+<code class="descname">_SummarizeValue</code><span class="sig-paren">(</span><em>steps</em>, <em>tag</em>, <em>value</em>, <em>writer</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Trainer._SummarizeValue" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.trainer.RunnerManager.Evaler">
+<em class="property">class </em><code class="descname">Evaler</code><span class="sig-paren">(</span><em>eval_type</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Evaler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Evaler.</p>
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Evaler.EvalLatestCheckpoint">
+<code class="descname">EvalLatestCheckpoint</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Evaler.EvalLatestCheckpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs eval once on the latest checkpoint.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Evaler.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Evaler.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Evaler._EvalOnce">
+<code class="descname">_EvalOnce</code><span class="sig-paren">(</span><em>path</em>, <em>sess</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Evaler._EvalOnce" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs evaluation for a batch of samples.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> – checkpoint path.</li>
+<li><strong>sess</strong> – the tf Session.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">should_stop.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Evaler._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Evaler._Loop" title="Permalink to this definition">¶</a></dt>
+<dd><p>The main loop.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.trainer.RunnerManager.Decoder">
+<em class="property">class </em><code class="descname">Decoder</code><span class="sig-paren">(</span><em>decoder_type</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Decoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<p>Decoder.</p>
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Decoder.DecodeCheckpoint">
+<code class="descname">DecodeCheckpoint</code><span class="sig-paren">(</span><em>sess</em>, <em>checkpoint_path</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Decoder.DecodeCheckpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">samples_per_summary</span></code> examples using <code class="xref py py-obj docutils literal notranslate"><span class="pre">checkpoint_path</span></code>.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager.Decoder.GetDecodeOutPath">
+<em class="property">classmethod </em><code class="descname">GetDecodeOutPath</code><span class="sig-paren">(</span><em>decoder_dir</em>, <em>checkpoint_id</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Decoder.GetDecodeOutPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the path to decode out file.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Decoder.Start">
+<code class="descname">Start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Decoder.Start" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.Decoder._Loop">
+<code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Decoder._Loop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager.LaunchTensorFlow">
+<em class="property">classmethod </em><code class="descname">LaunchTensorFlow</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.LaunchTensorFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.LaunchTensorFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Starts TF machinary in this process.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager.GetParamsForDataset">
+<em class="property">classmethod </em><code class="descname">GetParamsForDataset</code><span class="sig-paren">(</span><em>model_name</em>, <em>job_name</em>, <em>dataset_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.GetParamsForDataset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.GetParamsForDataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns params for <code class="xref py py-obj docutils literal notranslate"><span class="pre">model_name</span></code> on the dataset <code class="xref py py-obj docutils literal notranslate"><span class="pre">dataset_name</span></code>.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager.MaybeConfigRunDistributed">
+<em class="property">classmethod </em><code class="descname">MaybeConfigRunDistributed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.MaybeConfigRunDistributed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.MaybeConfigRunDistributed" title="Permalink to this definition">¶</a></dt>
+<dd><p>If given a <code class="xref py py-obj docutils literal notranslate"><span class="pre">FLAGS.cluster_spec</span></code>, create a server and update flags.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager.UpdateClusterParamsFromFlags">
+<em class="property">classmethod </em><code class="descname">UpdateClusterParamsFromFlags</code><span class="sig-paren">(</span><em>cfg</em>, <em>job_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.UpdateClusterParamsFromFlags"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.UpdateClusterParamsFromFlags" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update <code class="xref py py-obj docutils literal notranslate"><span class="pre">cfg</span></code> with a training cluster configuration from flags.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager._CreateRunner">
+<em class="property">classmethod </em><code class="descname">_CreateRunner</code><span class="sig-paren">(</span><em>job</em>, <em>model_name</em>, <em>model_task_name</em>, <em>logdir</em>, <em>tf_master</em>, <em>trial</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager._CreateRunner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager._CreateRunner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a runner.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager.CreateRunners">
+<em class="property">classmethod </em><code class="descname">CreateRunners</code><span class="sig-paren">(</span><em>jobs</em>, <em>model_name</em>, <em>logdir</em>, <em>trial=&lt;lingvo.base_trial.NoOpTrial object&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.CreateRunners"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.CreateRunners" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a list of runners based on <code class="xref py py-obj docutils literal notranslate"><span class="pre">FLAGS.mode</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>jobs</strong> – a list of runner jobs.</li>
+<li><strong>model_name</strong> – name of a registered <code class="xref py py-obj docutils literal notranslate"><span class="pre">ModelParams</span></code> class.</li>
+<li><strong>logdir</strong> – the directory used for logging, usually on CNS.</li>
+<li><strong>trial</strong> – optional <code class="xref py py-obj docutils literal notranslate"><span class="pre">Trial</span></code> object, used for reporting measures and early
+stopping.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A list of <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseRunner</span></code></a>, one per job in <code class="xref py py-obj docutils literal notranslate"><span class="pre">jobs</span></code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager.StartRunners">
+<em class="property">classmethod </em><code class="descname">StartRunners</code><span class="sig-paren">(</span><em>runners</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.StartRunners"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.StartRunners" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs <code class="xref py py-obj docutils literal notranslate"><span class="pre">runners</span></code> in parallel threads.</p>
+<p>Returns when all of them finish.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>runners</strong> – a list of <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseRunner</span></code></a>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager.RunTrial">
+<em class="property">classmethod </em><code class="descname">RunTrial</code><span class="sig-paren">(</span><em>job</em>, <em>model_name</em>, <em>logdir</em>, <em>trial</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.RunTrial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.RunTrial" title="Permalink to this definition">¶</a></dt>
+<dd><p>A wrapper function for running a trial.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.trainer.RunnerManager.MaybeConfigRunLocally">
+<em class="property">classmethod </em><code class="descname">MaybeConfigRunLocally</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#RunnerManager.MaybeConfigRunLocally"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.RunnerManager.MaybeConfigRunLocally" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update flags if configured to run locally.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.trainer.InspectModel">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">InspectModel</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#InspectModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.InspectModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints out model analysis for the model.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.trainer.InspectDatasets">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">InspectDatasets</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#InspectDatasets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.InspectDatasets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints out datasets configured for the model.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.trainer.InspectDecoder">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">InspectDecoder</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#InspectDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.InspectDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints out datasets configured for the decoder.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.trainer.main">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">main</code><span class="sig-paren">(</span><em>unused_argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="lingvo.model_registry.html" class="btn btn-neutral" title="lingvo.model_registry module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

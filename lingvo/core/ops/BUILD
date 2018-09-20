@@ -172,6 +172,9 @@ custom_kernel_library(
     name = "best_step_op_kernels",
     srcs = ["best_step_op_kernels.cc"],
     op_def_lib = [":x_ops"],
+    deps = [
+        # Implicit tensorflow proto dependency.
+    ],
 )
 
 py_test(
@@ -204,7 +207,7 @@ py_test(
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow python framework_for_generated_wrappers dependency.,
+        # Implicit tensorflow python framework_for_generated_wrappers dependency.
     ],
 )
 

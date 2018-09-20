@@ -1,0 +1,553 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.mt.params.base_config &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+
+  
+  <script src="../../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.mt.params.base_config</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.mt.params.base_config</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Several functions to initialize typical values of dataset parameters.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">decoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">encoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">model</span>
+
+
+<div class="viewcode-block" id="InitTrainDatasetParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.base_config.html#lingvo.tasks.mt.params.base_config.InitTrainDatasetParams">[docs]</a><span class="k">def</span> <span class="nf">InitTrainDatasetParams</span><span class="p">(</span><span class="n">vocab_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Initializes typical values for train datasets.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    vocab_size: the number of tokens in your vocabulary. The default is None</span>
+<span class="sd">      because this parameter is often not used.</span>
+<span class="sd">    params: initial Params value, e.g. `NmtInput.Params()`.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    a `Params` object.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">NmtInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">is_nmt_example</span> <span class="o">=</span> <span class="kc">True</span>
+
+  <span class="n">params</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">0</span>
+
+  <span class="c1"># How many threads to run in parallel.</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">16</span>
+
+  <span class="c1"># Note, for training, we prefer to use big file_buffer_size (as long as all</span>
+  <span class="c1"># fits in RAM), to more thoroughly randomize the training examples. when the</span>
+  <span class="c1"># file_buffer_size too small, we run the risk of sequentially going over the</span>
+  <span class="c1"># example as they are stored in the sstable which may not be random (e.g.</span>
+  <span class="c1"># maybe alphabetically ordered).</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">10000000</span>
+
+  <span class="k">if</span> <span class="n">vocab_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
+
+  <span class="c1"># The bucket upper bound is determined based on an exponentially growing</span>
+  <span class="c1"># scheme, with _GenerateBuckets(10, 100) resulting buckets starting from</span>
+  <span class="c1"># minimum bucket size of 10 to maximum bucket size of 137.</span>
+  <span class="c1"># For word and sub-word level NMT, we train on sequences up to maximum</span>
+  <span class="c1"># bucket size and discard the examples that are longer than 137.</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">98</span><span class="p">,</span> <span class="mi">137</span><span class="p">]</span>
+
+  <span class="c1"># The bucket batch limit determines how many examples are there in each</span>
+  <span class="c1"># batch during training. We reduce the batch size for the buckets that</span>
+  <span class="c1"># have higher upper bound (batches that consist of longer sequences eg.</span>
+  <span class="c1"># 98, 137) in order to prevent out of memory issues.</span>
+  <span class="c1"># Note that this hyperparameter varies widely based on the model and language.</span>
+  <span class="c1"># larger models may warrant smaller batches in order to fit in memory, for</span>
+  <span class="c1"># example; and ideographical languages like Chinese may benefit from more</span>
+  <span class="c1"># buckets.</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">128</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">+</span> <span class="p">[</span><span class="mi">64</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">params</span></div>
+
+
+<div class="viewcode-block" id="InitTestDatasetParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.base_config.html#lingvo.tasks.mt.params.base_config.InitTestDatasetParams">[docs]</a><span class="k">def</span> <span class="nf">InitTestDatasetParams</span><span class="p">(</span><span class="n">vocab_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">params</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Initializes typical values for test and dev datasets.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    vocab_size: the number of tokens in your vocabulary.</span>
+<span class="sd">    params: initial Params value, e.g. `NmtInput.Params()`.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    a `Params` object.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">NmtInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+  <span class="n">params</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">27182818</span>
+
+  <span class="c1"># How many threads to run in parallel.</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
+
+  <span class="c1"># In order to make exactly one pass over the dev/test sets, we set buffer</span>
+  <span class="c1"># size to 1. Greater numbers may cause inaccurate dev/test scores.</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">1</span>
+
+  <span class="k">if</span> <span class="n">vocab_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
+
+  <span class="c1"># The largest bucket upper bound must be larger than the longest sequence</span>
+  <span class="c1"># length in dev/test set. Since we discard sequences longer than the</span>
+  <span class="c1"># max(bucket_upper_bound) we may end up having scores based on only shorter</span>
+  <span class="c1"># sequences only if we mistakenly set this to be too small.</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">98</span><span class="p">,</span> <span class="mi">137</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">128</span><span class="p">]</span> <span class="o">*</span> <span class="mi">8</span> <span class="o">+</span> <span class="p">[</span><span class="mi">64</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">32</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">params</span></div>
+
+
+<div class="viewcode-block" id="InitTransformerTestBuckets"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.base_config.html#lingvo.tasks.mt.params.base_config.InitTransformerTestBuckets">[docs]</a><span class="k">def</span> <span class="nf">InitTransformerTestBuckets</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">98</span><span class="p">,</span> <span class="mi">137</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">*</span> <span class="mi">10</span>
+  <span class="k">return</span> <span class="n">params</span></div>
+
+
+<div class="viewcode-block" id="InitTransformerTrainBuckets"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.base_config.html#lingvo.tasks.mt.params.base_config.InitTransformerTrainBuckets">[docs]</a><span class="k">def</span> <span class="nf">InitTransformerTrainBuckets</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">24</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">48</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">96</span><span class="p">]</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">512</span><span class="p">,</span> <span class="mi">341</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">170</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">85</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">42</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">params</span></div>
+
+
+<div class="viewcode-block" id="SetupTransformerParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.base_config.html#lingvo.tasks.mt.params.base_config.SetupTransformerParams">[docs]</a><span class="k">def</span> <span class="nf">SetupTransformerParams</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                           <span class="n">vocab_size</span><span class="p">,</span>
+                           <span class="n">model_dim</span><span class="p">,</span>
+                           <span class="n">hidden_dim</span><span class="p">,</span>
+                           <span class="n">num_heads</span><span class="p">,</span>
+                           <span class="n">num_layers</span><span class="p">,</span>
+                           <span class="n">learning_rate</span><span class="p">,</span>
+                           <span class="n">warmup_steps</span><span class="p">,</span>
+                           <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                           <span class="n">input_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                           <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                           <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                           <span class="n">label_smoothing_uncertainty</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                           <span class="n">is_transparent</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Common model setup for different transformer models.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: An identifier for an instance of a transformer model.</span>
+<span class="sd">    vocab_size: an integer representing the size of the vocabulary, probably</span>
+<span class="sd">         16000 or 32000.</span>
+<span class="sd">    model_dim: dimension of the transformer block (column)</span>
+<span class="sd">    hidden_dim: dimension of Feed-Forward neural network in each layer</span>
+<span class="sd">    num_heads: number of attention heads to use for the transformer</span>
+<span class="sd">    num_layers: number of layers in the transformer</span>
+<span class="sd">    learning_rate: learning rate for Adam. For the base model, we use 1.0; for</span>
+<span class="sd">         the big model, 3.0</span>
+<span class="sd">    warmup_steps: warmup steps for `TransformerLearningRateSchedule`. For the</span>
+<span class="sd">         base model, we use 4000; for the big model, 40000</span>
+<span class="sd">    residual_dropout_prob: dropout prob to the output of each sub-layer before</span>
+<span class="sd">         it is added to the sub-layer input</span>
+<span class="sd">    input_dropout_prob: dropout prob to the sums of the token embeddings and the</span>
+<span class="sd">         position embeddings</span>
+<span class="sd">    atten_dropout_prob: dropout prob to the attention weights in each</span>
+<span class="sd">         Transformer attention sub-layer</span>
+<span class="sd">    relu_dropout_prob: dropout prob to the inner layer output (ReLU activation)</span>
+<span class="sd">         in each Transformer feed-forward sub-layer</span>
+<span class="sd">    label_smoothing_uncertainty: if this value is 0, no label smoothing will be</span>
+<span class="sd">         applied</span>
+<span class="sd">    is_transparent: If set, decoder layers attend to weighted combinations of</span>
+<span class="sd">        encoder layers.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A Params object containing the parameters that specify a transformer model</span>
+<span class="sd">    (Vaswani 2017)</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">TransformerModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+  <span class="c1"># Transformer encoder and decoder setup</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">SetupTransformerEncoder</span><span class="p">(</span>
+      <span class="n">model_dim</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="p">,</span> <span class="n">input_dropout_prob</span><span class="p">,</span> <span class="n">atten_dropout_prob</span><span class="p">,</span>
+      <span class="n">relu_dropout_prob</span><span class="p">,</span> <span class="n">is_transparent</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">SetupTransformerDecoder</span><span class="p">(</span>
+      <span class="n">model_dim</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="p">,</span> <span class="n">input_dropout_prob</span><span class="p">,</span> <span class="n">atten_dropout_prob</span><span class="p">,</span>
+      <span class="n">relu_dropout_prob</span><span class="p">,</span> <span class="n">label_smoothing_uncertainty</span><span class="p">,</span> <span class="n">is_transparent</span><span class="p">)</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">learning_rate</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span>
+      <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">ParamsB</span><span class="p">(),</span>
+      <span class="n">clip_gradient_norm_to_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+      <span class="n">grad_norm_to_clip_to_zero</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+      <span class="n">lr_schedule</span><span class="o">=</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">warmup_steps</span><span class="o">=</span><span class="n">warmup_steps</span><span class="p">,</span> <span class="n">worker_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">model_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">))</span>
+
+  <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">12000</span>
+  <span class="k">return</span> <span class="n">p</span></div>
+
+
+<div class="viewcode-block" id="SetupTransformerDecoder"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.base_config.html#lingvo.tasks.mt.params.base_config.SetupTransformerDecoder">[docs]</a><span class="k">def</span> <span class="nf">SetupTransformerDecoder</span><span class="p">(</span><span class="n">model_dim</span><span class="p">,</span>
+                            <span class="n">vocab_size</span><span class="p">,</span>
+                            <span class="n">num_layers</span><span class="p">,</span>
+                            <span class="n">num_heads</span><span class="p">,</span>
+                            <span class="n">hidden_dim</span><span class="p">,</span>
+                            <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                            <span class="n">input_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                            <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                            <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                            <span class="n">label_smoothing_uncertainty</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                            <span class="n">is_transparent</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Common setup for transformer model decoder.&quot;&quot;&quot;</span>
+  <span class="n">disable_vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+  <span class="n">default_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+  <span class="n">emb_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">model_dim</span><span class="p">))</span>
+
+  <span class="c1"># Decoder</span>
+  <span class="n">decoder_params</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">TransformerDecoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">num_trans_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">input_dropout_prob</span> <span class="o">=</span> <span class="n">input_dropout_prob</span>
+
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+      <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">max_num_shards</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">emb_params_init</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">,</span>
+      <span class="n">scale_sqrt_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">trainable_scaling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">source_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">num_attention_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+      <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">default_params_init</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">enable_ctx_pre_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">enable_ctx_post_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">context_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">input_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+      <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="n">relu_dropout_prob</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">default_params_init</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">num_classes</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">emb_params_init</span><span class="p">,</span>
+      <span class="n">num_shards</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">per_word_avg_loss</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">UniformLabelSmoother</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">label_smoothing</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">vocab_size</span>
+  <span class="n">decoder_params</span><span class="o">.</span><span class="n">label_smoothing</span><span class="o">.</span><span class="n">uncertainty</span> <span class="o">=</span> <span class="n">label_smoothing_uncertainty</span>
+
+  <span class="k">if</span> <span class="n">is_transparent</span><span class="p">:</span>
+    <span class="n">decoder_params</span><span class="o">.</span><span class="n">is_transparent</span> <span class="o">=</span> <span class="kc">True</span>
+
+  <span class="k">return</span> <span class="n">decoder_params</span></div>
+
+
+<div class="viewcode-block" id="SetupTransformerEncoder"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.base_config.html#lingvo.tasks.mt.params.base_config.SetupTransformerEncoder">[docs]</a><span class="k">def</span> <span class="nf">SetupTransformerEncoder</span><span class="p">(</span><span class="n">model_dim</span><span class="p">,</span>
+                            <span class="n">vocab_size</span><span class="p">,</span>
+                            <span class="n">num_layers</span><span class="p">,</span>
+                            <span class="n">num_heads</span><span class="p">,</span>
+                            <span class="n">hidden_dim</span><span class="p">,</span>
+                            <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+                            <span class="n">input_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                            <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                            <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                            <span class="n">is_transparent</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Common setup for transformer model encoder.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">   model_dim: specifies dimension of transformer layers, token embeddings,</span>
+<span class="sd">    and positional embeddings as well context vectors (attention values).</span>
+<span class="sd">   vocab_size: for token embeddings.</span>
+<span class="sd">   num_layers: number of transformer layers.</span>
+<span class="sd">   num_heads: number of attention heads.</span>
+<span class="sd">   hidden_dim: in transformer feedforward layer.</span>
+<span class="sd">   residual_dropout_prob: used in transformer feedforward and attention layer.</span>
+<span class="sd">   input_dropout_prob: input dropout.</span>
+<span class="sd">   atten_dropout_prob: used in attention layer.</span>
+<span class="sd">   relu_dropout_prob: used in transformer feedforward layer.</span>
+<span class="sd">   is_transparent: if set, outputs a merger of embeddings and layer outputs.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">   Encoder params.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">disable_vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+  <span class="n">default_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+  <span class="n">emb_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">model_dim</span><span class="p">))</span>
+
+  <span class="c1"># Encoder</span>
+  <span class="n">encoder_params</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+  <span class="n">encoder_params</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">max_num_shards</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">emb_params_init</span><span class="p">,</span>
+      <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">,</span>
+      <span class="n">scale_sqrt_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="n">encoder_params</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">embedding_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">trainable_scaling</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="c1"># Encoder TransformerStack params</span>
+  <span class="n">encoder_params</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">encoder_params</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="n">model_dim</span>
+  <span class="n">encoder_params</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">=</span> <span class="n">num_layers</span>
+  <span class="n">encoder_params</span><span class="o">.</span><span class="n">input_dropout_prob</span> <span class="o">=</span> <span class="n">input_dropout_prob</span>
+
+  <span class="n">encoder_params</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">num_attention_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+      <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">default_params_init</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">encoder_params</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">num_attention_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+      <span class="n">enable_ctx_pre_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">enable_ctx_post_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">context_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="n">encoder_params</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+      <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+      <span class="n">relu_dropout_prob</span><span class="o">=</span><span class="n">relu_dropout_prob</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">default_params_init</span><span class="p">,</span>
+      <span class="n">vn</span><span class="o">=</span><span class="n">disable_vn</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">is_transparent</span><span class="p">:</span>
+    <span class="n">encoder_params</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">is_transparent</span> <span class="o">=</span> <span class="kc">True</span>
+
+  <span class="k">return</span> <span class="n">encoder_params</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

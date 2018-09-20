@@ -56,7 +56,7 @@ class Base(object):
 
     Args:
       lr: A scalar. The base learning rate.
-      var_grad: A NestedMap of (var, grad) pairs.
+      var_grad: A `.NestedMap` of (var, grad) pairs.
 
     Returns:
       The variable update op.

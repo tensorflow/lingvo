@@ -34,18 +34,18 @@ class _BaseModelParams(object):
       dataset: A python string. Typically, 'Dev', 'Test', etc.
 
     Returns:
-      If there is a cls.${dataset} method defined, call that method to
+      If there is a `cls.${dataset}` method defined, call that method to
       generate a hyperparam for the input data.
 
     Raises:
-      AttributeError if there is not ${dataset} method defined under cls.
+      AttributeError: if there is not a `${dataset}` method defined under `cls`.
     """
     f = getattr(cls, dataset)
     return f()
 
 
 class SingleTaskModelParams(_BaseModelParams):
-  """Model Params for a SingleTaskModel."""
+  """Model Params for a `.SingleTaskModel`."""
 
   @classmethod
   def Train(cls):
@@ -74,7 +74,7 @@ class SingleTaskModelParams(_BaseModelParams):
   def Model(cls):
     """Returns model params.
 
-    Emulates structure of MultiTaskModelParams.
+    Emulates structure of `MultiTaskModelParams`.
     """
     p = base_model.SingleTaskModel.Params()
     p.task = cls.Task()
@@ -90,7 +90,7 @@ class SingleTaskModelParams(_BaseModelParams):
 
 
 class MultiTaskModelParams(_BaseModelParams):
-  """Model Params for a MultiTaskModel."""
+  """Model Params for a `.MultiTaskModel`."""
 
   @classmethod
   def Train(cls):

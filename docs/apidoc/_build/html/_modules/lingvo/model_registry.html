@@ -1,0 +1,415 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.model_registry &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.model_registry</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.model_registry</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Convenience helpers for managing Params for datasets and models.</span>
+
+<span class="sd">Typical usage will be to define and register a subclass of ModelParams</span>
+<span class="sd">for each dataset.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">inspect</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;model_params_override&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Optional text specifying&#39;</span>
+    <span class="s1">&#39; model_class.Model() params to be overridden in&#39;</span>
+    <span class="s1">&#39; Params.FromText format.  Each param must be separated by&#39;</span>
+    <span class="s1">&#39; a newline or a semicolon.  This is only intended for&#39;</span>
+    <span class="s1">&#39; quick experimentation.  Only one of&#39;</span>
+    <span class="s1">&#39; --model_params_override and --model_params_file_override&#39;</span>
+    <span class="s1">&#39; may be specified.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;model_params_file_override&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Optional text file for&#39;</span>
+    <span class="s1">&#39; overwriting model_class.Model() params in Params.FromText&#39;</span>
+    <span class="s1">&#39; format. Each param must occur on a single line.  Only one&#39;</span>
+    <span class="s1">&#39; of --model_params_override and&#39;</span>
+    <span class="s1">&#39; --model_params_file_override may be specified.&#39;</span><span class="p">)</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="_MaybeUpdateParamsFromFlags"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._MaybeUpdateParamsFromFlags">[docs]</a><span class="k">def</span> <span class="nf">_MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Updates Model() Params from flags if set.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only one of --model_params_override and&#39;</span>
+                     <span class="s1">&#39; --model_params_file_override may be specified.&#39;</span><span class="p">)</span>
+
+  <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">))</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span> <span class="ow">and</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">)):</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">FastGFile</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_ModelRegistryHelper"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper">[docs]</a><span class="k">class</span> <span class="nc">_ModelRegistryHelper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="c1"># Global dictionary mapping subclass name to registered ModelParam subclass.</span>
+  <span class="n">_MODEL_PARAMS</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="_ModelRegistryHelper._ClassPathPrefix"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper._ClassPathPrefix">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_ClassPathPrefix</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s1">&#39;lingvo.tasks.&#39;</span></div>
+
+<div class="viewcode-block" id="_ModelRegistryHelper._ModelParamsClassKey"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper._ModelParamsClassKey">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_ModelParamsClassKey</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a string key used for `src_cls` in the model registry.</span>
+
+<span class="sd">    The returned key is a period separated string. E.g., image.mnist.LeNet5. It</span>
+<span class="sd">    roughly reflects how params files are organized. We put some of the</span>
+<span class="sd">    directory information into the key to avoid future model name conflicts.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      src_cls: A subclass of `~.base_model.BaseModel`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__module__</span>
+    <span class="c1"># Removes the prefix.</span>
+    <span class="n">path_prefix</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_ClassPathPrefix</span><span class="p">()</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">path_prefix</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Removes &#39;.params&#39; if exists.</span>
+    <span class="k">if</span> <span class="s1">&#39;.params&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">path</span><span class="p">:</span>
+      <span class="c1"># Sometimes, we define a param class in a unittest.</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getfile</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;test.py&#39;</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Model params being registered must be &#39;</span>
+                         <span class="s1">&#39;in a params subfolder or a test.&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="s1">&#39;test.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="n">path</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.params&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="_ModelRegistryHelper._GetSourceInfo"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper._GetSourceInfo">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_GetSourceInfo</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets a source info string given a source class.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">@</span><span class="si">%s</span><span class="s1">:</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_ModelParamsClassKey</span><span class="p">(</span><span class="n">src_cls</span><span class="p">),</span>
+                         <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcefile</span><span class="p">(</span><span class="n">src_cls</span><span class="p">),</span>
+                         <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcelines</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="_ModelRegistryHelper._RegisterModel"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper._RegisterModel">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_RegisterModel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">wrapper_cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Registers a ModelParams subclass in the global registry.&quot;&quot;&quot;</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_ModelParamsClassKey</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_MODEL_PARAMS</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Duplicate model registered for key </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+          <span class="n">key</span><span class="p">,</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+    <span class="c1"># Decorate param methods to add source info metadata.</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_MODEL_PARAMS</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">wrapper_cls</span>
+    <span class="k">return</span> <span class="n">key</span></div>
+
+<div class="viewcode-block" id="_ModelRegistryHelper._CreateWrapperClass"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper._CreateWrapperClass">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_CreateWrapperClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a wrapper class for model params that adds source info.&quot;&quot;&quot;</span>
+
+    <span class="c1"># Python2 class decorators that return a different class are fundamentally</span>
+    <span class="c1"># broken (technically, they are fine but canonical use of super() is</span>
+    <span class="c1"># broken). Also, fallback mechanisms don&#39;t exist in python3. So, we only</span>
+    <span class="c1"># decorate the version of the class that we register, but any decorators</span>
+    <span class="c1"># should return the original class for maximum compatibility.</span>
+    <span class="c1"># When the python3 super() is used, it should be possible to return this</span>
+    <span class="c1"># from the decorators too.</span>
+
+    <span class="k">class</span> <span class="nc">Registered</span><span class="p">(</span><span class="n">src_cls</span><span class="p">):</span>
+      <span class="n">REGISTERED_SOURCE_INFO</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_GetSourceInfo</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)</span>
+
+      <span class="c1"># Extend model to annotate source information.</span>
+      <span class="nd">@classmethod</span>
+      <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Wraps BaseTask params into SingleTaskModel params.&quot;&quot;&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Registered</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">REGISTERED_SOURCE_INFO</span>
+        <span class="k">return</span> <span class="n">p</span>
+
+    <span class="c1"># So things show up in messages well.</span>
+    <span class="n">Registered</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span>
+    <span class="k">return</span> <span class="n">Registered</span></div>
+
+<div class="viewcode-block" id="_ModelRegistryHelper.RegisterSingleTaskModel"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.RegisterSingleTaskModel">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">RegisterSingleTaskModel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class decorator that registers a `.SingleTaskModelParams` subclass.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">src_cls</span><span class="p">,</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+          <span class="s1">&#39;src_cls </span><span class="si">%s</span><span class="s1"> is not a SingleTaskModelParams!&#39;</span> <span class="o">%</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_RegisterModel</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_CreateWrapperClass</span><span class="p">(</span><span class="n">src_cls</span><span class="p">),</span> <span class="n">src_cls</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">src_cls</span></div>
+
+<div class="viewcode-block" id="_ModelRegistryHelper.RegisterMultiTaskModel"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.RegisterMultiTaskModel">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">RegisterMultiTaskModel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Class decorator that registers a `.MultiTaskModelParams` subclass.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">src_cls</span><span class="p">,</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">MultiTaskModelParams</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+          <span class="s1">&#39;src_cls </span><span class="si">%s</span><span class="s1"> is not a MultiTaskModelParams!&#39;</span> <span class="o">%</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_RegisterModel</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_CreateWrapperClass</span><span class="p">(</span><span class="n">src_cls</span><span class="p">),</span> <span class="n">src_cls</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">src_cls</span></div>
+
+<div class="viewcode-block" id="_ModelRegistryHelper.GetAllRegisteredClasses"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetAllRegisteredClasses">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">GetAllRegisteredClasses</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;Returns global registry map from model names to their param classes.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">_ModelRegistryHelper</span><span class="o">.</span><span class="n">_MODEL_PARAMS</span></div>
+
+<div class="viewcode-block" id="_ModelRegistryHelper.GetClass"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetClass">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">class_key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a ModelParams subclass with the given `class_key`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      class_key: string key of the ModelParams subclass to return.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A subclass of `~.base_model_params._BaseModelParams`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      LookupError: If no class with the given key has been registered.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">all_params</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetAllRegisteredClasses</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">class_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">all_params</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span><span class="s1">&#39;Model </span><span class="si">%s</span><span class="s1"> not found. Known models:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                        <span class="p">(</span><span class="n">class_key</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">all_params</span><span class="o">.</span><span class="n">keys</span><span class="p">()))))</span>
+    <span class="k">return</span> <span class="n">all_params</span><span class="p">[</span><span class="n">class_key</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="_ModelRegistryHelper.GetParams"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">class_key</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs a `Params` object for given model and dataset, obeying flags.</span>
+
+<span class="sd">    In case of default model, params may be updated based on the flags</span>
+<span class="sd">    `--model_params_override` or `--model_params_file_override`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      class_key: String class key (i.e. `image.mnist.LeNet5`).</span>
+<span class="sd">      dataset_name: Method to generate dataset params (i.e. &#39;Test&#39;).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Full `~.hyperparams.Params` for the model class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model_params_cls</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">class_key</span><span class="p">)</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params_cls</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
+
+    <span class="n">_MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cfg</span></div></div>
+
+
+<span class="c1"># pyformat: disable</span>
+<span class="c1"># pylint: disable=invalid-name</span>
+<span class="n">RegisterSingleTaskModel</span> <span class="o">=</span> <span class="n">_ModelRegistryHelper</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="n">RegisterMultiTaskModel</span> <span class="o">=</span> <span class="n">_ModelRegistryHelper</span><span class="o">.</span><span class="n">RegisterMultiTaskModel</span>
+<span class="n">GetAllRegisteredClasses</span> <span class="o">=</span> <span class="n">_ModelRegistryHelper</span><span class="o">.</span><span class="n">GetAllRegisteredClasses</span>
+<span class="n">GetClass</span> <span class="o">=</span> <span class="n">_ModelRegistryHelper</span><span class="o">.</span><span class="n">GetClass</span>
+<span class="n">GetParams</span> <span class="o">=</span> <span class="n">_ModelRegistryHelper</span><span class="o">.</span><span class="n">GetParams</span>
+<span class="c1"># pylint: enable=invalid-name</span>
+<span class="c1"># pyformat: enable</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

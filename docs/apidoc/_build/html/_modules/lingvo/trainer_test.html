@@ -1,0 +1,432 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.trainer_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+
+  
+  <script src="../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.trainer_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.trainer_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for trainer.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">base_trial</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">trainer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.image.input_generator</span> <span class="k">import</span> <span class="n">FakeMnistData</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.image.params</span> <span class="k">import</span> <span class="n">mnist</span>  <span class="c1"># pylint: disable=unused-import</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="BaseTrainerTest"><a class="viewcode-back" href="../../lingvo.trainer_test.html#lingvo.trainer_test.BaseTrainerTest">[docs]</a><span class="k">class</span> <span class="nc">BaseTrainerTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for the test cases.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BaseTrainerTest</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="o">=</span> <span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BaseTrainerTest.setUp"><a class="viewcode-back" href="../../lingvo.trainer_test.html#lingvo.trainer_test.BaseTrainerTest.setUp">[docs]</a>  <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Server</span><span class="o">.</span><span class="n">create_local_server</span><span class="p">()</span><span class="o">.</span><span class="n">target</span></div>
+
+  <span class="k">def</span> <span class="nf">_CreateController</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">trainer</span><span class="o">.</span><span class="n">Controller</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span>
+                              <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_CreateTrainer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">trainer</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span>
+                           <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_CreateEvalerDev</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">trainer</span><span class="o">.</span><span class="n">Evaler</span><span class="p">(</span><span class="s1">&#39;dev&#39;</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span>
+                          <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_CreateDecoderDev</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">trainer</span><span class="o">.</span><span class="n">Decoder</span><span class="p">(</span><span class="s1">&#39;dev&#39;</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span>
+                           <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="p">)</span>
+
+  <span class="k">def</span> <span class="nf">_HasFile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">files</span><span class="p">,</span> <span class="n">substr</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">substr</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span>
+
+  <span class="k">def</span> <span class="nf">_HasLine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">pattern</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns True iff one line in the given file matches the pattern.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">FastGFile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+    <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">pattern</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">lines</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TrainerTest"><a class="viewcode-back" href="../../lingvo.trainer_test.html#lingvo.trainer_test.TrainerTest">[docs]</a><span class="k">class</span> <span class="nc">TrainerTest</span><span class="p">(</span><span class="n">BaseTrainerTest</span><span class="p">):</span>
+
+<div class="viewcode-block" id="TrainerTest.tearDown"><a class="viewcode-back" href="../../lingvo.trainer_test.html#lingvo.trainer_test.TrainerTest.tearDown">[docs]</a>  <span class="k">def</span> <span class="nf">tearDown</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_tmpdir&#39;</span><span class="p">):</span>
+      <span class="n">shutil</span><span class="o">.</span><span class="n">rmtree</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tmpdir</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">_GetTestConfig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">model_name</span> <span class="o">=</span> <span class="s1">&#39;image.mnist.LeNet5&#39;</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="s1">&#39;Dev&#39;</span><span class="p">)</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:local&#39;</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:local&#39;</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># Generate 2 inputs.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tmpdir</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">ckpt</span> <span class="o">=</span> <span class="n">FakeMnistData</span><span class="p">(</span><span class="n">train_size</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">=</span> <span class="mf">0.9999</span>
+    <span class="k">return</span> <span class="n">cfg</span>
+
+<div class="viewcode-block" id="TrainerTest.testController"><a class="viewcode-back" href="../../lingvo.trainer_test.html#lingvo.trainer_test.TrainerTest.testController">[docs]</a>  <span class="k">def</span> <span class="nf">testController</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">logdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span><span class="p">(),</span>
+                          <span class="s1">&#39;controller_test&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()))</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTestConfig</span><span class="p">()</span>
+
+    <span class="n">trainer</span><span class="o">.</span><span class="n">RunnerManager</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_CreateController</span><span class="p">(</span><span class="n">cfg</span><span class="p">),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTrainer</span><span class="p">(</span><span class="n">cfg</span><span class="p">)])</span>
+
+    <span class="n">train_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Glob</span><span class="p">(</span><span class="n">logdir</span> <span class="o">+</span> <span class="s1">&#39;/train/*&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">train_files</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">train_files</span><span class="p">,</span> <span class="s1">&#39;tfevents&#39;</span><span class="p">))</span>
+    <span class="n">control_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Glob</span><span class="p">(</span><span class="n">logdir</span> <span class="o">+</span> <span class="s1">&#39;/control/*&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">control_files</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">control_files</span><span class="p">,</span> <span class="s1">&#39;model_analysis.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">control_files</span><span class="p">,</span> <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">control_files</span><span class="p">,</span> <span class="s1">&#39;tfevents&#39;</span><span class="p">))</span>
+
+    <span class="c1"># EvalerDev may not run concurrently with Controller in a single process</span>
+    <span class="c1"># because EvalerDev loads checkpoints and overwrites states like global</span>
+    <span class="c1"># steps.</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">RunnerManager</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_CreateEvalerDev</span><span class="p">(</span><span class="n">cfg</span><span class="p">)])</span>
+
+    <span class="n">dev_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Glob</span><span class="p">(</span><span class="n">logdir</span> <span class="o">+</span> <span class="s1">&#39;/eval_dev/*&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dev_files</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dev_files</span><span class="p">,</span> <span class="s1">&#39;eval_dev.pbtxt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dev_files</span><span class="p">,</span> <span class="s1">&#39;tfevents&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dev_files</span><span class="p">,</span> <span class="s1">&#39;score.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_HasLine</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;eval_dev/score.txt&#39;</span><span class="p">),</span> <span class="s1">&#39;log_pplx&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TrainerTest.testDecoder"><a class="viewcode-back" href="../../lingvo.trainer_test.html#lingvo.trainer_test.TrainerTest.testDecoder">[docs]</a>  <span class="k">def</span> <span class="nf">testDecoder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">logdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span><span class="p">(),</span>
+                          <span class="s1">&#39;decoder_test&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()))</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTestConfig</span><span class="p">()</span>
+
+    <span class="n">trainer</span><span class="o">.</span><span class="n">RunnerManager</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_CreateController</span><span class="p">(</span><span class="n">cfg</span><span class="p">),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTrainer</span><span class="p">(</span><span class="n">cfg</span><span class="p">)])</span>
+    <span class="n">trainer</span><span class="o">.</span><span class="n">RunnerManager</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_CreateDecoderDev</span><span class="p">(</span><span class="n">cfg</span><span class="p">)])</span>
+
+    <span class="n">dec_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Glob</span><span class="p">(</span><span class="n">logdir</span> <span class="o">+</span> <span class="s1">&#39;/decoder_dev/*&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dec_files</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dec_files</span><span class="p">,</span> <span class="s1">&#39;decoder_dev.pbtxt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dec_files</span><span class="p">,</span> <span class="s1">&#39;tfevents&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dec_files</span><span class="p">,</span> <span class="s1">&#39;score.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_HasLine</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;decoder_dev/score.txt&#39;</span><span class="p">),</span> <span class="s1">&#39;examples/sec&#39;</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="TrainerWithTrialTest"><a class="viewcode-back" href="../../lingvo.trainer_test.html#lingvo.trainer_test.TrainerWithTrialTest">[docs]</a><span class="k">class</span> <span class="nc">TrainerWithTrialTest</span><span class="p">(</span><span class="n">TrainerTest</span><span class="p">):</span>
+
+<div class="viewcode-block" id="TrainerWithTrialTest.testControllerTrainerEvaler"><a class="viewcode-back" href="../../lingvo.trainer_test.html#lingvo.trainer_test.TrainerWithTrialTest.testControllerTrainerEvaler">[docs]</a>  <span class="k">def</span> <span class="nf">testControllerTrainerEvaler</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">trial</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">mock</span><span class="o">.</span><span class="n">create_autospec</span><span class="p">(</span><span class="n">base_trial</span><span class="o">.</span><span class="n">Trial</span><span class="p">,</span> <span class="n">instance</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="o">=</span> <span class="n">trial</span>
+
+    <span class="n">logdir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">get_temp_dir</span><span class="p">(),</span>
+                          <span class="s1">&#39;controller_test&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()))</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTestConfig</span><span class="p">()</span>
+
+    <span class="n">trial</span><span class="o">.</span><span class="n">Name</span><span class="o">.</span><span class="n">return_value</span> <span class="o">=</span> <span class="s1">&#39;trial1&#39;</span>
+
+    <span class="k">def</span> <span class="nf">override_model_params</span><span class="p">(</span><span class="n">model_params</span><span class="p">):</span>
+      <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="mi">20</span>
+      <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">filter_shapes</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">50</span><span class="p">)]</span>
+      <span class="n">model_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">decay_start</span> <span class="o">=</span> <span class="mi">100</span>
+      <span class="k">return</span> <span class="n">model_params</span>
+
+    <span class="n">trial</span><span class="o">.</span><span class="n">OverrideModelParams</span><span class="o">.</span><span class="n">side_effect</span> <span class="o">=</span> <span class="n">override_model_params</span>
+    <span class="n">trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="o">.</span><span class="n">return_value</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">trial</span><span class="o">.</span><span class="n">ShouldStopAndMaybeReport</span><span class="o">.</span><span class="n">return_value</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># Stop trial once ReportEvalMeasure is called.</span>
+    <span class="n">trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="o">.</span><span class="n">return_value</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="n">runners</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_CreateController</span><span class="p">(</span><span class="n">cfg</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateTrainer</span><span class="p">(</span><span class="n">cfg</span><span class="p">)]</span>
+    <span class="c1"># Param override works.</span>
+    <span class="k">for</span> <span class="n">runner</span> <span class="ow">in</span> <span class="n">runners</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">runner</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">runner</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">filter_shapes</span><span class="p">,</span> <span class="p">[(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+                                                          <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">50</span><span class="p">)])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">runner</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">decay_start</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+
+    <span class="n">trainer</span><span class="o">.</span><span class="n">RunnerManager</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span><span class="n">runners</span><span class="p">)</span>
+    <span class="c1"># Controller and trainer check whether the trial is stopped.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">trial</span><span class="o">.</span><span class="n">OverrideModelParams</span><span class="o">.</span><span class="n">call_count</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="o">.</span><span class="n">call_count</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">trial</span><span class="o">.</span><span class="n">ShouldStopAndMaybeReport</span><span class="o">.</span><span class="n">call_count</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># Controller and trainer do not call report_measure, request_trial_stop, or</span>
+    <span class="c1"># report_done.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="o">.</span><span class="n">call_count</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">train_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Glob</span><span class="p">(</span><span class="n">logdir</span> <span class="o">+</span> <span class="s1">&#39;/train/*&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">train_files</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">train_files</span><span class="p">,</span> <span class="s1">&#39;tfevents&#39;</span><span class="p">))</span>
+    <span class="n">control_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Glob</span><span class="p">(</span><span class="n">logdir</span> <span class="o">+</span> <span class="s1">&#39;/control/*&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">control_files</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">control_files</span><span class="p">,</span> <span class="s1">&#39;model_analysis.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">control_files</span><span class="p">,</span> <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">control_files</span><span class="p">,</span> <span class="s1">&#39;tfevents&#39;</span><span class="p">))</span>
+
+    <span class="c1"># EvalerDev may not run concurrently with Controller in a single process</span>
+    <span class="c1"># because EvalerDev loads checkpoints and overwrites states like global</span>
+    <span class="c1"># steps.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateEvalerDev</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span><span class="o">.</span><span class="n">EvalLatestCheckpoint</span><span class="p">()</span>
+    <span class="c1"># EvalerDev calls report_measure, request_trial_stop, and report_done.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertGreater</span><span class="p">(</span><span class="n">trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="o">.</span><span class="n">call_count</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">dev_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Glob</span><span class="p">(</span><span class="n">logdir</span> <span class="o">+</span> <span class="s1">&#39;/eval_dev/*&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dev_files</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dev_files</span><span class="p">,</span> <span class="s1">&#39;eval_dev.pbtxt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dev_files</span><span class="p">,</span> <span class="s1">&#39;tfevents&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_HasFile</span><span class="p">(</span><span class="n">dev_files</span><span class="p">,</span> <span class="s1">&#39;score.txt&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_HasLine</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;eval_dev/score.txt&#39;</span><span class="p">),</span> <span class="s1">&#39;log_pplx&#39;</span><span class="p">))</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

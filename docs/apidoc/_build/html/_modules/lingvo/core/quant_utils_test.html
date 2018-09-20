@@ -1,0 +1,594 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.quant_utils_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.quant_utils_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.quant_utils_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for quant_utils.&quot;&quot;&quot;</span>
+
+<span class="c1"># pylint: disable=bad-whitespace</span>
+<span class="c1"># pylint: disable=bad-continuation</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">quant_utils</span>
+
+
+<div class="viewcode-block" id="SampleQuantizedProjectionLayer"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.SampleQuantizedProjectionLayer">[docs]</a><span class="k">class</span> <span class="nc">SampleQuantizedProjectionLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Simple projection layer to demonstrate quantization.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SampleQuantizedProjectionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.SampleQuantizedProjectionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SampleQuantizedProjectionLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SampleQuantizedProjectionLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;transformed&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SampleQuantizedProjectionLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.SampleQuantizedProjectionLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
+
+    <span class="c1"># It is the most important that weights and top-level activations</span>
+    <span class="c1"># be tagged for quantization:</span>
+    <span class="c1">#   - Weights use the self.QWeight() decorator</span>
+    <span class="c1">#   - Inputs/activations are decorated with self.QTensor(). In general,</span>
+    <span class="c1">#     the provided name should match a call to self.TrackQTensor in the</span>
+    <span class="c1">#     constructor. This creates an tensor that is individually accounted</span>
+    <span class="c1">#     for.</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
+    <span class="c1"># Note the use of the qmatmul from the function library. This will</span>
+    <span class="c1"># automatically track the output against the qtensor &#39;transformed&#39;.</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]),</span> <span class="n">w</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;transformed&#39;</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">]],</span> <span class="mi">0</span><span class="p">))</span>
+
+    <span class="c1"># Decorate outputs of simple activation functions with their corresponding</span>
+    <span class="c1"># range decorator. This will ensure that the result does not exceed the</span>
+    <span class="c1"># precision of the underlying representation.</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qtanh</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
+
+    <span class="c1"># Perform padding manipulation via booleans instead of:</span>
+    <span class="c1">#   out *= 1.0 - paddings</span>
+    <span class="c1"># Because the paddings can exist in entirely different numeric ranges than</span>
+    <span class="c1"># the tensor they are being applied to, it is best to not perform</span>
+    <span class="c1"># arithmetic directly between them. Instead, broadcast them to the needed</span>
+    <span class="c1"># size (if different) and perform an exact mask with tf.where.</span>
+    <span class="c1"># For added numeric range protection, the QRPadding decorator ensures</span>
+    <span class="c1"># the correct range. This is mostly needed for cases where padding is</span>
+    <span class="c1"># dynamic at inference time.</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>  <span class="c1"># Broadcast to &#39;out&#39; size.</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">paddings</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">out</span><span class="p">),</span> <span class="n">out</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">out</span></div></div>
+
+
+<div class="viewcode-block" id="QuantizableLayerTest"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.QuantizableLayerTest">[docs]</a><span class="k">class</span> <span class="nc">QuantizableLayerTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+  <span class="c1"># pyformat: disable</span>
+  <span class="n">NO_QDOMAIN_EXPECTED</span> <span class="o">=</span> <span class="p">[</span>
+   <span class="p">[[</span> <span class="mf">0.00071405</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03868543</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.01999986</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00994987</span><span class="p">],</span>
+    <span class="p">[</span> <span class="mf">0.08905827</span><span class="p">,</span>  <span class="mf">0.13636404</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03180931</span><span class="p">,</span>  <span class="mf">0.06056439</span><span class="p">],</span>
+    <span class="p">[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">],</span>
+    <span class="p">[</span><span class="o">-</span><span class="mf">0.0208858</span> <span class="p">,</span> <span class="o">-</span><span class="mf">0.17595209</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.05192588</span><span class="p">,</span>  <span class="mf">0.02618068</span><span class="p">]],</span>
+   <span class="p">[[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">],</span>
+    <span class="p">[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">],</span>
+    <span class="p">[</span><span class="o">-</span><span class="mf">0.02125708</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.10454545</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.01147466</span><span class="p">,</span>  <span class="mf">0.06903321</span><span class="p">],</span>
+    <span class="p">[</span> <span class="mf">0.0276652</span> <span class="p">,</span> <span class="o">-</span><span class="mf">0.14823943</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.09726462</span><span class="p">,</span>  <span class="mf">0.01415125</span><span class="p">]]]</span>
+  <span class="c1"># pyformat: enable</span>
+
+<div class="viewcode-block" id="QuantizableLayerTest.testOpWrapperArgChecking"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.QuantizableLayerTest.testOpWrapperArgChecking">[docs]</a>  <span class="k">def</span> <span class="nf">testOpWrapperArgChecking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">SampleQuantizedProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;test&#39;</span>
+      <span class="n">l</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">l</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+      <span class="n">fns</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">fns</span>
+
+      <span class="c1"># Just testing one dynamic and one const op.</span>
+      <span class="c1"># Dynamic.</span>
+      <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+      <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qmin</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">qmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">):</span>
+        <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># No range args.</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">):</span>
+        <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qmin</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># Incomplete range args.</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">):</span>
+        <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qmax</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># Incomplete range args.</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span>
+                                   <span class="s1">&#39;first calling TrackQTensor&#39;</span><span class="p">):</span>
+        <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;non_existing&#39;</span><span class="p">)</span>  <span class="c1"># Test that qt is resolved.</span>
+
+      <span class="c1"># Const.</span>
+      <span class="n">fns</span><span class="o">.</span><span class="n">qtanh</span><span class="p">(</span><span class="mf">6.0</span><span class="p">)</span>  <span class="c1"># No min/max.</span>
+      <span class="n">fns</span><span class="o">.</span><span class="n">qtanh</span><span class="p">(</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">qmin</span><span class="o">=-</span><span class="mf">5.0</span><span class="p">,</span> <span class="n">qmax</span><span class="o">=</span><span class="mf">6.0</span><span class="p">)</span>  <span class="c1"># Min/max</span>
+      <span class="n">fns</span><span class="o">.</span><span class="n">qtanh</span><span class="p">(</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">)</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span>
+                                   <span class="s1">&#39;first calling TrackQTensor&#39;</span><span class="p">):</span>
+        <span class="n">fns</span><span class="o">.</span><span class="n">qtanh</span><span class="p">(</span><span class="mf">6.0</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;non_existing&#39;</span><span class="p">)</span>  <span class="c1"># Test that qt has precedence.</span></div>
+
+<div class="viewcode-block" id="QuantizableLayerTest.testLayerWithNoQDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.QuantizableLayerTest.testLayerWithNoQDomain">[docs]</a>  <span class="k">def</span> <span class="nf">testLayerWithNoQDomain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">SampleQuantizedProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_testLayerHelper</span><span class="p">(</span><span class="s1">&#39;testLayerWithNoQDomain&#39;</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">NO_QDOMAIN_EXPECTED</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QuantizableLayerTest.testLayerWithIdentityQDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.QuantizableLayerTest.testLayerWithIdentityQDomain">[docs]</a>  <span class="k">def</span> <span class="nf">testLayerWithIdentityQDomain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">SampleQuantizedProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">QDomain</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_testLayerHelper</span><span class="p">(</span><span class="s1">&#39;testLayerWithIdentityQDomain&#39;</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">NO_QDOMAIN_EXPECTED</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QuantizableLayerTest.testLayerWithPassiveAsymQDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.QuantizableLayerTest.testLayerWithPassiveAsymQDomain">[docs]</a>  <span class="k">def</span> <span class="nf">testLayerWithPassiveAsymQDomain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="p">[</span>
+       <span class="p">[[</span> <span class="mf">0.</span>        <span class="p">,</span> <span class="o">-</span><span class="mf">0.03921568</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.02352941</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00784314</span><span class="p">],</span>
+        <span class="p">[</span> <span class="mf">0.0862745</span> <span class="p">,</span>  <span class="mf">0.13333333</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.03137255</span><span class="p">,</span>  <span class="mf">0.06274509</span><span class="p">],</span>
+        <span class="p">[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">],</span>
+        <span class="p">[</span><span class="o">-</span><span class="mf">0.02352941</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.17254901</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.05490196</span><span class="p">,</span>  <span class="mf">0.02352941</span><span class="p">]],</span>
+       <span class="p">[[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">],</span>
+        <span class="p">[</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.</span>        <span class="p">],</span>
+        <span class="p">[</span><span class="o">-</span><span class="mf">0.02352941</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.10196078</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.00784314</span><span class="p">,</span>  <span class="mf">0.07058823</span><span class="p">],</span>
+        <span class="p">[</span> <span class="mf">0.02352941</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1490196</span> <span class="p">,</span> <span class="o">-</span><span class="mf">0.09411764</span><span class="p">,</span>  <span class="mf">0.01568627</span><span class="p">]]]</span>
+    <span class="c1"># pyformat: enable</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">SampleQuantizedProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">PassiveAsymQDomain</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_testLayerHelper</span><span class="p">(</span>
+          <span class="s1">&#39;testLayerWithPassiveAsymQDomain&#39;</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">expected</span><span class="o">=</span><span class="n">expected</span><span class="p">)</span>
+      <span class="n">init_minmax_vars</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">qdomain_default</span><span class="o">.</span><span class="n">_qvars</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Initial Minmax vars:&#39;</span><span class="p">,</span> <span class="n">init_minmax_vars</span><span class="p">)</span>
+      <span class="c1"># Record.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="mi">16</span><span class="p">)])</span>
+      <span class="n">minmax_vars</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">qdomain_default</span><span class="o">.</span><span class="n">_qvars</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Minmax vars:&#39;</span><span class="p">,</span> <span class="n">minmax_vars</span><span class="p">)</span>
+
+      <span class="c1"># Make sure that the vars have moved from their defaults.</span>
+      <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">minmax_vars</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertNotEqual</span><span class="p">(</span><span class="n">init_minmax_vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">minmax_vars</span><span class="p">[</span><span class="n">k</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="QuantizableLayerTest.testLayerWithSymetricScheduledClipQDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.QuantizableLayerTest.testLayerWithSymetricScheduledClipQDomain">[docs]</a>  <span class="k">def</span> <span class="nf">testLayerWithSymetricScheduledClipQDomain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="n">expected</span> <span class="o">=</span> <span class="p">[</span>
+       <span class="p">[[</span> <span class="mf">0.</span>       <span class="p">,</span> <span class="o">-</span><span class="mf">0.0390625</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.015625</span> <span class="p">,</span> <span class="o">-</span><span class="mf">0.0078125</span><span class="p">],</span>
+        <span class="p">[</span> <span class="mf">0.0859375</span><span class="p">,</span>  <span class="mf">0.140625</span> <span class="p">,</span> <span class="o">-</span><span class="mf">0.0234375</span><span class="p">,</span>  <span class="mf">0.0625</span>   <span class="p">],</span>
+        <span class="p">[</span> <span class="mf">0.</span>       <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">],</span>
+        <span class="p">[</span><span class="o">-</span><span class="mf">0.0234375</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.171875</span> <span class="p">,</span> <span class="o">-</span><span class="mf">0.0546875</span><span class="p">,</span>  <span class="mf">0.0234375</span><span class="p">]],</span>
+       <span class="p">[[</span> <span class="mf">0.</span>       <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">],</span>
+        <span class="p">[</span> <span class="mf">0.</span>       <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">],</span>
+        <span class="p">[</span><span class="o">-</span><span class="mf">0.0234375</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.1015625</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.015625</span> <span class="p">,</span>  <span class="mf">0.0703125</span><span class="p">],</span>
+        <span class="p">[</span> <span class="mf">0.</span>       <span class="p">,</span> <span class="o">-</span><span class="mf">0.125</span>    <span class="p">,</span> <span class="o">-</span><span class="mf">0.0625</span>   <span class="p">,</span>  <span class="mf">0.</span>       <span class="p">]]]</span>
+    <span class="c1"># pyformat: enable</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">SampleQuantizedProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">SymetricScheduledClipQDomain</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">clip_start_step</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+          <span class="n">clip_end_step</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+          <span class="n">quant_start_step</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+      <span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_testLayerHelper</span><span class="p">(</span>
+          <span class="s1">&#39;testLayerWithSymetricScheduledClipQDomain&#39;</span><span class="p">,</span>
+          <span class="n">sess</span><span class="p">,</span>
+          <span class="n">p</span><span class="p">,</span>
+          <span class="n">expected</span><span class="o">=</span><span class="n">expected</span><span class="p">,</span>
+          <span class="n">global_step</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">_testLayerHelper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">test_case</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">expected</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">398847392</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;proj&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">in_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">in_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+        <span class="p">[[[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]],</span> <span class="p">[[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">in_padding</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">l</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="n">global_step</span><span class="p">)])</span>
+
+    <span class="n">output</span> <span class="o">=</span> <span class="n">output</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;QuantizableLayerTest output&#39;</span><span class="p">,</span> <span class="n">test_case</span><span class="p">,</span> <span class="s1">&#39;:</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
+          <span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">output</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">expected</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">expected</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">l</span></div>
+
+
+<div class="viewcode-block" id="ClippingCapScheduleTest"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.ClippingCapScheduleTest">[docs]</a><span class="k">class</span> <span class="nc">ClippingCapScheduleTest</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ClippingCapScheduleTest.testLinearClippingCapSchedule"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.ClippingCapScheduleTest.testLinearClippingCapSchedule">[docs]</a>  <span class="k">def</span> <span class="nf">testLinearClippingCapSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">LinearClippingCapSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">start_step</span> <span class="o">=</span> <span class="mi">50</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">end_step</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">start_cap</span> <span class="o">=</span> <span class="mf">6.0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">end_cap</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">cc_schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">():</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">70</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="nb">print</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">110</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">25</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">6.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">50</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">6.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">5.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">70</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">4.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">80</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">3.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">90</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">2.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="mi">110</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">1.0</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">_ClipExample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cc_schedule</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a tuple of (neg, pos) for clipped neg/pos values of v.&quot;&quot;&quot;</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="n">clipped</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">cc_schedule</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="o">-</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span>
+        <span class="n">cc_schedule</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span>
+    <span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Clipped +-&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="s1">&#39; -&gt;&#39;</span><span class="p">,</span> <span class="n">clipped</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">clipped</span>
+
+<div class="viewcode-block" id="ClippingCapScheduleTest.testFakeQuantizationScheduleFromDefun"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.ClippingCapScheduleTest.testFakeQuantizationScheduleFromDefun">[docs]</a>  <span class="k">def</span> <span class="nf">testFakeQuantizationScheduleFromDefun</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">FakeQuantizationSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">clip_start_step</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">clip_end_step</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">quant_start_step</span> <span class="o">=</span> <span class="mi">15</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">start_cap</span> <span class="o">=</span> <span class="mf">6.0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">end_cap</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">cc_schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="c1"># Move to fully quantized part of schedule</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="mi">16</span><span class="p">)])</span>
+
+      <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="k">def</span> <span class="nf">ExampleFunction8</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cc_state</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cc_schedule</span><span class="o">.</span><span class="n">ApplyClippingWithState</span><span class="p">(</span><span class="n">cc_state</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="mi">8</span><span class="p">)</span>
+
+      <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="k">def</span> <span class="nf">ExampleFunction16</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cc_state</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">cc_schedule</span><span class="o">.</span><span class="n">ApplyClippingWithState</span><span class="p">(</span><span class="n">cc_state</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">bits</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+
+      <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">)</span>
+      <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span>
+
+      <span class="c1"># 8bit value.</span>
+      <span class="n">v</span> <span class="o">=</span> <span class="n">ExampleFunction8</span><span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span> <span class="n">cc_schedule</span><span class="o">.</span><span class="n">GetState</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">theta</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.5</span><span class="p">)</span>
+
+      <span class="c1"># 16bit value.</span>
+      <span class="n">v</span> <span class="o">=</span> <span class="n">ExampleFunction16</span><span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span> <span class="n">cc_schedule</span><span class="o">.</span><span class="n">GetState</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">theta</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">eval</span><span class="p">(),</span> <span class="mf">0.5</span><span class="p">)</span>
+
+      <span class="c1"># An incomplete implementation requires special case gradient logic.</span>
+      <span class="c1"># This tests it, specifically in a Defun, which caused issues.</span>
+      <span class="c1"># 8bit gradient.</span>
+      <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
+          <span class="n">ExampleFunction8</span><span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span> <span class="n">cc_schedule</span><span class="o">.</span><span class="n">GetState</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">theta</span><span class="p">)),</span>
+          <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span>
+      <span class="n">g</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">g</span><span class="p">]</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Gradient8:&#39;</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span>
+
+      <span class="c1"># 16bit gradient.</span>
+      <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
+          <span class="n">ExampleFunction16</span><span class="p">(</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span><span class="p">,</span> <span class="n">cc_schedule</span><span class="o">.</span><span class="n">GetState</span><span class="p">(</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">theta</span><span class="p">)),</span>
+          <span class="p">[</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">])</span>
+      <span class="n">g</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">g</span><span class="p">]</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Gradient16:&#39;</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ClippingCapScheduleTest.testFakeQuantizationScheduleTraining"><a class="viewcode-back" href="../../../lingvo.core.quant_utils_test.html#lingvo.core.quant_utils_test.ClippingCapScheduleTest.testFakeQuantizationScheduleTraining">[docs]</a>  <span class="k">def</span> <span class="nf">testFakeQuantizationScheduleTraining</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">FakeQuantizationSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">clip_start_step</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">clip_end_step</span> <span class="o">=</span> <span class="mi">10</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">quant_start_step</span> <span class="o">=</span> <span class="mi">15</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">start_cap</span> <span class="o">=</span> <span class="mf">6.0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">end_cap</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">cc_schedule</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="c1"># Step 0: No clipping.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">100.0</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">),</span>
+          <span class="p">(</span><span class="o">-</span><span class="mf">0.123456</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">))</span>  <span class="c1"># Not Quantized.</span>
+
+      <span class="c1"># Step 5: Clipping active but not yet quantizing.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="mi">5</span><span class="p">)])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span>
+          <span class="p">(</span><span class="o">-</span><span class="mf">6.0</span><span class="p">,</span> <span class="mf">5.953125</span><span class="p">))</span>  <span class="c1"># 6 * 127/128</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">),</span>
+          <span class="p">(</span><span class="o">-</span><span class="mf">0.123456</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">))</span>  <span class="c1"># Not Quantized.</span>
+
+      <span class="c1"># Step 7: Middle of clipping range.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="mi">7</span><span class="p">)])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span> <span class="p">(</span><span class="o">-</span><span class="mf">4.0</span><span class="p">,</span> <span class="mf">3.96875</span><span class="p">))</span>  <span class="c1"># 4 * 127/128</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">),</span>
+          <span class="p">(</span><span class="o">-</span><span class="mf">0.123456</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">))</span>  <span class="c1"># Not Quantized.</span>
+
+      <span class="c1"># Step 10: End of clipping range.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="mi">10</span><span class="p">)])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span>
+          <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.9921875</span><span class="p">))</span>  <span class="c1"># 1 * 127/128</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">),</span>
+          <span class="p">(</span><span class="o">-</span><span class="mf">0.123456</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">))</span>  <span class="c1"># Not Quantized.</span>
+
+      <span class="c1"># Step 11: No more clipping but not yet quantizing.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="mi">11</span><span class="p">)])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span>
+          <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.9921875</span><span class="p">))</span>  <span class="c1"># 1 * 127/128</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">),</span>
+          <span class="p">(</span><span class="o">-</span><span class="mf">0.123456</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">))</span>  <span class="c1"># Not Quantized.</span>
+
+      <span class="c1"># Step 15-16: Quantizing at full clip.</span>
+      <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">16</span><span class="p">):</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="n">step</span><span class="p">)])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">100.0</span><span class="p">),</span>
+            <span class="p">(</span><span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.9921875</span><span class="p">))</span>  <span class="c1"># 1 * 127/128</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ClipExample</span><span class="p">(</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="mf">0.123456</span><span class="p">),</span>
+            <span class="p">(</span><span class="o">-</span><span class="mf">0.125</span><span class="p">,</span> <span class="mf">0.125</span><span class="p">))</span>  <span class="c1"># Quantized.</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

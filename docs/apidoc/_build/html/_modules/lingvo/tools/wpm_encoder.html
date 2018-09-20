@@ -1,0 +1,360 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tools.wpm_encoder &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tools.wpm_encoder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tools.wpm_encoder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Encode using wordpiece models.</span>
+
+<span class="sd">Implements the segmentation algorithm described in the last paragraph of</span>
+<span class="sd">p. 5150, in the following publication:</span>
+
+<span class="sd">M. Schuster and K. Nakajima, &quot;Japanese and Korean voice</span>
+<span class="sd">search,&quot; 2012 IEEE International Conference on Acoustics,</span>
+<span class="sd">Speech and Signal Processing, 2012</span>
+
+<span class="sd">https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/37842.pdf</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="c1"># Must be a large ID.</span>
+<span class="n">NO_TOKEN</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxint</span>
+<span class="n">NO_TOKEN_STRING</span> <span class="o">=</span> <span class="s1">&#39;&lt;unk&gt;&#39;</span>
+
+<span class="n">SENTENCE_START_STRING</span> <span class="o">=</span> <span class="s1">&#39;&lt;s&gt;&#39;</span>
+<span class="n">SENTENCE_END_STRING</span> <span class="o">=</span> <span class="s1">&#39;&lt;/s&gt;&#39;</span>
+
+
+<div class="viewcode-block" id="WpmEncoder"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder">[docs]</a><span class="k">class</span> <span class="nc">WpmEncoder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">wpm_filepath</span><span class="p">):</span>
+    <span class="c1"># Load vocabulary file.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">wpm_filepath</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">pid</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="n">piece</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;voc: </span><span class="si">%s</span><span class="s1"> -&gt; </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">piece</span><span class="p">,</span> <span class="n">pid</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">piece</span><span class="p">]</span> <span class="o">=</span> <span class="n">pid</span>
+        <span class="n">pid</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span> <span class="o">+=</span> <span class="p">[</span><span class="n">piece</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringToToken</span><span class="p">(</span><span class="n">NO_TOKEN_STRING</span><span class="p">)</span> <span class="o">!=</span> <span class="n">NO_TOKEN</span>
+
+<div class="viewcode-block" id="WpmEncoder._TokenToString"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder._TokenToString">[docs]</a>  <span class="k">def</span> <span class="nf">_TokenToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">token</span> <span class="o">==</span> <span class="n">NO_TOKEN</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">safe</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">NO_TOKEN_STRING</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">token</span> <span class="o">!=</span> <span class="n">NO_TOKEN</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">[</span><span class="n">token</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="WpmEncoder._TokensToString"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder._TokensToString">[docs]</a>  <span class="k">def</span> <span class="nf">_TokensToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">safe</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="WpmEncoder._StringToToken"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder._StringToToken">[docs]</a>  <span class="k">def</span> <span class="nf">_StringToToken</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokstr</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">tokstr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">tokstr</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">NO_TOKEN</span></div>
+
+<div class="viewcode-block" id="WpmEncoder._MergeTokens"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder._MergeTokens">[docs]</a>  <span class="k">def</span> <span class="nf">_MergeTokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token1</span><span class="p">,</span> <span class="n">token2</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringToToken</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">token1</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">token2</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="WpmEncoder._IsAllNull"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder._IsAllNull">[docs]</a>  <span class="k">def</span> <span class="nf">_IsAllNull</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidates</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="n">candidates</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">NO_TOKEN</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WpmEncoder._EncodeToIds"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder._EncodeToIds">[docs]</a>  <span class="k">def</span> <span class="nf">_EncodeToIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
+      <span class="n">word</span> <span class="o">=</span> <span class="n">word</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+    <span class="c1"># First, match entire words. That will work to shortcut exception words</span>
+    <span class="c1"># such as &lt;S&gt;, even if there is no path to merge hierarchically. To wit,</span>
+    <span class="c1"># in this case, either &#39;&lt;S&#39; or &#39;S&gt;&#39; must be present.</span>
+    <span class="k">if</span> <span class="n">word</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">word</span><span class="p">]]</span>
+    <span class="c1"># Henceforth,</span>
+    <span class="c1">#   * a token is a wordpiece ID.</span>
+    <span class="c1">#   * the tokens array will be merged in-place.</span>
+    <span class="c1">#   * the candidates array is an array of size len(tokens) - 1.</span>
+    <span class="c1">#     It contains the token for the merged wordpiece, if it exists,</span>
+    <span class="c1">#     -1 otherwise. For instance, candidate[3] = id(token[3] + token[4]).</span>
+    <span class="c1"># First, split into basic UTF-8 characters (letters).</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_StringToToken</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span> <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">word</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="n">tokens</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">==</span> <span class="n">NO_TOKEN</span><span class="p">:</span>
+        <span class="c1"># Unseen character.</span>
+        <span class="n">tokens</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringToToken</span><span class="p">(</span><span class="n">NO_TOKEN_STRING</span><span class="p">)</span>
+    <span class="c1"># Create initial candidate list.</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+      <span class="n">merged</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MergeTokens</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">tokens</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="n">candidates</span> <span class="o">+=</span> <span class="p">[</span><span class="n">merged</span><span class="p">]</span>
+    <span class="c1"># Merge in the reverse binary tree until no more merges are possible.</span>
+    <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IsAllNull</span><span class="p">(</span><span class="n">candidates</span><span class="p">):</span>
+      <span class="n">best_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span>
+      <span class="c1"># Perform the merge at position best_id.</span>
+      <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[:</span><span class="n">best_id</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span><span class="p">]]</span> <span class="o">+</span> <span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">2</span><span class="p">:]</span>
+      <span class="c1"># Recompute the merge candidates to the right:</span>
+      <span class="k">if</span> <span class="n">best_id</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MergeTokens</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span><span class="p">],</span>
+                                                <span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">candidates</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+      <span class="c1"># Recompute the merge candidates to the left:</span>
+      <span class="k">if</span> <span class="n">best_id</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MergeTokens</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                                                    <span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span><span class="p">])</span>
+      <span class="n">candidates</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[:</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">2</span><span class="p">:]</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">tokens</span></div>
+
+<div class="viewcode-block" id="WpmEncoder.EncodeWord"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder.EncodeWord">[docs]</a>  <span class="k">def</span> <span class="nf">EncodeWord</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncodeToIds</span><span class="p">(</span><span class="n">word</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="WpmEncoder.EncodeToStringAndIds"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder.EncodeToStringAndIds">[docs]</a>  <span class="k">def</span> <span class="nf">EncodeToStringAndIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncodeToIds</span><span class="p">(</span><span class="n">word</span><span class="p">)]</span></div>
+
+<div class="viewcode-block" id="WpmEncoder.Encode"><a class="viewcode-back" href="../../../lingvo.tools.wpm_encoder.html#lingvo.tools.wpm_encoder.WpmEncoder.Encode">[docs]</a>  <span class="k">def</span> <span class="nf">Encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Assumes that the text is utf-8 decoded.&quot;&quot;&quot;</span>
+    <span class="n">words</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="n">encoded_words</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">words</span><span class="p">:</span>
+      <span class="n">encoded_words</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EncodeWord</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+    <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">encoded_words</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">sentence_start_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">SENTENCE_START_STRING</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">sentence_start_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">SENTENCE_START_STRING</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">sentence_end_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">SENTENCE_END_STRING</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">sentence_end_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">SENTENCE_END_STRING</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

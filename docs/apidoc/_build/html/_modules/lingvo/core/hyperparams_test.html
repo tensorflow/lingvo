@@ -1,0 +1,520 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.hyperparams_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.hyperparams_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.hyperparams_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Tests for hyperparams.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span> <span class="k">as</span> <span class="n">_params</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="TestClass1"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.TestClass1">[docs]</a><span class="k">class</span> <span class="nc">TestClass1</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;This class is used in ParamsToSimpleTextTest as a value of a variable.&quot;&quot;&quot;</span>
+  <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="TestClass2"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.TestClass2">[docs]</a><span class="k">class</span> <span class="nc">TestClass2</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;This class is used in ParamsToSimpleTextTest as a value of a variable.&quot;&quot;&quot;</span>
+  <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ParamsTest"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest">[docs]</a><span class="k">class</span> <span class="nc">ParamsTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+<div class="viewcode-block" id="ParamsTest.testEquals"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testEquals">[docs]</a>  <span class="k">def</span> <span class="nf">testEquals</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">params1</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">params2</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">params1</span> <span class="o">==</span> <span class="n">params2</span><span class="p">)</span>
+    <span class="n">params1</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;first&#39;</span><span class="p">,</span> <span class="s1">&#39;firstvalue&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">params1</span> <span class="o">==</span> <span class="n">params2</span><span class="p">)</span>
+    <span class="n">params2</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;first&#39;</span><span class="p">,</span> <span class="s1">&#39;firstvalue&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">params1</span> <span class="o">==</span> <span class="n">params2</span><span class="p">)</span>
+    <span class="n">some_object</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+    <span class="n">other_object</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
+    <span class="n">params1</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;second&#39;</span><span class="p">,</span> <span class="n">some_object</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">params2</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;second&#39;</span><span class="p">,</span> <span class="n">other_object</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">params1</span> <span class="o">==</span> <span class="n">params2</span><span class="p">)</span>
+    <span class="n">params2</span><span class="o">.</span><span class="n">second</span> <span class="o">=</span> <span class="n">some_object</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">params1</span> <span class="o">==</span> <span class="n">params2</span><span class="p">)</span>
+    <span class="n">params1</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;third&#39;</span><span class="p">,</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">params2</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;third&#39;</span><span class="p">,</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">params1</span> <span class="o">==</span> <span class="n">params2</span><span class="p">)</span>
+    <span class="n">params1</span><span class="o">.</span><span class="n">third</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fourth&#39;</span><span class="p">,</span> <span class="s1">&#39;x&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">params2</span><span class="o">.</span><span class="n">third</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fourth&#39;</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertFalse</span><span class="p">(</span><span class="n">params1</span> <span class="o">==</span> <span class="n">params2</span><span class="p">)</span>
+    <span class="n">params2</span><span class="o">.</span><span class="n">third</span><span class="o">.</span><span class="n">fourth</span> <span class="o">=</span> <span class="s1">&#39;x&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">params1</span> <span class="o">==</span> <span class="n">params2</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParamsTest.testDeepCopy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testDeepCopy">[docs]</a>  <span class="k">def</span> <span class="nf">testDeepCopy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">inner</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">inner</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">inner</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer_copy</span> <span class="o">=</span> <span class="n">outer</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">outer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">outer_copy</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">outer</span> <span class="o">==</span> <span class="n">outer_copy</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">inner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">outer_copy</span><span class="o">.</span><span class="n">inner</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">inner</span> <span class="o">==</span> <span class="n">outer_copy</span><span class="o">.</span><span class="n">inner</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParamsTest.testDefineExisting"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testDefineExisting">[docs]</a>  <span class="k">def</span> <span class="nf">testDefineExisting</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;already defined&#39;</span><span class="p">,</span>
+                            <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ParamsTest.testLegalParamNames"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testLegalParamNames">[docs]</a>  <span class="k">def</span> <span class="nf">testLegalParamNames</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;_foo&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;Foo&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;1foo&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaises</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;foo$&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;foo_bar&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;foo9&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParamsTest.testSetAndGet"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testSetAndGet">[docs]</a>  <span class="k">def</span> <span class="nf">testSetAndGet</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="mi">4</span><span class="p">))</span>
+    <span class="c1"># We use setattr() because lambda cannot contain explicit assignment.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="nb">setattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">foo</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">foo</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">foo</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">foo</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">foo</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">Get</span><span class="p">,</span> <span class="s1">&#39;foo&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParamsTest.testSetAndGetNestedParam"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testSetAndGetNestedParam">[docs]</a>  <span class="k">def</span> <span class="nf">testSetAndGetNestedParam</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">innermost</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">innermost</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;delta&#39;</span><span class="p">,</span> <span class="mi">22</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">innermost</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;zeta&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="n">inner</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">inner</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">inner</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;innermost&#39;</span><span class="p">,</span> <span class="n">innermost</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="n">outer</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">inner</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="s1">&#39;bar&#39;</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">inner</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;foo&#39;</span><span class="p">],</span> <span class="s1">&#39;bar&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">innermost</span><span class="o">.</span><span class="n">delta</span><span class="p">,</span> <span class="mi">22</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">innermost</span><span class="o">.</span><span class="n">zeta</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">inner</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;alpha&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">)[</span><span class="s1">&#39;foo&#39;</span><span class="p">],</span> <span class="s1">&#39;bar&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;inner.alpha&#39;</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;inner.innermost.delta&#39;</span><span class="p">),</span> <span class="mi">22</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;inner.innermost.zeta&#39;</span><span class="p">),</span> <span class="mi">5</span><span class="p">)</span>
+
+    <span class="n">outer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="s1">&#39;inner.alpha&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">})</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">d</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="s1">&#39;baq&#39;</span><span class="p">))</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;inner.innermost.zeta&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">inner</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">outer</span><span class="o">.</span><span class="n">beta</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">d</span><span class="p">[</span><span class="s1">&#39;foo&#39;</span><span class="p">],</span> <span class="s1">&#39;baq&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">innermost</span><span class="o">.</span><span class="n">delta</span><span class="p">,</span> <span class="mi">22</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;zeta&#39;</span><span class="p">,</span>
+                            <span class="k">lambda</span><span class="p">:</span> <span class="n">outer</span><span class="o">.</span><span class="n">inner</span><span class="o">.</span><span class="n">innermost</span><span class="o">.</span><span class="n">zeta</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">inner</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;alpha&#39;</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">,</span> <span class="s1">&#39;beta&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;d&#39;</span><span class="p">)[</span><span class="s1">&#39;foo&#39;</span><span class="p">],</span> <span class="s1">&#39;baq&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;inner.alpha&#39;</span><span class="p">),</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="s1">&#39;inner.innermost.delta&#39;</span><span class="p">),</span> <span class="mi">22</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;inner.innermost.zeta&#39;</span><span class="p">,</span> <span class="n">outer</span><span class="o">.</span><span class="n">Get</span><span class="p">,</span>
+                            <span class="s1">&#39;inner.innermost.zeta&#39;</span><span class="p">)</span>
+
+    <span class="c1"># NOTE(igushev): Finding nested Param object is shared between Get, Set and</span>
+    <span class="c1"># Delete, so we test only Set.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;inner\.gamma&#39;</span><span class="p">,</span>
+                            <span class="k">lambda</span><span class="p">:</span> <span class="n">outer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="s1">&#39;inner.gamma&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">}))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="s1">&#39;inner\.innermost\.bad&#39;</span><span class="p">,</span>
+                            <span class="k">lambda</span><span class="p">:</span> <span class="n">outer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="s1">&#39;inner.innermost.bad&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">}))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertRaisesRegexp</span><span class="p">(</span><span class="ne">AssertionError</span><span class="p">,</span> <span class="s1">&#39;^Cannot introspect&#39;</span><span class="p">,</span>
+                            <span class="k">lambda</span><span class="p">:</span> <span class="n">outer</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="s1">&#39;d.foo&#39;</span><span class="p">:</span> <span class="s1">&#39;baz&#39;</span><span class="p">}))</span></div>
+
+<div class="viewcode-block" id="ParamsTest.testToString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testToString">[docs]</a>  <span class="k">def</span> <span class="nf">testToString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">outer</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">inner</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">inner</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">inner</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;list&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">inner</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dict&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="n">inner</span><span class="p">},</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">outer</span><span class="p">),</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">{</span>
+<span class="s2">  dict: {&#39;a&#39;: 1, &#39;b&#39;: {&#39;bar&#39;: 2}}</span>
+<span class="s2">  foo: 1</span>
+<span class="s2">  inner: {</span>
+<span class="s2">    bar: 2</span>
+<span class="s2">  }</span>
+<span class="s2">  list: [1, {&#39;bar&#39;: 2}, 2]</span>
+<span class="s2">}&quot;&quot;&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParamsTest.testIterParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testIterParams">[docs]</a>  <span class="k">def</span> <span class="nf">testIterParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">keys</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;e&#39;</span><span class="p">],</span> <span class="p">[</span><span class="kc">True</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;zippidy&#39;</span><span class="p">,</span> <span class="mf">78.5</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="s1">&#39;description of </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">k</span><span class="p">)</span>
+
+    <span class="n">k_set</span><span class="p">,</span> <span class="n">v_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">keys</span><span class="p">),</span> <span class="nb">set</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+    <span class="n">number_of_params</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">k</span> <span class="ow">in</span> <span class="n">k_set</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertTrue</span><span class="p">(</span><span class="n">v</span> <span class="ow">in</span> <span class="n">v_set</span><span class="p">)</span>
+      <span class="n">number_of_params</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">number_of_params</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="ParamsTest.testToText"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testToText">[docs]</a>  <span class="k">def</span> <span class="nf">testToText</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">outer</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">inner</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">inner</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bar&#39;</span><span class="p">,</span> <span class="mf">2.71</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">inner</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;baz&#39;</span><span class="p">,</span> <span class="s1">&#39;hello&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;inner&#39;</span><span class="p">,</span> <span class="n">inner</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tau&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dtype&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dtype2&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;seqlen&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="n">inner</span><span class="p">,</span> <span class="mi">30</span><span class="p">],</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tuple&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;class&#39;</span><span class="p">,</span> <span class="n">TestClass1</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;plain_dict&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">},</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;complex_dict&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">:</span> <span class="n">inner</span><span class="p">},</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;complex_dict_escape&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;a&#39;</span><span class="p">:</span> <span class="s1">&#39;abc&quot;</span><span class="se">\&#39;\n</span><span class="s1">def&#39;</span><span class="p">},</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;some_class&#39;</span><span class="p">,</span> <span class="nb">complex</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">outer</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;optional_bool&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">outer</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">class : type/__main__/TestClass1</span>
+<span class="s2">complex_dict : {&#39;a&#39;: 10, &#39;b&#39;: {&#39;bar&#39;: 2.71, &#39;baz&#39;: &#39;hello&#39;}}</span>
+<span class="s2">complex_dict_escape : {&#39;a&#39;: &#39;abc&quot;\&#39;\ndef&#39;}</span>
+<span class="s2">dtype : float32</span>
+<span class="s2">dtype2 : int32</span>
+<span class="s2">foo : 1</span>
+<span class="s2">inner.bar : 2.71</span>
+<span class="s2">inner.baz : &#39;hello&#39;</span>
+<span class="s2">optional_bool : NoneType</span>
+<span class="s2">plain_dict : {&#39;a&#39;: 10}</span>
+<span class="s2">seqlen : [10, {&#39;bar&#39;: 2.71, &#39;baz&#39;: &#39;hello&#39;}, 30]</span>
+<span class="s2">some_class : complex</span>
+<span class="s2">tau : False</span>
+<span class="s2">tuple : (1, &#39;NoneType&#39;)</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+
+    <span class="n">outer</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">        dtype2 : float32</span>
+<span class="s2">        inner.baz : &#39;world&#39;</span>
+<span class="s2">        # foo : 123</span>
+<span class="s2">        optional_bool : true</span>
+<span class="s2">        seqlen : [1, 2.0, &#39;3&#39;, [4]]</span>
+<span class="s2">        plain_dict : {&#39;x&#39;: 0.3}</span>
+<span class="s2">        class : type/__main__/TestClass2</span>
+<span class="s2">        tau : true</span>
+<span class="s2">        tuple : (2, 3)</span>
+<span class="s2">        &quot;&quot;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Note that the &#39;hello&#39; has turned into &#39;world&#39;!</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">outer</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">class : type/__main__/TestClass2</span>
+<span class="s2">complex_dict : {&#39;a&#39;: 10, &#39;b&#39;: {&#39;bar&#39;: 2.71, &#39;baz&#39;: &#39;world&#39;}}</span>
+<span class="s2">complex_dict_escape : {&#39;a&#39;: &#39;abc&quot;\&#39;\ndef&#39;}</span>
+<span class="s2">dtype : float32</span>
+<span class="s2">dtype2 : float32</span>
+<span class="s2">foo : 1</span>
+<span class="s2">inner.bar : 2.71</span>
+<span class="s2">inner.baz : &#39;world&#39;</span>
+<span class="s2">optional_bool : True</span>
+<span class="s2">plain_dict : {&#39;x&#39;: 0.3}</span>
+<span class="s2">seqlen : [1, 2.0, &#39;3&#39;, [4]]</span>
+<span class="s2">some_class : complex</span>
+<span class="s2">tau : True</span>
+<span class="s2">tuple : (2, 3)</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ParamsTest.testStringEscaping"><a class="viewcode-back" href="../../../lingvo.core.hyperparams_test.html#lingvo.core.hyperparams_test.ParamsTest.testStringEscaping">[docs]</a>  <span class="k">def</span> <span class="nf">testStringEscaping</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">_params</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bs_end_quote&#39;</span><span class="p">,</span> <span class="s1">&#39;Single</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedded_newlines&#39;</span><span class="p">,</span> <span class="s1">&#39;Split</span><span class="se">\n</span><span class="s1">Across</span><span class="se">\n</span><span class="s1">Lines&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;empty&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;empty_first_line&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Next&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;end_escape_quote&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&quot;Split</span><span class="se">\&#39;\n</span><span class="s1">Line&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;escaping_single&#39;</span><span class="p">,</span> <span class="s1">&#39;In &quot;quotes&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;escaping_double&#39;</span><span class="p">,</span> <span class="s1">&#39;In </span><span class="se">\\\&#39;</span><span class="s1">quotes</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Make sure it escapes properly.</span>
+    <span class="n">text_value</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span>
+        <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">text_value</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">bs_end_quote : &#39;Single\\&#39;</span>
+<span class="s2">embedded_newlines : &#39;Split</span>
+<span class="s2">Across</span>
+<span class="s2">Lines&#39;</span>
+<span class="s2">empty : &#39;&#39;</span>
+<span class="s2">empty_first_line : &#39;</span>
+<span class="s2">Next&#39;</span>
+<span class="s2">end_escape_quote : &#39;&quot;&quot;Split\&#39;</span>
+<span class="s2">Line&#39;</span>
+<span class="s2">escaping_double : &quot;In \\&#39;quotes&#39;&quot;</span>
+<span class="s2">escaping_single : &#39;In &quot;quotes&quot;&#39;</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Reset the values and make sure that reading back in parses.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bs_end_quote</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">embedded_newlines</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">empty_first_line</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">end_escape_quote</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">escaping_double</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">escaping_single</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">text_value</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bs_end_quote</span><span class="p">,</span> <span class="s1">&#39;Single</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedded_newlines</span><span class="p">,</span> <span class="s1">&#39;Split</span><span class="se">\n</span><span class="s1">Across</span><span class="se">\n</span><span class="s1">Lines&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">empty_first_line</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Next&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">end_escape_quote</span><span class="p">,</span> <span class="s1">&#39;&quot;&quot;Split</span><span class="se">\&#39;\n</span><span class="s1">Line&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">escaping_single</span><span class="p">,</span> <span class="s1">&#39;In &quot;quotes&quot;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">escaping_double</span><span class="p">,</span> <span class="s1">&#39;In </span><span class="se">\\\&#39;</span><span class="s1">quotes</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

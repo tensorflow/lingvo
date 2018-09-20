@@ -1,0 +1,331 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.input_generator_helper &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.input_generator_helper</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.input_generator_helper</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Helper functions for model.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+
+
+<div class="viewcode-block" id="ComputeSplits"><a class="viewcode-back" href="../../../lingvo.core.input_generator_helper.html#lingvo.core.input_generator_helper.ComputeSplits">[docs]</a><span class="k">def</span> <span class="nf">ComputeSplits</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates a tensor of size num_splits of number of values per split.</span>
+
+<span class="sd">  Assigns each split floor(batch_size/num_splits) and round-robins</span>
+<span class="sd">  the remainder (if any) to each split.</span>
+
+<span class="sd">  Example::</span>
+
+<span class="sd">    batch_size: [5]</span>
+<span class="sd">    num_splits: 3</span>
+<span class="sd">    returns: [2, 2, 1]</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    batch_size: tensor of rank 0, size of tensor to be split</span>
+<span class="sd">    num_splits: number of splits to split tensor into</span>
+<span class="sd">  Returns:</span>
+<span class="sd">    tensor of length num_splits containing sizes of each split</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">div</span><span class="p">([</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">num_splits</span><span class="p">),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">num_splits</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+  <span class="n">mods</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">1</span><span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">([</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">num_splits</span><span class="p">))</span>
+  <span class="n">zeros</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">mods</span><span class="p">)))</span>
+  <span class="n">mods</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">mods</span><span class="p">,</span> <span class="n">zeros</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">mods</span><span class="p">)</span>
+  <span class="c1"># for some reason TF erases shape information if num_splits is 1</span>
+  <span class="k">if</span> <span class="n">num_splits</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="SplitTensors"><a class="viewcode-back" href="../../../lingvo.core.input_generator_helper.html#lingvo.core.input_generator_helper.SplitTensors">[docs]</a><span class="k">def</span> <span class="nf">SplitTensors</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Splits tensors in `xs` evenly into num_splits along the 1st dimenion.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    xs: A tuple of tensors. Each tensor&#39;s 1st dimension is the same size.</span>
+<span class="sd">    num_splits: A python integer.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple of lists of tensors, num elements in the tuple = len(xs).</span>
+
+<span class="sd">    i-th element in each list corresponds to i-th split of each tensor in xs</span>
+<span class="sd">    along the first dimension of each tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># assert first dim of all tensors in xs is equal</span>
+  <span class="n">batch_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+  <span class="n">all_batch_dims</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">batch_dims</span><span class="p">)</span>
+
+  <span class="n">all_batch_dims</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
+          <span class="n">all_batch_dims</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span>
+          <span class="n">message</span><span class="o">=</span><span class="s1">&#39;first dim of tensors in xs must match&#39;</span><span class="p">),</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span>
+          <span class="n">num_splits</span><span class="p">,</span>
+          <span class="n">message</span><span class="o">=</span><span class="s1">&#39;first dim of tensors in xs must be greater than num_splits&#39;</span><span class="p">)</span>
+  <span class="p">],</span> <span class="n">all_batch_dims</span><span class="p">)</span>
+
+  <span class="n">splits</span> <span class="o">=</span> <span class="n">ComputeSplits</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">],</span> <span class="n">num_splits</span><span class="p">)</span>
+  <span class="c1"># add the above assertion into the compute graph</span>
+  <span class="n">splits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span><span class="n">all_batch_dims</span><span class="p">],</span> <span class="n">splits</span><span class="p">)</span>
+  <span class="n">split_xs</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="n">splits</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span>
+
+  <span class="k">return</span> <span class="n">split_xs</span></div>
+
+
+<div class="viewcode-block" id="SplitDictOfTensors"><a class="viewcode-back" href="../../../lingvo.core.input_generator_helper.html#lingvo.core.input_generator_helper.SplitDictOfTensors">[docs]</a><span class="k">def</span> <span class="nf">SplitDictOfTensors</span><span class="p">(</span><span class="n">t_dict</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Splits tensors in `t_dict` evenly into `num_splits` along the 1st dimenion.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    t_dict: A dictionary of tensors. Each tensor&#39;s 1st dimension is the same</span>
+<span class="sd">      size.</span>
+<span class="sd">    num_splits: A python integer.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of dictionaries of tensors, num elements in the list = num_splits</span>
+
+<span class="sd">    i-th dictionary in the list corresponds to i-th split of each tensor</span>
+<span class="sd">    along the first dimension of each tensor for each key in the original dict.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">keys</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">t_dict</span><span class="p">):</span>
+    <span class="n">keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+    <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+  <span class="n">splits</span> <span class="o">=</span> <span class="n">SplitTensors</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">num_splits</span><span class="p">)</span>
+
+  <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">splits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">lst</span> <span class="ow">in</span> <span class="n">splits</span><span class="p">)</span>
+
+  <span class="n">ret_list</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_splits</span><span class="p">):</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">splits</span><span class="p">)):</span>
+      <span class="n">d</span><span class="p">[</span><span class="n">keys</span><span class="p">[</span><span class="n">k</span><span class="p">]]</span> <span class="o">=</span> <span class="n">splits</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">s</span><span class="p">]</span>
+    <span class="n">ret_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">d</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">ret_list</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

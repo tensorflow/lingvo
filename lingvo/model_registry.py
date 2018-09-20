@@ -46,7 +46,7 @@ FLAGS = tf.flags.FLAGS
 
 
 def _MaybeUpdateParamsFromFlags(cfg):
-  """Updates .Model() Params from flags if set."""
+  """Updates Model() Params from flags if set."""
   if FLAGS.model_params_override and FLAGS.model_params_file_override:
     raise ValueError('Only one of --model_params_override and'
                      ' --model_params_file_override may be specified.')
@@ -68,14 +68,14 @@ class _ModelRegistryHelper(object):
 
   @classmethod
   def _ModelParamsClassKey(cls, src_cls):
-    """Returns a string key used for src_cls in the model registry.
+    """Returns a string key used for `src_cls` in the model registry.
 
-    The returned key is a period separated string. E.g., lm.vs.ProdLm. It
+    The returned key is a period separated string. E.g., image.mnist.LeNet5. It
     roughly reflects how params files are organized. We put some of the
     directory information into the key to avoid future model name conflicts.
 
     Args:
-      src_cls: A subclass of BaseModel.
+      src_cls: A subclass of `~.base_model.BaseModel`.
     """
     path = src_cls.__module__
     # Removes the prefix.
@@ -139,7 +139,7 @@ class _ModelRegistryHelper(object):
 
   @classmethod
   def RegisterSingleTaskModel(cls, src_cls):
-    """Class decorator that registers a SingleTaskModelParams subclass."""
+    """Class decorator that registers a `.SingleTaskModelParams` subclass."""
     if not issubclass(src_cls, base_model_params.SingleTaskModelParams):
       raise TypeError(
           'src_cls %s is not a SingleTaskModelParams!' % src_cls.__name__)
@@ -148,7 +148,7 @@ class _ModelRegistryHelper(object):
 
   @classmethod
   def RegisterMultiTaskModel(cls, src_cls):
-    """Class decorator that registers a MultiTaskModelParams subclass."""
+    """Class decorator that registers a `.MultiTaskModelParams` subclass."""
     if not issubclass(src_cls, base_model_params.MultiTaskModelParams):
       raise TypeError(
           'src_cls %s is not a MultiTaskModelParams!' % src_cls.__name__)
@@ -168,7 +168,7 @@ class _ModelRegistryHelper(object):
       class_key: string key of the ModelParams subclass to return.
 
     Returns:
-      A ModelParams class.
+      A subclass of `~.base_model_params._BaseModelParams`.
 
     Raises:
       LookupError: If no class with the given key has been registered.
@@ -181,19 +181,17 @@ class _ModelRegistryHelper(object):
 
   @classmethod
   def GetParams(cls, class_key, dataset_name):
-    """Constructs a Params object for given model and dataset, obeying flags.
+    """Constructs a `Params` object for given model and dataset, obeying flags.
 
     In case of default model, params may be updated based on the flags
-    --model_params_override or --model_params_file_override. In case of a
-    versioned model, params are updated based on the flag
-    --versioned_model_spec.
+    `--model_params_override` or `--model_params_file_override`.
 
     Args:
-      class_key: String class key (i.e. image.mnist.LeNet5).
+      class_key: String class key (i.e. `image.mnist.LeNet5`).
       dataset_name: Method to generate dataset params (i.e. 'Test').
 
     Returns:
-      Full hyperparams.Params for the model class.
+      Full `~.hyperparams.Params` for the model class.
     """
     model_params_cls = cls.GetClass(class_key)
     cfg = model_params_cls.Model()

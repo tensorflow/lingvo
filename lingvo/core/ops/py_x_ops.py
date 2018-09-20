@@ -31,6 +31,13 @@ if 'assert_shape_match' not in dir(gen_x_ops):
   from lingvo.core.ops import gen_x_ops
   # pylint: enable=g-import-not-at-top
 
+# Set gen_x_ops function module to py_x_ops so sphinx generates documentation.
+for v in gen_x_ops.__dict__.values():
+  try:
+    v.__module__ = 'lingvo.core.ops.py_x_ops'
+  except:
+    pass
+
 assert_shape_match = gen_x_ops.assert_shape_match
 assert_same_dim0 = gen_x_ops.assert_same_dim0
 random_permutation_sequence = gen_x_ops.random_permutation_sequence
@@ -51,7 +58,6 @@ ngram_id_to_token = gen_x_ops.ngram_id_to_token
 
 
 def generic_input(processor, *args, **kwargs):
-  """Simple wrapper for gen_x_ops.generic_input."""
   # pylint: disable=protected-access
   if not isinstance(processor, function._DefinedFunction):
     # Helper if processor is a python callable.
@@ -62,3 +68,6 @@ def generic_input(processor, *args, **kwargs):
   assert out_types[-1] == tf.int32, ('%s is not expected.' % out_types[-1])
   return gen_x_ops.generic_input(
       processor=processor, out_types=out_types[:-1], *args, **kwargs)
+
+
+generic_input.__doc__ = gen_x_ops.generic_input.__doc__

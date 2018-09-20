@@ -36,10 +36,10 @@ def InitTrainDatasetParams(vocab_size=None, params=None):
   Args:
     vocab_size: the number of tokens in your vocabulary. The default is None
       because this parameter is often not used.
-    params: initial Params value, e.g. NmtInputMultiSource.Params().
+    params: initial Params value, e.g. `NmtInput.Params()`.
 
   Returns:
-    a Params object
+    a `Params` object.
   """
   if params is None:
     params = input_generator.NmtInput.Params()
@@ -84,10 +84,10 @@ def InitTestDatasetParams(vocab_size=None, params=None):
 
   Args:
     vocab_size: the number of tokens in your vocabulary.
-    params: initial Params value, e.g. NmtInputMultiSource.Params().
+    params: initial Params value, e.g. `NmtInput.Params()`.
 
   Returns:
-    a Params object
+    a `Params` object.
   """
 
   if params is None:
@@ -152,8 +152,8 @@ def SetupTransformerParams(name,
     num_layers: number of layers in the transformer
     learning_rate: learning rate for Adam. For the base model, we use 1.0; for
          the big model, 3.0
-    warmup_steps: warmup steps for TransformerLearningRateSchedule. For the base
-         model, we use 4000; for the big model, 40000
+    warmup_steps: warmup steps for `TransformerLearningRateSchedule`. For the
+         base model, we use 4000; for the big model, 40000
     residual_dropout_prob: dropout prob to the output of each sub-layer before
          it is added to the sub-layer input
     input_dropout_prob: dropout prob to the sums of the token embeddings and the

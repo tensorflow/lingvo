@@ -33,29 +33,30 @@ class BaseEncoder(base_layer.LayerBase):
     return p
 
   def FProp(self, theta, inputs, paddings, segment_id):
-    """Encodes source as represented by 'inputs' and 'paddings'.
+    """Encodes source as represented by `inputs` and `paddings`.
 
     Args:
-      theta: A nested map object containing weights' values of this
-        layer and its children layers.
-      inputs: The inputs tensor. It is expected to be of shape
-      [batch, time, ...].
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor. It is expected to be of shape [batch, time,
+        ...].
       paddings: The paddings tensor. It is expected to be of shape [batch,
-          time].
-      segment_id: source segment id, of shape [batch, time]. This input is
-          meant to support multiple samples in a single training sequence. The
-          id identifiess the sample that the input at the corresponding
-          time-step belongs to. For example, if the two examples packed together
-          are ['good', 'day'] -> ['guten-tag'] and ['thanks'] -> ['danke']
-          to produce ['good', 'day', 'thanks'] -> ['guten-tag', 'danke'], the
-          source segment ids would be [0, 0, 1] and target segment ids would be
-          [0, 1]. These ids are meant to enable masking computations for
-          different examples from each other.
-          Models or layers than don't support packed inputs should pass None.
+        time].
+      segment_id: source segment id, of shape [batch, time]. This input is meant
+        to support multiple samples in a single training sequence. The id
+        identifiess the sample that the input at the corresponding time-step
+        belongs to. For example, if the two examples packed together are
+        ['good', 'day'] -> ['guten-tag'] and ['thanks'] -> ['danke'] to produce
+        ['good', 'day', 'thanks'] -> ['guten-tag', 'danke'], the source segment
+        ids would be [0, 0, 1] and target segment ids would be [0, 1]. These ids
+        are meant to enable masking computations for different examples from
+        each other. Models or layers than don't support packed inputs should
+        pass None.
+
     Returns:
       (outputs, out_paddings, src_segment_ids) triple.
-      Outputs is of the shape [time, batch, depth], and out_paddings is of the
-      shape [time, batch, 1]. src_segment_ids should have the shape
+      `outputs` is of the shape [time, batch, depth], and `out_paddings` is of
+      the shape [time, batch, 1]. src_segment_ids should have the shape
       [time, batch] if packed inputs are supported by the model (and all
       layers), or None otherwise.
     """

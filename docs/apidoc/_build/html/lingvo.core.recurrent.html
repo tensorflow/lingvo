@@ -1,0 +1,679 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.recurrent module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.retry module" href="lingvo.core.retry.html" />
+    <link rel="prev" title="lingvo.core.quant_utils module" href="lingvo.core.quant_utils.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.recurrent module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.recurrent.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.recurrent">
+<span id="lingvo-core-recurrent-module"></span><h1>lingvo.core.recurrent module<a class="headerlink" href="#module-lingvo.core.recurrent" title="Permalink to this headline">¶</a></h1>
+<p>Recurrent neural nets.</p>
+<p>The main interface of this module is Recurrent().
+This expects the caller to describe the recurrent neural net by specifying:</p>
+<blockquote>
+<div><ul>
+<li><p class="first">theta: the “weights” each RNN uses.</p>
+</li>
+<li><p class="first">state0: the initial state of each RNN.</p>
+</li>
+<li><p class="first">cell_fn: A python function describing RNN cell. It must has the following
+signature:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cell_fn</span><span class="p">:</span> <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>state1 is the next RNN state, extras are computed by cell_fn
+and the library forwards extras to cell_fn’s gradient function.</p>
+</li>
+<li><p class="first">cell_grad: A python function describing the backprop gradient function
+for the RNN cell. It must has the following signature:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cell_grad</span><span class="p">:</span> <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="p">(</span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>dstate1 is what the backprop algorithm provides representing
+gradients of state1 w.r.t. the final loss.</p>
+</li>
+</ul>
+</div></blockquote>
+<p>All of <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">state0</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">extras</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">dstate1</span></code> are
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> so that they can carry a bunch of tensors around.</p>
+<dl class="function">
+<dt id="lingvo.core.recurrent._AssertIsCompatible">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_AssertIsCompatible</code><span class="sig-paren">(</span><em>a</em>, <em>b</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_AssertIsCompatible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._AssertIsCompatible" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._AssertSameTensors">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_AssertSameTensors</code><span class="sig-paren">(</span><em>list_a</em>, <em>list_b</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_AssertSameTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._AssertSameTensors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Asserts that two lists of tensors are the same tensors.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._Index">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_Index</code><span class="sig-paren">(</span><em>nmap</em>, <em>index</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with x[index, :] for each tensor x in nmap.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>nmap</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors.</li>
+<li><strong>index</strong> – A tf scalar integer. Performance is better if ‘index’ is on the host
+memory.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors. For each key in nmap:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">rets</span><span class="o">.</span><span class="n">key</span> <span class="o">=</span> <span class="n">nmap</span><span class="o">.</span><span class="n">key</span><span class="p">[</span><span class="n">index</span><span class="p">,</span> <span class="p">:]</span>
+</pre></div>
+</div>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._Update">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_Update</code><span class="sig-paren">(</span><em>nmap_acc</em>, <em>nmap_x</em>, <em>t</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates t-th row in accumulators.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>nmap_acc</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors. The accumulators.</li>
+<li><strong>nmap_x</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors. The update values.</li>
+<li><strong>t</strong> – A scalar integer. Performance is better if ‘t’ is on the device
+memory.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors. Say, ret is returned. For each key, we have:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ret</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">nmap_acc</span><span class="p">[</span><span class="n">key</span><span class="p">];</span>
+<span class="n">ret</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">nmap_x</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+</pre></div>
+</div>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._SeqLenDim">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_SeqLenDim</code><span class="sig-paren">(</span><em>nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_SeqLenDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._SeqLenDim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the 0-th dim size of tensors in nmap.</p>
+<p>This is the max sequence length according to the shape of the inputs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nmap</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors. Every tensor’s 0-th dim has the same size.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A scalar tensor which is the size of 0-th dim of every tensors in nmap.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._FlattenPadding">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_FlattenPadding</code><span class="sig-paren">(</span><em>padding</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_FlattenPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._FlattenPadding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns padding reduced to have only the time dimension.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._SeqPaddingLength">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_SeqPaddingLength</code><span class="sig-paren">(</span><em>inputs_nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_SeqPaddingLength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._SeqPaddingLength" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the lengths of paddings at the beginning and end of the sequence.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>inputs_nmap</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors that may have ‘padding’
+Every tensor’s 0-th dim has the same size.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">padding length at the beginning, padding length at the end</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._Flatten">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_Flatten</code><span class="sig-paren">(</span><em>nmap_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Flatten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Flatten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flattens every <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> in nmap_list and concatenate them.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._Pack">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_Pack</code><span class="sig-paren">(</span><em>flatten</em>, <em>nmap_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Pack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Pack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Packs the list of tensors according to nested maps in nmap_list.</p>
+<p>_Pack is loosely the inverse of _Flatten.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>flatten</strong> – A list of tensors.</li>
+<li><strong>nmap_list</strong> – A list of NestedMap.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A list of NestedMap, say ret is the returned list. We have</p>
+<blockquote>
+<div><ol class="arabic simple">
+<li>len(ret) == len(nmap_list);</li>
+<li>recursively, ret[i] has the same keys as nmap_list[i];</li>
+<li>_Flatten(ret) == flatten;</li>
+</ol>
+</div></blockquote>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._EmptyAcc">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_EmptyAcc</code><span class="sig-paren">(</span><em>slen</em>, <em>nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_EmptyAcc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._EmptyAcc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a set of accumulators for tensors in nmap.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>slen</strong> – A scalar tensor.</li>
+<li><strong>nmap</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with the same keys as nmap. ret.key, a tensor, has the
+same dtype as nmap.key. The tensor’s shape has 1 more dimension
+than the tensor nmap.key. The extra 0-th dimension is of size
+slen. E.g., if slen=10 and nmap.key’s shape is [3, 5], then,
+ret.key’s shape is [10, 3, 5].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._EmptyLike">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_EmptyLike</code><span class="sig-paren">(</span><em>nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_EmptyLike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._EmptyLike" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a set of empty initialized tensors.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>nmap</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors. Each tensor has the same shape and dtype as
+its corresponding tensor in nmap. And each tensor is initialized.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._EmptyCaptures">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_EmptyCaptures</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_EmptyCaptures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._EmptyCaptures" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates an empty implicit capture map for when capture is not supported.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._Add">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_Add</code><span class="sig-paren">(</span><em>nmap_x</em>, <em>nmap_y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Add" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds tensors in nmap_x with respective tensors in nmap_y.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>nmap_x</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors.</li>
+<li><strong>nmap_y</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors. ret.key = nmap_x.key + nmap_y.key for every key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._Dtypes">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_Dtypes</code><span class="sig-paren">(</span><em>nmap_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Dtypes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Dtypes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all tensors’ data types in a list.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._ConvertNoneGradientToZeros">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_ConvertNoneGradientToZeros</code><span class="sig-paren">(</span><em>xs</em>, <em>dxs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_ConvertNoneGradientToZeros"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._ConvertNoneGradientToZeros" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sanitize dxs so that None becomes zeros appropriately.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>xs</strong> – A list of tensors.</li>
+<li><strong>dxs</strong> – A list of tensors. dxs[i] corresponds to xs[i]’s gradient.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> same as dxs with None replaced by a zero tensor.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._TransformDType">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_TransformDType</code><span class="sig-paren">(</span><em>nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_TransformDType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._TransformDType" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.recurrent._Recurrent">
+<em class="property">class </em><code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_Recurrent</code><span class="sig-paren">(</span><em>cell_fn</em>, <em>cell_grad</em>, <em>theta</em>, <em>state0</em>, <em>inputs</em>, <em>extras</em>, <em>implicit_captures=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Recurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Recurrent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>A helper class to construct a recurrent neural net.</p>
+<dl class="method">
+<dt id="lingvo.core.recurrent._Recurrent.Compute">
+<code class="descname">Compute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Recurrent.Compute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Recurrent.Compute" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._GetCellGrad">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_GetCellGrad</code><span class="sig-paren">(</span><em>cell_fn</em>, <em>cell_grad</em>, <em>implicit_captures=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_GetCellGrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._GetCellGrad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the gradient function for cell_fn.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cell_fn</strong> – The recurrent neural net’s cell function.</li>
+<li><strong>cell_grad</strong> – If not None, cell_fn’s gradient function.</li>
+<li><strong>implicit_captures</strong> – <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of implicit captures that cell_fn
+does. If None, then no captures are supported.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>Returns cell_grad if not None. Otherwise, assume cell_fn is a python
+function representing the recurrent neural net’s cell function, i.e.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cell_fn</span><span class="p">:</span> <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="n">state1</span><span class="p">,</span> <span class="n">extra</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>returns its default gradient python function, i.e.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cell_grad</span><span class="p">:</span> <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">captured</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="p">(</span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">)</span>
+</pre></div>
+</div>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._WrapAccumulatorCellFn">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_WrapAccumulatorCellFn</code><span class="sig-paren">(</span><em>accumulator_layer</em>, <em>cell_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapAccumulatorCellFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapAccumulatorCellFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap a cell_fn to propagate accumulators.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._WrapAccumulatorCellGradFn">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_WrapAccumulatorCellGradFn</code><span class="sig-paren">(</span><em>accumulator_layer</em>, <em>cell_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapAccumulatorCellGradFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapAccumulatorCellGradFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrap a cell grad function to disable accumulators.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._IsSingleTimeStep">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_IsSingleTimeStep</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_IsSingleTimeStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._IsSingleTimeStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns True only if the time dimension of inputs is 1.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._ReflectOnCellFn">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_ReflectOnCellFn</code><span class="sig-paren">(</span><em>cell_fn</em>, <em>theta</em>, <em>state0</em>, <em>inputs</em>, <em>accumulator_layer=None</em>, <em>check_stateful_ops=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_ReflectOnCellFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._ReflectOnCellFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reflects on the cell_fn, applying asserts and returning needed info.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>cell_fn</strong> – A python function that computes:
+state1, extras = cell_fn(theta, state0, inputs[t, :])</li>
+<li><strong>theta</strong> – weights. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</li>
+<li><strong>state0</strong> – initial state. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</li>
+<li><strong>inputs</strong> – inputs. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</li>
+<li><strong>accumulator_layer</strong> – Whether the cell function must be run in the context
+of the given accumulator layer.</li>
+<li><strong>check_stateful_ops</strong> – if True, raise a <code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code> if cell_fn is stateful.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of implicit captures that the cell_fn takes.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – cell_fn is stateful.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._NestedMapCopier">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_NestedMapCopier</code><span class="sig-paren">(</span><em>nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_NestedMapCopier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._NestedMapCopier" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a function that will DeepCopy the map on each call.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent._RecurrentSingleTimeStep">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">_RecurrentSingleTimeStep</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>inputs</em>, <em>cell_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_RecurrentSingleTimeStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._RecurrentSingleTimeStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Short-cut for the single timestep without explicit cell_grad case.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.recurrent.Recurrent">
+<code class="descclassname">lingvo.core.recurrent.</code><code class="descname">Recurrent</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>inputs</em>, <em>cell_fn</em>, <em>cell_grad=None</em>, <em>extras=None</em>, <em>check_stateful_ops=False</em>, <em>accumulator_layer=None</em>, <em>allow_implicit_capture=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#Recurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.Recurrent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute a recurrent neural net.</p>
+<p>Roughly, <a class="reference internal" href="#lingvo.core.recurrent.Recurrent" title="lingvo.core.recurrent.Recurrent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Recurrent()</span></code></a> computes the following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">state0</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">inputs</span><span class="s1">&#39; sequence length:</span>
+  <span class="n">state</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:])</span>
+  <span class="n">accumulate_state</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">state</span>
+<span class="k">return</span> <span class="n">accumulate_state</span><span class="p">,</span> <span class="n">state</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">state</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code> are all <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> objects.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs[t,</span> <span class="pre">:]</span></code> means taking a slice out from every tensor in the
+<a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code>.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">accumulate_state[t,</span> <span class="pre">:]</span> <span class="pre">=</span> <span class="pre">state</span></code> means that we stash every tensor in
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">state</span></code> into a slice of the corresponding tensor in
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">accumulate_state</span></code>.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> is a python callable computing (building up a TensorFlow
+graph) the recurrent neural network’s one forward step. <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> must not
+contain any stateful ops. Two calls of <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> must describe two identical
+computations.</p>
+<p>By construction, <a class="reference internal" href="#lingvo.core.recurrent.Recurrent" title="lingvo.core.recurrent.Recurrent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Recurrent()</span></code></a>’s backward computation does not access
+any intermediate values computed by <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> during forward
+computation. We may extend <a class="reference internal" href="#lingvo.core.recurrent.Recurrent" title="lingvo.core.recurrent.Recurrent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Recurrent()</span></code></a> to support that by taking a
+customized backward function of <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – weights. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</li>
+<li><strong>state0</strong> – initial state. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</li>
+<li><strong>inputs</strong> – inputs. A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</li>
+<li><strong>cell_fn</strong> – <p>A python function, which computes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:])</span>
+</pre></div>
+</div>
+</li>
+<li><strong>cell_grad</strong> – <p>A python function which computes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:],</span> <span class="n">dcaptured</span> <span class="o">=</span> <span class="n">cell_grad</span><span class="p">(</span>
+    <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:],</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If there are no captured tensors in <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">dcaptured</span></code> can be returned
+as None. Captured tensors with custom <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_grad</span></code> is currently unsupported
+so this return value is reserved for future expansion.</p>
+</li>
+<li><strong>extras</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of Tensors. The 2nd return value of every
+invocation of <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> is a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with matching keys and shapes
+of <code class="xref py py-obj docutils literal notranslate"><span class="pre">extras</span></code>.</li>
+<li><strong>check_stateful_ops</strong> – if True, raise a <code class="xref py py-obj docutils literal notranslate"><span class="pre">ValueError</span></code> if <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> is stateful.</li>
+<li><strong>accumulator_layer</strong> – If provided, then accumulators on this layer will be
+managed such that they carry to the final state in <code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code> and are
+disabled for gradients. Uses the state key <code class="xref py py-obj docutils literal notranslate"><span class="pre">accumulators</span></code>.</li>
+<li><strong>allow_implicit_capture</strong> – Whether to allow the <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_fn</span></code> to implicitly
+capture tensors. Only allowed if an explicit <code class="xref py py-obj docutils literal notranslate"><span class="pre">cell_grad</span></code> is not given.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><code class="xref py py-obj docutils literal notranslate"><span class="pre">accumulate_state</span></code> and the final state.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.retry.html" class="btn btn-neutral float-right" title="lingvo.core.retry module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.quant_utils.html" class="btn btn-neutral" title="lingvo.core.quant_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

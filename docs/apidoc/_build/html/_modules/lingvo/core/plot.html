@@ -1,0 +1,533 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.plot &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.plot</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.plot</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Utilities for generating image summaries using matplotlib.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">cStringIO</span>
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">traceback</span>
+
+<span class="kn">from</span> <span class="nn">matplotlib.backends</span> <span class="k">import</span> <span class="n">backend_agg</span>
+<span class="kn">import</span> <span class="nn">matplotlib.gridspec</span> <span class="k">as</span> <span class="nn">gridspec</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+
+<div class="viewcode-block" id="ToUnicode"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.ToUnicode">[docs]</a><span class="k">def</span> <span class="nf">ToUnicode</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">):</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">text</span></div>
+
+
+<div class="viewcode-block" id="AddPlot"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.AddPlot">[docs]</a><span class="k">def</span> <span class="nf">AddPlot</span><span class="p">(</span><span class="n">unused_fig</span><span class="p">,</span>
+            <span class="n">axes</span><span class="p">,</span>
+            <span class="n">data</span><span class="p">,</span>
+            <span class="n">title</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">xlabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">ylabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">,</span>
+            <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">ylim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">suppress_xticks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">suppress_yticks</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convenience function to add a plot.&quot;&quot;&quot;</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">title</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">xlabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">ylabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">xlim</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">ylim</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ylim</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">suppress_xticks</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
+  <span class="k">if</span> <span class="n">suppress_yticks</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span></div>
+
+
+<div class="viewcode-block" id="AddImage"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.AddImage">[docs]</a><span class="k">def</span> <span class="nf">AddImage</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span>
+             <span class="n">axes</span><span class="p">,</span>
+             <span class="n">data</span><span class="p">,</span>
+             <span class="n">cmap</span><span class="o">=</span><span class="s1">&#39;bone_r&#39;</span><span class="p">,</span>
+             <span class="n">clim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">show_colorbar</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+             <span class="n">title</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+             <span class="n">xlabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+             <span class="n">ylabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+             <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">,</span>
+             <span class="n">suppress_xticks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">suppress_yticks</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convenience function to plot data as an image on the given axes.&quot;&quot;&quot;</span>
+  <span class="n">image</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
+      <span class="n">data</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">show_colorbar</span><span class="p">:</span>
+    <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">clim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">image</span><span class="o">.</span><span class="n">set_clim</span><span class="p">(</span><span class="n">clim</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">title</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">xlabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">ylabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">suppress_xticks</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
+  <span class="k">if</span> <span class="n">suppress_yticks</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span></div>
+
+
+<span class="n">_SubplotMetadata</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;_SubplotMetadata&#39;</span><span class="p">,</span>
+                                          <span class="p">[</span><span class="s1">&#39;tensor_list&#39;</span><span class="p">,</span> <span class="s1">&#39;plot_func&#39;</span><span class="p">])</span>
+
+
+<div class="viewcode-block" id="MatplotlibFigureSummary"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.MatplotlibFigureSummary">[docs]</a><span class="k">class</span> <span class="nc">MatplotlibFigureSummary</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper to minimize boilerplate in creating a summary with several subplots.</span>
+
+<span class="sd">  Typical usage::</span>
+
+<span class="sd">      &gt;&gt;&gt; fig_helper = plot.MatplotlibFigureSummary(</span>
+<span class="sd">      ...    &#39;summary_name&#39;, shared_subplot_kwargs={&#39;xlabel&#39;: &#39;Time&#39;})</span>
+<span class="sd">      &gt;&gt;&gt; fig_helper.AddSubplot([tensor1], title=&#39;tensor1&#39;)</span>
+<span class="sd">      &gt;&gt;&gt; fig_helper.AddSubplot([tensor2], title=&#39;tensor2&#39;, ylabel=&#39;Frequency&#39;)</span>
+<span class="sd">      &gt;&gt;&gt; image_summary = fig_helper.Finalize()</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">name</span><span class="p">,</span>
+               <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+               <span class="n">max_outputs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+               <span class="n">subplot_grid_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">gridspec_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">plot_func</span><span class="o">=</span><span class="n">AddImage</span><span class="p">,</span>
+               <span class="n">shared_subplot_kwargs</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a new MatplotlibFigureSummary object.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: A string name for the generated summary.</span>
+<span class="sd">      figsize: A 2D tuple containing the overall figure (width, height)</span>
+<span class="sd">        dimensions in inches.</span>
+<span class="sd">      max_outputs: The maximum number of images to generate.</span>
+<span class="sd">      subplot_grid_shape: A 2D tuple containing the height and width dimensions</span>
+<span class="sd">        of the subplot grid.  height * width must be &lt;= len(tensor_list).</span>
+<span class="sd">        Defaults to (len(tensor_list), 1), i.e. a vertical stack of plots.</span>
+<span class="sd">      gridspec_kwargs: A dict of extra keyword args to use when initializing the</span>
+<span class="sd">        figure&#39;s gridspec, as supported by matplotlib.gridspec.GridSpec.</span>
+<span class="sd">      plot_func: A function shared across all subplots used to populate a single</span>
+<span class="sd">        subplot.  See the docstring for AddSubplot for details.</span>
+<span class="sd">      shared_subplot_kwargs: A dict of extra keyword args to pass to the plot</span>
+<span class="sd">        function for all subplots.  This is useful for specifying properties</span>
+<span class="sd">        such as &#39;clim&#39; which should be consistent across all subplots.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">=</span> <span class="n">name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_figsize</span> <span class="o">=</span> <span class="n">figsize</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_max_outputs</span> <span class="o">=</span> <span class="n">max_outputs</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_subplot_grid_shape</span> <span class="o">=</span> <span class="n">subplot_grid_shape</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_gridspec_kwargs</span> <span class="o">=</span> <span class="n">gridspec_kwargs</span> <span class="k">if</span> <span class="n">gridspec_kwargs</span> <span class="k">else</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_plot_func</span> <span class="o">=</span> <span class="n">plot_func</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_shared_subplot_kwargs</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">shared_subplot_kwargs</span> <span class="k">if</span> <span class="n">shared_subplot_kwargs</span> <span class="k">else</span> <span class="p">{})</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_subplots</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="MatplotlibFigureSummary.AddSubplot"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.MatplotlibFigureSummary.AddSubplot">[docs]</a>  <span class="k">def</span> <span class="nf">AddSubplot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensor_list</span><span class="p">,</span> <span class="n">plot_func</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Adds a subplot from tensors using plot_fun to populate the subplot axes.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      tensor_list: A list of tensors to be realized as numpy arrays and passed</span>
+<span class="sd">        as arguments to plot_func.  The first dimension of each tensor in the</span>
+<span class="sd">        list corresponds to batch, and must be the same size for each tensor.</span>
+<span class="sd">      plot_func: A function with signature f(fig, axes, data1, data2, ...,</span>
+<span class="sd">        datan, \*\*kwargs) that will be called with the realized data from</span>
+<span class="sd">        tensor_list to plot data on axes in fig.  This function is called</span>
+<span class="sd">        independently on each element of the batch.  Overrides plot_func passed</span>
+<span class="sd">        in to the constructor.</span>
+<span class="sd">      **kwargs: A dict of additional non-tensor keyword args to pass to</span>
+<span class="sd">        plot_func when generating the plot, overridding any</span>
+<span class="sd">        shared_subplot_kwargs.  Useful for e.g. specifying a subplot&#39;s title.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">merged_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shared_subplot_kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">plot_func</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">plot_func</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plot_func</span>
+    <span class="n">plot_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">plot_func</span><span class="p">,</span> <span class="o">**</span><span class="n">merged_kwargs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_subplots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_SubplotMetadata</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">,</span> <span class="n">plot_func</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MatplotlibFigureSummary.Finalize"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.MatplotlibFigureSummary.Finalize">[docs]</a>  <span class="k">def</span> <span class="nf">Finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Finishes creation of the overall figure, returning the image summary.&quot;&quot;&quot;</span>
+    <span class="n">subplot_grid_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subplot_grid_shape</span>
+    <span class="k">if</span> <span class="n">subplot_grid_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">subplot_grid_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_subplots</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># AddMatplotlibFigureSummary (due to restrictions of py_func) only supports</span>
+    <span class="c1"># flattened list of tensors so we must do some bookkeeping to maintain a</span>
+    <span class="c1"># mapping from _SubplotMetadata object to flattened_tensors.</span>
+    <span class="n">subplot_slices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">flattened_tensors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">subplot</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subplots</span><span class="p">:</span>
+      <span class="n">start</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">flattened_tensors</span><span class="p">)</span>
+      <span class="n">subplot_slices</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">start</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">subplot</span><span class="o">.</span><span class="n">tensor_list</span><span class="p">)))</span>
+      <span class="n">flattened_tensors</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">subplot</span><span class="o">.</span><span class="n">tensor_list</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">PlotFunc</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="o">*</span><span class="n">numpy_data_list</span><span class="p">):</span>
+      <span class="n">gs</span> <span class="o">=</span> <span class="n">gridspec</span><span class="o">.</span><span class="n">GridSpec</span><span class="p">(</span><span class="o">*</span><span class="n">subplot_grid_shape</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_gridspec_kwargs</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">subplot</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_subplots</span><span class="p">):</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="n">gs</span><span class="p">[</span><span class="n">n</span><span class="p">])</span>
+        <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="n">subplot_slices</span><span class="p">[</span><span class="n">n</span><span class="p">]</span>
+        <span class="n">subplot_data</span> <span class="o">=</span> <span class="n">numpy_data_list</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">]</span>
+        <span class="n">subplot</span><span class="o">.</span><span class="n">plot_func</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="o">*</span><span class="n">subplot_data</span><span class="p">)</span>
+
+    <span class="n">func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">_RenderMatplotlibFigures</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_figsize</span><span class="p">,</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">_max_outputs</span><span class="p">,</span> <span class="n">PlotFunc</span><span class="p">)</span>
+    <span class="n">batch_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">flattened_tensors</span><span class="p">]</span>
+    <span class="n">num_tensors</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">flattened_tensors</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
+            <span class="n">batch_sizes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="n">num_tensors</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="n">num_tensors</span><span class="p">)</span>
+    <span class="p">]):</span>
+      <span class="n">rendered</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">py_func</span><span class="p">(</span>
+          <span class="n">func</span><span class="p">,</span> <span class="n">flattened_tensors</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;RenderMatplotlibFigures&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="n">rendered</span><span class="p">,</span> <span class="n">max_outputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_outputs</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="_RenderOneMatplotlibFigure"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot._RenderOneMatplotlibFigure">[docs]</a><span class="k">def</span> <span class="nf">_RenderOneMatplotlibFigure</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">plot_func</span><span class="p">,</span> <span class="o">*</span><span class="n">numpy_data_list</span><span class="p">):</span>
+  <span class="n">fig</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+  <span class="n">plot_func</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="o">*</span><span class="n">numpy_data_list</span><span class="p">)</span>
+  <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+  <span class="n">ncols</span><span class="p">,</span> <span class="n">nrows</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">get_width_height</span><span class="p">()</span>
+  <span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">tostring_rgb</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">image</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">nrows</span><span class="p">,</span> <span class="n">ncols</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_RenderMatplotlibFigures"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot._RenderMatplotlibFigures">[docs]</a><span class="k">def</span> <span class="nf">_RenderMatplotlibFigures</span><span class="p">(</span><span class="n">figsize</span><span class="p">,</span> <span class="n">max_outputs</span><span class="p">,</span> <span class="n">plot_func</span><span class="p">,</span> <span class="o">*</span><span class="n">numpy_data_list</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Renders a figure containing several subplots using matplotlib.</span>
+
+<span class="sd">  This is an internal implementation detail of MatplotlibFigureSummary.Finalize</span>
+<span class="sd">  and should not be called directly.</span>
+
+<span class="sd">  The unconventional function signature is used to work around the behavior of</span>
+<span class="sd">  `tf.py_func` which always passes in different tensors as positional arguments.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    figsize: A 2D tuple containing the overall figure (width, height) dimensions</span>
+<span class="sd">      in inches.</span>
+<span class="sd">    max_outputs: The maximum number of images to generate.</span>
+<span class="sd">    plot_func: A function with signature f(fig, data1, data2, ..., datan) that</span>
+<span class="sd">      will be called with \*numpy_data_list to plot data in fig.</span>
+<span class="sd">    *numpy_data_list: A list of numpy matrices to plot specified as separate</span>
+<span class="sd">      arguments.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A numpy 4D array of type np.uint8 which can be used to generate a</span>
+<span class="sd">    `tf.image_summary` when converted to a tf tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">numpy_data_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">max_outputs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_outputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
+  <span class="n">images</span> <span class="o">=</span> <span class="p">[]</span>
+
+  <span class="c1"># Use plt.Figure instead of plt.figure to avoid a memory leak (matplotlib</span>
+  <span class="c1"># keeps global references to every figure created with plt.figure). When not</span>
+  <span class="c1"># using plt.figure we have to create a canvas manually.</span>
+  <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+  <span class="n">backend_agg</span><span class="o">.</span><span class="n">FigureCanvasAgg</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+  <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_outputs</span><span class="p">):</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="p">[</span><span class="n">numpy_data</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="k">for</span> <span class="n">numpy_data</span> <span class="ow">in</span> <span class="n">numpy_data_list</span><span class="p">]</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_RenderOneMatplotlibFigure</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">plot_func</span><span class="p">,</span> <span class="o">*</span><span class="n">data</span><span class="p">))</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error rendering example </span><span class="si">%d</span><span class="s1"> using matplotlib: </span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                         <span class="n">b</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">==</span> <span class="n">max_outputs</span><span class="p">:</span>
+      <span class="k">break</span>
+  <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+
+  <span class="c1"># Pad with dummy black images in case there were too many rendering errors.</span>
+  <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">max_outputs</span><span class="p">:</span>
+    <span class="n">image_shape</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">images</span><span class="p">:</span>
+      <span class="n">image_shape</span> <span class="o">=</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">image_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">))</span>
+
+  <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">images</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_FigureToSummary"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot._FigureToSummary">[docs]</a><span class="k">def</span> <span class="nf">_FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Create tf.Summary proto from matplotlib.figure.Figure .&quot;&quot;&quot;</span>
+  <span class="n">canvas</span> <span class="o">=</span> <span class="n">backend_agg</span><span class="o">.</span><span class="n">FigureCanvasAgg</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
+  <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
+  <span class="n">ncols</span><span class="p">,</span> <span class="n">nrows</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">get_width_height</span><span class="p">()</span>
+  <span class="n">png_file</span> <span class="o">=</span> <span class="n">cStringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+  <span class="n">canvas</span><span class="o">.</span><span class="n">print_figure</span><span class="p">(</span><span class="n">png_file</span><span class="p">)</span>
+  <span class="n">png_str</span> <span class="o">=</span> <span class="n">png_file</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="p">[</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span>
+          <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/image&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span>
+          <span class="n">image</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Image</span><span class="p">(</span>
+              <span class="n">height</span><span class="o">=</span><span class="n">nrows</span><span class="p">,</span>
+              <span class="n">width</span><span class="o">=</span><span class="n">ncols</span><span class="p">,</span>
+              <span class="n">colorspace</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+              <span class="n">encoded_image_string</span><span class="o">=</span><span class="n">png_str</span><span class="p">))</span>
+  <span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="Matrix"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.Matrix">[docs]</a><span class="k">def</span> <span class="nf">Matrix</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">setter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Plot a numpy matrix and generates tf.Summary proto for it.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: Image summary name.</span>
+<span class="sd">    figsize: A 2D tuple containing the overall figure (width, height)</span>
+<span class="sd">      dimensions in inches.</span>
+<span class="sd">    matrix: A 2D numpy array.</span>
+<span class="sd">    setter: A callable taking (fig, axes). Useful to fine-control</span>
+<span class="sd">      layout of the figure, xlabel, xticks, etc.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `tf.Summary` proto contains one image visualizing &#39;matrix.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+  <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">AddImage</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">setter</span><span class="p">:</span>
+    <span class="n">setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">_FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Curve"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.Curve">[docs]</a><span class="k">def</span> <span class="nf">Curve</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">setter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Plot curve(s) to a `tf.Summary` proto.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: Image summary name.</span>
+<span class="sd">    figsize: A 2D tuple containing the overall figure (width, height) dimensions</span>
+<span class="sd">      in inches.</span>
+<span class="sd">    xs: x values for matplotlib.pyplot.plot.</span>
+<span class="sd">    ys: y values for matplotlib.pyplot.plot.</span>
+<span class="sd">    setter: A callable taking (fig, axes). Useful to fine-control layout of the</span>
+<span class="sd">      figure, xlabel, xticks, etc.</span>
+<span class="sd">    **kwargs: Extra args for matplotlib.pyplot.plot.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `tf.Summary` proto contains the line plot.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+  <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="s1">&#39;.-&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">setter</span><span class="p">:</span>
+    <span class="n">setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">_FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

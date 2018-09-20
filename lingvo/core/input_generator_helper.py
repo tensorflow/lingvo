@@ -30,10 +30,12 @@ def ComputeSplits(batch_size, num_splits):
 
   Assigns each split floor(batch_size/num_splits) and round-robins
   the remainder (if any) to each split.
-  Example:
-   batch_size: [5]
-   num_splits: 3
-   returns: [2, 2, 1]
+
+  Example::
+
+    batch_size: [5]
+    num_splits: 3
+    returns: [2, 2, 1]
 
   Args:
     batch_size: tensor of rank 0, size of tensor to be split
@@ -57,14 +59,15 @@ def ComputeSplits(batch_size, num_splits):
 
 
 def SplitTensors(xs, num_splits):
-  """Splits tensors in 'xs' evenly into num_splits along the 1st dimenion.
+  """Splits tensors in `xs` evenly into num_splits along the 1st dimenion.
 
   Args:
     xs: A tuple of tensors. Each tensor's 1st dimension is the same size.
     num_splits: A python integer.
 
   Returns:
-    A tuple of lists of tensors, num elements in the tuple = len(xs)
+    A tuple of lists of tensors, num elements in the tuple = len(xs).
+
     i-th element in each list corresponds to i-th split of each tensor in xs
     along the first dimension of each tensor.
   """
@@ -92,21 +95,22 @@ def SplitTensors(xs, num_splits):
 
 
 def SplitDictOfTensors(t_dict, num_splits):
-  """Splits tensors in 't_dict' evenly into num_splits along the 1st dimenion.
+  """Splits tensors in `t_dict` evenly into `num_splits` along the 1st dimenion.
 
   Args:
-    t_dict: A dictionary of tensors.
-      Each tensor's 1st dimension is the same size.
+    t_dict: A dictionary of tensors. Each tensor's 1st dimension is the same
+      size.
     num_splits: A python integer.
 
   Returns:
     A list of dictionaries of tensors, num elements in the list = num_splits
+
     i-th dictionary in the list corresponds to i-th split of each tensor
     along the first dimension of each tensor for each key in the original dict.
   """
   keys = []
   values = []
-  for k, v in six.iteritems(t_dict):
+  for k, v in sorted(six.iteritems(t_dict)):
     keys.append(k)
     values.append(v)
 

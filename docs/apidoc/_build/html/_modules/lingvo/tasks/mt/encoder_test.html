@@ -1,0 +1,579 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.mt.encoder_test &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.mt.encoder_test</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.mt.encoder_test</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;Tests for mt.encoder.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">encoder</span>
+
+
+<div class="viewcode-block" id="EncoderTest"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.EncoderTest">[docs]</a><span class="k">class</span> <span class="nc">EncoderTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">_EncoderParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderV1</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;encoder&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="mi">837464</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<div class="viewcode-block" id="EncoderTest.testEncoderConstruction"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.EncoderTest.testEncoderConstruction">[docs]</a>  <span class="k">def</span> <span class="nf">testEncoderConstruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderParams</span><span class="p">()</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderV1</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EncoderTest.testForwardPass"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.EncoderTest.testForwardPass">[docs]</a>  <span class="k">def</span> <span class="nf">testForwardPass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderParams</span><span class="p">()</span>
+      <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderV1</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">enc_out</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">actual_enc_out</span> <span class="o">=</span> <span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="n">expected_enc_out</span> <span class="o">=</span> <span class="p">[[[</span>
+          <span class="o">-</span><span class="mf">7.51581979e-07</span><span class="p">,</span> <span class="mf">1.55304758e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.39117889e-07</span><span class="p">,</span> <span class="mf">2.79457527e-06</span>
+      <span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.06733505e-05</span><span class="p">,</span> <span class="mf">7.56898862e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.18875834e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">9.10360086e-06</span><span class="p">]],</span> <span class="p">[</span>
+          <span class="p">[</span><span class="mf">1.58444971e-06</span><span class="p">,</span> <span class="mf">5.11627661e-07</span><span class="p">,</span> <span class="mf">1.33408967e-05</span><span class="p">,</span> <span class="mf">1.81603957e-06</span><span class="p">],</span>
+          <span class="p">[</span><span class="o">-</span><span class="mf">1.59942228e-05</span><span class="p">,</span> <span class="mf">1.26068180e-05</span><span class="p">,</span> <span class="mf">4.49321249e-07</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.43790385e-05</span><span class="p">]</span>
+      <span class="p">],</span> <span class="p">[[</span><span class="mf">5.56546365e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">8.01007627e-06</span><span class="p">,</span> <span class="mf">8.96620350e-06</span><span class="p">,</span> <span class="mf">3.96485439e-06</span><span class="p">],</span> <span class="p">[</span>
+          <span class="o">-</span><span class="mf">8.77006005e-06</span><span class="p">,</span> <span class="mf">4.04282991e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">4.79895652e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.90156833e-06</span>
+      <span class="p">]],</span> <span class="p">[[</span><span class="o">-</span><span class="mf">8.59513818e-07</span><span class="p">,</span> <span class="o">-</span><span class="mf">7.63760727e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.57065960e-06</span><span class="p">,</span> <span class="mf">1.80756274e-06</span><span class="p">],</span>
+           <span class="p">[</span><span class="o">-</span><span class="mf">2.96017470e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.51323195e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.03562079e-05</span><span class="p">,</span> <span class="mf">1.23328198e-06</span><span class="p">]]]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">expected_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="nf">_UniEncoderParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderUniRNN</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;encoder&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="mi">837464</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+  <span class="k">def</span> <span class="nf">_BiEncoderParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;encoder&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span> <span class="o">=</span> <span class="mi">4</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span> <span class="o">=</span> <span class="mi">3</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder_out_dim</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="mi">837464</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<div class="viewcode-block" id="EncoderTest.testBiEncoderForwardPassWithInputPacking"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.EncoderTest.testBiEncoderForwardPassWithInputPacking">[docs]</a>  <span class="k">def</span> <span class="nf">testBiEncoderForwardPassWithInputPacking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;bienc_test&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">sl</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BiEncoderParams</span><span class="p">()</span>
+        <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">packed_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">packed_params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">mt_enc_packed</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="p">(</span><span class="n">packed_params</span><span class="p">)</span>
+
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">15</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">])</span>
+
+        <span class="n">packed_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+        <span class="n">packed_batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">packed_batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">packed_batch</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">packed_batch</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">enc_out</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">enc_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">enc_out</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+        <span class="n">packed_enc_out</span> <span class="o">=</span> <span class="n">mt_enc_packed</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">packed_batch</span><span class="p">)</span>
+        <span class="n">packed_enc_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">packed_enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">enc_out</span><span class="p">))</span>
+
+        <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+        <span class="n">actual_enc_out</span><span class="p">,</span> <span class="n">actual_packed_enc_out</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">enc_out</span><span class="p">,</span> <span class="n">packed_enc_out</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">actual_packed_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EncoderTest.testTransparentEncoderConstruction"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.EncoderTest.testTransparentEncoderConstruction">[docs]</a>  <span class="k">def</span> <span class="nf">testTransparentEncoderConstruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BiEncoderParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EncoderTest.testUniEncoderForwardPass"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.EncoderTest.testUniEncoderForwardPass">[docs]</a>  <span class="k">def</span> <span class="nf">testUniEncoderForwardPass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_UniEncoderParams</span><span class="p">()</span>
+      <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderUniRNN</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">enc_out</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">actual_enc_out</span> <span class="o">=</span> <span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="n">expected_enc_out</span> <span class="o">=</span> <span class="p">[[[</span><span class="o">-</span><span class="mf">1.74790625e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.04228524e-07</span><span class="p">],</span> <span class="p">[</span>
+          <span class="mf">2.04836829e-06</span><span class="p">,</span> <span class="mf">1.48639378e-06</span>
+      <span class="p">]],</span> <span class="p">[[</span><span class="o">-</span><span class="mf">1.10486064e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.77133278e-07</span><span class="p">],</span>
+           <span class="p">[</span><span class="mf">4.66779238e-06</span><span class="p">,</span>
+            <span class="mf">3.72350723e-06</span><span class="p">]],</span> <span class="p">[[</span><span class="o">-</span><span class="mf">5.65139544e-07</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.84634030e-06</span><span class="p">],</span>
+                               <span class="p">[</span><span class="mf">3.99908731e-06</span><span class="p">,</span> <span class="mf">1.90148887e-06</span><span class="p">]],</span>
+                          <span class="p">[[</span><span class="mf">7.14102157e-07</span><span class="p">,</span> <span class="o">-</span><span class="mf">2.31352783e-06</span><span class="p">],</span>
+                           <span class="p">[</span><span class="mf">7.05981620e-06</span><span class="p">,</span> <span class="mf">2.68004328e-06</span><span class="p">]]]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">expected_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EncoderTest.testBiEncoderForwardPass"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.EncoderTest.testBiEncoderForwardPass">[docs]</a>  <span class="k">def</span> <span class="nf">testBiEncoderForwardPass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BiEncoderParams</span><span class="p">()</span>
+      <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">enc_out</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">actual_enc_out</span> <span class="o">=</span> <span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="n">expected_enc_out</span> <span class="o">=</span> <span class="p">[[[</span><span class="mf">1.42110639e-06</span><span class="p">,</span> <span class="mf">1.31101151e-05</span><span class="p">],</span> <span class="p">[</span>
+          <span class="o">-</span><span class="mf">6.62138473e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.11313329e-06</span>
+      <span class="p">]],</span> <span class="p">[[</span><span class="mf">1.14506956e-05</span><span class="p">,</span> <span class="mf">2.98347204e-05</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mf">5.89276988e-06</span><span class="p">,</span> <span class="mf">5.54328744e-06</span><span class="p">]],</span>
+                          <span class="p">[[</span><span class="mf">1.35346390e-05</span><span class="p">,</span> <span class="mf">1.00745674e-05</span><span class="p">],</span>
+                           <span class="p">[</span><span class="o">-</span><span class="mf">4.80002745e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.23648788e-05</span><span class="p">]],</span>
+                          <span class="p">[[</span><span class="mf">2.00507566e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.51463591e-05</span><span class="p">],</span>
+                           <span class="p">[</span><span class="o">-</span><span class="mf">5.71241526e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.87959231e-05</span><span class="p">]]]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">expected_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EncoderTest.testBiEncoderForwardPassWithDropout"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.EncoderTest.testBiEncoderForwardPassWithDropout">[docs]</a>  <span class="k">def</span> <span class="nf">testBiEncoderForwardPassWithDropout</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BiEncoderParams</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">=</span> <span class="mf">0.5</span>
+      <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">enc_out</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">actual_enc_out</span> <span class="o">=</span> <span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;bi_enc_actual_enc_out_with_dropout&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array_repr</span><span class="p">(</span><span class="n">actual_enc_out</span><span class="p">))</span>
+      <span class="c1"># pylint: disable=bad-whitespace,bad-continuation</span>
+      <span class="c1"># pyformat: disable</span>
+      <span class="n">expected_enc_out</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="p">[[</span><span class="o">-</span><span class="mf">2.25614094e-05</span><span class="p">,</span> <span class="mf">1.19781353e-05</span><span class="p">],</span>
+           <span class="p">[</span><span class="o">-</span><span class="mf">2.74532852e-07</span><span class="p">,</span> <span class="mf">8.17993077e-06</span><span class="p">]],</span>
+          <span class="p">[[</span><span class="mf">2.66865045e-05</span><span class="p">,</span> <span class="mf">1.02941645e-04</span><span class="p">],</span>
+           <span class="p">[</span><span class="mf">1.51371260e-05</span><span class="p">,</span> <span class="mf">3.78371587e-05</span><span class="p">]],</span>
+          <span class="p">[[</span><span class="mf">3.50117516e-05</span><span class="p">,</span> <span class="mf">7.65562072e-06</span><span class="p">],</span>
+           <span class="p">[</span><span class="o">-</span><span class="mf">1.30227636e-05</span><span class="p">,</span> <span class="mf">3.01171349e-06</span><span class="p">]],</span>
+          <span class="p">[[</span><span class="mf">2.27566215e-06</span><span class="p">,</span> <span class="mf">1.42354111e-07</span><span class="p">],</span>
+           <span class="p">[</span><span class="mf">1.04521234e-06</span><span class="p">,</span> <span class="mf">2.50320113e-06</span><span class="p">]]</span>
+       <span class="p">]</span>
+      <span class="c1"># pyformat: enable</span>
+      <span class="c1"># pylint: enable=bad-whitespace,bad-continuation</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">expected_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="EncoderTest.testBiEncoderForwardPassWithTransparent"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.EncoderTest.testBiEncoderForwardPassWithTransparent">[docs]</a>  <span class="k">def</span> <span class="nf">testBiEncoderForwardPassWithTransparent</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BiEncoderParams</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+      <span class="n">enc_out</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">actual_enc_out</span> <span class="o">=</span> <span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+      <span class="c1"># pylint: disable=bad-whitespace,bad-continuation</span>
+      <span class="c1"># pyformat: disable</span>
+      <span class="n">expected_enc_out</span> <span class="o">=</span> <span class="p">[</span>
+         <span class="p">[[</span> <span class="o">-</span><span class="mf">4.95129862e-05</span><span class="p">,</span>   <span class="mf">1.92920983e-04</span><span class="p">],</span>
+          <span class="p">[</span> <span class="o">-</span><span class="mf">2.18278728e-10</span><span class="p">,</span>  <span class="o">-</span><span class="mf">1.56396545e-05</span><span class="p">]],</span>
+         <span class="p">[[</span>  <span class="mf">1.80083007e-04</span><span class="p">,</span>   <span class="mf">6.55014810e-05</span><span class="p">],</span>
+          <span class="p">[</span>  <span class="mf">8.51639197e-05</span><span class="p">,</span>   <span class="mf">6.82225800e-05</span><span class="p">]],</span>
+         <span class="p">[[</span>  <span class="mf">2.12642481e-05</span><span class="p">,</span>  <span class="o">-</span><span class="mf">2.92667974e-05</span><span class="p">],</span>
+          <span class="p">[</span> <span class="o">-</span><span class="mf">8.88068098e-05</span><span class="p">,</span>   <span class="mf">5.24776005e-05</span><span class="p">]],</span>
+         <span class="p">[[</span> <span class="o">-</span><span class="mf">1.33993672e-04</span><span class="p">,</span>   <span class="mf">3.61708371e-05</span><span class="p">],</span>
+          <span class="p">[</span> <span class="o">-</span><span class="mf">1.35903974e-04</span><span class="p">,</span>   <span class="mf">1.31157576e-05</span><span class="p">]]</span>
+      <span class="p">]</span>
+      <span class="c1"># pyformat: enable</span>
+      <span class="c1"># pylint: enable=bad-whitespace,bad-continuation</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">expected_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TransformerEncoderTest"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.TransformerEncoderTest">[docs]</a><span class="k">class</span> <span class="nc">TransformerEncoderTest</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="nf">_EncoderParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;transformer_encoder&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">GaussianSqrtDim</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">64</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="mi">16</span>
+    <span class="n">ts</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span>
+    <span class="n">ts</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">=</span> <span class="mi">6</span>
+    <span class="n">ts</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">ts</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<div class="viewcode-block" id="TransformerEncoderTest.testEncoderConstruction"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.TransformerEncoderTest.testEncoderConstruction">[docs]</a>  <span class="k">def</span> <span class="nf">testEncoderConstruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderParams</span><span class="p">()</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TransformerEncoderTest.testTransparentEncoderConstruction"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.TransformerEncoderTest.testTransparentEncoderConstruction">[docs]</a>  <span class="k">def</span> <span class="nf">testTransparentEncoderConstruction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderParams</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">is_transparent</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TransformerEncoderTest.testForwardPass"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.TransformerEncoderTest.testForwardPass">[docs]</a>  <span class="k">def</span> <span class="nf">testForwardPass</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">bs</span> <span class="o">=</span> <span class="mi">2</span>
+      <span class="n">sl</span> <span class="o">=</span> <span class="mi">21</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderParams</span><span class="p">()</span>
+      <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+          <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">63</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">])</span>
+      <span class="n">enc_out</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+      <span class="n">enc_out_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">enc_atten_probs</span> <span class="o">=</span> <span class="n">enc_out</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">actual_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out_sum</span><span class="p">,</span> <span class="n">actual_atten_probs</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">enc_out_sum</span><span class="p">,</span> <span class="n">enc_atten_probs</span><span class="p">])</span>
+
+      <span class="c1"># pyformat: disable</span>
+      <span class="c1"># pylint: disable=bad-whitespace</span>
+      <span class="n">expected_enc_out</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="p">[</span> <span class="mf">49.45291519</span><span class="p">,</span> <span class="o">-</span><span class="mf">31.5743885</span> <span class="p">,</span>  <span class="mf">39.43684387</span><span class="p">,</span> <span class="o">-</span><span class="mf">47.67513275</span><span class="p">,</span>
+            <span class="mf">35.39754105</span><span class="p">,</span>  <span class="mf">14.41970444</span><span class="p">,</span>  <span class="mf">29.58752823</span><span class="p">,</span> <span class="o">-</span><span class="mf">43.06747055</span><span class="p">,</span>
+            <span class="mf">24.09403419</span><span class="p">,</span>  <span class="o">-</span><span class="mf">7.62717247</span><span class="p">,</span>  <span class="mf">18.48112106</span><span class="p">,</span>  <span class="mf">20.42408371</span><span class="p">,</span>
+            <span class="mf">5.1519866</span> <span class="p">,</span> <span class="o">-</span><span class="mf">19.66542244</span><span class="p">,</span>  <span class="mf">29.81095314</span><span class="p">,</span>  <span class="mf">56.90407944</span><span class="p">],</span>
+          <span class="p">[</span> <span class="mf">55.26333618</span><span class="p">,</span> <span class="o">-</span><span class="mf">30.39743614</span><span class="p">,</span>  <span class="mf">29.68314743</span><span class="p">,</span> <span class="o">-</span><span class="mf">37.61392975</span><span class="p">,</span>
+            <span class="mf">43.02292252</span><span class="p">,</span>  <span class="mf">13.88345146</span><span class="p">,</span>  <span class="mf">15.73033905</span><span class="p">,</span> <span class="o">-</span><span class="mf">24.68696213</span><span class="p">,</span>
+            <span class="mf">24.70776558</span><span class="p">,</span> <span class="o">-</span><span class="mf">29.18026161</span><span class="p">,</span>  <span class="mf">15.41469955</span><span class="p">,</span>  <span class="mf">27.77672577</span><span class="p">,</span>
+            <span class="o">-</span><span class="mf">5.36326742</span><span class="p">,</span> <span class="o">-</span><span class="mf">22.78984642</span><span class="p">,</span>  <span class="mf">22.15843391</span><span class="p">,</span>  <span class="mf">22.7237072</span> <span class="p">]]</span>
+      <span class="c1"># pylint: enable=bad-whitespace</span>
+      <span class="c1"># pyformat: enable</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">actual_enc_out</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">[</span><span class="n">sl</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllEqual</span><span class="p">(</span><span class="n">actual_atten_probs</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="p">[</span><span class="n">sl</span><span class="p">,</span> <span class="n">bs</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">expected_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out_sum</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TransformerEncoderTest.testForwardPassWithInputPacking"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.TransformerEncoderTest.testForwardPassWithInputPacking">[docs]</a>  <span class="k">def</span> <span class="nf">testForwardPassWithInputPacking</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;transformer_test&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">sl</span> <span class="o">=</span> <span class="mi">3</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderParams</span><span class="p">()</span>
+        <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">packed_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">packed_params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">mt_enc_packed</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">packed_params</span><span class="p">)</span>
+
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">63</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+        <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">])</span>
+
+        <span class="n">packed_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+        <span class="n">packed_batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">packed_batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">packed_batch</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">packed_batch</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+            <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">enc_out</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">enc_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">enc_out</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+        <span class="n">packed_enc_out</span> <span class="o">=</span> <span class="n">mt_enc_packed</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">packed_batch</span><span class="p">)</span>
+        <span class="n">packed_enc_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">packed_enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">enc_out</span><span class="p">))</span>
+
+        <span class="n">enc_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">enc_out</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">packed_enc_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">packed_enc_out</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+        <span class="n">actual_enc_out</span><span class="p">,</span> <span class="n">actual_packed_enc_out</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">enc_out</span><span class="p">,</span> <span class="n">packed_enc_out</span><span class="p">])</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">actual_packed_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TransformerEncoderTest.testForwardPassSplitBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.TransformerEncoderTest.testForwardPassSplitBatch">[docs]</a>  <span class="k">def</span> <span class="nf">testForwardPassSplitBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">session</span><span class="p">(</span><span class="n">use_gpu</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">bs</span> <span class="o">=</span> <span class="mi">8</span>
+      <span class="n">sl</span> <span class="o">=</span> <span class="mi">20</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="mi">8372749040</span><span class="p">)</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderParams</span><span class="p">()</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="mi">1234</span>
+      <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+      <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+          <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">63</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">sl</span><span class="p">])</span>
+      <span class="n">enc_out</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+      <span class="n">inputs1</span><span class="p">,</span> <span class="n">inputs2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">paddings1</span><span class="p">,</span> <span class="n">paddings2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+      <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">inputs1</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings1</span>
+      <span class="n">enc_out1</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+      <span class="n">batch</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">inputs2</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">paddings2</span>
+      <span class="n">enc_out2</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+      <span class="n">actual_enc_out</span><span class="p">,</span> <span class="n">actual_enc_out1</span><span class="p">,</span> <span class="n">actual_enc_out2</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">enc_out</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">enc_out1</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">enc_out2</span><span class="p">[</span><span class="mi">0</span><span class="p">]])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertAllClose</span><span class="p">(</span><span class="n">actual_enc_out</span><span class="p">,</span>
+                          <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">([</span><span class="n">actual_enc_out1</span><span class="p">,</span> <span class="n">actual_enc_out2</span><span class="p">],</span> <span class="mi">1</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TransformerEncoderTest.testEncoderVars"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder_test.html#lingvo.tasks.mt.encoder_test.TransformerEncoderTest.testEncoderVars">[docs]</a>  <span class="k">def</span> <span class="nf">testEncoderVars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderParams</span><span class="p">()</span>
+    <span class="n">mt_enc</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">enc_vars</span> <span class="o">=</span> <span class="n">mt_enc</span><span class="o">.</span><span class="n">vars</span>
+    <span class="n">flatten_vars</span> <span class="o">=</span> <span class="n">enc_vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">flatten_vars</span><span class="p">),</span> <span class="mi">91</span><span class="p">)</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

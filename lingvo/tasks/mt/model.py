@@ -57,21 +57,21 @@ class MTBaseModel(base_model.BaseTask):
 
     with tf.variable_scope(p.name):
       with self._EncoderDevice():
-        self.CreateChild('encoder', p.encoder)
+        self.CreateChild('enc', p.encoder)
       with self._DecoderDevice():
-        self.CreateChild('decoder', p.decoder)
+        self.CreateChild('dec', p.decoder)
 
   def ComputePredictions(self, theta, batch):
     with self._EncoderDevice():
-      src_enc, src_enc_paddings, src_segment_ids = self.encoder.FProp(
-          theta.encoder, batch.src)
+      src_enc, src_enc_paddings, src_segment_ids = self.enc.FProp(
+          theta.enc, batch.src)
     with self._DecoderDevice():
-      return self.decoder.ComputePredictions(
-          theta.decoder, src_enc, src_enc_paddings, batch.tgt, src_segment_ids)
+      return self.dec.ComputePredictions(theta.dec, src_enc, src_enc_paddings,
+                                         batch.tgt, src_segment_ids)
 
   def ComputeLoss(self, theta, batch, predictions):
     with self._DecoderDevice():
-      return self.decoder.ComputeLoss(theta.decoder, predictions, batch.tgt)
+      return self.dec.ComputeLoss(theta.dec, predictions, batch.tgt)
 
   def _GetTokenizerKeyToUse(self, key):
     """Returns a tokenizer key to use for the provided `key`."""
@@ -83,8 +83,8 @@ class MTBaseModel(base_model.BaseTask):
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
       batch = self.input_generator.GetPreprocessedInputBatch()
-      src_enc, src_enc_paddings, _ = self.encoder.FPropDefaultTheta(batch.src)
-      decoder_outs = self.decoder.BeamSearchDecode(src_enc, src_enc_paddings)
+      src_enc, src_enc_paddings, _ = self.enc.FPropDefaultTheta(batch.src)
+      decoder_outs = self.dec.BeamSearchDecode(src_enc, src_enc_paddings)
 
       topk_hyps = decoder_outs.topk_hyps
       topk_ids = decoder_outs.topk_ids
@@ -118,7 +118,7 @@ class MTBaseModel(base_model.BaseTask):
       return ret_dict
 
   def _PostProcessBeamSearchDecodeOut(self, dec_out_dict, dec_metrics_dict):
-    """Post processes the output from _BeamSearchDecode."""
+    """Post processes the output from `_BeamSearchDecode`."""
     p = self.params
     topk_scores = dec_out_dict['topk_scores']
     topk_decoded = dec_out_dict['topk_decoded']
@@ -184,18 +184,18 @@ class TransformerModel(MTBaseModel):
     p = self.params
     vg = self._var_grads
     emb_vg = py_utils.NestedMap()
-    emb_vg.child = [vg.encoder.token_emb, vg.decoder.token_emb]
+    emb_vg.child = [vg.enc.token_emb, vg.dec.token_emb]
 
     # Note that positional embedding layer has no trainable variable
     # if its trainable_scaling is false.
-    if 'position_emb' in vg.encoder:
-      emb_vg.child += [vg.encoder.position_emb]
-    if 'position_emb' in vg.decoder:
-      emb_vg.child += [vg.decoder.position_emb]
+    if 'position_emb' in vg.enc:
+      emb_vg.child += [vg.enc.position_emb]
+    if 'position_emb' in vg.dec:
+      emb_vg.child += [vg.dec.position_emb]
     summary_utils.AddNormSummary(p, 'emb', emb_vg)
-    summary_utils.AddNormSummary(
-        p, 'atten', [vg.encoder.transformer_stack.trans, vg.decoder.trans])
-    summary_utils.AddNormSummary(p, 'softmax', vg.decoder.softmax)
+    summary_utils.AddNormSummary(p, 'atten',
+                                 [vg.enc.transformer_stack.trans, vg.dec.trans])
+    summary_utils.AddNormSummary(p, 'softmax', vg.dec.softmax)
 
   def Decode(self):
     """Constructs the inference graph."""

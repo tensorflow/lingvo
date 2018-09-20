@@ -102,7 +102,7 @@ def initializer(func):  # pylint: disable=invalid-name
   """A decorator for layer's __init__.
 
   Args:
-    func: The __init__ method of LayerBase's subclasses.
+    func: The __init__ method of `LayerBase`'s subclasses.
 
   Returns:
     A decorator wrapper for layer's initializer.
@@ -151,14 +151,14 @@ class LayerBase(object):
 
   # Set to an inference driver name if this is an inference specialization
   # class.
-  INFERENCE_DRIVER_NAME = None
+  _INFERENCE_DRIVER_NAME = None
 
   @classmethod
   def Params(cls):
     """Returns the layer params."""
     p = hyperparams.Params()
     p.Define('cls', cls, 'Cls that this param object is associated with.')
-    p.Define('inference_driver_name', cls.INFERENCE_DRIVER_NAME,
+    p.Define('inference_driver_name', cls._INFERENCE_DRIVER_NAME,
              'Name of the inference driver used to construct this layer.')
     p.Define('name', '', 'Name of this layer object.')
     p.Define('dtype', tf.float32, 'Datatype to use.')
@@ -190,7 +190,7 @@ class LayerBase(object):
 
   @staticmethod
   def CopyBaseParams(from_params, to_params):
-    """Copies LayerBase params from 'from_params' to 'to_params'."""
+    """Copies LayerBase params from `from_params` to `to_params`."""
     assert issubclass(from_params.cls, LayerBase)
     assert issubclass(to_params.cls, LayerBase)
     # Copy-over the LayerBase params.
@@ -251,30 +251,31 @@ class LayerBase(object):
     self._private_fns = dict()
 
   def FPropDefaultTheta(self, *args, **kwargs):
-    """Calls FProp."""
+    """Calls `FProp`."""
     return self.FProp(self.theta, *args, **kwargs)
 
   def FProp(self, theta, *args, **kwargs):
     """Forward propagation.
 
     The central interface that subclasses should implement. The caller
-    calls FProp with a theta dictionary. E.g.,
+    calls `FProp` with a `theta` dictionary. E.g.::
+
         foo = InstanceOfASubClassOfFoo(params)
         y = foo.FProp(foo.theta, x)
 
-    The implementation of FProp() computes a function given
-    the theta and the inputs. E.g.,
+    The implementation of `FProp()` computes a function given
+    the theta and the inputs. E.g.::
 
-       subs = self.children
-       inputs = args[0]
-       a0 = subs.linear.FProp(theta.linear, inputs)
-       a1 = subs.softmax.FProp(theta.softmax, a0)
-       # The same layer applied twice.
-       a2 = subs.linear.FProp(theta.linear, a1)
-       return a2
+        subs = self.children
+        inputs = args[0]
+        a0 = subs.linear.FProp(theta.linear, inputs)
+        a1 = subs.softmax.FProp(theta.softmax, a0)
+        # The same layer applied twice.
+        a2 = subs.linear.FProp(theta.linear, a1)
+        return a2
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
       *args: List args.
       **kwargs: Keyward args.
@@ -286,31 +287,33 @@ class LayerBase(object):
 
   @classmethod
   def FPropMeta(cls, params, *args, **kwargs):
-    """Returns metadata about the FProp computation for this layer.
+    """Returns metadata about the `FProp` computation for this layer.
 
-    !!!Experimental features!!! Don't use or depend on it without consulting
-       lingvo authors.
+    **Experimental feature.**
+    Don't use or depend on it without consulting Lingvo authors.
 
-    E.g.,
-      p = SomeComplexLayer.Params()
-      meta = p.cls.FPropMeta(p, tf.TensorShape([128, 20, 50, 32]))
+    E.g.::
 
-    meta.flops gives an estimate count of floating point operations done by
-    one FProp given an input tensor of shape [128, 20, 50, 32].
-    meta.out_shapes is a tuple of tensor shapes, which tells you what shape
+        p = SomeComplexLayer.Params()
+        meta = p.cls.FPropMeta(p, tf.TensorShape([128, 20, 50, 32]))
+
+    `meta.flops` gives an estimate count of floating point operations done by
+    one `FProp` given an input tensor of shape [128, 20, 50, 32].
+    `meta.out_shapes` is a tuple of tensor shapes, which tells you what shape
     of tensors this layer will return.
 
     Args:
-      params: The param of a layer of this layer type. *args, **kwargs:
-        Corresponds to *args and **kwargs of FProp methods.  Each value of *args
-        and **kwargs is a fully specified TensorShape representing the concrete
-        shape of the tensor being forward propagated.
+      params: The param of a layer of this layer type.
+      *args: Corresponds to FProp with Tensors replaced by `TensorShape`.
+      **kwargs: Corresponds to FProp with Tensors replaced by `TensorShape`.
+
     Returns:
-      A NestedMap of fields:
-        flops - The estimated number of floating point operations incurred by
-          this fprop.
-        out_shapes - A tuple of tf.TensorShape. I.e., out_shapes[i] represents
-          the shape of the i-th returned tensor of the fprop.
+      A `.NestedMap` with
+
+      - flops - The estimated number of floating point operations incurred by
+        this fprop.
+      - out_shapes - A tuple of `tf.TensorShape`. I.e., `out_shapes[i]`
+        represents the shape of the `i`-th returned tensor of the fprop.
     """
     raise NotImplementedError('FPropMeta of %s' % cls)
 
@@ -321,7 +324,7 @@ class LayerBase(object):
 
   @property
   def children(self):
-    """Returns children layers of this layer in a NestedMap."""
+    """Returns children layers of this layer in a `.NestedMap`."""
     return self._private_children
 
   def __getattr__(self, name):
@@ -333,7 +336,7 @@ class LayerBase(object):
 
   @property
   def vars(self):
-    """Returns variables of this layer and its children in a NestedMap."""
+    """Returns variables of this layer and its children in a `.NestedMap`."""
     ret = self._private_children.Transform(lambda x: x.vars)
     for k in self._private_vars.keys():
       ret[k] = self._private_vars[k]
@@ -341,7 +344,7 @@ class LayerBase(object):
 
   @property
   def theta(self):
-    """Returns theta of this layer and its children in a NestedMap."""
+    """Returns theta of this layer and its children in a `.NestedMap`."""
     ret = self._private_children.Transform(lambda x: x.theta)
     should_cast = (
         self._params.fprop_dtype is not None and
@@ -365,7 +368,7 @@ class LayerBase(object):
 
   @property
   def accumulators(self):
-    """Returns a NestedMap of Accumulator instances for this and children."""
+    """Returns `.NestedMap` of `Accumulator` instances for this and children."""
     ret = self._private_children.Transform(lambda x: x.accumulators)
     for k, acc in six.iteritems(self._private_accumulators):
       ret[k] = acc
@@ -376,7 +379,7 @@ class LayerBase(object):
     """Returns a read-only view of layer local functions.
 
     Functions can be accessed by index (['name']) or attribute notation
-    (fns.foo).
+    (`fns.foo`).
 
     Returns:
       Read-only attribute accessible dict view of the layer's function library.
@@ -384,20 +387,21 @@ class LayerBase(object):
     return py_utils.ReadOnlyAttrDictView(self._private_fns)
 
   def AddFunction(self, name, f, replace=False):
-    """Adds a function to the layer's 'fns' collection.
+    """Adds a function to the layer's `fns` collection.
 
     This should be used to add op-like functions specific to the operation
-    of the layer and its children. Such functions should be added in __init__
+    of the layer and its children. Such functions should be added in `__init__`
     and may either be raw python functions or TensorFlow Defuns. This
     facility is just a mechanism for organizing them and having basic checks
     on name collisions.
 
     Args:
-      name: The name of the function. It will be accessible as self.fns.{name}.
+      name: The function name. It will be accessible as `self.fns.{name}`.
       f: The function body.
       replace: Whether to replace an existing function (default False).
+
     Raises:
-      AttributeError: If the function already exists (and replace=False).
+      AttributeError: If the function already exists and replace == False.
     """
     py_utils.NestedMap.CheckKey(name)
     if not replace:
@@ -426,40 +430,43 @@ class LayerBase(object):
     """Registers an accumulator for this layer.
 
     An accumulator is used to propagate some state to a future point,
-    where it is acted on (typically as part of PostTrainingStepUpdate). This
-    mechanism allows for aribitrarily nested parts of a model to export state
+    where it is acted on (typically as part of `PostTrainingStepUpdate`). This
+    mechanism allows for arbitrarily nested parts of a model to export state
     back to the global scope. Accumulators must be specially handled
-    when crossing into Defun or recurrent scopes. By abstracting the mechanism,
-    it allows all such state to be handled uniformly and generically.
+    when crossing into `Defun` or recurrent scopes. By abstracting the
+    mechanism, it allows all such state to be handled uniformly and generically.
 
-    Example (typically from __init__):
-      class MyAccumulator(base_layer.Accumulator):
-        def DefaultValue(self):
-          # [count, min, max]
-          return tf.convert_to_tensor([0.0, 0.0, 0.0])
-        def Update(self, state1):
-          state0 = self.GetValue()
-          self.SetValue(tf.stack([
-              state0[0] + state1[0],
-              tf.minimum(state0[1], state1[1]),
-              tf.maximum(state0[2], state1[2])]))
+    Example (typically from `__init__`)::
 
-      self.RegisterAccumulator('mytracker', acc)
+        class MyAccumulator(base_layer.Accumulator):
+          def DefaultValue(self):
+            # [count, min, max]
+            return tf.convert_to_tensor([0.0, 0.0, 0.0])
+          def Update(self, state1):
+            state0 = self.GetValue()
+            self.SetValue(tf.stack([
+                state0[0] + state1[0],
+                tf.minimum(state0[1], state1[1]),
+                tf.maximum(state0[2], state1[2])]))
 
-    Later, access the current value and update it:
-      acc = self.accumulators.mytracker
-      acc.Update(tf.convert_to_tensor([1.0, batch_min, batch_max]))
+        self.RegisterAccumulator('mytracker', acc)
 
-    Then, typically in PostTrainingUpdateStep:
-      acc = self.accumulator.mytracker.GetValue()
-      acc_value = acc.GetValue()
-      # Do something with the value.
-      acc.Reset()
+    Later, access the current value and update it::
+
+        acc = self.accumulators.mytracker
+        acc.Update(tf.convert_to_tensor([1.0, batch_min, batch_max]))
+
+    Then, typically in `PostTrainingStepUpdate`::
+
+        acc = self.accumulator.mytracker.GetValue()
+        acc_value = acc.GetValue()
+        # Do something with the value.
+        acc.Reset()
 
     Args:
       name: The accumulator name. Shares a namespace with children, vars and
           extra theta.
-      acc: An Accumulator instance.
+      acc: An `Accumulator` instance.
     """
     self._CheckName(name)
     self._private_accumulators[name] = acc
@@ -468,7 +475,7 @@ class LayerBase(object):
     """Recursively gets values of all accumulators.
 
     Returns:
-      Nested map of name:Tensor for each registered accumulator.
+      `.NestedMap` of Tensors for each registered accumulator.
     """
     return self.accumulators.Transform(lambda acc: acc.GetValue())
 
@@ -476,7 +483,7 @@ class LayerBase(object):
     """Recursively sets the values of all accumulators from a map.
 
     Args:
-      new_values_nmap: NestedMap of accumulator name:Tensor.
+      new_values_nmap: `.NestedMap` of accumulator name:Tensor.
     """
     accumulator_list = self.accumulators.Flatten()
     value_list = new_values_nmap.Flatten()
@@ -484,19 +491,20 @@ class LayerBase(object):
       acc.SetValue(value)
 
   def CreateVariable(self, name, var_params, theta_fn=None, *args, **kwargs):
-    """Create a variable.
+    """Create a variable of this layer according to the parameter `var_params`.
 
-    Create a variable of this layer according to the parameter var_params. E.g.,
+    E.g.::
 
-       def __init__(self, ...):    # A layer's constructor
-          self.CreateVariable('weight', py_utils.WeightParams(shape=[100, 100]))
+        def __init__(self, ...):    # A layer's constructor
+          self.CreateVariable(
+              'weight', py_utils.WeightParams(shape=[100, 100]))
 
-    theta_fn is used to apply a simple transformation on the created
+    `theta_fn` is used to apply a simple transformation on the created
     variable's value before used by the forward computation. E.g., to
     add the global variational noise according to this layer's
-    parameter, one can do:
+    parameter, one can do::
 
-       def __init__(self, ...):    # A layer's constructor
+        def __init__(self, ...):    # A layer's constructor
           self.CreateVariable(
             name='weight',
             var_params=py_utils.WeightParams(shape=[100, 100]),
@@ -504,12 +512,12 @@ class LayerBase(object):
 
     Args:
       name: Variable name which is used as the key into vars/theta.
-      var_params: Params used to create the variable.
-      theta_fn: A python function takes a variable's value and returns
-        a new value to be used later for computation. Its signature must be
+      var_params: `Params` used to create the variable.
+      theta_fn: A python function that takes a variable's value and returns a
+        new value to be used later for computation. Its signature must be
         (tf.Tensor) -> (tf.Tensor).
-      *args: List of args passed to py_utils.CreateVariable.
-      **kwargs: Keyword args passed to py_utils.CreateVariable.
+      *args: List of args passed to `.py_utils.CreateVariable`.
+      **kwargs: Keyword args passed to `.py_utils.CreateVariable`.
     """
     self._CheckName(name)
     value, var = py_utils.CreateVariable(name, var_params, *args, **kwargs)
@@ -519,7 +527,7 @@ class LayerBase(object):
     self._private_theta[name] = value
 
   def AddExtraTheta(self, theta_name, theta_value):
-    """Add extra theta that doesn't directly correspond to vars."""
+    """Add extra `theta` that doesn't directly correspond to `vars`."""
     self._CheckName(theta_name)
     self._private_theta[theta_name] = theta_value
     self._extra_theta[theta_name] = theta_value
@@ -530,17 +538,19 @@ class LayerBase(object):
   def CreateChild(self, name, params):
     """Create a sub layer.
 
-    The created sub layer can be access by 'name'. E.g.,
+    The created sub layer can be accessed by `name`. E.g.::
 
-      self.CreateChild('foo', ...)
-      self.foo.FProp...
-    or
-      self.children['foo'].Fprop...
-      self.children.foo.Fprop...
+        self.CreateChild('foo', ...)
+        self.foo.FProp...
+
+    or::
+
+        self.children['foo'].Fprop...
+        self.children.foo.Fprop...
 
     Args:
       name: Sub layer name which is used as the key into vars/theta.
-      params: Hyperparams object to instantiate a layer.
+      params: `Hyperparams` object to instantiate a layer.
     """
     self._CheckName(name)
     if not params.name:
@@ -552,18 +562,20 @@ class LayerBase(object):
   def CreateChildren(self, name, params_list):
     """Create a list of sub layers.
 
-    The created sub layer list can be access by 'name'. E.g.,
+    The created sub layer list can be accessed by `name`. E.g.::
 
-      self.CreateChildren('foo', ...)
-      self.foo[10].FProp...
-    or
-      self.children['foo'][10].Fprop...
-      self.children.foo[10].Fprop...
+        self.CreateChildren('foo', ...)
+        self.foo[10].FProp...
+
+    or::
+
+        self.children['foo'][10].Fprop...
+        self.children.foo[10].Fprop...
 
     Args:
       name: The name for the sub layers, which is used as the key
         into vars/theta.
-      params_list: Hyperparams objects to instantiate a list of layers.
+      params_list: `Hyperparams` objects to instantiate a list of layers.
     """
     self._CheckName(name)
 
@@ -595,9 +607,9 @@ class LayerBase(object):
     self._private_children[name] = children
 
   def _AutoAddChild(self, child):
-    """Record that a layer 'child' is instantiated by this layer.
+    """Record that a layer `child` is instantiated by this layer.
 
-    This is a method only called by base_layer.initializer decorator.
+    This is a method only called by `base_layer.initializer` decorator.
     Subclasses should not call this method.
 
     Args:
@@ -610,7 +622,7 @@ class LayerBase(object):
     self._VerifyVarsAndTheta()
 
   def _VerifyChildren(self):
-    """Verify all children created by this layer are via CreateChild(ren)."""
+    """Verify all children created by this layer are via `CreateChild(ren)`."""
 
     def FindCreatedChildren(parents):
       created_children = []
@@ -647,10 +659,10 @@ class LayerBase(object):
       assert k in self.vars or k in self._extra_theta
 
   def PostTrainingStepUpdate(self, global_step):
-    """Returns a TF node which will be invoked at each training step.
+    """Returns a TF op which will be invoked at each training step.
 
-    Subclasses of Layers can implement this method. The method should return a
-    TF node which will be invoked during training after gradients are applied.
+    Subclasses of `LayerBase` can implement this method. The method should
+    return a TF op to be invoked during training after gradients are applied.
 
     Args:
       global_step: the global step.

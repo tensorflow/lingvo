@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.model_helper &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.model_helper</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.model_helper</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Some utilities for configuring models.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">rnn_layers</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="CreateUnidirectionalRNNParams"><a class="viewcode-back" href="../../../lingvo.core.model_helper.html#lingvo.core.model_helper.CreateUnidirectionalRNNParams">[docs]</a><span class="k">def</span> <span class="nf">CreateUnidirectionalRNNParams</span><span class="p">(</span><span class="n">layer_params</span><span class="p">,</span> <span class="n">cell_params</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates parameters for uni-directional RNN layer.</span>
+
+<span class="sd">  Based on `layer_params.unidi_rnn_type`.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    layer_params: parameters for the layers, has to contain unidi_rnn_type.</span>
+<span class="sd">    cell_params: parameters for the RNN cell.</span>
+<span class="sd">  Returns:</span>
+<span class="sd">    Parameters for uni-directional RNN layer.</span>
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: if `unidi_rnn_type` is invalid.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">layer_params</span>
+  <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span>
+                 <span class="s1">&#39;unidi_rnn_type&#39;</span><span class="p">),</span> <span class="s1">&#39;layer params must contain unidi_rnn_type&#39;</span>
+  <span class="n">unidi_rnn_type</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">unidi_rnn_type</span>
+  <span class="k">if</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span>
+    <span class="n">unidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">FRNN</span>
+  <span class="k">elif</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;cudnn&#39;</span> <span class="ow">or</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;native_cudnn&#39;</span><span class="p">:</span>
+    <span class="n">unidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">CuDNNLSTM</span>
+  <span class="k">elif</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;quasi_ifo&#39;</span> <span class="ow">or</span> <span class="n">unidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;sru&#39;</span><span class="p">:</span>
+    <span class="n">unidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">FRNN</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid unidi_rnn_type: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">unidi_rnn_type</span><span class="p">)</span>
+  <span class="n">params</span> <span class="o">=</span> <span class="n">unidi_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">cell_params</span>
+  <span class="k">return</span> <span class="n">params</span></div>
+
+
+<div class="viewcode-block" id="CreateBidirectionalRNNParams"><a class="viewcode-back" href="../../../lingvo.core.model_helper.html#lingvo.core.model_helper.CreateBidirectionalRNNParams">[docs]</a><span class="k">def</span> <span class="nf">CreateBidirectionalRNNParams</span><span class="p">(</span><span class="n">layer_params</span><span class="p">,</span> <span class="n">forward_cell_params</span><span class="p">,</span>
+                                 <span class="n">backward_cell_params</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates parameters for bi-directional RNN layer.</span>
+
+<span class="sd">  Based on `layer_params.bidi_rnn_type`.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    layer_params: parameters for the layers, has to contain bidi_rnn_type.</span>
+<span class="sd">    forward_cell_params: parameters for the forward RNN cell.</span>
+<span class="sd">    backward_cell_params: parameters for the backward RNN cell.</span>
+<span class="sd">  Returns:</span>
+<span class="sd">    Parameters for bi-directional RNN layer.</span>
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: if `bidi_rnn_type` is invalid.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">layer_params</span>
+  <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;bidi_rnn_type&#39;</span><span class="p">),</span> <span class="s1">&#39;layer params must contain bidi_rnn_type&#39;</span>
+  <span class="n">bidi_rnn_type</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bidi_rnn_type</span>
+  <span class="k">if</span> <span class="n">bidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;func&#39;</span><span class="p">:</span>
+    <span class="n">bidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">BidirectionalFRNN</span>
+  <span class="k">elif</span> <span class="n">bidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;native_cudnn&#39;</span><span class="p">:</span>
+    <span class="n">bidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">BidirectionalNativeCuDNNLSTM</span>
+  <span class="k">elif</span> <span class="n">bidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;quasi_ifo&#39;</span> <span class="ow">or</span> <span class="n">bidi_rnn_type</span> <span class="o">==</span> <span class="s1">&#39;sru&#39;</span><span class="p">:</span>
+    <span class="n">bidi_cls</span> <span class="o">=</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">BidirectionalFRNNQuasi</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid bidi_rnn_type: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">bidi_rnn_type</span><span class="p">)</span>
+  <span class="n">params</span> <span class="o">=</span> <span class="n">bidi_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">fwd</span> <span class="o">=</span> <span class="n">forward_cell_params</span>
+  <span class="n">params</span><span class="o">.</span><span class="n">bak</span> <span class="o">=</span> <span class="n">backward_cell_params</span>
+  <span class="k">return</span> <span class="n">params</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

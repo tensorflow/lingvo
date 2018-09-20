@@ -24,6 +24,7 @@ import tensorflow as tf
 
 from lingvo.core import early_stop
 from lingvo.core import hyperparams
+from lingvo.core import test_helper
 
 
 class MetricHistoryTest(tf.test.TestCase):
@@ -149,6 +150,7 @@ class EarlyStopTest(tf.test.TestCase):
     p.tolerance = 1.0
     p.metric_history.local_filesystem = True
     p.metric_history.minimize = False
+    p.metric_history.jobname = 'decoder_dev'
     p.metric_history.metric = 'canonical_bleu'
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
 
@@ -183,6 +185,25 @@ class EarlyStopTest(tf.test.TestCase):
       self.assertTrue(es.Stop(sess))
       self.assertEqual(es.best_step, 3)
       self.assertEqual(es.last_step, 6)
+
+  def testEarlyStoppingAscendingTfEvents(self):
+    logdir = test_helper.test_src_dir_path('core/ops')
+    p = early_stop.EarlyStop.Params()
+    p.window = 1000
+    p.tolerance = 0.0
+    p.metric_history.local_filesystem = True
+    p.metric_history.minimize = False
+    p.metric_history.jobname = 'testdata'
+    p.metric_history.metric = 'bleu/dev'
+    p.metric_history.tfevent_file = True
+    early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
+
+    es = early_stop.EarlyStop(p)
+    es.FProp(None)
+    with self.session() as sess:
+      self.assertTrue(es.Stop(sess))
+      self.assertEqual(es.best_step, 102600)
+      self.assertEqual(es.last_step, 185200)
 
 
 if __name__ == '__main__':

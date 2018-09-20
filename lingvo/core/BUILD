@@ -216,7 +216,7 @@ py_library(
     deps = [
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow contrib cudnn_rnn_py dependency.,
+        # Implicit tensorflow contrib cudnn_rnn_py dependency.
     ],
 )
 
@@ -244,10 +244,14 @@ py_test(
     name = "early_stop_test",
     size = "small",
     srcs = ["early_stop_test.py"],
+    data = [
+        "//lingvo/core/ops/testdata:best_step_testdata",
+    ],
     deps = [
         ":early_stop",
         ":hyperparams",
         # Implicit tensorflow dependency.
+        "//lingvo/core:test_helper",
     ],
 )
 
@@ -444,7 +448,7 @@ py_library(
         ":retry",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow py proto dependency.,
+        # Implicit tensorflow py proto dependency.
         "//lingvo/core/ops:py_x_ops",
     ],
 )
@@ -618,7 +622,7 @@ py_library(
         ":summary_utils",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow contrib cudnn_rnn_py dependency.,
+        # Implicit tensorflow contrib cudnn_rnn_py dependency.
     ],
 )
 
@@ -678,7 +682,7 @@ py_library(
         ":rnn_cell",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow contrib cudnn_rnn_py dependency.,
+        # Implicit tensorflow contrib cudnn_rnn_py dependency.
     ],
 )
 

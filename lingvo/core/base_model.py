@@ -209,7 +209,7 @@ class BaseTask(base_layer.LayerBase):
     self._UpdateVnConfig()
 
   def ComputePredictions(self, theta, input_batch):
-    """Computes predictions for 'input_batch'.
+    """Computes predictions for `input_batch`.
 
     The output can be in the form of probablistic distributions, e.g., softmax
     logits for discrete outputs, mixture of logistics for continuous values, or
@@ -221,11 +221,11 @@ class BaseTask(base_layer.LayerBase):
     used to compute final outputs, perhaps with sampling.
 
     Args:
-      theta: A nested map object containing variable values of this task.
-      input_batch: A nested map object containing input tensors to this tower.
+      theta: A `.NestedMap` object containing variable values of this task.
+      input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
-      Predictions, in the form of a single Tensor, a NestedMap, or a namedtuple.
+      Predictions, either a single Tensor, a `.NestedMap`, or a namedtuple.
     """
     raise NotImplementedError('Abstract method')
 
@@ -233,9 +233,9 @@ class BaseTask(base_layer.LayerBase):
     """Computes loss and other metrics for the given predictions.
 
     Args:
-      theta: A nested map object containing variable values of this task.
-      input_batch: A nested map object containing input tensors to this tower.
-      predictions: The output of ComputePredictions.
+      theta: A `.NestedMap` object containing variable values of this task.
+      input_batch: A `.NestedMap` object containing input tensors to this tower.
+      predictions: The output of `ComputePredictions`.
 
     Returns:
       A dict containing str keys and (metric, weight) pairs as values, where
@@ -247,9 +247,9 @@ class BaseTask(base_layer.LayerBase):
     """Forward propagation through one tower of the model.
 
     Args:
-      theta: A nested map object containing variable values of this
+      theta: A `.NestedMap` object containing variable values of this
         task copied to this tower's devices.
-      input_batch: A nested map object containing input tensors to this tower.
+      input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
       A dict containing metrics pairs.
@@ -260,12 +260,12 @@ class BaseTask(base_layer.LayerBase):
   def FProp(self, theta):
     """Forward propagation.
 
-    This default FProp implementation here supports batch splitting in
+    This default `FProp` implementation here supports batch splitting in
     synchronous and asynchronous training when sub-classes implement
-    FPropTower.
+    `FPropTower`.
 
     Args:
-      theta: A nested map object containing weights' values of this
+      theta: A `.NestedMap` object containing weights' values of this
         layer and its children layers.
 
     Returns:
@@ -330,7 +330,7 @@ class BaseTask(base_layer.LayerBase):
     return metrics
 
   def FPropDefaultTheta(self):
-    """Calls FProp."""
+    """Calls `FProp` with this layer's parameters."""
     return self.FProp(self.theta)
 
   def AdjustGradients(self, vars_gradients):
@@ -354,13 +354,13 @@ class BaseTask(base_layer.LayerBase):
     self._BPropForVariables(vs)
 
   def _HasNanOrInf(self, var_grads):
-    """Returns a bool tensor to indicate if var_grads contains NaNs or Infs.
+    """Returns a bool tensor to indicate if `var_grads` contains NaNs or Infs.
 
     Args:
-      var_grads: A NestedMap with (var, grad) tuple as the map value.
+      var_grads: A `.NestedMap` with (var, grad) tuple as the map value.
 
     Returns:
-      A bool scalar tensor to indicate if the var_grads contains NaNs or Infs.
+      A bool scalar tensor to indicate if the `var_grads` contains NaNs or Infs.
     """
 
     def HasNanOrInf(x):
@@ -375,16 +375,17 @@ class BaseTask(base_layer.LayerBase):
     """Scales gradients according to training params.
 
     Args:
-      var_grads: a NestedMap whose values are (var, grad) pairs.
+      var_grads: a `.NestedMap` whose values are (var, grad) pairs.
 
     Returns:
-      (has_nan_or_inf, grad_scale, final_var_grads), where:
-        has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN
-          or Inf in input gradients.
-        grad_scale: the gradient scale. 0 if gradient updates should be skipped
-          for the step.
-        final_var_grads: a NestedMap whose values are (var, grad) pairs, where
-          gradients have already been scaled.
+      (has_nan_or_inf, grad_scale, final_var_grads).
+
+      - has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN
+        or Inf in input gradients.
+      - grad_scale: the gradient scale. 0 if gradient updates should be skipped
+        for the step.
+      - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs, where
+        gradients have already been scaled.
     """
     p = self.params
     tp = p.train
@@ -433,7 +434,7 @@ class BaseTask(base_layer.LayerBase):
     """Constructs the backward graph for the given variables.
 
     Args:
-      vmap: a NestedMap of variables.
+      vmap: a `.NestedMap` of variables.
     """
     p = self.params
     tp = p.train
@@ -498,7 +499,7 @@ class BaseTask(base_layer.LayerBase):
         name='train')
 
   def ApplyExponentialMovingAverage(self, ema):
-    """Wraps self.train_op with an Op to update exponential moving average."""
+    """Wraps `self.train_op` with an op updating exponential moving average."""
     # We need to apply EMA to all trainable variables of this Task, not just
     # bprop vars, so that we create a shadow '/ExponentialMovingAverage'
     # variable for every trainable variable.
@@ -512,7 +513,7 @@ class BaseTask(base_layer.LayerBase):
   def Decode(self):
     """Constructs the inference graph for eval decoding.
 
-    Returns a dict of tensors as decoder output.
+    Returns a dict of Tensors as decoder output.
     """
     pass
 
@@ -521,7 +522,7 @@ class BaseTask(base_layer.LayerBase):
 
     Each subgraph represents a public API for a part of the graph which can
     be operated independently. By convention, the subgraph named 'default'
-    should perfom end to end inference via the input generator.
+    should perform end to end inference via the input generator.
 
     Note that having distinct subgraphs (e.g. 'encoder', 'decoder') is
     not just a space optimization: when driving the graph externally in an
@@ -529,31 +530,28 @@ class BaseTask(base_layer.LayerBase):
     case, the graph will be constructed with only those pieces.
 
     Returns:
-      An inference_graph_pb2.InferenceGraph message or a legacy
-      dict of {'subgraph_name': (fetches, feeds)} for each subgraph where
-      feeds and fetches are NestedMaps of public API names to internal
-      Tensor instances. Callers are responsible for handling either format.
+      An `inference_graph_pb2.InferenceGraph` message.
     """
     raise NotImplementedError('Abstract method')
 
   def CreateDecoderMetrics(self):
-    """Creates a dict of decoder metrics to be updated via PostProcessDecodeOut.
+    """Creates a dict of decoder metrics for `PostProcessDecodeOut` to update.
 
-    Returns a dict mapping from string keys to BaseMetric objects.
+    Returns a dict mapping from string keys to `.BaseMetric` objects.
     """
     pass
 
   def PostProcessDecodeOut(self, decode_out_dict, decode_metrics_dict):
-    """Post-processes decoder out, and updates contents of decode_metrics_dict.
+    """Post-processes decoder out and updates contents of `decode_metrics_dict`.
 
     Args:
       decode_out_dict: A dictionary of Tensors fetched.
-      decode_metrics_dict: A dict mapping from string key to BaseMetric object
-        as created by CreateDecoderMetrics.
+      decode_metrics_dict: A dict mapping from string key to `.BaseMetric`
+        object as created by `CreateDecoderMetrics`.
 
     Returns:
-      output_key_value_pairs: a list of (key, value) pairs that can be saved
-        (i.e. of type str, bytes, or unicode).
+      output_key_value_pairs - a list of (key, value) pairs that can be saved
+      (i.e. of type str, bytes, or unicode).
     """
     pass
 
@@ -596,7 +594,7 @@ class BaseTask(base_layer.LayerBase):
       weight: A scalar Tensor.
 
     Raises:
-      ValueError: if 'name' is already defined.
+      ValueError: if `name` is already defined.
 
     """
     if name in self._eval_metrics:
@@ -621,7 +619,7 @@ class BaseTask(base_layer.LayerBase):
     return self._total_examples.IncBy(p, value)
 
   def IncrementTotalNans(self, value):
-    """Updates the total number of NaN/Inf gradients by 'value'."""
+    """Updates the total number of NaN/Inf gradients by `value`."""
     if self._total_nans_and_infs is None:
       with tf.variable_scope(
           py_utils.global_variable_scope, reuse=tf.AUTO_REUSE):
@@ -662,7 +660,7 @@ class DistillationTask(BaseTask):
   """A task to distill knowledge from a teacher task to a student task.
 
   The training parameters (e.g., learning rate) are determined only by
-  DistillationTask.params.train. Teacher and student task's training and eval
+  `DistillationTask.params.train`. Teacher and student task's training and eval
   parameters must be set to None.
   """
 
@@ -870,7 +868,7 @@ class BaseModel(base_layer.LayerBase):
     Args:
       task_name: string, the name of the model task to be returned.
     Returns:
-      An instance of BaseTask.
+      An instance of `BaseTask`.
     """
     raise NotImplementedError('Abstract method')
 

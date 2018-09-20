@@ -28,7 +28,7 @@ FLAGS = tf.flags.FLAGS
 def CreateUnidirectionalRNNParams(layer_params, cell_params):
   """Creates parameters for uni-directional RNN layer.
 
-  Based on layer_params.unidi_rnn_type.
+  Based on `layer_params.unidi_rnn_type`.
 
   Args:
     layer_params: parameters for the layers, has to contain unidi_rnn_type.
@@ -36,7 +36,7 @@ def CreateUnidirectionalRNNParams(layer_params, cell_params):
   Returns:
     Parameters for uni-directional RNN layer.
   Raises:
-    ValueError: if unidi_rnn_type is invalid.
+    ValueError: if `unidi_rnn_type` is invalid.
   """
   p = layer_params
   assert hasattr(p,
@@ -59,7 +59,7 @@ def CreateBidirectionalRNNParams(layer_params, forward_cell_params,
                                  backward_cell_params):
   """Creates parameters for bi-directional RNN layer.
 
-  Based on layer_params.bidi_rnn_type.
+  Based on `layer_params.bidi_rnn_type`.
 
   Args:
     layer_params: parameters for the layers, has to contain bidi_rnn_type.
@@ -68,7 +68,7 @@ def CreateBidirectionalRNNParams(layer_params, forward_cell_params,
   Returns:
     Parameters for bi-directional RNN layer.
   Raises:
-    ValueError: if bidi_rnn_type is invalid.
+    ValueError: if `bidi_rnn_type` is invalid.
   """
   p = layer_params
   assert hasattr(p, 'bidi_rnn_type'), 'layer params must contain bidi_rnn_type'

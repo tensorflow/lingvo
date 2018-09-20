@@ -1,0 +1,494 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.task_scheduler &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.task_scheduler</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.task_scheduler</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Multi-task task sampling schedules.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">early_stop</span>
+
+
+<div class="viewcode-block" id="TaskScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.TaskScheduler">[docs]</a><span class="k">class</span> <span class="nc">TaskScheduler</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generic multi-task scheduler.</span>
+
+<span class="sd">  Subclasses should override the `Sample` method to return a task string given</span>
+<span class="sd">  a step. All of the task strings as well as additional hyperparameters needed</span>
+<span class="sd">  by `Sample` should be exposed and stored in the params. `Sample` should also</span>
+<span class="sd">  update `cur_probs`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TaskScheduler.Params"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.TaskScheduler.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Parameters for this task scheduler.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TaskScheduler</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;task_scheduler&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TaskScheduler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cur_probs</span> <span class="o">=</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="TaskScheduler.Sample"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.TaskScheduler.Sample">[docs]</a>  <span class="k">def</span> <span class="nf">Sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="AdaptiveScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.AdaptiveScheduler">[docs]</a><span class="k">class</span> <span class="nc">AdaptiveScheduler</span><span class="p">(</span><span class="n">TaskScheduler</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Tasks with low scores will be sampled more often.</span>
+
+<span class="sd">  Scores are expected to be non-negative. Larger scores are better.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AdaptiveScheduler.Params"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.AdaptiveScheduler.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AdaptiveScheduler</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tasks&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;List of tasks&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;expected&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;List of final expected scores&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mh_a&#39;</span><span class="p">,</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mh_b&#39;</span><span class="p">,</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">0.05</span><span class="p">,</span> <span class="s1">&#39;Regularizarion term. A large epsilon will lead&#39;</span>
+        <span class="s1">&#39;to a more uniform task distribution.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Normalized task scores are raised to this power.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">AdaptiveScheduler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">expected</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only two tasks are supported by this scheduler.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Epsilon should be positive.&#39;</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tasks</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">last_scores</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_metric_histories</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mh_a</span><span class="p">),</span>
+        <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mh_b</span><span class="p">)</span>
+    <span class="p">]</span>
+
+<div class="viewcode-block" id="AdaptiveScheduler.getMetricHistories"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.AdaptiveScheduler.getMetricHistories">[docs]</a>  <span class="k">def</span> <span class="nf">getMetricHistories</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># If too slow, consider another implementation.</span>
+    <span class="c1"># TODO(sebjean) Time file reading and change behaviour if too long.</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">mh</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_histories</span><span class="p">):</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">FastGFile</span><span class="p">(</span><span class="n">mh</span><span class="o">.</span><span class="n">hist_file</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+          <span class="n">lines</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+      <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">NotFoundError</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;File not found. &#39;</span>
+                           <span class="s1">&#39;Expected at start of training only.&#39;</span><span class="p">)</span>
+        <span class="n">score</span><span class="p">,</span> <span class="n">lines</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="p">[]</span>
+      <span class="k">if</span> <span class="n">lines</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">score</span> <span class="o">=</span> <span class="n">lines</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;IndexError. Your history file may be corrupted.&#39;</span><span class="p">)</span>
+          <span class="n">score</span> <span class="o">=</span> <span class="mf">0.0</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">last_scores</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">score</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SimpleAdaptiveScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.SimpleAdaptiveScheduler">[docs]</a><span class="k">class</span> <span class="nc">SimpleAdaptiveScheduler</span><span class="p">(</span><span class="n">AdaptiveScheduler</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Simple adaptive scheduler.</span>
+
+<span class="sd">  A task with a normalized score of `s` is approximately weighted as `1 - s`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SimpleAdaptiveScheduler.Sample"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.SimpleAdaptiveScheduler.Sample">[docs]</a>  <span class="k">def</span> <span class="nf">Sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sample a task.</span>
+
+<span class="sd">    The unnormalized probability of a task if given by</span>
+<span class="sd">    1 + epsilon - min(1, score / expected)**alpha.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        current_step: Unused.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str, the name of the sampled task.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">current_step</span>  <span class="c1"># Unused</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">getMetricHistories</span><span class="p">()</span>
+
+    <span class="n">alpha</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">epsilon</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="mi">1</span> <span class="o">+</span> <span class="n">eps</span> <span class="o">-</span> <span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">score</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">expected</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">**</span><span class="n">alpha</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_scores</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">probs</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">))</span>
+    <span class="n">sampled_task</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tasks</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cur_probs</span> <span class="o">=</span> <span class="n">probs</span>
+    <span class="k">return</span> <span class="n">sampled_task</span></div></div>
+
+
+<div class="viewcode-block" id="InverseRatioAdaptiveScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.InverseRatioAdaptiveScheduler">[docs]</a><span class="k">class</span> <span class="nc">InverseRatioAdaptiveScheduler</span><span class="p">(</span><span class="n">AdaptiveScheduler</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Inverse ratio adaptive scheduler.</span>
+
+<span class="sd">  Tasks are approximately weighed as the inverse of their normalized scores.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="InverseRatioAdaptiveScheduler.Sample"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.InverseRatioAdaptiveScheduler.Sample">[docs]</a>  <span class="k">def</span> <span class="nf">Sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sample a task.</span>
+
+<span class="sd">    The unnormalized probability of a task if given by</span>
+<span class="sd">    1 / (min(1, score / expected)**alpha + epsilon)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        current_step: Unused.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str, the name of the sampled task.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">current_step</span>  <span class="c1"># Unused</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">getMetricHistories</span><span class="p">()</span>
+
+    <span class="n">alpha</span><span class="p">,</span> <span class="n">eps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">epsilon</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">score</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">expected</span><span class="p">[</span><span class="n">index</span><span class="p">])</span><span class="o">**</span><span class="n">alpha</span> <span class="o">+</span> <span class="n">eps</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_scores</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">probs</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">))</span>
+    <span class="n">sampled_task</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tasks</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cur_probs</span> <span class="o">=</span> <span class="n">probs</span>
+    <span class="k">return</span> <span class="n">sampled_task</span></div></div>
+
+
+<div class="viewcode-block" id="ShiftedExponentialScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.ShiftedExponentialScheduler">[docs]</a><span class="k">class</span> <span class="nc">ShiftedExponentialScheduler</span><span class="p">(</span><span class="n">TaskScheduler</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;The unnormalized score of each task follows a shifted exponential function.</span>
+
+<span class="sd">  Generalizes the constant, exponential and sigmoid</span>
+<span class="sd">  schedules described in &quot;Scheduled Multi-Task Learning: From Syntax to</span>
+<span class="sd">  Translation&quot; (Kiperwasser and Ballesteros).</span>
+<span class="sd">  https://arxiv.org/pdf/1804.08915.pdf</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ShiftedExponentialScheduler.Params"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.ShiftedExponentialScheduler.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ShiftedExponentialScheduler</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;alpha&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Controls the rate at which the schedule changes. &#39;</span>
+        <span class="s1">&#39;A large alpha will lead to fast convergence toward final values.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;task_probs&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;List of 2-tuples (task, prob). For non-constant&#39;</span>
+        <span class="s1">&#39;schedulers, prob is a tuble of the form (init_prob, final_prob).&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ShiftedExponentialScheduler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task_probs</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="ShiftedExponentialScheduler.Sample"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.ShiftedExponentialScheduler.Sample">[docs]</a>  <span class="k">def</span> <span class="nf">Sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sample a task.</span>
+
+<span class="sd">    Given an input [a, b] and a rate `alpha`, the unnormalized</span>
+<span class="sd">    score of eack task is a + b * exp(-alpha * t).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        current_step: int. Current time step.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        str, the name of the sampled task.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">a</span> <span class="o">+</span> <span class="n">b</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">alpha</span> <span class="o">*</span> <span class="n">current_step</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span>
+    <span class="p">]</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">probs</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">probs</span><span class="p">))</span>
+    <span class="n">sampled_task</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cur_probs</span> <span class="o">=</span> <span class="n">probs</span>
+    <span class="k">return</span> <span class="n">sampled_task</span></div></div>
+
+
+<div class="viewcode-block" id="ConstantScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.ConstantScheduler">[docs]</a><span class="k">class</span> <span class="nc">ConstantScheduler</span><span class="p">(</span><span class="n">ShiftedExponentialScheduler</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Constant schedule. Tasks are sampled from a fixed probability distribution.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ConstantScheduler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task_probs</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">value</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="ExponentialScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.ExponentialScheduler">[docs]</a><span class="k">class</span> <span class="nc">ExponentialScheduler</span><span class="p">(</span><span class="n">ShiftedExponentialScheduler</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Exponential schedule.</span>
+
+<span class="sd">  For a task with initial and final probabilities p_0 and p_1 respectively,</span>
+<span class="sd">  its unnormalized score is given by</span>
+<span class="sd">  `p_1 + (p_0 - p_1) * exp(-alpha * current_step)`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ExponentialScheduler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task_probs</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="SigmoidScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.SigmoidScheduler">[docs]</a><span class="k">class</span> <span class="nc">SigmoidScheduler</span><span class="p">(</span><span class="n">ShiftedExponentialScheduler</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sigmoid schedule.</span>
+
+<span class="sd">  For a task with initial and final probabilities p_0 and p_1 respectively,</span>
+<span class="sd">  its unnormalized score is given by</span>
+<span class="sd">  `p_1 + (2 * p_0 - p_1) * exp(-alpha * current_step)`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SigmoidScheduler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task_probs</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_descriptors</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div>
+
+
+<div class="viewcode-block" id="RoundRobinScheduler"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.RoundRobinScheduler">[docs]</a><span class="k">class</span> <span class="nc">RoundRobinScheduler</span><span class="p">(</span><span class="n">TaskScheduler</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Deterministic sequential schedule.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RoundRobinScheduler.Params"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.RoundRobinScheduler.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RoundRobinScheduler</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tasks&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;List of task names. No repetitions allowed.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">RoundRobinScheduler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tasks</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">n_tasks</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cur_probs</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_tasks</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_tasks</span>  <span class="c1"># For summary</span>
+
+<div class="viewcode-block" id="RoundRobinScheduler.Sample"><a class="viewcode-back" href="../../../lingvo.core.task_scheduler.html#lingvo.core.task_scheduler.RoundRobinScheduler.Sample">[docs]</a>  <span class="k">def</span> <span class="nf">Sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sample a task.&quot;&quot;&quot;</span>
+    <span class="n">sampled_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="n">current_step</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_tasks</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">sampled_task</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

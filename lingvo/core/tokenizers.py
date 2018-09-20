@@ -58,14 +58,15 @@ class BaseTokenizer(base_layer.LayerBase):
       strs: A vector of strings.
       max_length: An int providing the max_length for strs.
       external_append_eos: Bool or None. If None, will be ignored and
-        params.append_eos will be used. If bool, will determine if an eos
+        `params.append_eos` will be used. If bool, will determine if an eos
         symbol will be added to tokens.
 
     Returns:
-      (ids, labels, paddings): Tensors with the same shape [batch, maxlen].
-      ids[i, j] is the input token id of i-th sample for j-th step.
-      labels[i, j] is the target token id of i-th sample for j-th step.
-      paddings[i, j] is 1 iff i-th sample's j-th step is padded.
+      A tuple (ids, labels, paddings) with the same shape [batch, maxlen].
+
+      - ids[i, j] is the input token id of i-th sample for j-th step.
+      - labels[i, j] is the target token id of i-th sample for j-th step.
+      - paddings[i, j] is 1 iff i-th sample's j-th step is padded.
 
     Raises:
       ValueError: If unknown token type.
@@ -99,7 +100,7 @@ class BaseTokenizer(base_layer.LayerBase):
         tokens for the i-th sequence.
 
     Returns:
-      sequences: A vector of shape [batch]. The converted string sequence.
+      sequences - A vector of shape [batch]. The converted string sequence.
 
     Raises:
       ValueError: If unknown token type.

@@ -1,0 +1,884 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.base_model module &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.base_model_params module" href="lingvo.core.base_model_params.html" />
+    <link rel="prev" title="lingvo.core.base_layer module" href="lingvo.core.base_layer.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.base_model module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.base_model.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.base_model">
+<span id="lingvo-core-base-model-module"></span><h1>lingvo.core.base_model module<a class="headerlink" href="#module-lingvo.core.base_model" title="Permalink to this headline">¶</a></h1>
+<p>Base model.</p>
+<dl class="class">
+<dt id="lingvo.core.base_model.BaseTask">
+<em class="property">class </em><code class="descclassname">lingvo.core.base_model.</code><code class="descname">BaseTask</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<p>A single encoder/decoder task.</p>
+<p>One task usually consists of one InputGenerator, one train_op,
+a list of eval_metrics, etc.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.base_model.BaseTask.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.ComputePredictions">
+<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
+<p>The output can be in the form of probablistic distributions, e.g., softmax
+logits for discrete outputs, mixture of logistics for continuous values, or
+regression values.</p>
+<p>For training/evaluation, the output will be used for computing loss and
+gradient updates, including comparing predicted distributions between
+teacher and student for distillation. During inference the output can be
+used to compute final outputs, perhaps with sampling.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</li>
+<li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Predictions, either a single Tensor, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, or a namedtuple.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.ComputeLoss">
+<code class="descname">ComputeLoss</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em>, <em>predictions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes loss and other metrics for the given predictions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</li>
+<li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
+<li><strong>predictions</strong> – The output of <a class="reference internal" href="#lingvo.core.base_model.BaseTask.ComputePredictions" title="lingvo.core.base_model.BaseTask.ComputePredictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputePredictions</span></code></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A dict containing str keys and (metric, weight) pairs as values, where
+one of the keys is expected to be ‘loss’.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.FPropTower">
+<code class="descname">FPropTower</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FPropTower"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FPropTower" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation through one tower of the model.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this
+task copied to this tower’s devices.</li>
+<li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A dict containing metrics pairs.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>This default <a class="reference internal" href="#lingvo.core.base_model.BaseTask.FProp" title="lingvo.core.base_model.BaseTask.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> implementation here supports batch splitting in
+synchronous and asynchronous training when sub-classes implement
+<a class="reference internal" href="#lingvo.core.base_model.BaseTask.FPropTower" title="lingvo.core.base_model.BaseTask.FPropTower"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FPropTower</span></code></a>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A dict containing metrics pairs. One of the keys should be ‘loss’ and its
+value should be a (loss, num_predictions) pair.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.FPropDefaultTheta">
+<code class="descname">FPropDefaultTheta</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls <a class="reference internal" href="#lingvo.core.base_model.BaseTask.FProp" title="lingvo.core.base_model.BaseTask.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with this layer’s parameters.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.AdjustGradients">
+<code class="descname">AdjustGradients</code><span class="sig-paren">(</span><em>vars_gradients</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AdjustGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AdjustGradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Allow for custom gradient manipulation prior to clipping.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.BProp">
+<code class="descname">BProp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.BProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.BProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the backward graph.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask._HasNanOrInf">
+<code class="descname">_HasNanOrInf</code><span class="sig-paren">(</span><em>var_grads</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._HasNanOrInf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._HasNanOrInf" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a bool tensor to indicate if <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_grads</span></code> contains NaNs or Infs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>var_grads</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with (var, grad) tuple as the map value.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A bool scalar tensor to indicate if the <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_grads</span></code> contains NaNs or Infs.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.ScaleGradients">
+<code class="descname">ScaleGradients</code><span class="sig-paren">(</span><em>var_grads</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ScaleGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ScaleGradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scales gradients according to training params.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>var_grads</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">(has_nan_or_inf, grad_scale, final_var_grads).<ul class="simple">
+<li>has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN
+or Inf in input gradients.</li>
+<li>grad_scale: the gradient scale. 0 if gradient updates should be skipped
+for the step.</li>
+<li>final_var_grads: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs, where
+gradients have already been scaled.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask._BPropForVariables">
+<code class="descname">_BPropForVariables</code><span class="sig-paren">(</span><em>vmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._BPropForVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._BPropForVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the backward graph for the given variables.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>vmap</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of variables.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage">
+<code class="descname">ApplyExponentialMovingAverage</code><span class="sig-paren">(</span><em>ema</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ApplyExponentialMovingAverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.train_op</span></code> with an op updating exponential moving average.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.Decode">
+<code class="descname">Decode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.Decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference graph for eval decoding.</p>
+<p>Returns a dict of Tensors as decoder output.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.Inference">
+<code class="descname">Inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.Inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.Inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference graph.</p>
+<p>Each subgraph represents a public API for a part of the graph which can
+be operated independently. By convention, the subgraph named ‘default’
+should perform end to end inference via the input generator.</p>
+<p>Note that having distinct subgraphs (e.g. ‘encoder’, ‘decoder’) is
+not just a space optimization: when driving the graph externally in an
+online fashion, evaluation often needs to be broken into pieces. In this
+case, the graph will be constructed with only those pieces.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An <code class="xref py py-obj docutils literal notranslate"><span class="pre">inference_graph_pb2.InferenceGraph</span></code> message.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.CreateDecoderMetrics">
+<code class="descname">CreateDecoderMetrics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.CreateDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dict of decoder metrics for <a class="reference internal" href="#lingvo.core.base_model.BaseTask.PostProcessDecodeOut" title="lingvo.core.base_model.BaseTask.PostProcessDecodeOut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PostProcessDecodeOut</span></code></a> to update.</p>
+<p>Returns a dict mapping from string keys to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a> objects.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.PostProcessDecodeOut">
+<code class="descname">PostProcessDecodeOut</code><span class="sig-paren">(</span><em>decode_out_dict</em>, <em>decode_metrics_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.PostProcessDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.PostProcessDecodeOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Post-processes decoder out and updates contents of <code class="xref py py-obj docutils literal notranslate"><span class="pre">decode_metrics_dict</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>decode_out_dict</strong> – A dictionary of Tensors fetched.</li>
+<li><strong>decode_metrics_dict</strong> – A dict mapping from string key to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a>
+object as created by <a class="reference internal" href="#lingvo.core.base_model.BaseTask.CreateDecoderMetrics" title="lingvo.core.base_model.BaseTask.CreateDecoderMetrics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CreateDecoderMetrics</span></code></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">output_key_value_pairs - a list of (key, value) pairs that can be saved
+(i.e. of type str, bytes, or unicode).</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseTask.loss">
+<code class="descname">loss</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.loss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseTask.train_op">
+<code class="descname">train_op</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.train_op" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseTask.global_step">
+<code class="descname">global_step</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.global_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseTask.input_generator">
+<code class="descname">input_generator</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.input_generator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseTask.eval_metrics">
+<code class="descname">eval_metrics</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.eval_metrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the evaluation metrics.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A map from metric name (a python string) to a tuple (value, weight).
+Both value and weight are scalar Tensors.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.AddEvalMetric">
+<code class="descname">AddEvalMetric</code><span class="sig-paren">(</span><em>name</em>, <em>value</em>, <em>weight</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AddEvalMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AddEvalMetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds a metric to the eval metrics.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> – A python string. The name of the metric.</li>
+<li><strong>value</strong> – A scalar Tensor.</li>
+<li><strong>weight</strong> – A scalar Tensor.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – if <code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code> is already defined.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseTask.total_examples">
+<code class="descname">total_examples</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.total_examples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the total number of training examples processed so far.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.IncrementTotalSamples">
+<code class="descname">IncrementTotalSamples</code><span class="sig-paren">(</span><em>value=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.IncrementTotalSamples"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.IncrementTotalSamples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the total number of training examples with the batch size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.IncrementTotalNans">
+<code class="descname">IncrementTotalNans</code><span class="sig-paren">(</span><em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.IncrementTotalNans"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.IncrementTotalNans" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the total number of NaN/Inf gradients by <code class="xref py py-obj docutils literal notranslate"><span class="pre">value</span></code>.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask._UpdateVnConfig">
+<code class="descname">_UpdateVnConfig</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._UpdateVnConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._UpdateVnConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update vn config from the various vn flags.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask._GetMaskUpdateOp">
+<code class="descname">_GetMaskUpdateOp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._GetMaskUpdateOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._GetMaskUpdateOp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns op to update masks and threshold variables for model pruning.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.base_model.DistillationTask">
+<em class="property">class </em><code class="descclassname">lingvo.core.base_model.</code><code class="descname">DistillationTask</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
+<p>A task to distill knowledge from a teacher task to a student task.</p>
+<p>The training parameters (e.g., learning rate) are determined only by
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">DistillationTask.params.train</span></code>. Teacher and student task’s training and eval
+parameters must be set to None.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.base_model.DistillationTask.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.DistillationTask.ComputePredictions">
+<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
+<p>The output can be in the form of probablistic distributions, e.g., softmax
+logits for discrete outputs, mixture of logistics for continuous values, or
+regression values.</p>
+<p>For training/evaluation, the output will be used for computing loss and
+gradient updates, including comparing predicted distributions between
+teacher and student for distillation. During inference the output can be
+used to compute final outputs, perhaps with sampling.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</li>
+<li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Predictions, either a single Tensor, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, or a namedtuple.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.DistillationTask.ComputeLoss">
+<code class="descname">ComputeLoss</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em>, <em>predictions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes loss and other metrics for the given predictions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</li>
+<li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
+<li><strong>predictions</strong> – The output of <a class="reference internal" href="#lingvo.core.base_model.DistillationTask.ComputePredictions" title="lingvo.core.base_model.DistillationTask.ComputePredictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputePredictions</span></code></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A dict containing str keys and (metric, weight) pairs as values, where
+one of the keys is expected to be ‘loss’.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.DistillationTask.ComputeDistillationLoss">
+<code class="descname">ComputeDistillationLoss</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em>, <em>predictions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.ComputeDistillationLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.ComputeDistillationLoss" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.DistillationTask.BProp">
+<code class="descname">BProp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.BProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.BProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the backward graph.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.DistillationTask.Decode">
+<code class="descname">Decode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.Decode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference graph for eval decoding.</p>
+<p>Returns a dict of Tensors as decoder output.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.DistillationTask.Inference">
+<code class="descname">Inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.Inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.Inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference graph.</p>
+<p>Each subgraph represents a public API for a part of the graph which can
+be operated independently. By convention, the subgraph named ‘default’
+should perform end to end inference via the input generator.</p>
+<p>Note that having distinct subgraphs (e.g. ‘encoder’, ‘decoder’) is
+not just a space optimization: when driving the graph externally in an
+online fashion, evaluation often needs to be broken into pieces. In this
+case, the graph will be constructed with only those pieces.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">An <code class="xref py py-obj docutils literal notranslate"><span class="pre">inference_graph_pb2.InferenceGraph</span></code> message.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.DistillationTask.CreateDecoderMetrics">
+<code class="descname">CreateDecoderMetrics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.CreateDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a dict of decoder metrics for <a class="reference internal" href="#lingvo.core.base_model.DistillationTask.PostProcessDecodeOut" title="lingvo.core.base_model.DistillationTask.PostProcessDecodeOut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PostProcessDecodeOut</span></code></a> to update.</p>
+<p>Returns a dict mapping from string keys to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a> objects.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.DistillationTask.PostProcessDecodeOut">
+<code class="descname">PostProcessDecodeOut</code><span class="sig-paren">(</span><em>dec_out_dict</em>, <em>dec_metrics_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.PostProcessDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.PostProcessDecodeOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Post-processes decoder out and updates contents of <code class="xref py py-obj docutils literal notranslate"><span class="pre">decode_metrics_dict</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>decode_out_dict</strong> – A dictionary of Tensors fetched.</li>
+<li><strong>decode_metrics_dict</strong> – A dict mapping from string key to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a>
+object as created by <a class="reference internal" href="#lingvo.core.base_model.DistillationTask.CreateDecoderMetrics" title="lingvo.core.base_model.DistillationTask.CreateDecoderMetrics"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CreateDecoderMetrics</span></code></a>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">output_key_value_pairs - a list of (key, value) pairs that can be saved
+(i.e. of type str, bytes, or unicode).</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.base_model.BaseModel">
+<em class="property">class </em><code class="descclassname">lingvo.core.base_model.</code><code class="descname">BaseModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<p>The abstract model class. All models are sub-class of this class.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.base_model.BaseModel.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseModel.global_step">
+<code class="descname">global_step</code><a class="headerlink" href="#lingvo.core.base_model.BaseModel.global_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseModel.ema">
+<code class="descname">ema</code><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ema" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseModel.ConstructFPropBPropGraph">
+<code class="descname">ConstructFPropBPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructFPropBPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructFPropBPropGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseModel.ConstructFPropGraph">
+<code class="descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseModel.tasks">
+<code class="descname">tasks</code><a class="headerlink" href="#lingvo.core.base_model.BaseModel.tasks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all tasks.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseModel.GetTask">
+<code class="descname">GetTask</code><span class="sig-paren">(</span><em>task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.GetTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.GetTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the task associated with ‘task_name’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>task_name</strong> – string, the name of the model task to be returned.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseTask</span></code></a>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.BaseModel.total_examples">
+<code class="descname">total_examples</code><a class="headerlink" href="#lingvo.core.base_model.BaseModel.total_examples" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the total number of training examples processed so far.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseModel.ModelPostUpdate">
+<code class="descname">ModelPostUpdate</code><span class="sig-paren">(</span><em>sess</em>, <em>global_step</em>, <em>eval_metrics</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ModelPostUpdate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ModelPostUpdate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update model based on global step and eval_metrics.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.base_model.SingleTaskModel">
+<em class="property">class </em><code class="descclassname">lingvo.core.base_model.</code><code class="descname">SingleTaskModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseModel" title="lingvo.core.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseModel</span></code></a></p>
+<p>Model that consists of a single task.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.base_model.SingleTaskModel.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.SingleTaskModel.tasks">
+<code class="descname">tasks</code><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.tasks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.SingleTaskModel.GetTask">
+<code class="descname">GetTask</code><span class="sig-paren">(</span><em>task_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.GetTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.GetTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the task associated with ‘task_name’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>task_name</strong> – string, the name of the model task to be returned.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseTask</span></code></a>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.SingleTaskModel.SampleTask">
+<code class="descname">SampleTask</code><span class="sig-paren">(</span><em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.SampleTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.SampleTask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.SingleTaskModel.ConstructFPropBPropGraph">
+<code class="descname">ConstructFPropBPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.ConstructFPropBPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.ConstructFPropBPropGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.SingleTaskModel.ConstructFPropGraph">
+<code class="descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.base_model.MultiTaskModel">
+<em class="property">class </em><code class="descclassname">lingvo.core.base_model.</code><code class="descname">MultiTaskModel</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseModel" title="lingvo.core.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseModel</span></code></a></p>
+<p>Model that consists of multiple tasks.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.base_model.MultiTaskModel.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.MultiTaskModel.task_names">
+<code class="descname">task_names</code><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.task_names" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_model.MultiTaskModel.tasks">
+<code class="descname">tasks</code><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.tasks" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.MultiTaskModel.GetTask">
+<code class="descname">GetTask</code><span class="sig-paren">(</span><em>task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.GetTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.GetTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the task associated with ‘task_name’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>task_name</strong> – string, the name of the model task to be returned.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An instance of <a class="reference internal" href="#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseTask</span></code></a>.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.MultiTaskModel.SampleTask">
+<code class="descname">SampleTask</code><span class="sig-paren">(</span><em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.SampleTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.SampleTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sample a task according self.task_schedule.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">self.task_schedule.cur_probs</span></code> will also be updated.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>global_step</strong> – int. Current time step.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.MultiTaskModel.ConstructFPropBPropGraph">
+<code class="descname">ConstructFPropBPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.ConstructFPropBPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.ConstructFPropBPropGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.MultiTaskModel.ConstructFPropGraph">
+<code class="descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.base_model_params.html" class="btn btn-neutral float-right" title="lingvo.core.base_model_params module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.base_layer.html" class="btn btn-neutral" title="lingvo.core.base_layer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

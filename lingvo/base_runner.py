@@ -167,7 +167,7 @@ class BaseRunner(object):
 
   @py_utils.Retry()
   def _RunLoop(self, job_name, loop_func, *args):
-    """Runs 'loop_func', retrying on expected errors."""
+    """Runs `loop_func`, retrying on expected errors."""
     try:
       tf.logging.info('%s started.', job_name)
       loop_func(*args)
@@ -254,7 +254,7 @@ class BaseRunner(object):
       summary_writer: The summary writer to use.
       job_name: The name of the job that tries to write this summary.
       global_step: The checkpoint used for eval is generated at this step.
-      summaries: a dict from keys to tf.Summary protobuf messages.
+      summaries: a dict from keys to `tf.Summary` protobuf messages.
       text_filename: If not None, writes the summary to the text file.
     """
     status_metrics = []

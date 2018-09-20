@@ -70,16 +70,26 @@ class MetricHistory(object):
         'If True, training minimizes the metric. If False, training '
         'maximizes the metric.')
     p.Define('logdir', '', 'Root dir for BF logs.')
+    p.Define(
+        'tfevent_file', False, 'If True, read the metric from '
+        'events.out.tfevents.* files in the job dir instead of '
+        'maintaining a history file.')
     p.Define('local_filesystem', False,
              'Logdir is on local filesystem (needed for unit test).')
     return p
 
   def __init__(self, params):
     self.params = params.Copy()
-    fname = params.metric + '.history.txt'
-    self._hist_file = os.path.join(params.logdir, params.jobname, fname)
+    if params.tfevent_file:
+      self._hist_file = os.path.join(params.logdir, params.jobname,
+                                     'events.out.tfevents*')
+    else:
+      fname = params.metric + '.history.txt'
+      self._hist_file = os.path.join(params.logdir, params.jobname, fname)
     self._metric_histories_map[self._Key(params.jobname, params.metric)] = self
     self._minimize = params.minimize
+    self._metric = params.metric
+    self._tfevent_file = params.tfevent_file
 
   @property
   def hist_file(self):
@@ -89,11 +99,21 @@ class MetricHistory(object):
   def minimize(self):
     return self._minimize
 
+  @property
+  def metric(self):
+    return self._metric
+
+  @property
+  def tfevent_file(self):
+    return self._tfevent_file
+
   @classmethod
   def ConditionalAppend(cls, jobname, metric, global_step, value):
     """Updates history file iff we are recording given metric and jobname."""
     key = cls._Key(jobname, metric)
     if key in cls._metric_histories_map:
+      if cls._metric_histories_map[key].tfevent_file:
+        return False
       cls._metric_histories_map[key].Append(global_step, value)
       return True
     else:
@@ -166,9 +186,9 @@ class EarlyStop(object):
     """
     del theta  # not used
     if self.params.window:
-      self._node = py_x_ops.best_step(self.metric_history.hist_file,
-                                      self.params.tolerance,
-                                      self.metric_history.minimize)
+      self._node = py_x_ops.best_step(
+          self.metric_history.hist_file, self.params.tolerance,
+          self.metric_history.minimize, self.metric_history.metric)
     else:
       self._node = None
     return self._node

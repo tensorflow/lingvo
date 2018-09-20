@@ -1,0 +1,659 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.cudnn_rnn_utils &mdash; lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.cudnn_rnn_utils</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.cudnn_rnn_utils</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Utilities for converting CuDNN RNN params to Lingvo RNN weights.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">tensorflow.contrib.cudnn_rnn.python.ops</span> <span class="k">import</span> <span class="n">cudnn_rnn_ops</span>
+
+<span class="n">NUM_PARAMS_PER_LSTM_LAYER</span> <span class="o">=</span> <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CudnnLSTM</span><span class="o">.</span><span class="n">_NUM_PARAMS_PER_LAYER</span>  <span class="c1"># pylint:disable=protected-access</span>
+<span class="n">UNI_RNN</span> <span class="o">=</span> <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span>
+<span class="n">BI_RNN</span> <span class="o">=</span> <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_BIDIRECTION</span>
+
+
+<div class="viewcode-block" id="CuDNNLSTMInitializer"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer">[docs]</a><span class="k">class</span> <span class="nc">CuDNNLSTMInitializer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper class for cudnn rnn weights initialization.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_input_nodes</span><span class="p">,</span> <span class="n">num_cell_nodes</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="n">UNI_RNN</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_nodes</span> <span class="o">=</span> <span class="n">num_input_nodes</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cell_nodes</span> <span class="o">=</span> <span class="n">num_cell_nodes</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_direction</span> <span class="o">=</span> <span class="n">direction</span>
+
+<div class="viewcode-block" id="CuDNNLSTMInitializer.OpaqueParamsShape"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.OpaqueParamsShape">[docs]</a>  <span class="k">def</span> <span class="nf">OpaqueParamsShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">cudnn_rnn_opaque_params_size</span><span class="p">(</span>
+        <span class="n">rnn_mode</span><span class="o">=</span><span class="s1">&#39;lstm&#39;</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">num_units</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cell_nodes</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_nodes</span><span class="p">,</span>
+        <span class="n">input_mode</span><span class="o">=</span><span class="s1">&#39;linear_input&#39;</span><span class="p">,</span>
+        <span class="n">direction</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_direction</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">weight_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the shapes of weight tensors of each gate.&quot;&quot;&quot;</span>
+    <span class="n">input_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_nodes</span>
+    <span class="n">cell_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cell_nodes</span>
+    <span class="n">w_i</span><span class="p">,</span> <span class="n">w_f</span><span class="p">,</span> <span class="n">w_c</span><span class="p">,</span> <span class="n">w_o</span> <span class="o">=</span> <span class="p">[(</span><span class="n">input_nodes</span><span class="p">,</span> <span class="n">cell_nodes</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">4</span>
+    <span class="n">r_i</span><span class="p">,</span> <span class="n">r_f</span><span class="p">,</span> <span class="n">r_c</span><span class="p">,</span> <span class="n">r_o</span> <span class="o">=</span> <span class="p">[(</span><span class="n">cell_nodes</span><span class="p">,</span> <span class="n">cell_nodes</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">4</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_direction</span> <span class="o">==</span> <span class="n">BI_RNN</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">w_i</span><span class="p">,</span> <span class="n">w_f</span><span class="p">,</span> <span class="n">w_c</span><span class="p">,</span> <span class="n">w_o</span><span class="p">,</span> <span class="n">r_i</span><span class="p">,</span> <span class="n">r_f</span><span class="p">,</span> <span class="n">r_c</span><span class="p">,</span> <span class="n">r_o</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">w_i</span><span class="p">,</span> <span class="n">w_f</span><span class="p">,</span> <span class="n">w_c</span><span class="p">,</span> <span class="n">w_o</span><span class="p">,</span> <span class="n">r_i</span><span class="p">,</span> <span class="n">r_f</span><span class="p">,</span> <span class="n">r_c</span><span class="p">,</span> <span class="n">r_o</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">weight_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the sizes of weight tensor of each gate.&quot;&quot;&quot;</span>
+    <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_shapes</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="k">for</span> <span class="n">shape</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">weight_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the accumulated weight size.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight_sizes</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">bias_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the shapes of bias tensors of each gate.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_direction</span> <span class="o">==</span> <span class="n">BI_RNN</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cell_nodes</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">16</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cell_nodes</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">8</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">bias_sizes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the sizes of bias tensor of each gate.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias_shapes</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">bias_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the accumulated bias size.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bias_sizes</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CuDNNLSTMInitializer.InitOpaqueParams"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMInitializer.InitOpaqueParams">[docs]</a>  <span class="k">def</span> <span class="nf">InitOpaqueParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">base_initializer</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Uses base_initializer to init weights from opaque cudnn params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      dtype: data type.</span>
+<span class="sd">      base_initializer: a callable that returns a tensor given shape, dtype and</span>
+<span class="sd">          partition_info.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">      A initialized opaque cudnn params. Its weights are initialized with the</span>
+<span class="sd">      base_initializer, and biases are set to zero.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># The shape argument isn&#39;t used.</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">base_initializer</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">weight_shapes</span>
+    <span class="p">]</span>
+    <span class="n">biases</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">sp</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">for</span> <span class="n">sp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bias_shapes</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">cudnn_rnn_canonical_to_opaque_params</span><span class="p">(</span>
+        <span class="n">rnn_mode</span><span class="o">=</span><span class="s1">&#39;lstm&#39;</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">num_units</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cell_nodes</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_input_nodes</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+        <span class="n">biases</span><span class="o">=</span><span class="n">biases</span><span class="p">,</span>
+        <span class="n">input_mode</span><span class="o">=</span><span class="s1">&#39;linear_input&#39;</span><span class="p">,</span>
+        <span class="n">direction</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_direction</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="_StitchWeights"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils._StitchWeights">[docs]</a><span class="k">def</span> <span class="nf">_StitchWeights</span><span class="p">(</span><span class="n">w_i</span><span class="p">,</span> <span class="n">w_f</span><span class="p">,</span> <span class="n">w_c</span><span class="p">,</span> <span class="n">w_o</span><span class="p">,</span>
+                   <span class="n">r_i</span><span class="p">,</span> <span class="n">r_f</span><span class="p">,</span> <span class="n">r_c</span><span class="p">,</span> <span class="n">r_o</span><span class="p">,</span>
+                   <span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Stitching LSTM per-gate weights to comform to LSTMCellSimple layout.</span>
+
+<span class="sd">  LSTMCellSimple uses a single weight Tensor of shape [input_dim, 4 * cell_dim].</span>
+<span class="sd">  This method puts the weight tensors together.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    w_i:</span>
+<span class="sd">    w_f:</span>
+<span class="sd">    w_c:</span>
+<span class="sd">    w_o:</span>
+<span class="sd">      weights applied on cell input.</span>
+<span class="sd">    r_i:</span>
+<span class="sd">    r_f:</span>
+<span class="sd">    r_c:</span>
+<span class="sd">    r_o:</span>
+<span class="sd">      weights applied on recurrent input.</span>
+<span class="sd">    input_dim: an int, LSTM input dim.</span>
+<span class="sd">    cell_dim: an int, LSTM cell dim.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A weight Tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">W_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">w_i</span><span class="p">,</span> <span class="p">[</span><span class="n">cell_dim</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">]),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">r_i</span><span class="p">,</span> <span class="p">[</span><span class="n">cell_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">W_f</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">w_f</span><span class="p">,</span> <span class="p">[</span><span class="n">cell_dim</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">]),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">r_f</span><span class="p">,</span> <span class="p">[</span><span class="n">cell_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">W_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">w_c</span><span class="p">,</span> <span class="p">[</span><span class="n">cell_dim</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">]),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">r_c</span><span class="p">,</span> <span class="p">[</span><span class="n">cell_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">W_o</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">w_o</span><span class="p">,</span> <span class="p">[</span><span class="n">cell_dim</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">]),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">r_o</span><span class="p">,</span> <span class="p">[</span><span class="n">cell_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="c1"># pylint: enable=invalid-name</span>
+  <span class="c1"># CuDNN weights are in ifco order, Lingvo LSTMCellSimple is cifo order.</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">W_c</span><span class="p">,</span> <span class="n">W_i</span><span class="p">,</span> <span class="n">W_f</span><span class="p">,</span> <span class="n">W_o</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_StitchBiases"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils._StitchBiases">[docs]</a><span class="k">def</span> <span class="nf">_StitchBiases</span><span class="p">(</span><span class="n">b_wi</span><span class="p">,</span> <span class="n">b_wf</span><span class="p">,</span> <span class="n">b_wc</span><span class="p">,</span> <span class="n">b_wo</span><span class="p">,</span>
+                  <span class="n">b_ri</span><span class="p">,</span> <span class="n">b_rf</span><span class="p">,</span> <span class="n">b_rc</span><span class="p">,</span> <span class="n">b_ro</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Stitching LSTM per-gate biases to comform to LSTMCellSimple layout.</span>
+
+<span class="sd">  LSTMCellSimple uses a single bias Tensor of shape [4 * cell_dim]. This method</span>
+<span class="sd">  puts the bias tensors together.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    b_wi:</span>
+<span class="sd">    b_wf:</span>
+<span class="sd">    b_wc:</span>
+<span class="sd">    b_wo:</span>
+<span class="sd">      biases applied on cell input.</span>
+<span class="sd">    b_ri:</span>
+<span class="sd">    b_rf:</span>
+<span class="sd">    b_rc:</span>
+<span class="sd">    b_ro:</span>
+<span class="sd">      biases applied on recurrent input.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A bias Tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">b_wc</span><span class="p">,</span> <span class="n">b_wi</span><span class="p">,</span> <span class="n">b_wf</span><span class="p">,</span> <span class="n">b_wo</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">b_rc</span><span class="p">,</span> <span class="n">b_ri</span><span class="p">,</span> <span class="n">b_rf</span><span class="p">,</span> <span class="n">b_ro</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_CuDNNParamsToCanonical"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils._CuDNNParamsToCanonical">[docs]</a><span class="k">def</span> <span class="nf">_CuDNNParamsToCanonical</span><span class="p">(</span><span class="n">cudnn_params</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">,</span> <span class="n">direction</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Convert a single piece CuDNN params to canonical params of LSTM gates.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    cudnn_params: A Tensor containing all weights and biases of a</span>
+<span class="sd">      CuDNN LSTM. The shape of cudnn_params given input_dim, cell_dim and</span>
+<span class="sd">      direction can be obtained by py_utils.CuDNNInitializer.effective_shape.</span>
+<span class="sd">    input_dim: an int, LSTM cell input dimension.</span>
+<span class="sd">    cell_dim: an int, LSTM cell hidden dimension.</span>
+<span class="sd">    direction: cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION or</span>
+<span class="sd">      cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION.</span>
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of weight Tensor and a list of bias Tensor, in the order they appear</span>
+<span class="sd">    in input `cudnn_params`, described above.</span>
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: for invalid `direction`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">UNI_RNN</span><span class="p">,</span> <span class="n">BI_RNN</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">direction</span><span class="se">\&#39;</span><span class="s1"> must be </span><span class="si">%s</span><span class="s1"> or </span><span class="si">%s</span><span class="s1">, receive </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span>
+                     <span class="n">UNI_RNN</span><span class="p">,</span> <span class="n">BI_RNN</span><span class="p">)</span>
+  <span class="n">cudnn_initializer</span> <span class="o">=</span> <span class="n">CuDNNLSTMInitializer</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
+  <span class="n">weights</span><span class="p">,</span> <span class="n">biases</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">cudnn_params</span><span class="p">,</span>
+                             <span class="p">[</span><span class="n">cudnn_initializer</span><span class="o">.</span><span class="n">weight_size</span><span class="p">,</span>
+                              <span class="n">cudnn_initializer</span><span class="o">.</span><span class="n">bias_size</span><span class="p">],</span>
+                             <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="n">weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">cudnn_initializer</span><span class="o">.</span><span class="n">weight_sizes</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="n">biases</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">biases</span><span class="p">,</span> <span class="n">cudnn_initializer</span><span class="o">.</span><span class="n">bias_sizes</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">weights</span><span class="p">,</span> <span class="n">biases</span></div>
+
+
+<div class="viewcode-block" id="RecoverLSTMCellSimpleWeightsFromCuDNN"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.RecoverLSTMCellSimpleWeightsFromCuDNN">[docs]</a><span class="k">def</span> <span class="nf">RecoverLSTMCellSimpleWeightsFromCuDNN</span><span class="p">(</span><span class="n">cudnn_params</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">,</span>
+                                          <span class="n">direction</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Recover LSTMCellSimple-compatible weights from (uni/bi)CuDNNLSTM weights.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    cudnn_params: A Tensor containing all weights and biases of a</span>
+<span class="sd">      CuDNN LSTM. The shape of cudnn_params given input_dim, cell_dim and</span>
+<span class="sd">      direction can be obtained by py_utils.CuDNNInitializer.effective_shape.</span>
+<span class="sd">    input_dim: an int, LSTM cell input dimension.</span>
+<span class="sd">    cell_dim: an int, LSTM cell hidden dimension.</span>
+<span class="sd">    direction: cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION or</span>
+<span class="sd">      cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION.</span>
+<span class="sd">  Returns:</span>
+<span class="sd">    A list of weight Tensor and a list of bias Tensor.</span>
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: for invalid `direction`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">,</span>
+                       <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_BIDIRECTION</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">direction</span><span class="se">\&#39;</span><span class="s1"> must be </span><span class="si">%s</span><span class="s1"> or </span><span class="si">%s</span><span class="s1">, receive </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span>
+                     <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">,</span>
+                     <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_BIDIRECTION</span><span class="p">)</span>
+  <span class="n">weights</span><span class="p">,</span> <span class="n">biases</span> <span class="o">=</span> <span class="n">_CuDNNParamsToCanonical</span><span class="p">(</span><span class="n">cudnn_params</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">,</span>
+                                            <span class="n">direction</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">NUM_PARAMS_PER_LSTM_LAYER</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">NUM_PARAMS_PER_LSTM_LAYER</span>
+    <span class="n">w_i</span><span class="p">,</span> <span class="n">w_f</span><span class="p">,</span> <span class="n">w_c</span><span class="p">,</span> <span class="n">w_o</span><span class="p">,</span> <span class="n">r_i</span><span class="p">,</span> <span class="n">r_f</span><span class="p">,</span> <span class="n">r_c</span><span class="p">,</span> <span class="n">r_o</span> <span class="o">=</span> <span class="n">weights</span>
+    <span class="n">b_wi</span><span class="p">,</span> <span class="n">b_wf</span><span class="p">,</span> <span class="n">b_wc</span><span class="p">,</span> <span class="n">b_wo</span><span class="p">,</span> <span class="n">b_ri</span><span class="p">,</span> <span class="n">b_rf</span><span class="p">,</span> <span class="n">b_rc</span><span class="p">,</span> <span class="n">b_ro</span> <span class="o">=</span> <span class="n">biases</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">_StitchWeights</span><span class="p">(</span><span class="n">w_i</span><span class="p">,</span> <span class="n">w_f</span><span class="p">,</span> <span class="n">w_c</span><span class="p">,</span> <span class="n">w_o</span><span class="p">,</span>
+                       <span class="n">r_i</span><span class="p">,</span> <span class="n">r_f</span><span class="p">,</span> <span class="n">r_c</span><span class="p">,</span> <span class="n">r_o</span><span class="p">,</span>
+                       <span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">_StitchBiases</span><span class="p">(</span><span class="n">b_wi</span><span class="p">,</span> <span class="n">b_wf</span><span class="p">,</span> <span class="n">b_wc</span><span class="p">,</span> <span class="n">b_wo</span><span class="p">,</span>
+                      <span class="n">b_ri</span><span class="p">,</span> <span class="n">b_rf</span><span class="p">,</span> <span class="n">b_rc</span><span class="p">,</span> <span class="n">b_ro</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">b</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">NUM_PARAMS_PER_LSTM_LAYER</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weights</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">NUM_PARAMS_PER_LSTM_LAYER</span>
+    <span class="p">(</span><span class="n">fwd_w_i</span><span class="p">,</span> <span class="n">fwd_w_f</span><span class="p">,</span> <span class="n">fwd_w_c</span><span class="p">,</span> <span class="n">fwd_w_o</span><span class="p">,</span>
+     <span class="n">fwd_r_i</span><span class="p">,</span> <span class="n">fwd_r_f</span><span class="p">,</span> <span class="n">fwd_r_c</span><span class="p">,</span> <span class="n">fwd_r_o</span><span class="p">,</span>
+     <span class="n">bak_w_i</span><span class="p">,</span> <span class="n">bak_w_f</span><span class="p">,</span> <span class="n">bak_w_c</span><span class="p">,</span> <span class="n">bak_w_o</span><span class="p">,</span>
+     <span class="n">bak_r_i</span><span class="p">,</span> <span class="n">bak_r_f</span><span class="p">,</span> <span class="n">bak_r_c</span><span class="p">,</span> <span class="n">bak_r_o</span><span class="p">)</span> <span class="o">=</span> <span class="n">weights</span>
+    <span class="p">(</span><span class="n">fwd_b_wi</span><span class="p">,</span> <span class="n">fwd_b_wf</span><span class="p">,</span> <span class="n">fwd_b_wc</span><span class="p">,</span> <span class="n">fwd_b_wo</span><span class="p">,</span>
+     <span class="n">fwd_b_ri</span><span class="p">,</span> <span class="n">fwd_b_rf</span><span class="p">,</span> <span class="n">fwd_b_rc</span><span class="p">,</span> <span class="n">fwd_b_ro</span><span class="p">,</span>
+     <span class="n">bak_b_wi</span><span class="p">,</span> <span class="n">bak_b_wf</span><span class="p">,</span> <span class="n">bak_b_wc</span><span class="p">,</span> <span class="n">bak_b_wo</span><span class="p">,</span>
+     <span class="n">bak_b_ri</span><span class="p">,</span> <span class="n">bak_b_rf</span><span class="p">,</span> <span class="n">bak_b_rc</span><span class="p">,</span> <span class="n">bak_b_ro</span><span class="p">)</span> <span class="o">=</span> <span class="n">biases</span>
+    <span class="n">fwd_w</span> <span class="o">=</span> <span class="n">_StitchWeights</span><span class="p">(</span><span class="n">fwd_w_i</span><span class="p">,</span> <span class="n">fwd_w_f</span><span class="p">,</span> <span class="n">fwd_w_c</span><span class="p">,</span> <span class="n">fwd_w_o</span><span class="p">,</span>
+                           <span class="n">fwd_r_i</span><span class="p">,</span> <span class="n">fwd_r_f</span><span class="p">,</span> <span class="n">fwd_r_c</span><span class="p">,</span> <span class="n">fwd_r_o</span><span class="p">,</span>
+                           <span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">)</span>
+    <span class="n">bak_w</span> <span class="o">=</span> <span class="n">_StitchWeights</span><span class="p">(</span><span class="n">bak_w_i</span><span class="p">,</span> <span class="n">bak_w_f</span><span class="p">,</span> <span class="n">bak_w_c</span><span class="p">,</span> <span class="n">bak_w_o</span><span class="p">,</span>
+                           <span class="n">bak_r_i</span><span class="p">,</span> <span class="n">bak_r_f</span><span class="p">,</span> <span class="n">bak_r_c</span><span class="p">,</span> <span class="n">bak_r_o</span><span class="p">,</span>
+                           <span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">)</span>
+    <span class="n">fwd_b</span> <span class="o">=</span> <span class="n">_StitchBiases</span><span class="p">(</span><span class="n">fwd_b_wi</span><span class="p">,</span> <span class="n">fwd_b_wf</span><span class="p">,</span> <span class="n">fwd_b_wc</span><span class="p">,</span> <span class="n">fwd_b_wo</span><span class="p">,</span>
+                          <span class="n">fwd_b_ri</span><span class="p">,</span> <span class="n">fwd_b_rf</span><span class="p">,</span> <span class="n">fwd_b_rc</span><span class="p">,</span> <span class="n">fwd_b_ro</span><span class="p">)</span>
+    <span class="n">bak_b</span> <span class="o">=</span> <span class="n">_StitchBiases</span><span class="p">(</span><span class="n">bak_b_wi</span><span class="p">,</span> <span class="n">bak_b_wf</span><span class="p">,</span> <span class="n">bak_b_wc</span><span class="p">,</span> <span class="n">bak_b_wo</span><span class="p">,</span>
+                          <span class="n">bak_b_ri</span><span class="p">,</span> <span class="n">bak_b_rf</span><span class="p">,</span> <span class="n">bak_b_rc</span><span class="p">,</span> <span class="n">bak_b_ro</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">fwd_w</span><span class="p">,</span> <span class="n">bak_w</span><span class="p">),</span> <span class="p">(</span><span class="n">fwd_b</span><span class="p">,</span> <span class="n">bak_b</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CuDNNLSTMSaveable"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable">[docs]</a><span class="k">class</span> <span class="nc">CuDNNLSTMSaveable</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">cudnn_rnn</span><span class="o">.</span><span class="n">CudnnLSTMSaveable</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Lingvo CuDNN LSTM opaque params saveable.</span>
+
+<span class="sd">  Save CuDNN opaque params in lingvo canonical format such that the</span>
+<span class="sd">  checkpoints can be used by both CuDNN and platform-independent RNN cells.</span>
+
+<span class="sd">  CuDNN LSTM equation:</span>
+
+<span class="sd">      | i_t = σ(w_i * x_t + r_i * h_(t-1) + b_wi + b_ri)</span>
+<span class="sd">      | f_t = σ(w_f * x_t + r_f * h_(t-1) + b_wf + b_rf)</span>
+<span class="sd">      | o_t = σ(w_o * x_t + r_o h_(t-1) + b_wo + b_ro)</span>
+<span class="sd">      | c&#39;_t = tanh(w_c * x_t + r_c * h_(t-1) + b_wc + b_rc)</span>
+<span class="sd">      | c_t = f_t ◦ c_(t-1) + i_t ◦ c&#39;_t</span>
+<span class="sd">      | h_t = o_t ◦ tanh(c_t)</span>
+
+<span class="sd">  When saving, the opaque param is first transformed into a list of tensors</span>
+<span class="sd">  in CuDNN canonical format, then further processed to be in the format of</span>
+<span class="sd">  LSTMCellSimple vars.</span>
+
+<span class="sd">  When recovering from a CuDNN graph, the restored tensors go through the</span>
+<span class="sd">  reverse of the aforementioned process.</span>
+
+<span class="sd">  When recovering from graphs built with LSTMCellSimple, the tensors in the</span>
+<span class="sd">  checkpoints are ready to use, with the right shapes and names.</span>
+
+<span class="sd">  Specifically the tensors are saved in the following order:</span>
+
+<span class="sd">  .. code-block:: none</span>
+
+<span class="sd">      ------------------------------------------------------------</span>
+<span class="sd">      | weights                    | biases                      |</span>
+<span class="sd">      ------------------------------------------------------------</span>
+<span class="sd">       \                             \</span>
+<span class="sd">        -------------------------------</span>
+<span class="sd">        | layer1     |layer2     |... |</span>
+<span class="sd">        -------------------------------</span>
+<span class="sd">        \             \</span>
+<span class="sd">         ---------------</span>
+<span class="sd">         |fwd   |bak   |</span>
+<span class="sd">         ---------------</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">opaque_params</span><span class="p">,</span>
+               <span class="n">cell_nodes</span><span class="p">,</span>
+               <span class="n">input_nodes</span><span class="p">,</span>
+               <span class="n">rnn_cell_name</span><span class="p">,</span>
+               <span class="n">scope</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;params_canonical&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      opaque_params: opaque CuDNN params, a single tensor w/ no static shape.</span>
+<span class="sd">      cell_nodes: a int, num of nodes in a lstm cell.</span>
+<span class="sd">      input_nodes: a int, the num of nodes in input.</span>
+<span class="sd">      rnn_cell_name: the name of RNN cell in the CuDNNLSTM-ish layer. Configured</span>
+<span class="sd">        via LSTMCellSimple.Params().name.</span>
+<span class="sd">      scope: the variable scope of the layer variable. If not set, default to</span>
+<span class="sd">        current variable scope.</span>
+<span class="sd">      name: name of the saveable, should be unique in a graph.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_rnn_cell_name</span> <span class="o">=</span> <span class="n">rnn_cell_name</span>
+    <span class="n">scope</span> <span class="o">=</span> <span class="n">scope</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">CuDNNLSTMSaveable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="n">opaque_params</span><span class="o">=</span><span class="n">opaque_params</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">num_units</span><span class="o">=</span><span class="n">cell_nodes</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="o">=</span><span class="n">input_nodes</span><span class="p">,</span>
+        <span class="n">direction</span><span class="o">=</span><span class="n">UNI_RNN</span><span class="p">,</span>
+        <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CuDNNLSTMSaveable._TransformSingleLayerCanonical"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._TransformSingleLayerCanonical">[docs]</a>  <span class="k">def</span> <span class="nf">_TransformSingleLayerCanonical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cu_wts</span><span class="p">,</span> <span class="n">cu_bs</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">tf_wts</span><span class="p">,</span>
+                                     <span class="n">tf_wts_names</span><span class="p">,</span> <span class="n">tf_bs</span><span class="p">,</span> <span class="n">tf_bs_names</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Transform single layer Cudnn canonicals to tf canonicals.</span>
+
+<span class="sd">    The elements of cu_weights, cu_biases are laid out in the following order:</span>
+
+<span class="sd">    .. code-block:: none</span>
+
+<span class="sd">        -------------------------------------------------</span>
+<span class="sd">        | w_i | w_f | w_c | w_o | r_i | r_f | r_c | r_o |</span>
+<span class="sd">        -------------------------------------------------</span>
+<span class="sd">        ---------------------------------------------------------</span>
+<span class="sd">        | b_wi | b_wf | b_wc | b_wo | b_ri | b_rf | b_rc | b_ro |</span>
+<span class="sd">        ---------------------------------------------------------</span>
+
+<span class="sd">    The transformed canonicals are in the following format and order:</span>
+
+<span class="sd">    .. code-block:: none</span>
+
+<span class="sd">        -----------------------------</span>
+<span class="sd">        | w_c&#39; | w_i&#39; | w_f&#39; | w_o&#39; |</span>
+<span class="sd">        | r_c&#39; | r_i&#39; | r_f&#39; | r_o&#39; |</span>
+<span class="sd">        -----------------------------</span>
+<span class="sd">        ---------------------------------------------------------</span>
+<span class="sd">        | b_wc + b_rc | b_wi + b_ri | b_wf + b_rf | b_wo + b_ro |</span>
+<span class="sd">        ---------------------------------------------------------</span>
+
+<span class="sd">    The shapes of each element before transpose is reflected by</span>
+<span class="sd">    `CuDNNLSTMInitializer.{weight_shapes, biase_shapes}`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      cu_wts: a list of tensors, single layer weights.</span>
+<span class="sd">      cu_bs: a list of tensors, single layer biases.</span>
+<span class="sd">      prefix: the shared prefix of all tensor names.</span>
+<span class="sd">      tf_wts: a list where transformed weights are stored.</span>
+<span class="sd">      tf_wts_names: a list where names of transformed weights are stored.</span>
+<span class="sd">      tf_bs: a list where transformed biases are stored.</span>
+<span class="sd">      tf_bs_names: a list where names of transformed biases are stored.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="p">(</span><span class="n">w</span><span class="p">,)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cudnn_to_tf_weights</span><span class="p">(</span><span class="o">*</span><span class="n">cu_wts</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">b</span><span class="p">,)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cudnn_to_tf_biases</span><span class="p">(</span><span class="o">*</span><span class="n">cu_bs</span><span class="p">)</span>
+
+    <span class="n">tf_wts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+    <span class="n">tf_wts_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;/wm/var&#39;</span><span class="p">)</span>
+
+    <span class="n">tf_bs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">tf_bs_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;/b/var&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CuDNNLSTMSaveable._cudnn_to_tf_gate_params"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._cudnn_to_tf_gate_params">[docs]</a>  <span class="k">def</span> <span class="nf">_cudnn_to_tf_gate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">cu_gate_order</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Put CuDNN gate params to lingvo RNN cell order.&quot;&quot;&quot;</span>
+    <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">c_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">cu_gate_order</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">c_g</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="CuDNNLSTMSaveable._tf_to_cudnn_gate_params"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._tf_to_cudnn_gate_params">[docs]</a>  <span class="k">def</span> <span class="nf">_tf_to_cudnn_gate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">tf_gate_order</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Put lingvo RNN cell gate params to CuDNN order.&quot;&quot;&quot;</span>
+    <span class="n">c_g</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf_gate_order</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">c_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="CuDNNLSTMSaveable._TFCanonicalNamePrefix"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._TFCanonicalNamePrefix">[docs]</a>  <span class="k">def</span> <span class="nf">_TFCanonicalNamePrefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">unused_is_fwd</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The prefix of names under which lingvo canonical params are saved.&quot;&quot;&quot;</span>
+    <span class="c1"># Lingvo only uses single layer.</span>
+    <span class="k">assert</span> <span class="n">layer</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rnn_cell_name</span></div></div>
+
+
+<div class="viewcode-block" id="BidiCuDNNLSTMSaveable"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.BidiCuDNNLSTMSaveable">[docs]</a><span class="k">class</span> <span class="nc">BidiCuDNNLSTMSaveable</span><span class="p">(</span><span class="n">CuDNNLSTMSaveable</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Lingvo CuDNN LSTM opaque params saveable.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">opaque_params</span><span class="p">,</span>
+               <span class="n">cell_nodes</span><span class="p">,</span>
+               <span class="n">input_nodes</span><span class="p">,</span>
+               <span class="n">fw_cell_name</span><span class="p">,</span>
+               <span class="n">bw_cell_name</span><span class="p">,</span>
+               <span class="n">scope</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;params_canonical&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      opaque_params: opaque CuDNN params, a single tensor w/ no static shape.</span>
+<span class="sd">      cell_nodes: a int, num of nodes in a lstm cell.</span>
+<span class="sd">      input_nodes: a int, the num of nodes in input.</span>
+<span class="sd">      fw_cell_name:</span>
+<span class="sd">      bw_cell_name: the name of RNN cell in the BidiCuDNNLSTM-ish layer.</span>
+<span class="sd">        Configured via LSTMCellSimple.Params().name.</span>
+<span class="sd">      scope: the variable scope of the layer variable. If not set, default to</span>
+<span class="sd">        current variable scope.</span>
+<span class="sd">      name: name of the saveable, should be unique in a graph.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fw_cell_name</span> <span class="o">=</span> <span class="n">fw_cell_name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bw_cell_name</span> <span class="o">=</span> <span class="n">bw_cell_name</span>
+    <span class="n">scope</span> <span class="o">=</span> <span class="n">scope</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">CuDNNLSTMSaveable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+        <span class="n">opaque_params</span><span class="o">=</span><span class="n">opaque_params</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">num_units</span><span class="o">=</span><span class="n">cell_nodes</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="o">=</span><span class="n">input_nodes</span><span class="p">,</span>
+        <span class="n">direction</span><span class="o">=</span><span class="n">BI_RNN</span><span class="p">,</span>
+        <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BidiCuDNNLSTMSaveable._TFCanonicalNamePrefix"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.BidiCuDNNLSTMSaveable._TFCanonicalNamePrefix">[docs]</a>  <span class="k">def</span> <span class="nf">_TFCanonicalNamePrefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">is_fwd</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The prefix of names under which lingvo canonical params are saved.&quot;&quot;&quot;</span>
+    <span class="c1"># Lingvo only uses single layer.</span>
+    <span class="k">assert</span> <span class="n">layer</span> <span class="o">==</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fw_cell_name</span> <span class="k">if</span> <span class="n">is_fwd</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bw_cell_name</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'../../../',
+            VERSION:'',
+            LANGUAGE:'en',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="../../../_static/jquery.js"></script>
+      <script type="text/javascript" src="../../../_static/underscore.js"></script>
+      <script type="text/javascript" src="../../../_static/doctools.js"></script>
+      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
