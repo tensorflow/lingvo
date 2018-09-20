@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/framework/summary.proto.h"
+#include "tensorflow/core/framework/summary.pb.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/lib/io/buffered_inputstream.h"
@@ -22,7 +22,7 @@ limitations under the License.
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/env.h"
-#include "tensorflow/core/util/event.proto.h"
+#include "tensorflow/core/util/event.pb.h"
 
 namespace tensorflow {
 namespace lingvo {

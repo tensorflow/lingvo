@@ -18,7 +18,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = u'lingvo'
+project = u'Lingvo'
 copyright = u'2018'
 author = u''
 
@@ -97,7 +97,7 @@ html_theme = 'sphinx_rtd_theme'
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -138,14 +138,14 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'lingvo.tex', u'lingvo Documentation', u'', 'manual'),
+    (master_doc, 'lingvo.tex', u'Lingvo Documentation', u'', 'manual'),
 ]
 
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, 'lingvo', u'lingvo Documentation', [author], 1)]
+man_pages = [(master_doc, 'lingvo', u'Lingvo Documentation', [author], 1)]
 
 # -- Options for Texinfo output ----------------------------------------------
 
@@ -153,7 +153,7 @@ man_pages = [(master_doc, 'lingvo', u'lingvo Documentation', [author], 1)]
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'lingvo', u'lingvo Documentation', author, 'lingvo',
+    (master_doc, 'lingvo', u'Lingvo Documentation', author, 'Lingvo',
      'One line description of project.', 'Miscellaneous'),
 ]
 
@@ -183,3 +183,20 @@ epub_exclude_files = ['search.html']
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+
+from docutils.transforms import Transform
+
+
+class ResetFlags(Transform):
+
+  default_priority = 999
+
+  def apply(self):
+    import tensorflow as tf
+    for flag in list(tf.flags.FLAGS):
+      delattr(tf.flags.FLAGS, flag)
+
+
+def setup(app):
+  app.add_transform(ResetFlags)

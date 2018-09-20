@@ -303,14 +303,19 @@ class LSTMCellSimple(RNNCell):
         self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
 
       if p.num_hidden_nodes:
-        w_proj = wm_pc.Copy()
-        w_proj.shape = [self.hidden_size, self.output_size]
+        w_proj = py_utils.WeightParams(
+            shape=[self.hidden_size, self.output_size],
+            init=p.params_init,
+            dtype=p.dtype,
+            collections=self._VariableCollections())
         self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
 
       if p.enable_lstm_bias:
-        bias_pc = wm_pc.Copy()
-        bias_pc.shape = [self.num_gates * self.hidden_size]
-        bias_pc.init = py_utils.WeightInit.Constant(0.0)
+        bias_pc = py_utils.WeightParams(
+            shape=[self.num_gates * self.hidden_size],
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            collections=self._VariableCollections())
         self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
       # Collect some stats.
@@ -944,11 +949,11 @@ class LayerNormalizedLSTMCell(RNNCell):
       # well as various layer norm scale and bias variables. We pack multiple
       # variables into one so that we can still unroll this lstm using the FRNN
       # layer defined in layers.py.
-      bias_pc = wm_pc.Copy()
-      bias_pc.shape = [
-          4 * params.num_output_nodes + 4 * params.num_output_nodes
-      ]
-      bias_pc.init = py_utils.WeightInit.Constant(0.0)
+      bias_pc = py_utils.WeightParams(
+          shape=[4 * params.num_output_nodes + 4 * params.num_output_nodes],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=params.dtype,
+          collections=self._VariableCollections())
       self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
       if params.cc_schedule:
@@ -1227,9 +1232,11 @@ class ConvLSTMCell(RNNCell):
           collections=self._VariableCollections())
       self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
 
-      bias_pc = wm_pc.Copy()
-      bias_pc.shape = [4 * out_channels]
-      bias_pc.init = py_utils.WeightInit.Constant(0.0)
+      bias_pc = py_utils.WeightParams(
+          shape=[4 * out_channels],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=self._VariableCollections())
       self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
   def batch_size(self, inputs):
@@ -1347,9 +1354,11 @@ class SRUCell(RNNCell):
           collections=self._VariableCollections())
       self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
 
-      bias_pc = wm_pc.Copy()
-      bias_pc.shape = [4 * p.num_output_nodes]
-      bias_pc.init = py_utils.WeightInit.Constant(0.0)
+      bias_pc = py_utils.WeightParams(
+          shape=[4 * p.num_output_nodes],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=self._VariableCollections())
       self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
       # Collect some stats

@@ -212,6 +212,7 @@ class RnnLmNoEmbedding(BaseLanguageModel):
     p = self.params
     if not isinstance(p.rnns.cell_tpl, (list, tuple)):
       p.rnns.cell_tpl = [p.rnns.cell_tpl]
+    p.rnns.allow_implicit_capture = p.allow_implicit_capture
 
     cell_output_size = _RnnOutputSize(p.rnns)
     output_layer_size = cell_output_size + p.direct_features_dim

@@ -397,6 +397,7 @@ REGISTER_OP("StrToVocabTokens")
     .Attr("maxlen: int = 300")
     .Attr("vocab_filepath: string")
     .Attr("load_token_ids_from_vocab: bool = true")
+    .Attr("delimiter: string = ' '")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       auto batch_size = c->Dim(c->input(0), 0);
       int maxlen;
@@ -425,6 +426,7 @@ vocab_filepath: a string, filepath to the vocab file.
 load_token_ids_from_vocab: Whether token ids are present in vocab (i.e. vocab
     contains two colums, one for IDs and one for words).  If false, line numbers
     are used.
+delimiter: The delimiter to split the labels to tokens by.
 )doc");
 
 REGISTER_OP("IdToToken")
@@ -458,6 +460,77 @@ sequences: A vector of shape [batch]. The converted string sequence.
 ngram_vocab_filepath: filepath to the ngram vocab file.
 ngram_separator: separator to use when joining ngrams into string.
 )doc");
+
+REGISTER_OP("BpeWordsToIds")
+    .Input("labels: string")
+    .Output("token_ids: int32")
+    .Output("target_ids: int32")
+    .Output("paddings: float")
+    .Attr("append_eos: bool = true")
+    .Attr("maxlen: int = 300")
+    .Attr("sos_id: int = 1")
+    .Attr("eos_id: int = 2")
+    .Attr("tokenization_filepath: string")
+    .SetShapeFn([](shape_inference::InferenceContext* ctx) {
+      const auto batch_size = ctx->Dim(ctx->input(0), 0);
+      int maxlen;
+      TF_RETURN_IF_ERROR(ctx->GetAttr("maxlen", &maxlen));
+      ctx->set_output(0, ctx->Matrix(batch_size, maxlen));
+      ctx->set_output(1, ctx->Matrix(batch_size, maxlen));
+      ctx->set_output(2, ctx->Matrix(batch_size, maxlen));
+      return Status::OK();
+    })
+    .Doc(R"doc(
+A tokenizer to convert string to BPE ids.
+
+This op is especially convenient for mapping string text to a sequenec of word BPE
+ids. The `labels` strings are tokenized via BPE. This op is typically used in conjunction with BpeIdsToWords.
+As the vocabulary file it receives the mapping from each word to the series of BPE ids.
+An example of lines in the vocabulary file:
+...
+AARON 10005,16,29
+AARON'S 10005,16,3466
+AARONSON 10005,16,17,447
+...
+
+The output tensor `token_ids` is a sequence of integer ids with <s> prepended.
+The output tensor `target_ids` is a sequence of integer ids with </s> appended.
+
+labels: The batch of tf.String tensors. Expected shape is [batch_size].
+token_ids: The ids with <s>. The shape is [batch_size, maxlen].
+target_ids: The ids with </s>. The shape is [batch_size, maxlen].
+paddings: The paddings. The shape is [batch_size, maxlen].
+maxlen: Maximum length of token_ids/target_ids/paddings.
+tokenization_filepath: A path to a text file where each line is a word separated with space form a list of ids which are separated by ','.
+)doc");
+
+REGISTER_OP("BpeIdsToWords")
+    .Input("token_ids: int32")
+    .Input("seq_lengths: int32")
+    .Output("sequences: string")
+    .Attr("vocab_filepath: string")
+    .SetShapeFn([](shape_inference::InferenceContext* ctx) {
+      const auto batch_size = ctx->Dim(ctx->input(0), 0);
+      ctx->set_output(0, ctx->Vector(batch_size));
+      return Status::OK();
+    })
+    .Doc(R"doc(
+A tokenizer to map BPE ids to strings.
+
+This op is to map a sequence of integer ids to a string. The op is typically
+used in conjunction with BpeWordsToIds.
+
+The op will consume `seq_lengths` of tokens from `token_ids` and convert it to
+string `sequences`. A space character will be interested inbetween tokens. We do
+not filter any tokens (i.e., <s> and </s> are not treated specially).
+
+token_ids: The ids (can include paddings; length is determined by seq_lengths). The shape is [batch_size, maxlen].
+seq_lengths: The length of the ids. The shape is [batch_size].
+sequences: The string sequences. The shape is [batch_size].
+vocab_filepath: A path to a text file where each line is a BPE string token.
+)doc");
+
+
 
 REGISTER_OP("GenericInput")
     .Output("out: out_types")

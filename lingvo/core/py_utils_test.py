@@ -144,7 +144,7 @@ class PyUtilsTest(tf.test.TestCase):
       var2 = py_utils.CreateVariable('var1', pc)[0]
 
       # An exception should be thrown in this case.
-      pc.init.scale = 2.0
+      pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian(2.0))
       with self.assertRaises(AssertionError):
         py_utils.CreateVariable('var1', pc)
 
@@ -239,6 +239,13 @@ class PyUtilsTest(tf.test.TestCase):
 
       with self.assertRaisesRegexp(tf.errors.InvalidArgumentError, 'NaN'):
         sess.run(py_utils.CheckNumerics(z))
+
+  def testLog(self):
+    with self.session():
+      x = tf.constant([[1, 2], [3, 4]])
+      y = tf.constant([10] * 4)
+      x = py_utils.Log(x, 'testLog', x=x, y=y)
+      self.assertAllEqual(x.eval(), [[1, 2], [3, 4]])
 
   def testGetShape(self):
     a = tf.constant([1])
@@ -364,6 +371,43 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertEqual([_[0] for _ in var_grads.FlattenItems()], ['a'])
       self.assertEqual(var_grads.a[0].name, 'a:0')
 
+  def testSkipL2Regularization(self):
+    with self.session(use_gpu=False) as sess:
+      beta = tf.get_variable(
+          'beta',
+          initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
+      tf.add_to_collection(py_utils.SKIP_L2_REGULARIZATION, beta)
+      gamma = tf.get_variable(
+          'gamma',
+          initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
+      act = tf.constant(np.arange(10).reshape([1, 10]), tf.float32)
+      pred = act * gamma + beta
+      loss = tf.reduce_sum(pred)
+      vmap = py_utils.NestedMap(beta=beta, gamma=gamma)
+      var_grads = py_utils.ComputeGradients(loss, vmap)
+      self.assertEqual(sorted(var_grads.keys()), ['beta', 'gamma'])
+      l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithL2Loss(
+          var_grads, 0.1)
+
+      sess.run(tf.global_variables_initializer())
+      var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run(
+          [var_grads, l2_loss, var_grads_with_l2])
+      print('var_grads_vals = ', var_grads_vals)
+      print('var_grads_with_l2_vals = ', var_grads_with_l2_vals)
+      self.assertAllEqual(var_grads_vals.beta[0],
+                          var_grads_with_l2_vals.beta[0])
+      self.assertAllEqual(var_grads_vals.gamma[0],
+                          var_grads_with_l2_vals.gamma[0])
+      self.assertAllEqual(
+          l2_loss_val, 0.5 * 0.1 * np.sum(np.square(var_grads_vals.gamma[0])))
+
+      # With l2, gradients of be gamma are adjusted.
+      self.assertAllClose(
+          var_grads_with_l2_vals.gamma[1],
+          var_grads_vals.gamma[1] + 0.1 * var_grads_vals.gamma[0])
+      self.assertAllClose(var_grads_with_l2_vals.beta[1],
+                          var_grads_vals.beta[1])
+
   def testAdjustGradientsWithL2Loss(self):
     with self.session(use_gpu=False) as sess:
       emb = tf.get_variable(
@@ -408,6 +452,53 @@ class PyUtilsTest(tf.test.TestCase):
           0.1 * np.array([[1 / 3.], [1 / 2.], [1 / 3.], [1 / 3.], [1 / 2.]
                          ]) * var_grads_vals.emb[0][[2, 5, 2, 2, 5], :])
 
+  def testSplitAndConcat(self):
+    with self.session():
+      # Split a Tensor.
+      m3x4 = tf.constant(np.arange(12).reshape([3, 4]))
+      splits = py_utils.SplitRecursively(m3x4, 2)
+      self.assertEqual(2, len(splits))
+      for split in splits:
+        self.assertIsInstance(split, tf.Tensor)
+      self.assertAllClose([[0, 1], [4, 5], [8, 9]], splits[0].eval())
+      self.assertAllClose([[2, 3], [6, 7], [10, 11]], splits[1].eval())
+      concatenated = py_utils.ConcatRecursively(splits)
+      self.assertAllClose(m3x4.eval(), concatenated.eval())
+
+      # Split along axis 0.
+      splits = py_utils.SplitRecursively(m3x4, 3, axis=0)
+      self.assertEqual(3, len(splits))
+      concatenated = py_utils.ConcatRecursively(splits, axis=0)
+      self.assertAllClose(m3x4.eval(), concatenated.eval())
+      self.assertAllClose([[0, 1, 2, 3]], splits[0].eval())
+
+      # Split a list.
+      list_3 = [m3x4] * 3
+      splits = py_utils.SplitRecursively(list_3, 2)
+      for split in splits:
+        self.assertIsInstance(split, list)
+      for x in splits[0]:
+        self.assertAllClose([[0, 1], [4, 5], [8, 9]], x.eval())
+      for x in splits[1]:
+        self.assertAllClose([[2, 3], [6, 7], [10, 11]], x.eval())
+      concatenated = py_utils.ConcatRecursively(splits)
+      self.assertAllClose([x.eval() for x in list_3],
+                          [x.eval() for x in concatenated])
+
+      # Split a NestedMap.
+      map_ab = py_utils.NestedMap(a=m3x4, b=list_3)
+      splits = py_utils.SplitRecursively(map_ab, 2)
+      for split in splits:
+        self.assertIsInstance(split, py_utils.NestedMap)
+        self.assertIsInstance(split.a, tf.Tensor)
+        self.assertIsInstance(split.b, list)
+      for x in splits[0].b:
+        self.assertAllClose([[0, 1], [4, 5], [8, 9]], x.eval())
+      concatenated = py_utils.ConcatRecursively(splits)
+      self.assertAllClose(map_ab.a.eval(), concatenated.a.eval())
+      self.assertAllClose([x.eval() for x in map_ab.b],
+                          [x.eval() for x in concatenated.b])
+
   def testFindNeeded(self):
     phs = [
         tf.placeholder('float32', shape=(), name='p%d' % (i + 1,))
@@ -447,6 +538,21 @@ class PyUtilsTest(tf.test.TestCase):
         assert py_utils.GetModelSplit() == 3
     assert py_utils.GetModelSplit() == 0
 
+  def testArgMax(self):
+
+    def Compute(x):
+      with self.session(graph=tf.Graph()) as sess:
+        x = tf.constant(x)
+        y = py_utils.ArgMax(x)
+        return sess.run([x, y])
+
+    np.random.seed(426421)
+    x, y = Compute(np.random.uniform(size=(3, 5, 10)))
+    self.assertAllEqual(np.argmax(x, axis=-1), y)
+
+    x, y = Compute(np.array([[1, 5, 3, 4, 5], [1, 5, 3, 5, 0]]))  # Has dups.
+    self.assertAllEqual(np.argmax(x, axis=-1), y)
+
   def testPiecewiseConstant(self):
     boundaries = (1000, 2000, 3000)
     values = (1e-3, 2e-4, 3e-5, 4e-6)
@@ -463,6 +569,29 @@ class PyUtilsTest(tf.test.TestCase):
     self.assertAlmostEqual(2e-4, _Eval(2000))
     self.assertAlmostEqual(3e-5, _Eval(3000))
     self.assertAlmostEqual(4e-6, _Eval(4000))
+
+  def testRepeatDim(self):
+    # Create a tensor shaped [time (2), batch(2), depth(3)]
+    x = tf.constant([[[1, 2, 3], [4, 5, 6]], [[7, 8, 9], [10, 11, 12]]])
+    # [batch, time, depth]
+    y = tf.transpose(x, [1, 0, 2])
+    # [depth, batch, time]
+    z = tf.transpose(x, [2, 1, 0])
+    repeat_inner_dim0 = py_utils.RepeatDim(x, 2, 0)
+    repeat_inner_dim1 = py_utils.RepeatDim(y, 2, 1)
+    repeat_inner_dim2 = py_utils.RepeatDim(z, 2, 2)
+
+    with self.session(use_gpu=False) as sess:
+      [repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2] = sess.run(
+          [repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2])
+      self.assertAllEqual(
+          repeat_inner_dim0,
+          [[[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]],
+           [[7, 8, 9], [10, 11, 12]], [[7, 8, 9], [10, 11, 12]]])
+      repeat_inner_dim = np.transpose(repeat_inner_dim0, [1, 0, 2])
+      self.assertAllEqual(repeat_inner_dim1, repeat_inner_dim)
+      repeat_inner_dim = np.transpose(repeat_inner_dim0, [2, 1, 0])
+      self.assertAllEqual(repeat_inner_dim2, repeat_inner_dim)
 
   def testStackTensorsRecursively(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
@@ -481,6 +610,25 @@ class PyUtilsTest(tf.test.TestCase):
       tf.global_variables_initializer().run()
       self.assertAllEqual(stacked.x, tf.constant([[1, 2], [3, 4]]))
       self.assertAllEqual(stacked.z.a, tf.constant([[1, 2], [10, 20]]))
+
+
+class DeterministicDropoutTest(tf.test.TestCase):
+
+  def testDeterministicDropoutTest(self):
+    x = tf.ones([4, 6], dtype=tf.float32)
+    x = py_utils.DeterministicDropout(x, keep_prob=0.7, seeds=[1234, 5678])
+    with self.session() as sess:
+      x_val = sess.run(x)
+      # pyformat: disable
+      self.assertAllClose(
+          [[1.0 / 0.7, 0.0000000, 0.0000000, 0.0000000, 1.0 / 0.7, 1.0 / 0.7],
+           [1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7],
+           [1.0 / 0.7, 0.0000000, 0.0000000, 1.0 / 0.7, 1.0 / 0.7, 0.0000000],
+           [1.0 / 0.7, 0.0000000, 0.0000000, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7]],
+          x_val)
+      # pyformat: enable
+      self.assertAllClose(22.85714, np.sum(x_val))
+      self.assertEqual(x_val.dtype, np.float32)
 
 
 class WeightedAvgTest(tf.test.TestCase):
@@ -758,6 +906,53 @@ class ReadOnlyAttrDictViewTest(tf.test.TestCase):
     self.assertEquals(1, view['test'])
 
 
+class PadSequenceDimensionTest(tf.test.TestCase):
+
+  def testPadSequenceDimension_2D(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      x = tf.random_normal(shape=(3, 3), seed=123456)
+      length = 6
+      padded_x = py_utils.PadSequenceDimension(x, length, 0)
+      real_x = sess.run(padded_x)
+      # pyformat: disable
+      expected_x = [[0.38615, 2.975221, -0.852826, 0., 0., 0.],
+                    [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
+                    [0.255314, -0.985647, 1.461641, 0., 0., 0.]]
+      # pyformat: enable
+      self.assertAllClose(expected_x, real_x)
+
+  def testPadSequenceDimension_ShortPaddingLength(self):
+    x = tf.random_normal(shape=(3, 8), seed=123456)
+    length = 6
+    with self.assertRaisesRegexp(ValueError, 'Paddings must be non-negative'):
+      py_utils.PadSequenceDimension(x, length, 0)
+
+  def testPadSequenceDimension_4D(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      x = tf.random_normal(shape=(2, 2, 2, 2), seed=123456)
+      length = 4
+      padded_x = py_utils.PadSequenceDimension(x, length, 1)
+      real_x = sess.run(padded_x)
+      # pyformat: disable
+      expected_x = [[[[0.38614973, 2.97522092], [-0.85282576, -0.57114178]],
+                     [[-0.43243945, 0.41315758], [0.2553139, -0.98564667]],
+                     [[1., 1.], [1., 1.]],
+                     [[1., 1.], [1., 1.]]],
+                    [[[1.46164131, 0.12003655], [-0.0986772, 0.60644895]],
+                     [[0.03092973, -0.96897006], [-1.27853918, -0.44018385]],
+                     [[1., 1.], [1., 1.]],
+                     [[1., 1.], [1., 1.]]]]
+      # pyformat: enable
+      self.assertAllClose(expected_x, real_x)
+
+  def testPadSequenceDimension_UnmatchedShape(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      x = tf.random_normal(shape=(2, 2, 2, 2), seed=123456)
+      length = 4
+      self.assertRaises(ValueError, py_utils.PadSequenceDimension, x, length, 0,
+                        (32, 3, 4, 5))
+
+
 class ApplyPaddingTest(tf.test.TestCase):
 
   def testApplyPaddingToZeroWithBroadcast(self):
@@ -778,6 +973,26 @@ class ApplyPaddingTest(tf.test.TestCase):
       y = py_utils.ApplyPadding([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]],
                                 [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]).eval()
       self.assertAllClose(y, [[1.0, 2.0], [0.0, 4.0], [5.0, 0.0]])
+
+
+class RetryTest(tf.test.TestCase):
+
+  def testRetry(self):
+    max_retries = 20
+
+    @py_utils.Retry(max_retries=max_retries)
+    def Foo(state):
+      tf.logging.error('foo retried %s', state)
+      state['count'] += 1
+      raise ValueError('test')
+
+    try:
+      state = {'count': 0, 'msg': 'test'}
+      Foo(state)
+    except Exception as e:  # pylint: disable=broad-except
+      tf.logging.error('%s', e)
+
+    self.assertEqual(1 + max_retries, state['count'])
 
 
 class MixByWeightTest(tf.test.TestCase):

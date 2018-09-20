@@ -12,6 +12,14 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "bpe_word_tokenizer",
+    srcs = ["bpe_word_tokenizer.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+    ],
+)
+
 py_library(
     name = "wpm_encoder",
     srcs = ["wpm_encoder.py"],

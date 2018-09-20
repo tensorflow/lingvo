@@ -1,4 +1,4 @@
-package(default_visibility = ["//lingvo/tasks/lm:__pkg__"])
+package(default_visibility = ["//lingvo/tasks:__subpackages__"])
 
 licenses(["notice"])  # Apache 2.0
 

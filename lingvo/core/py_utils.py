@@ -22,11 +22,12 @@ import contextlib
 import hashlib
 import math
 import re
-import six
 import traceback
+
+import numpy as np
+import six
 from six.moves import range
 from six.moves import zip
-
 import tensorflow as tf
 
 from tensorflow.contrib.model_pruning.python.layers import core_layers as pruning_layers
@@ -163,6 +164,47 @@ def with_dependencies(dependencies, output_tensor):
     return tf.identity(output_tensor)
 
 
+@contextlib.contextmanager
+def _PrintOptions(*args, **kwargs):
+  original = np.get_printoptions()
+  np.set_printoptions(*args, **kwargs)
+  yield
+  np.set_printoptions(**original)
+
+
+def _Print(name, x):
+  with _PrintOptions(linewidth=1000):
+    tf.logging.info('%s = %s', name, np.array_repr(x))
+
+
+def Log(value, prefix, **kwargs):
+  """Prints out values of tensors.
+
+  Useful for debugging. E.g.,
+    x = ... a tf.Tensor ...
+    y = ... a tf.Tensor ...
+    z = compute(x, y)
+    z = Log(z, 'debug compute()', x=x, y=y)
+
+  Args:
+    value: A Tensor. Log happens after this tensor's computed.
+    prefix: Every tensor is logged with this prefix.
+    **kwargs: keywords and tensors. Tensors are logged in the sort order of
+      these keywards.
+
+  Returns:
+    value is returned.
+  """
+
+  # Ensures tensors are printed in order.
+  last = value
+  for k in sorted(kwargs):
+    with tf.control_dependencies([last]):
+      last = tf.py_func(_Print, [prefix + ' : ' + k, kwargs[k]], [])
+  with tf.control_dependencies([last]):
+    return tf.identity(value)
+
+
 def HasRank(tensor, expected_rank):
   """Syntactic sugar for asserting that tensor has the expected rank."""
   if tensor.shape.ndims is not None and isinstance(expected_rank, int):
@@ -245,7 +287,9 @@ _tpu_device_assignment = None
 
 def SetTpuDeviceAssignment(tpu_device_assignment):
   global _tpu_device_assignment
-  assert _tpu_device_assignment is None
+  if _tpu_device_assignment is not None:
+    tf.logging.warning('tpu_device_assignment was already set, '
+                       'overwriting with new assignment.')
   _tpu_device_assignment = tpu_device_assignment
 
 
@@ -314,7 +358,7 @@ class NestedMap(dict):
           '%s; available attributes: %s' % (e, self.__dict__.keys()))
 
   def copy(self):  # Don't delegate w/ super: dict.copy() -> dict.
-    return type(self)(self)
+    return NestedMap(self)
 
   def DeepCopy(self):
     flat_v = self.Flatten()
@@ -556,6 +600,7 @@ class WeightInit(object):
     p.Define('method', method, 'Initialization method.')
     p.Define('scale', scale, 'Initialization scale.')
     p.Define('seed', seed, 'Random seed used to generate initial values.')
+    p.Freeze()
     return p
 
   @staticmethod
@@ -632,6 +677,7 @@ def WeightParams(shape, init=None, dtype=None, collections=None):
   p.Define('init', init, 'Initialization method.')
   p.Define('collections', collections,
            'Variable collections this weight belongs to.')
+  p.Freeze()
   return p
 
 
@@ -901,7 +947,8 @@ def CreateVariable(name,
     assert cached == p, ('Cached config:\n %s vs new config:\n %s' %
                          (cached.ToText(), p.ToText()))
   else:
-    tf.logging.info('Creating var %s and device %s', var.name, var.device)
+    tf.logging.info('Creating var %s shape=%s on device %s', var.name,
+                    var.shape, var.device)
     all_vars[var] = p.Copy()
     for col in p.collections:
       tf.add_to_collection(col, var)
@@ -1211,6 +1258,9 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
   return vs_gs_scale.Transform(Scale)
 
 
+SKIP_L2_REGULARIZATION = '__lingvo_skip_l2_regularization'
+
+
 def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
   """Adjusts the map of (var, grad) with L2 regularization.
 
@@ -1236,7 +1286,9 @@ def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
       return var
 
   l2_loss = 0.5 * l2_regularizer_weight * SumSquared(
-      var_grads.Transform(GetVar).Flatten())
+      var_grads.Filter(
+          lambda v_g: v_g[0] not in tf.get_collection(SKIP_L2_REGULARIZATION))
+      .Transform(GetVar).Flatten())
 
   def L2Grad(item):
     """Adjusts item's grad w/ L2 loss term."""
@@ -1267,7 +1319,7 @@ def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
         weights = tf.expand_dims(weights, -1)  # [#ids, 1]
         delta = l2_regularizer_weight * weights * values
         grad = tf.IndexedSlices(grad.values + delta, ids)
-    else:
+    elif var not in tf.get_collection(SKIP_L2_REGULARIZATION):
       with tf.device(var.device):
         delta = l2_regularizer_weight * var
       with tf.device(grad.device):
@@ -1931,6 +1983,27 @@ def PadOrTrimTo(x, shape):
   x = tf.pad(x, tf.stack([zeros, pad], axis=1))
   # If dim-i is larger than shape[i], we slice [0:shape[i]] for dim-i.
   return tf.reshape(tf.slice(x, zeros, shape), shape)
+
+
+def RepeatDim(tensor, multiple, axis):
+  """Copies elements in tensor's axis "multiple" times, like np.repeat."""
+  # x = [[1, 2, 3], [4, 5, 6]]
+  # RepeatDim(x, 1) gives:
+  # [[1, 1, 2, 2, 3, 3]. [4, 4, 5, 5, 6, 6]]
+  # As a comparison tf.tile(x, 1) gives:\
+  # [[1, 2, 3, 1, 2, 3], [4, 5, 6, 4, 5, 6]]
+
+  if multiple == 1:
+    return tensor
+  t_shape = tf.shape(tensor)
+  tensor_dims = tf.concat(
+      [t_shape[:axis], [t_shape[axis] * multiple], t_shape[axis + 1:]], 0)
+  multiple_dims = tf.concat([
+      tf.fill([axis + 1], 1), [multiple],
+      tf.fill([tf.rank(tensor) - axis - 1], 1)
+  ], 0)
+  return tf.reshape(
+      tf.tile(tf.expand_dims(tensor, axis + 1), multiple_dims), tensor_dims)
 
 
 def StackTensorsRecursively(values):

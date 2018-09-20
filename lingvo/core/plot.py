@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-import cStringIO
 import functools
 import traceback
 
@@ -28,6 +27,7 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import six
+from six.moves import cStringIO
 from six.moves import range
 import tensorflow as tf
 

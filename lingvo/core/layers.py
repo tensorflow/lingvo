@@ -122,7 +122,12 @@ class BatchNormLayer(base_layer.LayerBase):
       # Two statistics.
       _, self._moving_mean = py_utils.CreateVariable(
           'moving_mean', pc, trainable=False)
-      pc.init.scale = 1.0
+
+      pc = py_utils.WeightParams(
+          shape=[p.dim],
+          init=py_utils.WeightInit.Constant(1.0),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
       _, self._moving_variance = py_utils.CreateVariable(
           'moving_variance', pc, trainable=False)
     self._epsilon = 0.001
@@ -1215,7 +1220,8 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     p.Define(
         'logits_abs_max', None, 'If not None, logits are clipped to be within'
         ' [-logits_abs_max, logits_abs_max]. This can be a scalar'
-        ' or a scalar tensor.')
+        ' or a scalar tensor. Applies back pressure at training time; ignored'
+        ' for inference.')
     p.Define(
         'chunk_size', 0, 'If non-zero, computes the per example '
         'xent by small chunks along the batch dimension.')
@@ -1361,9 +1367,11 @@ class SimpleFullSoftmax(SoftmaxLayer):
       for i in range(p.num_shards):
         self.CreateVariable('weight_%d' % i, pc, self.AddGlobalVN)
 
-      pc.shape = [num_classes_per_shard]
-      pc.init.method = 'constant'
-      pc.init.scale = 0.0
+      pc = py_utils.WeightParams(
+          shape=[num_classes_per_shard],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
       for i in range(p.num_shards):
         self.CreateVariable('bias_%d' % i, pc, self.AddGlobalVN)
 
@@ -1403,9 +1411,11 @@ class SimpleFullSoftmax(SoftmaxLayer):
         bias)
 
     # Clip logits by range.
-    # Note that this is generally not used in conjunction with quantization.
+    # Note that this is generally not used in conjunction with quantization and
+    # shouldn't be needed at inference time as the quantized matmul above will
+    # take care of clipping naturally based on the data type and qparams.
     abs_max = p.logits_abs_max
-    if abs_max is not None:
+    if abs_max is not None and not p.is_inference:
       abs_min = -abs_max  # pylint: disable=invalid-unary-operand-type
       logits = tf.clip_by_value(logits, abs_min, abs_max)
 

@@ -421,14 +421,18 @@ py_test(
 py_library(
     name = "plot",
     srcs = ["plot.py"],
-    srcs_version = "PY2ONLY",  # b/111617518
     deps = [
-        # Implicit Tkinter dependency.
         # Implicit matplotlib dependency.
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-    ],
+    ] + select({
+        "//lingvo:py3_mode": [],
+        "//conditions:default": [
+            # b/111617518
+            # Implicit Tkinter dependency.
+        ],
+    }),
 )
 
 py_test(
@@ -446,6 +450,7 @@ py_library(
     deps = [
         ":hyperparams",
         ":retry",
+        # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
         # Implicit tensorflow py proto dependency.
@@ -468,6 +473,7 @@ py_test(
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
+        # Implicit tensorflow python framework_for_generated_wrappers dependency.
         "//lingvo:model_registry",
         "//lingvo/tasks/image/params:mnist",
     ],

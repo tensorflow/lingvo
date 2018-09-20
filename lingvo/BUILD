@@ -11,6 +11,11 @@ config_setting(
     values = {"define": "using_cuda=true"},
 )
 
+config_setting(
+    name = "py3_mode",
+    values = {"force_python": "PY3"},
+)
+
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_py_binary",

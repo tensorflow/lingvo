@@ -599,7 +599,6 @@ class BaseTask(base_layer.LayerBase):
     """
     if name in self._eval_metrics:
       raise ValueError('Metric %s has already been defined.' % name)
-    summary_utils.scalar(self.params, name, value)
     self._eval_metrics[name] = (value, weight)
 
   @property

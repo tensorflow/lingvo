@@ -35,13 +35,6 @@ from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import test_utils
 
-FLAGS = tf.flags.FLAGS
-
-# pylint: disable=invalid-name
-ComputeNumericGradient = test_utils.ComputeNumericGradient
-# pylint: enable=invalid-name
-assert_shape_match = py_utils.assert_shape_match
-
 
 class TimestepAccumulator(base_layer.Accumulator):
   """Simple accumulator for counting timesteps."""
@@ -166,8 +159,9 @@ class LayersTestBase(tf.test.TestCase):
       sym_grads = [test_utils.PickEveryN(_, grad_step) for _ in sym_grads]
       num_grads = [
           test_utils.PickEveryN(
-              ComputeNumericGradient(sess, loss, v, delta=1e-4, step=grad_step),
-              grad_step) for v in xs
+              test_utils.ComputeNumericGradient(
+                  sess, loss, v, delta=1e-4, step=grad_step), grad_step)
+          for v in xs
       ]
       for (sym, num) in zip(sym_grads, num_grads):
         self.assertFalse(np.any(np.isnan(sym)))
@@ -377,7 +371,8 @@ class LayersTest(LayersTestBase):
         symbolic_grads = [gd.eval() for gd in grads]
         numerical_grads = []
         for v in all_vars:
-          numerical_grads.append(ComputeNumericGradient(sess, loss, v))
+          numerical_grads.append(
+              test_utils.ComputeNumericGradient(sess, loss, v))
         for x, y in zip(symbolic_grads, numerical_grads):
           self.assertAllClose(x, y)
 
@@ -430,7 +425,7 @@ class LayersTest(LayersTestBase):
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
       for v in all_vars:
-        numerical_grads.append(ComputeNumericGradient(sess, loss, v))
+        numerical_grads.append(test_utils.ComputeNumericGradient(sess, loss, v))
       for x, y in zip(symbolic_grads, numerical_grads):
         self.assertAllClose(x, y)
 
@@ -672,7 +667,7 @@ class LayersTest(LayersTestBase):
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
       for v in all_vars:
-        numerical_grads.append(ComputeNumericGradient(sess, loss, v))
+        numerical_grads.append(test_utils.ComputeNumericGradient(sess, loss, v))
       for x, y in zip(symbolic_grads, numerical_grads):
         self.assertAllClose(x, y, rtol=0.1, atol=0.1)
 
@@ -715,7 +710,7 @@ class LayersTest(LayersTestBase):
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
       for v in all_vars:
-        numerical_grads.append(ComputeNumericGradient(sess, loss, v))
+        numerical_grads.append(test_utils.ComputeNumericGradient(sess, loss, v))
       for x, y in zip(symbolic_grads, numerical_grads):
         self.assertAllClose(x, y, rtol=0.1, atol=0.1)
 
@@ -760,7 +755,7 @@ class LayersTest(LayersTestBase):
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
       for v in all_vars:
-        numerical_grads.append(ComputeNumericGradient(sess, loss, v))
+        numerical_grads.append(test_utils.ComputeNumericGradient(sess, loss, v))
       for x, y in zip(symbolic_grads, numerical_grads):
         self.assertAllClose(x, y, rtol=0.00001, atol=0.00001)
 
@@ -865,8 +860,9 @@ class LayersTest(LayersTestBase):
       sym_grads = [test_utils.PickEveryN(_, grad_step) for _ in sym_grads]
       num_grads = [
           test_utils.PickEveryN(
-              ComputeNumericGradient(sess, loss, v, delta=1e-4, step=grad_step),
-              grad_step) for v in [b, w, inputs]
+              test_utils.ComputeNumericGradient(
+                  sess, loss, v, delta=1e-4, step=grad_step), grad_step)
+          for v in [b, w, inputs]
       ]
       for (sym, num) in zip(sym_grads, num_grads):
         self.assertFalse(np.any(np.isnan(sym)))
@@ -1015,8 +1011,9 @@ class LayersTest(LayersTestBase):
       sym_grads = [test_utils.PickEveryN(_, grad_step) for _ in sym_grads]
       num_grads = [
           test_utils.PickEveryN(
-              ComputeNumericGradient(sess, loss, v, delta=1e-4, step=grad_step),
-              grad_step) for v in [w0, b0, w1, b1, inputs]
+              test_utils.ComputeNumericGradient(
+                  sess, loss, v, delta=1e-4, step=grad_step), grad_step)
+          for v in [w0, b0, w1, b1, inputs]
       ]
       for (sym, num) in zip(sym_grads, num_grads):
         self.assertFalse(np.any(np.isnan(sym)))
@@ -1260,7 +1257,8 @@ class LayersTest(LayersTestBase):
       tf.global_variables_initializer().run()
       sym_grads = sess.run(grads)
       num_grads = [
-          ComputeNumericGradient(sess, loss, v, delta=1e-5) for v in parameters
+          test_utils.ComputeNumericGradient(sess, loss, v, delta=1e-5)
+          for v in parameters
       ]
       for i, (sym, num) in enumerate(zip(sym_grads, num_grads)):
         print([
@@ -1317,7 +1315,8 @@ class LayersTest(LayersTestBase):
       tf.global_variables_initializer().run()
       sym_grads = sess.run(grads)
       num_grads = [
-          ComputeNumericGradient(sess, loss, v, delta=1e-5) for v in parameters
+          test_utils.ComputeNumericGradient(sess, loss, v, delta=1e-5)
+          for v in parameters
       ]
       for i, (sym, num) in enumerate(zip(sym_grads, num_grads)):
         print([
@@ -1379,7 +1378,8 @@ class LayersTest(LayersTestBase):
       tf.global_variables_initializer().run()
       sym_grads = sess.run(grads)
       num_grads = [
-          ComputeNumericGradient(sess, loss, v, delta=1e-5) for v in parameters
+          test_utils.ComputeNumericGradient(sess, loss, v, delta=1e-5)
+          for v in parameters
       ]
       for i, (sym, num) in enumerate(zip(sym_grads, num_grads)):
         print([
