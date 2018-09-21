@@ -68,8 +68,8 @@ def _MakeFloatFeature(value):
 def _MakeTfExample(uttid, frames, text):
   flat_frames = frames.flatten()
   feature = {
-      'uttid': _MakeBytesFeature(uttid),
-      'transcript': _MakeBytesFeature(text),
+      'uttid': _MakeBytesFeature([uttid]),
+      'transcript': _MakeBytesFeature([text]),
       'frames': _MakeFloatFeature(flat_frames)
   }
   return tf.train.Example(features=tf.train.Features(feature=feature))
