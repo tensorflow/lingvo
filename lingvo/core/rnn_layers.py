@@ -49,25 +49,6 @@ def _AssertCellParamsCuDNNCompatible(p_cell):
     assert p_cell.zo_prob == 0.0
 
 
-def _ReversePaddedSequence(inputs, paddings):
-  r"""Reverse inputs based on paddings.
-
-  Only reverse the unpadded portion of \'inputs\'. It assumes inputs are only
-  padded in the end.
-
-  Args:
-    inputs: a tensor of [seq_length, batch_size, num_input_nodes].
-    paddings: a tensor of float32/float64 zero or one of shape
-      [seq_length, batch_size, 1].
-  Returns:
-    A reversed tensor of the same shape as \'inputs\'.
-  """
-  inversed_paddings = 1.0 - tf.squeeze(paddings, 2)
-  inputs_length = tf.cast(
-      tf.rint(tf.reduce_sum(inversed_paddings, axis=0)), dtype=tf.int32)
-  return tf.reverse_sequence(inputs, inputs_length, seq_axis=0, batch_axis=1)
-
-
 def _GeneratePackedInputResetMask(segment_id, is_reverse=False):
   """Generates mask inputs for RNN cells from segment_id.
 
@@ -711,7 +692,7 @@ class CuDNNLSTM(base_layer.LayerBase):
       state0 = self.zero_state(tf.shape(paddings)[batch_dim])
     state_h, state_c = state0.m, state0.c
     if p.reverse:
-      inputs = _ReversePaddedSequence(inputs, paddings)
+      inputs = py_utils.ReversePaddedSequence(inputs, paddings)
     output, output_h, output_c = cudnn_rnn_ops.cudnn_lstm(
         inputs=inputs,
         input_h=state_h,
@@ -723,7 +704,7 @@ class CuDNNLSTM(base_layer.LayerBase):
         dropout=0.0)
 
     if p.reverse:
-      output = _ReversePaddedSequence(output, paddings)
+      output = py_utils.ReversePaddedSequence(output, paddings)
     return output, py_utils.NestedMap(m=output_h, c=output_c)
 
 

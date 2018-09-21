@@ -975,6 +975,27 @@ class ApplyPaddingTest(tf.test.TestCase):
       self.assertAllClose(y, [[1.0, 2.0], [0.0, 4.0], [5.0, 0.0]])
 
 
+class ReversePaddedSequenceTest(tf.test.TestCase):
+
+  def testReversePaddedSequence(self):
+    with self.session(use_gpu=False):
+      # inputs is [seq_length, batch_size, input_dim] = [4, 3, 2]
+      # The length of each batch is [2, 3, 4]
+      inputs = tf.constant(
+          [[[1, 2], [3, 4], [5, 6]], [[11, 12], [13, 14], [15, 16]],
+           [[0, 0], [23, 24], [25, 26]], [[0, 0], [0, 0], [35, 36]]],
+          dtype=tf.float32)
+      paddings = tf.constant(
+          [[[0], [0], [0]], [[0], [0], [0]], [[1], [0], [0]], [[1], [1], [0]]],
+          dtype=tf.float32)
+      actual_output = py_utils.ReversePaddedSequence(inputs, paddings).eval()
+      expected_output = np.array([[[11, 12], [23, 24], [35, 36]],
+                                  [[1, 2], [13, 14], [25, 26]],
+                                  [[0, 0], [3, 4], [15, 16]],
+                                  [[0, 0], [0, 0], [5, 6]]]).astype('float32')
+      self.assertAllClose(expected_output, actual_output)
+
+
 class RetryTest(tf.test.TestCase):
 
   def testRetry(self):

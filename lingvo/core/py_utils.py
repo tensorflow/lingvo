@@ -1950,6 +1950,26 @@ def ApplyPadding(padding, x, padded=None, broadcast=True):
   return tf.where(padding > 0.0, padded, x)
 
 
+def ReversePaddedSequence(inputs, paddings):
+  """Reverse inputs based on paddings.
+
+  Only reverse the unpadded portion of `inputs`. It assumes inputs are only
+  padded in the end.
+
+  Args:
+    inputs: a tensor of [seq_length, batch_size, num_input_nodes].
+    paddings: a tensor of float32/float64 zero or one of shape [seq_length,
+      batch_size, 1].
+
+  Returns:
+    A reversed tensor of the same shape as `inputs`.
+  """
+  inversed_paddings = 1.0 - tf.squeeze(paddings, 2)
+  inputs_length = tf.cast(
+      tf.rint(tf.reduce_sum(inversed_paddings, axis=0)), dtype=tf.int32)
+  return tf.reverse_sequence(inputs, inputs_length, seq_axis=0, batch_axis=1)
+
+
 def Retry(max_retries=None, retry_value=Exception):
   return retry.Retry(max_retries, retry_value)
 
