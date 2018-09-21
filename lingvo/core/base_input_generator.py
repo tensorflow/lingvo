@@ -147,7 +147,7 @@ class BaseInputGenerator(base_layer.LayerBase):
               if device_assignment:
                 # We put both enqueue/dequeue ops at core 0 in each replica.
                 replica = device_assignment.lookup_replicas(
-                    task_id, (0, 0, 0))[shard_index_in_host]  # pylint: disable=cell-var-from-loop
+                    task_id, 0)[shard_index_in_host]  # pylint: disable=cell-var-from-loop
                 return device_assignment.tpu_ordinal(replica=replica)
               else:
                 return shard_index_in_host
