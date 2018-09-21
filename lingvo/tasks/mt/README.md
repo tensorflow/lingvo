@@ -1,4 +1,74 @@
-# Machine translation task
+# Local machine translation quick start
+
+To build a local translation model, we provide the tools to run a WMT16
+Multimodal EN-DE experiment. This dataset consists of translated image captions
+(we are ignoring the associated images). The vocabulary is limited and sentences
+are short, meaning you can build a working system quickly, using only CPUs.
+
+## Download and prepare the data
+
+We provide scripts to download the data. The script requires such tools
+as `git`, `perl`, `wget`, and standard bash utilities to run properly.
+
+First, build the wordpiece model encoding tool:
+
+```python
+bazel build -c opt //lingvo/tools:wpm_encode_file
+```
+
+Then, run the data ingestion scripts:
+
+```shell
+bash lingvo/tasks/mt/tools/wmtm16_get_data.sh
+```
+
+The master script above calls scripts for individual steps.
+If any step fails, it can be re-run by hand. Similar steps are described in
+individual detail under the Full Machine translation task below.
+The entire process should complete in fewer than 10 minutes.
+
+In total, `250MB` of free space are required. The location is
+configured in `lingvo/tasks/mt/tools/wmtm16_lib.sh`,
+defaulting to `/tmp/wmtm16`. The final output is in `/tmp/wmtm16/wpm`, stored in
+`tfrecord` format, which is described in detail under the Full Machine
+translation task.
+
+## Training a toy system
+
+MT training is most naturally run on a cluster with many parallel processes,
+but for this small task, we can run locally, taking advantage of multiple CPUs
+on a reasonable development machine. First, build the training executable:
+
+```shell
+bazel build -c opt //lingvo:trainer
+```
+
+Then launch:
+
+```shell
+mkdir /tmp/wmtm16/log
+
+bazel-bin/lingvo/trainer \
+  --run_locally=cpu \
+  --mode=sync \
+  --job=controller,trainer_client,evaler_Dev,decoder_Dev \
+  --model=mt.wmtm16_en_de.WmtCaptionEnDeTransformer \
+  --logdir=/tmp/wmtm16/log \
+  --saver_max_to_keep=3 \
+  --logtostderr >& /tmp/wmtm16/log/log.txt
+```
+
+This will create four workers running in parallel under a single process.
+In particular, an evaler and decoder will run alongside the
+trainer, picking up the latest saved checkpoint and evaluating it on the
+development set.
+
+Example translation outputs appear in `/tmp/wmtm16/log/log.txt`, look for
+the string `source:`. To track development BLEU and perplexity, run
+tensorboard on `/tmp/wmtm16/log`. Training should achieve well over
+30 BLEU in fewer than 10,000 steps.
+
+# Full Machine translation task
 
 We provide the tools to run the WMT14 EN-DE setup. The system is described in
 [The Best of Both Worlds: Combining Recent Advances in Neural Machine

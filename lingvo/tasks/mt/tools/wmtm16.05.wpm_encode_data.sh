@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,10 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Machine translation model hyper-parameters."""
 
-# Import ModelParams to ensure that they are added to the global registry.
-# pylint: disable=unused-import
-import lingvo.tasks.mt.params.wmt14_en_de
-import lingvo.tasks.mt.params.wmtm16_en_de
-# pylint: enable=unused-import
+set -eu
+
+. ./lingvo/tasks/mt/tools/wmtm16_lib.sh
+
+mkdir -p ${ROOT}/wpm
+
+# The encoding goes at about 200 sentences per second.
+for BASE in "train" "val" "test"
+do
+  echo "Encoding ${BASE}"
+  TFRECORDS="${ROOT}/wpm/${BASE}.tfrecords"
+  SRC_FILE="${ROOT}/tokenized/${BASE}.clean.${SRC}"
+  TGT_FILE="${ROOT}/tokenized/${BASE}.clean.${TGT}"
+  wpm_encode "${SRC_FILE}" "${TGT_FILE}" 200 1 ${TFRECORDS}
+done
+
+cp -f "${WPM_VOC}" "${ROOT}/wpm"

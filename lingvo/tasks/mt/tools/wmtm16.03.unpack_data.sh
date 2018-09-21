@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,10 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Machine translation model hyper-parameters."""
 
-# Import ModelParams to ensure that they are added to the global registry.
-# pylint: disable=unused-import
-import lingvo.tasks.mt.params.wmt14_en_de
-import lingvo.tasks.mt.params.wmtm16_en_de
-# pylint: enable=unused-import
+set -eu
+
+. ./lingvo/tasks/mt/tools/wmtm16_lib.sh
+
+mkdir -p "${ROOT}/unpacked"
+for file in \
+  training.tar.gz \
+  validation.tar.gz \
+  mmt16_task1_test.tar.gz
+do
+  tar xzf "${ROOT}/raw/${file}" -C "${ROOT}/unpacked"
+done

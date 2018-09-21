@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,10 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Machine translation model hyper-parameters."""
 
-# Import ModelParams to ensure that they are added to the global registry.
-# pylint: disable=unused-import
-import lingvo.tasks.mt.params.wmt14_en_de
-import lingvo.tasks.mt.params.wmtm16_en_de
-# pylint: enable=unused-import
+set -eu
+
+. ./lingvo/tasks/mt/tools/wmtm16_lib.sh
+
+mkdir -p "${ROOT}/raw"
+# ============================================================================
+# Download WMT data.
+# From the WMT16 Multimodal website (En-De):
+wget --no-clobber --directory-prefix="${ROOT}/raw" \
+  http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/training.tar.gz \
+  http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/validation.tar.gz \
+  http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/mmt16_task1_test.tar.gz
