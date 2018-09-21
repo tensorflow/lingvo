@@ -38,19 +38,27 @@ tf.flags.DEFINE_bool('count_only', False,
 FLAGS = tf.flags.FLAGS
 
 
+def _ListDebugString(values, to_string=str):
+  if len(values) <= 8:
+    return repr(values)
+  first_values = [to_string(v) for v in values[0:6]]
+  last_values = [to_string(v) for v in values[-2:]]
+  return '[' + ' '.join(first_values + ['...'] + last_values) + ']'
+
+
 def _CustomShortDebugString(tf_example):
   text = []
   for name, value in sorted(six.iteritems(tf_example.features.feature)):
     if value.HasField('bytes_list'):
       if FLAGS.bytes_as_utf8:
         utf8_values = [v.decode('utf-8') for v in value.bytes_list.value]
-        value_string = '[' + ' '.join(utf8_values) + ']'
+        value_string = _ListDebugString(utf8_values)
       else:
-        value_string = str(value.bytes_list.value)
+        value_string = _ListDebugString(value.bytes_list.value)
     elif value.HasField('float_list'):
-      value_string = str(value.float_list.value)
+      value_string = _ListDebugString(value.float_list.value)
     elif value.HasField('int64_list'):
-      value_string = repr(value.int64_list.value)
+      value_string = _ListDebugString(value.int64_list.value, to_string=repr)
     text += ['%s: %s' % (name, value_string)]
   return '\n'.join(text)
 
