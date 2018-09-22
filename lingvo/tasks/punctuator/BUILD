@@ -39,6 +39,7 @@ py_test(
 
 py_test(
     name = "model_test",
+    size = "enormous",
     srcs = ["model_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
