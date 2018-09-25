@@ -1416,7 +1416,7 @@ def ConcatRecursively(splits, axis=-1):
       raise TypeError('Type mismatch for ConcatRecursively: %s' % splits)
     results = NestedMap()
     for key in tmpl:
-      results[key] = ConcatRecursively([split[key] for split in splits])
+      results[key] = ConcatRecursively([split[key] for split in splits], axis)
     return results
   else:
     raise TypeError('Unexpected type for ConcatRecursively: %s' % type(splits))
