@@ -270,7 +270,7 @@ def _FigureToSummary(name, fig):
   canvas = backend_agg.FigureCanvasAgg(fig)
   fig.canvas.draw()
   ncols, nrows = fig.canvas.get_width_height()
-  png_file = cStringIO.StringIO()
+  png_file = cStringIO()
   canvas.print_figure(png_file)
   png_str = png_file.getvalue()
   return tf.Summary(value=[

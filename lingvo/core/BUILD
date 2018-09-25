@@ -440,6 +440,7 @@ py_test(
     srcs = ["plot_test.py"],
     deps = [
         ":plot",
+        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )

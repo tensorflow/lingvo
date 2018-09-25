@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
 
 from lingvo.core import plot
@@ -217,6 +218,13 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
       summary_str = s.run(im)
     summary = tf.summary.Summary.FromString(summary_str)
     self.assertEqual(len(summary.value), 1)
+
+  def testMatrix(self):
+    summary = plot.Matrix('summary', (4, 4), np.random.rand(10, 10))
+    self.assertEqual(len(summary.value), 1)
+    value = summary.value[0]
+    self.assertGreater(value.image.width, 0)
+    self.assertGreater(value.image.height, 0)
 
 
 if __name__ == '__main__':
