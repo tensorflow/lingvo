@@ -1562,7 +1562,7 @@ def _AddVN(p, x, step=None):
   seed = p.vn.seed
   if seed and step:
     seed += step * 203984
-  noises = p.vn.scale * tf.random_normal(
+  noises = tf.cast(p.vn.scale, x.dtype) * tf.random_normal(
       tf.shape(x), stddev=1.0, seed=seed, dtype=x.dtype)
   return x + noises
 
