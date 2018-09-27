@@ -49,24 +49,44 @@ Then launch:
 mkdir /tmp/wmtm16/log
 
 bazel-bin/lingvo/trainer \
-  --run_locally=cpu \
-  --mode=sync \
-  --job=controller,trainer_client,evaler_Dev,decoder_Dev \
+  --run_locally=cpu --mode=sync --saver_max_to_keep=3 --logdir=/tmp/wmtm16/log \
+  --job=controller,trainer_client \
   --model=mt.wmtm16_en_de.WmtCaptionEnDeTransformer \
-  --logdir=/tmp/wmtm16/log \
-  --saver_max_to_keep=3 \
-  --logtostderr >& /tmp/wmtm16/log/log.txt
+  --logtostderr >& /tmp/wmtm16/log/train.log
 ```
 
-This will create four workers running in parallel under a single process.
-In particular, an evaler and decoder will run alongside the
-trainer, picking up the latest saved checkpoint and evaluating it on the
-development set.
+This will begin training a model, providing statistics on training perplexity
+(log_pplx) as training runs. Typically, you will also want to monitor your
+progress on a held-out set. Background the above process or open a new terminal
+to start two other processes to monitor our progress, one to track the
+perplexity assigned to reference translations:
 
-Example translation outputs appear in `/tmp/wmtm16/log/log.txt`, look for
-the string `source:`. To track development BLEU and perplexity, run
-tensorboard on `/tmp/wmtm16/log`. Training should achieve well over
-30 BLEU in fewer than 10,000 steps.
+```shell
+bazel-bin/lingvo/trainer \
+  --run_locally=cpu --mode=sync --saver_max_to_keep=3 --logdir=/tmp/wmtm16/log \
+  --job=evaler_Dev \
+  --model=mt.wmtm16_en_de.WmtCaptionEnDeTransformer \
+  --logtostderr >& /tmp/wmtm16/log/eval_dev.log
+```
+
+And one to report the accuracy of the decoder's output when compared to those
+reference translations:
+
+```shell
+bazel-bin/lingvo/trainer \
+  --run_locally=cpu --mode=sync --saver_max_to_keep=3 --logdir=/tmp/wmtm16/log \
+  --job=decoder_Dev \
+  --model=mt.wmtm16_en_de.WmtCaptionEnDeTransformer \
+  --logtostderr >& /tmp/wmtm16/log/decode_dev.log
+```
+
+Note that we give the same log directory for both of these processes. The
+monitors use the trainer's checkpoints, saved in the log directory, to load
+models and compute scores.
+
+Example translation outputs appear in `/tmp/wmtm16/log/decode_dev.log`.
+To track development BLEU and perplexity, run tensorboard on `/tmp/wmtm16/log`.
+Training should achieve well over 30 BLEU in fewer than 10,000 steps.
 
 # Full Machine translation task
 
