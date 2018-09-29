@@ -853,8 +853,6 @@ class FRNNWithAttention(base_layer.LayerBase):
         'zero query vector.')
     p.Define('atten_context_dim', 0, 'Size of attention context.')
     p.Define('packed_input', False, 'To reset states for packed inputs.')
-    # Set p.attention.atten_dropout_deterministic to True by default.
-    p.attention.atten_dropout_deterministic = True
     return p
 
   @base_layer.initializer
@@ -872,6 +870,8 @@ class FRNNWithAttention(base_layer.LayerBase):
     p.cell.reset_cell_state = p.packed_input
     self.CreateChild('cell', p.cell)
     p.attention.packed_input = p.packed_input
+    # Set p.attention.atten_dropout_deterministic to True by default.
+    p.attention.atten_dropout_deterministic = True
     self.CreateChild('atten', p.attention)
 
   @property
