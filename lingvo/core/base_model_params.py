@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 from lingvo.core import base_input_generator
+from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import hyperparams
 
@@ -79,10 +80,13 @@ class SingleTaskModelParams(_BaseModelParams):
     p = base_model.SingleTaskModel.Params()
     p.task = cls.Task()
     # Copy over model parameters from the task parameters.
+    base_layer.LayerBase.CopyBaseParams(p.task, p)
     tp = p.train
     tp.start_up_delay_steps = p.task.train.start_up_delay_steps
     tp.max_steps = p.task.train.max_steps
+    tp.tpu_steps_per_loop = p.task.train.tpu_steps_per_loop
     tp.ema_decay = p.task.train.ema_decay
+    # init_from_checkpoint_rules does not need to be copied.
     tp.early_stop = p.task.train.early_stop
     tp.save_interval_seconds = p.task.train.save_interval_seconds
     tp.summary_interval_steps = p.task.train.summary_interval_steps

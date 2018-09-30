@@ -154,6 +154,7 @@ py_library(
     srcs = ["base_model_params.py"],
     deps = [
         ":base_input_generator",
+        ":base_layer",
         ":base_model",
         ":hyperparams",
     ],

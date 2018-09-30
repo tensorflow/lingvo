@@ -194,7 +194,8 @@ class LayerBase(object):
     assert issubclass(from_params.cls, LayerBase)
     assert issubclass(to_params.cls, LayerBase)
     # Copy-over the LayerBase params.
-    to_params.dtype = from_params.dtype
+    if to_params.dtype == tf.float32:
+      to_params.dtype = from_params.dtype
     if from_params.fprop_dtype is not None:
       to_params.fprop_dtype = from_params.fprop_dtype
     if to_params.is_eval is None:
