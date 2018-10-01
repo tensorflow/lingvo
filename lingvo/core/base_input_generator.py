@@ -229,6 +229,13 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
              'record batcher.')
     return p
 
+  @base_layer.initializer
+  def __init__(self, params):
+    super(BaseInputGeneratorFromFiles, self).__init__(params)
+    if self.params.use_per_host_infeed and self.params.file_random_seed != 0:
+      raise ValueError('file_random_seed needs to be 0 when '
+                       'use_per_host_infeed == True.')
+
   def CommonInputOpArgs(self):
     """Common input params."""
     p = self.params
