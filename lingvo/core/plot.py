@@ -92,6 +92,34 @@ def AddImage(fig,
     axes.set_yticks([])
 
 
+def AddScatterPlot(unused_fig,
+                   axes,
+                   xs,
+                   ys,
+                   title=u'',
+                   xlabel=u'',
+                   ylabel=u'',
+                   fontsize='small',
+                   xlim=None,
+                   ylim=None,
+                   suppress_xticks=False,
+                   suppress_yticks=False,
+                   **kwargs):
+  """Convenience function to add a scatter plot."""
+  axes.scatter(xs, ys, **kwargs)
+  axes.set_title(ToUnicode(title), size=fontsize)
+  axes.set_xlabel(ToUnicode(xlabel), size=fontsize)
+  axes.set_ylabel(ToUnicode(ylabel), size=fontsize)
+  if xlim:
+    axes.set_xlim(xlim)
+  if ylim:
+    axes.set_ylim(ylim)
+  if suppress_xticks:
+    axes.set_xticks([])
+  if suppress_yticks:
+    axes.set_yticks([])
+
+
 _SubplotMetadata = collections.namedtuple('_SubplotMetadata',
                                           ['tensor_list', 'plot_func'])
 
