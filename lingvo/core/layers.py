@@ -136,14 +136,14 @@ class BatchNormLayer(base_layer.LayerBase):
   @staticmethod
   def _Moments(inputs, mask, enable_cross_replica_sum_on_tpu=False):
     """Computes mean and variance over the valid data points in inputs."""
+    assert inputs.dtype == mask.dtype
     inputs = py_utils.with_dependencies([
         py_utils.assert_equal(tf.rank(inputs), tf.rank(mask)),
-        py_utils.assert_greater_equal(mask, tf.zeros_like(mask)),
+        py_utils.assert_greater_equal(mask, tf.cast(0., mask.dtype)),
     ], inputs)
     rank = tf.rank(mask)
     reduce_over_dims = tf.range(0, rank - 1)
-    sum_v = tf.reduce_sum(inputs * tf.cast(mask, inputs.dtype),
-                          reduce_over_dims)
+    sum_v = tf.reduce_sum(inputs * mask, reduce_over_dims)
     count_v = tf.reduce_sum(mask, reduce_over_dims)
     # Input shape is guaranteed to be a multiple of mask shape because the
     # inputs * mask op above was successfully broadcasted.
@@ -162,7 +162,7 @@ class BatchNormLayer(base_layer.LayerBase):
       sum_vv = tf.contrib.tpu.cross_replica_sum(sum_vv)
 
     variance = py_utils.with_dependencies([
-        py_utils.assert_greater_equal(sum_vv, tf.zeros_like(sum_vv)),
+        py_utils.assert_greater_equal(sum_vv, tf.cast(0., sum_vv.dtype)),
     ], sum_vv / count_v)
     return mean, variance
 
@@ -238,8 +238,7 @@ class BatchNormLayer(base_layer.LayerBase):
         gamma = theta.gamma
 
       with tf.control_dependencies([
-          py_utils.assert_greater_equal(norm_variance,
-                                        tf.zeros_like(norm_variance)),
+          py_utils.assert_greater_equal(norm_variance, tf.cast(0., p.dtype)),
           py_utils.assert_shape_match([p.dim], tf.shape(norm_mean)),
           py_utils.assert_shape_match([p.dim], tf.shape(norm_variance)),
       ]):
@@ -1418,7 +1417,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
     abs_max = p.logits_abs_max
     if abs_max is not None and not p.is_inference:
       abs_min = -abs_max  # pylint: disable=invalid-unary-operand-type
-      logits = py_utils.clip_by_value(logits, abs_min, abs_max)
+      logits = tf.clip_by_value(logits, abs_min, abs_max)
 
     return self.QTensor('logits', logits)
 

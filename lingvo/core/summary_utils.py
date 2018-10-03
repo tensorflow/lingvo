@@ -176,8 +176,5 @@ def CollectVarHistogram(params, vs_gs):
       if isinstance(grad, tf.IndexedSlices):
         var = tf.gather(var, grad.indices)
         grad = grad.values
-      if var.dtype.is_complex:
-        var = tf.abs(var)
-        grad = tf.abs(grad)
       histogram(params, name_prefix + 'var_hist', var)
       histogram(params, name_prefix + 'grad_hist', grad)

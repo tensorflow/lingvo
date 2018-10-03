@@ -53,7 +53,7 @@ class PyUtilsTest(tf.test.TestCase):
           py_utils.WeightInit.UniformUnitScaling,
           py_utils.WeightInit.TruncatedGaussianSqrtDim,
       ]
-      dtypes = [tf.float32, tf.float64, tf.complex64]
+      dtypes = [tf.float32, tf.float64]
       shapes = [[], [3], [2, 4]]
       collections = ['col1', 'col2']
 
@@ -88,11 +88,11 @@ class PyUtilsTest(tf.test.TestCase):
           py_utils.WeightInit.UniformSqrtDim,
           py_utils.WeightInit.UniformUnitScaling,
       ]
-      dtypes = [tf.float32, tf.complex64]
+      dtypes = [tf.float32]
       shapes = [[2, 3]]
       all_vars = []
-      for i, (dt, m, sp) in enumerate(
-          itertools.product(dtypes, methods, shapes)):
+      for i, (m, dt, sp) in enumerate(
+          itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(0.1), dt)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -100,18 +100,12 @@ class PyUtilsTest(tf.test.TestCase):
                      [-0.052155, -0.050274, 0.086218]]
       v2_v_expted = [[0.005361, 0.036109, -0.036575],
                      [0.058314, 0.031438, 0.049196]]
-      v4_v_expted = [
-          [0.015448 + 0.068295j, -0.098710 - 0.054435j, 0.037030 - 0.048017j],
-          [-0.047435 + 0.035301j, 0.041994 + 0.000279j, -0.029097 + 0.084902j],
-      ]
 
       tf.global_variables_initializer().run()
       v1_v = all_vars[0].eval()
       v2_v = all_vars[1].eval()
-      v4_v = all_vars[3].eval()
       self.assertAllClose(v1_v_expted, v1_v.tolist())
       self.assertAllClose(v2_v_expted, v2_v.tolist())
-      self.assertAllClose(v4_v_expted, v4_v.tolist())
 
   def testCreateVariableNormal(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
@@ -120,11 +114,11 @@ class PyUtilsTest(tf.test.TestCase):
           py_utils.WeightInit.Gaussian,
           py_utils.WeightInit.GaussianSqrtDim,
       ]
-      dtypes = [tf.float32, tf.complex64]
+      dtypes = [tf.float32]
       shapes = [[2, 3]]
       all_vars = []
-      for i, (dt, m, sp) in enumerate(
-          itertools.product(dtypes, methods, shapes)):
+      for i, (m, dt, sp) in enumerate(
+          itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
@@ -132,18 +126,12 @@ class PyUtilsTest(tf.test.TestCase):
                      [-0.461884, 1.018134, 0.063719]]
       v2_v_expted = [[-0.862255, -0.688153, 0.82515],
                      [-0.07671, 0.613031, -0.020327]]
-      v3_v_expted = [
-          [1.005469 + 0.827639j, 1.249896 + 0.802671j, -0.026286 - 0.813836j],
-          [0.865386 + 0.301172j, 0.876698 - 0.907293j, 1.996337 + 1.840192j],
-      ]
 
       tf.global_variables_initializer().run()
       v1_v = all_vars[0].eval()
       v2_v = all_vars[1].eval()
-      v3_v = all_vars[2].eval()
       self.assertAllClose(v1_v_expted, v1_v.tolist())
       self.assertAllClose(v2_v_expted, v2_v.tolist())
-      self.assertAllClose(v3_v_expted, v3_v.tolist())
 
   def testCreateVariableException(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
@@ -182,7 +170,7 @@ class PyUtilsTest(tf.test.TestCase):
     with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
-      dtypes = [tf.float32, tf.float16, tf.complex64]
+      dtypes = [tf.float32, tf.float16]
       shapes = [[2, 3]]
       all_vars = []
       for i, (m, dt, sp) in enumerate(
@@ -192,22 +180,16 @@ class PyUtilsTest(tf.test.TestCase):
 
       v1_v_expted = [[1.051236, -0.959198, 0.796091],
                      [-0.685691, 0.230933, -1.006293]]
-      v3_v_expted = [
-          [0.149996 - 0.064369j, 0.689145 + 0.017257j, -0.502070 - 0.367683j],
-          [0.519782 + 0.470412j, 0.738902 - 0.054006j, 0.028603 + 0.471832j],
-      ]
 
       tf.global_variables_initializer().run()
       v1_v = all_vars[0].eval()
-      v3_v = all_vars[2].eval()
       self.assertAllClose(v1_v_expted, v1_v.tolist())
-      self.assertAllClose(v3_v_expted, v3_v.tolist())
 
   def testXavier1D(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
-      dtypes = [tf.float32, tf.float16, tf.complex64]
+      dtypes = [tf.float32, tf.float16]
       shapes = [[2]]
       all_vars = []
       for i, (m, dt, sp) in enumerate(
@@ -225,7 +207,7 @@ class PyUtilsTest(tf.test.TestCase):
     with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
-      dtypes = [tf.float32, tf.float16, tf.complex64]
+      dtypes = [tf.float32, tf.float16]
       shapes = [[1, 1, 2]]
       all_vars = []
       for i, (m, dt, sp) in enumerate(
@@ -348,7 +330,7 @@ class PyUtilsTest(tf.test.TestCase):
 
   def testCreateLocalTheta(self):
     methods = [py_utils.WeightInit.Gaussian, py_utils.WeightInit.Uniform]
-    dtypes = [tf.float32, tf.complex64]
+    dtypes = [tf.float32]
     shapes = [[2, 4], [3]]
 
     test_vars = py_utils.NestedMap()
@@ -975,24 +957,21 @@ class ApplyPaddingTest(tf.test.TestCase):
 
   def testApplyPaddingToZeroWithBroadcast(self):
     with self.session():
-      y = py_utils.ApplyPadding(
-          tf.convert_to_tensor([[0.0], [1.0], [0.0]]),
-          tf.convert_to_tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])).eval()
+      y = py_utils.ApplyPadding([[0.0], [1.0], [0.0]],
+                                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]).eval()
       self.assertAllClose(y, [[1.0, 2.0], [0.0, 0.0], [5.0, 6.0]])
 
   def testApplyPaddingToConstWithBroadcast(self):
     with self.session():
-      y = py_utils.ApplyPadding(
-          tf.convert_to_tensor([[0.0], [1.0], [0.0]]),
-          tf.convert_to_tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]),
-          tf.convert_to_tensor([[1.0, 2.0], [9.0, 10.0], [5.0, 6.0]])).eval()
+      y = py_utils.ApplyPadding([[0.0], [1.0], [0.0]],
+                                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]],
+                                [[1.0, 2.0], [9.0, 10.0], [5.0, 6.0]]).eval()
       self.assertAllClose(y, [[1.0, 2.0], [9.0, 10.0], [5.0, 6.0]])
 
   def testApplyPaddingToZeroWithoutBroadcast(self):
     with self.session():
-      y = py_utils.ApplyPadding(
-          tf.convert_to_tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),
-          tf.convert_to_tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])).eval()
+      y = py_utils.ApplyPadding([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]],
+                                [[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]).eval()
       self.assertAllClose(y, [[1.0, 2.0], [0.0, 4.0], [5.0, 0.0]])
 
 

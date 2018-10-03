@@ -365,10 +365,6 @@ class BaseTask(base_layer.LayerBase):
 
     def HasNanOrInf(x):
       with tf.device(x.device):
-        if x.dtype.is_complex:
-          return tf.reduce_any(
-              [HasNanOrInf(tf.real(x)),
-               HasNanOrInf(tf.imag(x))])
         return tf.reduce_any(tf.logical_or(tf.is_nan(x), tf.is_inf(x)))
 
     return tf.reduce_any([(HasNanOrInf(g.values) if isinstance(
