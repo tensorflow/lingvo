@@ -39,6 +39,7 @@ import time
 
 import numpy as np
 import six
+from six.moves import zip
 import tensorflow as tf
 
 from lingvo import base_runner
@@ -89,6 +90,8 @@ tf.flags.DEFINE_integer('controller_gpus', 0, 'Number of controller GPUs.')
 tf.flags.DEFINE_string('worker_job', '/job:trainer', 'Job name.')
 tf.flags.DEFINE_integer('worker_replicas', 1, 'Number of replicas.')
 tf.flags.DEFINE_integer('worker_gpus', 0, 'Number of gpus to use per replica.')
+tf.flags.DEFINE_integer('worker_tpus', 0, 'Number of tpus to use per replica.')
+tf.flags.DEFINE_integer('worker_num_tpu_hosts', 0, 'Number of tpu hosts.')
 tf.flags.DEFINE_integer('worker_split_size', 1,
                         'Number of devices for one split.')
 
@@ -478,6 +481,153 @@ class Trainer(base_runner.BaseRunner):
         self._model.ModelPostUpdate(sess, global_step, eval_metrics)
 
 
+class TrainerTpu(base_runner.BaseRunner):
+  """Trainer on TPU."""
+
+  def __init__(self, *args, **kwargs):
+    super(TrainerTpu, self).__init__(*args, **kwargs)
+
+    # Multiple TPU trainer tasks not tested/implemented.
+    assert self._cluster.num_replicas == 1
+    data_parallelism = self._cluster.num_splits_per_client
+    assert data_parallelism
+    num_devices_per_split = self._cluster.num_devices_per_split
+    tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',
+                    data_parallelism, num_devices_per_split)
+
+    def ComputationShape(split_size):
+      """Decides the computation shape based on the split_size."""
+      computation_shape = None
+      if split_size == 1:
+        computation_shape = [1, 1, 1]
+      elif split_size == 2:
+        computation_shape = [1, 1, 2]
+      elif split_size == 4:
+        computation_shape = [1, 2, 2]
+      elif split_size == 8:
+        computation_shape = [2, 2, 2]
+      elif split_size == 16:
+        computation_shape = [4, 2, 2]
+      else:
+        assert False, ('Model parallelism with %d devices is currently not'
+                       ' supported.' % split_size)
+      assert computation_shape is not None
+      return computation_shape
+
+    self._steps_per_loop = min(self.params.train.tpu_steps_per_loop,
+                               self.params.train.max_steps)
+
+    tf.logging.info(
+        'Creating TrainerTpu using data parallelism %s '
+        'and %s steps_per_loop', data_parallelism, self._steps_per_loop)
+
+    @py_utils.RetryOnTransientTfError()
+    def _WaitTillInit():
+      """Wait until the model is ready."""
+      try:
+        with self._GetSession() as sess:
+          topology = sess.run(
+              tf.contrib.tpu.initialize_system(embedding_config=None, job=None))
+          device_assignment = tf.contrib.tpu.device_assignment(
+              topology,
+              computation_shape=ComputationShape(num_devices_per_split),
+              num_replicas=data_parallelism)
+          py_utils.SetTpuDeviceAssignment(device_assignment)
+          tf.logging.info('device_assignment.core_assignment: %s',
+                          str(device_assignment.core_assignment))
+          tf.logging.info('device_assignment.topology.device_coordinates: %s',
+                          str(device_assignment.topology.device_coordinates))
+      except py_utils.transient_tf_errors as e:
+        tf.logging.info('TPU initialization failed: %s', e)
+        raise
+
+    _WaitTillInit()
+
+    with self._graph.as_default(), tf.container(self._container_id):
+      with self._cluster, tf.device(self._cluster.job_spec.name):
+        self._eval_metrics = metrics.TpuEvalMetrics()
+
+        def TpuTrainStep(*args):
+          self._model = self.params.cls(self.params)
+          self._model.ConstructFPropBPropGraph()
+          per_step_eval_metrics = self._eval_metrics.SetMetrics(
+              self._model.GetTask().eval_metrics, args)
+          summed_metrics = []
+          assert len(per_step_eval_metrics) == len(args)
+          for x, y in zip(per_step_eval_metrics, args):
+            summed_metrics.append(x + y)
+          return summed_metrics + [self._model.GetTask().train_op]
+
+        def TpuTrain():
+          loop_result = tf.contrib.tpu.repeat(
+              self._steps_per_loop,
+              TpuTrainStep,
+              inputs=self._eval_metrics.initial_values,
+              name='train_loop')
+          # Final metrics are the avg across self._steps_per_loop steps.
+          return self._eval_metrics.FinalizeMetrics(loop_result)
+
+        batch_parallel_res = tf.contrib.tpu.batch_parallel(
+            TpuTrain,
+            num_shards=data_parallelism,
+            device_assignment=py_utils.GetTpuDeviceAssignment())
+        # Get metric result from a single replica; they are all same here.
+        self._tpu_train_ops = [t[0] for t in batch_parallel_res]
+
+      self.initialize_tables = tf.tables_initializer()
+      self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
+      assert not tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
+      tf.logging.info('Trainer number of enqueue ops: %d',
+                      len(self.enqueue_ops))
+
+    self._summary_writer = self._CreateSummaryWriter(self._train_dir)
+
+    # Saves the graph def.
+    tf.train.write_graph(self._graph.as_graph_def(), self._train_dir,
+                         'train.pbtxt')
+
+  def Start(self):
+    # Run training.
+    self._RunLoop('trainer', self._Loop)
+
+  def StartEnqueueOp(self, op):
+    self._RunLoop('trainer/enqueue_op/%s' % op.name, self._LoopEnqueue, op)
+
+  def _SummarizeValue(self, steps, tag, value):
+    self._summary_writer.add_summary(
+        metrics.CreateScalarSummary(tag, value), steps)
+
+  def _Loop(self):
+    with tf.container(self._container_id), self._GetSession() as sess:
+      sess.run(self.initialize_tables)
+      sess.run(
+          tf.contrib.tpu.initialize_system(embedding_config=None, job=None))
+      if FLAGS.run_locally == 'tpu':
+        sess.run(tf.global_variables_initializer())
+      global_step, = sess.run([self._model.global_step])
+      eval_metrics = None
+
+      while True:
+        if (self._trial.ShouldStopAndMaybeReport(global_step, eval_metrics) or
+            self._ShouldStop(sess, global_step)):
+          tf.logging.info('Training finished.')
+          return
+
+        values = sess.run(self._tpu_train_ops)
+        eval_metrics = self._eval_metrics.PackMetricsValues(values)
+
+        # Note: global_step is incremented by self._steps_per_loop by the
+        # previous sess.run call.
+        global_step, = sess.run([self._model.global_step])
+
+        msg = 'step:%6d' % (global_step)
+        for key, (val, _) in sorted(six.iteritems(eval_metrics)):
+          msg += ' %s:%.8g' % (key, val)
+          self._SummarizeValue(global_step, key, val)
+
+        self._SetStatusMessage(msg)
+
+
 class Evaler(base_runner.BaseRunner):
   """Evaler."""
 
@@ -833,6 +983,8 @@ class RunnerManager(object):
     cfg.cluster.worker.name = FLAGS.worker_job
     cfg.cluster.worker.replicas = FLAGS.worker_replicas
     cfg.cluster.worker.gpus_per_replica = FLAGS.worker_gpus
+    cfg.cluster.worker.tpus_per_replica = FLAGS.worker_tpus
+    cfg.cluster.worker.num_tpu_hosts = FLAGS.worker_num_tpu_hosts
     cfg.cluster.worker.devices_per_split = FLAGS.worker_split_size
 
     cfg.cluster.ps.name = FLAGS.ps_job
@@ -868,7 +1020,7 @@ class RunnerManager(object):
     elif job == 'trainer_client':
       cfg = cls.GetParamsForDataset(model_name, 'trainer_client', 'Train')
       if py_utils.use_tpu():
-        raise ValueError('TPU training is not supported.')
+        return cls.TrainerTpu(cfg, *common_args)
       else:
         return cls.Trainer(cfg, *common_args)
     elif job.startswith(evaler_job_name_prefix):
@@ -995,7 +1147,10 @@ class RunnerManager(object):
       FLAGS.mode = 'sync'
 
     if not FLAGS.job:
-      FLAGS.job = 'controller,trainer_client'
+      if FLAGS.run_locally == 'tpu':
+        FLAGS.job = 'trainer_client'
+      else:
+        FLAGS.job = 'controller,trainer_client'
 
     FLAGS.task = 0
 
@@ -1008,6 +1163,11 @@ class RunnerManager(object):
         FLAGS.worker_gpus = 1
     else:
       FLAGS.worker_gpus = 0
+    if FLAGS.run_locally == 'tpu':
+      FLAGS.xla_device = 'tpu'
+      FLAGS.enable_asserts = False
+    else:
+      FLAGS.worker_tpus = 0
 
     if not FLAGS.worker_split_size:
       FLAGS.worker_split_size = 1
