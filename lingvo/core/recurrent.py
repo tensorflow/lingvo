@@ -221,6 +221,21 @@ def _EmptyAcc(slen, nmap):
   return nmap.Transform(Fill)
 
 
+def _EmptyWithFixShape(shape, nmap):
+  """Creates a set of empty initialized tensors with fixed shape.
+
+  Args:
+    shape: A list of integers to describe the output tensor shape.
+    nmap: A `.NestedMap` of tensors.
+
+  Returns:
+    A `.NestedMap` with the same keys as nmap. ret.key, a tensor, has the
+    same dtype as nmap.key, but with the fixed shape.
+  """
+
+  return nmap.Transform(lambda x: tf.zeros(shape, dtype=x.dtype))
+
+
 def _EmptyLike(nmap):
   """Creates a set of empty initialized tensors.
 
@@ -304,7 +319,8 @@ class _Recurrent(object):
                state0,
                inputs,
                extras,
-               implicit_captures=None):
+               implicit_captures=None,
+               unused_acc_state=None):
     """RNN helper class.
 
     Args:
@@ -322,6 +338,11 @@ class _Recurrent(object):
       implicit_captures: A `.NestedMap` corresponding to implicit captures of
         the cell_fn. If empty/None, implicit captures are either not present
         or disallowed.
+      unused_acc_state: If None, we assume every field of acc_state is consumed
+        in the following timestamps. If True, None of the acc_state is consumed.
+        And we reduce_sum each timestep's new state into a scalar.
+        Note, this feature should be used with StackedRecurrent where we send
+        out the new state to the other devices.
     """
     self._theta = theta
     self._state = state0
@@ -330,6 +351,7 @@ class _Recurrent(object):
     self._cell_grad = cell_grad
     self._extras = extras
     self._implicit_captures = implicit_captures
+    self._unused_acc_state = unused_acc_state
 
     if self._implicit_captures is None:
       self._implicit_captures = _EmptyCaptures()
@@ -386,8 +408,10 @@ class _Recurrent(object):
           Fwd(*_Flatten([theta, state0, inputs_t])),
           [self._state, self._extras])
       # Saves state1 and extras in their accumulators.
-      acc_state = _Update(acc_state, state1, dev_t)
+      if not self._unused_acc_state:
+        acc_state = _Update(acc_state, state1, dev_t)
       acc_extras = _Update(acc_extras, extras, dev_t)
+
       return [tf.add(dev_t, 1)] + _Flatten(
           [theta, state1, inputs, acc_state, acc_extras])
 
@@ -483,6 +507,12 @@ class _Recurrent(object):
       # construction, it must be zeros).
       d_acc_state, d_state1, _ = _Pack(args,
                                        [self._state, self._state, self._extras])
+
+      if self._unused_acc_state:
+        # XLA While op requires the same shape for the init and carry on values.
+        state0 = state0.Transform(tf.reduce_sum)
+        d_state1 = d_state1.Transform(tf.reduce_sum)
+
       return Backward(*_Flatten([
           theta,
           state0,
@@ -508,7 +538,10 @@ class _Recurrent(object):
       slen_dim = _SeqLenDim(inputs)
 
       # Creates accumulators for state0 and extras.
-      acc_state = _EmptyAcc(slen_dim, state0)
+      if self._unused_acc_state:
+        acc_state = _EmptyWithFixShape([slen_dim], state0)
+      else:
+        acc_state = _EmptyAcc(slen_dim, state0)
       acc_extras = _EmptyAcc(slen_dim, extras)
 
       if py_utils.use_tpu():
@@ -656,6 +689,10 @@ class _Recurrent(object):
       (d_theta_t, d_state0, d_inputs_t, d_captured_t) = _Pack(
           Bak(*_Flatten([theta, state0, inputs_t, extras_t, d_state1])),
           [self._theta, self._state, self._inputs, self._implicit_captures])
+
+      if self._unused_acc_state:
+        # XLA IF op requires the same shape for if and else branches.
+        d_state0 = d_state0.Transform(tf.reduce_sum)
       d_theta = _Add(d_theta, d_theta_t)
       d_inputs = _Update(d_inputs, d_inputs_t, dev_t)
       d_captured = _Add(d_captured, d_captured_t)
@@ -745,6 +782,9 @@ class _Recurrent(object):
       _AssertSameTensors(function.get_extra_inputs(),
                          self._implicit_captures.Flatten())
 
+      if self._unused_acc_state:
+        # Match the shape of gradient of the init_state.
+        d_state0 = self._state.Transform(tf.zeros_like)
       return _Flatten([d_theta, d_state0, d_inputs, acc_extras, d_captured])
 
     self._forward = Forward
