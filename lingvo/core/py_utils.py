@@ -1970,6 +1970,12 @@ def ApplyPadding(padding, x, padded=None, broadcast=True):
   Returns:
     A tensor with the same shape as x with padded values masked.
   """
+  padding = with_dependencies([
+      Assert(
+          tf.reduce_all(
+              tf.logical_or(tf.equal(padding, 0.0), tf.equal(padding, 1.0))),
+          [padding])
+  ], padding)
   if padded is None:
     padded = tf.zeros_like(x)
   if broadcast:
