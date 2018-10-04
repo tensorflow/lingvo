@@ -900,6 +900,7 @@ class RunnerManager(object):
   # non-public implementations.
   Controller = Controller
   Trainer = Trainer
+  TrainerTpu = TrainerTpu
   Evaler = Evaler
   Decoder = Decoder
 
