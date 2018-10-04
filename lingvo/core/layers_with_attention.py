@@ -26,7 +26,7 @@ from lingvo.core import layers
 from lingvo.core import py_utils
 
 
-class TransformerAttentionLayer(base_layer.LayerBase):
+class TransformerAttentionLayer(base_layer.BaseLayer):
   """Multi-headed attention, add and norm used by 'Attention Is All You Need'.
 
   This class implements the first sub-layer of Transformer Layer. Input is
@@ -232,7 +232,7 @@ class TransformerAttentionLayer(base_layer.LayerBase):
     return h, atten_prob, new_states
 
 
-class TransformerFeedForwardLayer(base_layer.LayerBase):
+class TransformerFeedForwardLayer(base_layer.BaseLayer):
   """Feed-forward, add and norm layer used by 'Attention Is All You Need'.
 
   This class implements the second sub-layer of Transformer Layer. First,
@@ -336,7 +336,7 @@ class TransformerFeedForwardLayer(base_layer.LayerBase):
     return h
 
 
-class TransformerLayer(base_layer.LayerBase):
+class TransformerLayer(base_layer.BaseLayer):
   """Transformer Layer proposed by 'Attention Is All You Need'.
 
   Applies self-attention followed by a feed forward network and
@@ -532,7 +532,7 @@ class TransformerLayer(base_layer.LayerBase):
     return h, atten_prob, new_states
 
 
-class MergerLayer(base_layer.LayerBase):
+class MergerLayer(base_layer.BaseLayer):
   """Merges a list of input tensors with various options into a single tensor.
 
   Implements a merger/combiner operator given a list of tensors. The merger
@@ -712,7 +712,7 @@ class MergerLayer(base_layer.LayerBase):
     return output
 
 
-class StyleLayer(base_layer.LayerBase):
+class StyleLayer(base_layer.BaseLayer):
   """A layer that performs weighted style emb lookup."""
 
   @classmethod

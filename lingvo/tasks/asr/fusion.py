@@ -25,7 +25,7 @@ from lingvo.core import py_utils
 from lingvo.tasks.lm import layers as lm_layers
 
 
-class FusionBase(base_layer.LayerBase):
+class FusionBase(base_layer.BaseLayer):
   """Base class for fusion with LMs."""
 
   @classmethod

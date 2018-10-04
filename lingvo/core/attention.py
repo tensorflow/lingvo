@@ -67,7 +67,7 @@ def _ApplyAttentionDropout(params, x, step_state=None, prng_seed=None):
     return tf.nn.dropout(x, 1.0 - params.atten_dropout_prob, seed=seed)
 
 
-class BaseAttentionLayer(base_layer.LayerBase):
+class BaseAttentionLayer(base_layer.BaseLayer):
   """A base class for all attention layers."""
 
   @classmethod

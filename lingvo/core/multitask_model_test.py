@@ -37,9 +37,9 @@ class MultiTaskModelTest(tf.test.TestCase):
     def Params(cls):
       p = super(MultiTaskModelTest._TestTask, cls).Params()
       p.name = 'test_task'
-      p.encoder = base_layer.LayerBase.Params()
+      p.encoder = base_layer.BaseLayer.Params()
       p.encoder.name = 'enc'
-      p.decoder = base_layer.LayerBase.Params()
+      p.decoder = base_layer.BaseLayer.Params()
       p.decoder.name = 'dec'
       return p
 

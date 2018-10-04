@@ -22,7 +22,7 @@ from lingvo.core import base_layer
 from lingvo.core import beam_search_helper
 
 
-class BaseDecoder(base_layer.LayerBase):
+class BaseDecoder(base_layer.BaseLayer):
   """Base class for all decoders."""
 
   @classmethod

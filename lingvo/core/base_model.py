@@ -36,7 +36,7 @@ from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 
 
-class BaseTask(base_layer.LayerBase):
+class BaseTask(base_layer.BaseLayer):
   """A single encoder/decoder task.
 
   One task usually consists of one InputGenerator, one train_op,
@@ -788,7 +788,7 @@ class DistillationTask(BaseTask):
     return self.student.PostProcessDecodeOut(dec_out_dict, dec_metrics_dict)
 
 
-class BaseModel(base_layer.LayerBase):
+class BaseModel(base_layer.BaseLayer):
   """The abstract model class. All models are sub-class of this class."""
 
   @classmethod
@@ -900,7 +900,7 @@ class SingleTaskModel(BaseModel):
     if task_params is not None:
       # Copy over model parameters from the task parameters.
       p.task = task_params
-      base_layer.LayerBase.CopyBaseParams(p.task, p)
+      base_layer.BaseLayer.CopyBaseParams(p.task, p)
       tp = p.train
       tp.start_up_delay_steps = p.task.train.start_up_delay_steps
       tp.max_steps = p.task.train.max_steps

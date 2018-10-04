@@ -57,7 +57,7 @@ def FPropDtype(params):
   return params.fprop_dtype if params.fprop_dtype is not None else params.dtype
 
 
-class IdentityLayer(base_layer.LayerBase):
+class IdentityLayer(base_layer.BaseLayer):
   """Identity layer, adds name and propagates its input."""
 
   @base_layer.initializer
@@ -79,7 +79,7 @@ class IdentityLayer(base_layer.LayerBase):
     return tf.identity(inputs, name=p.name)
 
 
-class BatchNormLayer(base_layer.LayerBase):
+class BatchNormLayer(base_layer.BaseLayer):
   """Batch normalization layer."""
 
   @classmethod
@@ -298,7 +298,7 @@ def _ComputeOutputPadding(in_padding, stride):
   return out_padding
 
 
-class ConvLayer(base_layer.LayerBase):
+class ConvLayer(base_layer.BaseLayer):
   """Convolution layer, with optional batch-normalization and activation."""
 
   @classmethod
@@ -677,7 +677,7 @@ class FCLayer(ProjectionLayer):
     return p
 
 
-class PoolingLayer(base_layer.LayerBase):
+class PoolingLayer(base_layer.BaseLayer):
   """Pooling layer, by default performs max-pooling."""
 
   @classmethod
@@ -765,7 +765,7 @@ class PoolingLayer(base_layer.LayerBase):
       return out, out_padding
 
 
-class EmbeddingLayer(base_layer.LayerBase):
+class EmbeddingLayer(base_layer.BaseLayer):
   """Embedding layer, with batch normalization and relu activation."""
 
   @classmethod
@@ -860,7 +860,7 @@ class EmbeddingLayer(base_layer.LayerBase):
     return tf.reshape(embs, out_shape)
 
 
-class SimpleEmbeddingLayer(base_layer.LayerBase):
+class SimpleEmbeddingLayer(base_layer.BaseLayer):
   """An embedding layer that is simple to compile (by XLA and Toco).
 
   The params use_matmul and use_gather control how the lookup is performed.
@@ -1076,7 +1076,7 @@ class SimpleEmbeddingLayer(base_layer.LayerBase):
     return tf.reshape(embs_result, out_shape)
 
 
-class PositionalEmbeddingLayer(base_layer.LayerBase):
+class PositionalEmbeddingLayer(base_layer.BaseLayer):
   """Generates sinusoidals with respect to the position in time and dimension.
 
   Implements the positional embedding layer from 'Attention is All You Need',
@@ -1554,7 +1554,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
         avg_xent=total_xent / total_weights)
 
 
-class FeedForwardNet(base_layer.LayerBase):
+class FeedForwardNet(base_layer.BaseLayer):
   """A simple multiple layer feedforward network.
 
   This class represents a stack of fully connected feedforward network. Each
@@ -1717,7 +1717,7 @@ class FeedForwardNet(base_layer.LayerBase):
     return layer_in
 
 
-class DropoutLayer(base_layer.LayerBase):
+class DropoutLayer(base_layer.BaseLayer):
   """Apply dropout during trainig."""
 
   @classmethod
@@ -1752,7 +1752,7 @@ class DropoutLayer(base_layer.LayerBase):
       return inputs
 
 
-class DeterministicDropoutLayer(base_layer.LayerBase):
+class DeterministicDropoutLayer(base_layer.BaseLayer):
   """Apply dropout during trainig."""
 
   @classmethod
@@ -1782,7 +1782,7 @@ class DeterministicDropoutLayer(base_layer.LayerBase):
       return inputs
 
 
-class LayerNorm(base_layer.LayerBase):
+class LayerNorm(base_layer.BaseLayer):
   """Layer normalization.
 
   Implements layer normalization:
@@ -1840,7 +1840,7 @@ class LayerNorm(base_layer.LayerBase):
     return Normalize(inputs, theta.scale, theta.bias)
 
 
-class ConvSetLayer(base_layer.LayerBase):
+class ConvSetLayer(base_layer.BaseLayer):
   """Set of Convolutions with different filter sizes in a single layer.
 
     Applies a set of convolutions with different filter shapes to the inputs and
@@ -1930,7 +1930,7 @@ class ConvSetLayer(base_layer.LayerBase):
     return out, output_paddings
 
 
-class LocalizedLabelSmoother(base_layer.LayerBase):
+class LocalizedLabelSmoother(base_layer.BaseLayer):
   """Smooths labels given as class ids.
 
   Implements the smoothing from https://arxiv.org/abs/1612.02695. Instead of
@@ -2009,7 +2009,7 @@ class LocalizedLabelSmoother(base_layer.LayerBase):
     return output_distributions
 
 
-class UniformLabelSmoother(base_layer.LayerBase):
+class UniformLabelSmoother(base_layer.BaseLayer):
   """Smooths labels given as class ids and confidence.
 
   Implements the smoothing from https://arxiv.org/abs/1512.00567. Correct class
@@ -2088,7 +2088,7 @@ class UniformLabelSmoother(base_layer.LayerBase):
     return smooth_targets
 
 
-class HighwaySkipLayer(base_layer.LayerBase):
+class HighwaySkipLayer(base_layer.BaseLayer):
   """A highway skip layer.
 
   This class represents a highway skip layer, which takes multiple
@@ -2164,7 +2164,7 @@ class HighwaySkipLayer(base_layer.LayerBase):
     return layer_out
 
 
-class GradNormTracker(base_layer.LayerBase):
+class GradNormTracker(base_layer.BaseLayer):
   """A helper class to keep track of gradient norm stats."""
 
   @classmethod
@@ -2280,7 +2280,7 @@ class GradNormTracker(base_layer.LayerBase):
                                         1.0 - tf.cast(trigger, tf.float32))
 
 
-class WeightedSumLayer(base_layer.LayerBase):
+class WeightedSumLayer(base_layer.BaseLayer):
   """Returns the weighted sum of a list of input tensors."""
 
   @classmethod

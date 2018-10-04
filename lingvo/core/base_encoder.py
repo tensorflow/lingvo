@@ -21,7 +21,7 @@ from __future__ import print_function
 from lingvo.core import base_layer
 
 
-class BaseEncoder(base_layer.LayerBase):
+class BaseEncoder(base_layer.BaseLayer):
   """Base class for all encoders."""
 
   @classmethod

@@ -25,7 +25,7 @@ from lingvo.core import base_layer
 from lingvo.core import early_stop
 
 
-class TaskScheduler(base_layer.LayerBase):
+class TaskScheduler(base_layer.BaseLayer):
   """Generic multi-task scheduler.
 
   Subclasses should override the `Sample` method to return a task string given

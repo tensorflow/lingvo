@@ -70,7 +70,7 @@ BeamSearchDecodeOutput = collections.namedtuple(
 BeamSearchDecodeOutput.__new__.__defaults__ = (None,)
 
 
-class BeamSearchHelper(base_layer.LayerBase):
+class BeamSearchHelper(base_layer.BaseLayer):
   """Helper class for performing beam search.
 
   The user of this helper class needs to implement three callbacks.

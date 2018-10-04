@@ -539,7 +539,7 @@ class PyUtilsTest(tf.test.TestCase):
     with self.session() as sess:
       foo = py_utils.StatsCounter('foo')
       val = foo.Value()
-      params = base_layer.LayerBase.Params()
+      params = base_layer.BaseLayer.Params()
       inc = foo.IncBy(params, 100)
 
       tf.global_variables_initializer().run()

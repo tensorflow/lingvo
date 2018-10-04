@@ -102,7 +102,7 @@ def initializer(func):  # pylint: disable=invalid-name
   """A decorator for layer's __init__.
 
   Args:
-    func: The __init__ method of `LayerBase`'s subclasses.
+    func: The __init__ method of `BaseLayer`'s subclasses.
 
   Returns:
     A decorator wrapper for layer's initializer.
@@ -135,7 +135,7 @@ def DefaultVN():
 def RecursiveFindLayerParams(params):
   """Returns all params that define a layer."""
   layer_params = []
-  if hasattr(params, 'cls') and issubclass(params.cls, LayerBase):
+  if hasattr(params, 'cls') and issubclass(params.cls, BaseLayer):
     layer_params.append(params)
   for _, p in params.IterParams():
     if isinstance(p, hyperparams.Params):
@@ -146,7 +146,7 @@ def RecursiveFindLayerParams(params):
 LAYER_WT = 'layer_weight_variable'
 
 
-class LayerBase(object):
+class BaseLayer(object):
   """Base class for all the layer object."""
 
   # Set to an inference driver name if this is an inference specialization
@@ -190,10 +190,10 @@ class LayerBase(object):
 
   @staticmethod
   def CopyBaseParams(from_params, to_params):
-    """Copies LayerBase params from `from_params` to `to_params`."""
-    assert issubclass(from_params.cls, LayerBase)
-    assert issubclass(to_params.cls, LayerBase)
-    # Copy-over the LayerBase params.
+    """Copies BaseLayer params from `from_params` to `to_params`."""
+    assert issubclass(from_params.cls, BaseLayer)
+    assert issubclass(to_params.cls, BaseLayer)
+    # Copy-over the BaseLayer params.
     if to_params.dtype == tf.float32:
       to_params.dtype = from_params.dtype
     if from_params.fprop_dtype is not None:
@@ -222,7 +222,7 @@ class LayerBase(object):
   def __init__(self, params):
     """Layer constructor.
 
-    Sub-classes of LayerBase should decorator its __init__ with
+    Sub-classes of BaseLayer should decorator its __init__ with
     @base_layer.initializer
 
     Args:
@@ -596,14 +596,14 @@ class LayerBase(object):
 
   def AddChild(self, name, child):
     """Add an existing layer as a sublayer."""
-    assert isinstance(child, LayerBase)
+    assert isinstance(child, BaseLayer)
     self._CheckName(name)
     self._private_children[name] = child
 
   def AddChildren(self, name, children):
     """Add existing layers as sublayers."""
     for child in children:
-      assert isinstance(child, LayerBase)
+      assert isinstance(child, BaseLayer)
     self._CheckName(name)
     self._private_children[name] = children
 
@@ -638,7 +638,7 @@ class LayerBase(object):
         list(self._private_children.values()))
     for v in self._children_list:
       assert v in created_children, (
-          '%s is not created by LayerBase.CreateChild(ren).' % v.params.name)
+          '%s is not created by BaseLayer.CreateChild(ren).' % v.params.name)
 
   def _VerifyVarsAndTheta(self):
     """Verify that vars and theta have the same nested structure."""
@@ -662,7 +662,7 @@ class LayerBase(object):
   def PostTrainingStepUpdate(self, global_step):
     """Returns a TF op which will be invoked at each training step.
 
-    Subclasses of `LayerBase` can implement this method. The method should
+    Subclasses of `BaseLayer` can implement this method. The method should
     return a TF op to be invoked during training after gradients are applied.
 
     Args:

@@ -30,7 +30,7 @@ from lingvo.core import py_utils
 from lingvo.core.ops import py_x_ops
 
 
-class BaseLearningRateSchedule(base_layer.LayerBase):
+class BaseLearningRateSchedule(base_layer.BaseLayer):
   """Base class for learning rate decay algorithms."""
 
   @classmethod

@@ -25,7 +25,7 @@ from lingvo.core import layers
 from lingvo.core import layers_with_attention
 
 
-class TransformerStack(base_layer.LayerBase):
+class TransformerStack(base_layer.BaseLayer):
   """Stacked self- multi-head attention and fully connected layers.
 
   With optional layer normalization applied to the final output.

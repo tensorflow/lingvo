@@ -76,7 +76,7 @@ def _GeneratePackedInputResetMask(segment_id, is_reverse=False):
   return reset_mask
 
 
-class RNN(base_layer.LayerBase):
+class RNN(base_layer.BaseLayer):
   """Statically unrolled RNN."""
 
   @classmethod
@@ -142,7 +142,7 @@ class RNN(base_layer.LayerBase):
       return tf.stack(outputs), state
 
 
-class StackedRNNBase(base_layer.LayerBase):
+class StackedRNNBase(base_layer.BaseLayer):
   """Stacked RNN base class."""
 
   @classmethod
@@ -250,7 +250,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase):
     return xs, state1
 
 
-class FRNN(base_layer.LayerBase):
+class FRNN(base_layer.BaseLayer):
   """Functional while based RNN."""
 
   @classmethod
@@ -346,7 +346,7 @@ class FRNN(base_layer.LayerBase):
     return act, final_state
 
 
-class BidirectionalFRNN(base_layer.LayerBase):
+class BidirectionalFRNN(base_layer.BaseLayer):
   """Bidirectional functional RNN."""
 
   @classmethod
@@ -448,7 +448,7 @@ class BidirectionalFRNN(base_layer.LayerBase):
         return tf.concat([output_forward, output_backward], -1)
 
 
-class BidirectionalRNN(base_layer.LayerBase):
+class BidirectionalRNN(base_layer.BaseLayer):
   """Statically unrolled bidirectional RNN."""
 
   @classmethod
@@ -510,7 +510,7 @@ class BidirectionalRNN(base_layer.LayerBase):
       return tf.concat([outputs_forward, outputs_backward], axis=-1)
 
 
-class BidirectionalRNNV2(base_layer.LayerBase):
+class BidirectionalRNNV2(base_layer.BaseLayer):
   """Statically unrolled bidirectional RNN."""
 
   @classmethod
@@ -591,7 +591,7 @@ class BidirectionalRNNV2(base_layer.LayerBase):
     return tf.stack(out)[:seq_len,]
 
 
-class CuDNNLSTM(base_layer.LayerBase):
+class CuDNNLSTM(base_layer.BaseLayer):
   """A single layer of unidirectional LSTM with Cudnn impl.
 
   Runs training with CuDNN on GPU, and eval using a FRNN with properly
@@ -708,7 +708,7 @@ class CuDNNLSTM(base_layer.LayerBase):
     return output, py_utils.NestedMap(m=output_h, c=output_c)
 
 
-class BidirectionalNativeCuDNNLSTM(base_layer.LayerBase):
+class BidirectionalNativeCuDNNLSTM(base_layer.BaseLayer):
   """A single layer of bidirectional LSTM with native Cudnn impl.
   """
 
@@ -833,7 +833,7 @@ def _ShiftRightWithMasking(x0, xs, mask):
   return tf.concat([[x0], xs[:-1] * mask[1:]], axis=0)
 
 
-class FRNNWithAttention(base_layer.LayerBase):
+class FRNNWithAttention(base_layer.BaseLayer):
   """An RNN layer intertwined with an attention layer."""
 
   @classmethod
@@ -1127,7 +1127,7 @@ class FRNNWithAttention(base_layer.LayerBase):
     return atten_ctx, rcell.GetOutput(acc_state.rnn), atten_probs, final_state
 
 
-class MultiSourceFRNNWithAttention(base_layer.LayerBase):
+class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
   """RNN layer intertwined with an attention layer for multiple sources.
 
   Allows different attention params per source, if attention is not shared.
@@ -1373,7 +1373,7 @@ class MultiSourceFRNNWithAttention(base_layer.LayerBase):
     return acc_state.atten, rcell.GetOutput(acc_state.rnn)
 
 
-class BidirectionalFRNNQuasi(base_layer.LayerBase):
+class BidirectionalFRNNQuasi(base_layer.BaseLayer):
   """Bidirectional functional Quasi-RNN.
 
   This is very similar to BidirectionalFRNN except the input is a list of the

@@ -29,10 +29,10 @@ from lingvo.core import py_utils
 from lingvo.core import summary_utils
 
 
-class QuantizableLayer(base_layer.LayerBase):
+class QuantizableLayer(base_layer.BaseLayer):
   """A layer that supports various forms of quantization.
 
-  It is always safe to extend QuantizableLayer instead of LayerBase (i.e. at
+  It is always safe to extend QuantizableLayer instead of BaseLayer (i.e. at
   the base of layer inheritance hierarchies) if any layer in the hierarchy
   may be quantized. Unless if configured/used, all quantization behavior
   is disabled by default.
@@ -338,7 +338,7 @@ class QuantizableLayer(base_layer.LayerBase):
     self.AddFunction('qweight', self.QWeight)
 
 
-class BaseClippingCapSchedule(base_layer.LayerBase):
+class BaseClippingCapSchedule(base_layer.BaseLayer):
   """Base class for clipping cap schedules."""
 
   @base_layer.initializer
@@ -794,7 +794,7 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
         self.vars.fq_ratio.assign(new_fq_ratio))
 
 
-class QDomain(base_layer.LayerBase):
+class QDomain(base_layer.BaseLayer):
   """Base class for a quantization domain layer.
 
   This implementation doubles as a no-op quantization domain.

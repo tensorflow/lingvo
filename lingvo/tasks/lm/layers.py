@@ -31,7 +31,7 @@ from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 
 
-class BaseLanguageModel(base_layer.LayerBase):
+class BaseLanguageModel(base_layer.BaseLayer):
   """Abstract base class for a language model layer."""
 
   @classmethod

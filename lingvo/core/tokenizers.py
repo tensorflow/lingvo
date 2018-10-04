@@ -23,7 +23,7 @@ from lingvo.core import py_utils
 from lingvo.core.ops import py_x_ops
 
 
-class BaseTokenizer(base_layer.LayerBase):
+class BaseTokenizer(base_layer.BaseLayer):
   """The base tokenizer."""
 
   @classmethod
