@@ -59,3 +59,14 @@ py_test(
         "//lingvo/core:test_utils",
     ],
 )
+
+py_library(
+    name = "fusion",
+    srcs = ["fusion.py"],
+    deps = [
+        "//lingvo/core:base_layer",
+        "//lingvo/core:layers",
+        "//lingvo/core:py_utils",
+        "//lingvo/tasks/lm:layers",
+    ],
+)
