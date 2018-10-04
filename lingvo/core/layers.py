@@ -53,10 +53,6 @@ _ACTIVATIONS_QUANT = {
 LOG_SCALE_CLAMP_BOUND = 20.0
 
 
-def FPropDtype(params):
-  return params.fprop_dtype if params.fprop_dtype is not None else params.dtype
-
-
 class IdentityLayer(base_layer.BaseLayer):
   """Identity layer, adds name and propagates its input."""
 
@@ -1140,10 +1136,10 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     num_timescales = p.embedding_dim // 2
     log_timescale_increment = (
         math.log(float(p.max_timescale) / float(p.min_timescale)) /
-        (tf.cast(num_timescales, FPropDtype(p)) - 1))
+        (tf.cast(num_timescales, py_utils.FPropDtype(p)) - 1))
 
     inv_timescales = p.min_timescale * tf.exp(
-        tf.cast(tf.range(num_timescales), FPropDtype(p)) *
+        tf.cast(tf.range(num_timescales), py_utils.FPropDtype(p)) *
         -log_timescale_increment)
 
     scaled_time = tf.expand_dims(position, 2) * tf.reshape(
@@ -1186,7 +1182,7 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     """
     p = self.params
     position = tf.reshape(
-        tf.cast(tf.range(seq_length), FPropDtype(p)), [1, seq_length])
+        tf.cast(tf.range(seq_length), py_utils.FPropDtype(p)), [1, seq_length])
     pos_emb = self._PosEmbeddingsFromPositions(theta, position)
     return tf.reshape(pos_emb, [seq_length, -1])
 
@@ -1205,7 +1201,7 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     Returns:
       a Tensor of shape [bs, seq_length, embedding_dim].
     """
-    position = tf.cast(position_tensor, FPropDtype(self.params))
+    position = tf.cast(position_tensor, py_utils.FPropDtype(self.params))
     return self._PosEmbeddingsFromPositions(theta, position)
 
 
@@ -1539,7 +1535,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
       # Avoid computing logits; per_example_argmax is going to be always right.
       per_example_argmax = tf.identity(class_ids)
 
-    label_weights = tf.reshape(tf.cast(class_weights, FPropDtype(p)), [-1])
+    label_weights = tf.reshape(
+        tf.cast(class_weights, py_utils.FPropDtype(p)), [-1])
     total_xent = tf.reduce_sum(per_example_xent * label_weights)
     total_weights = tf.reduce_sum(label_weights)
 
@@ -1825,7 +1822,8 @@ class LayerNorm(base_layer.BaseLayer):
     inputs = py_utils.with_dependencies(
         [py_utils.assert_equal(tf.shape(inputs)[-1], p.input_dim)], inputs)
 
-    @function.Defun(*[FPropDtype(p)] * 3, noinline=not py_utils.use_tpu())
+    @function.Defun(
+        *[py_utils.FPropDtype(p)] * 3, noinline=not py_utils.use_tpu())
     def Normalize(x, scale, bias):
       x_shape = tf.shape(x)
       inner_dim = x_shape[-1]
@@ -1980,7 +1978,7 @@ class LocalizedLabelSmoother(base_layer.BaseLayer):
     del target_ids  # Unused.
     p = self.params
     class_probabilities = tf.one_hot(
-        target_labels, p.num_classes, dtype=FPropDtype(p))
+        target_labels, p.num_classes, dtype=py_utils.FPropDtype(p))
 
     # Start list keeping the scaled class-probabilities at different offsets.
     output_distributions = [class_probabilities]

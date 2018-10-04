@@ -412,7 +412,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
             packed_src.packed_src_context,
             packed_src.packed_src_paddings,
             packed_src.packed_src_segment_id,
-            tf.zeros([bs, p.rnn_cell_dim], dtype=layers.FPropDtype(p)),
+            tf.zeros([bs, p.rnn_cell_dim], dtype=py_utils.FPropDtype(p)),
             zero_atten_state,
             per_step_source_padding=per_step_source_padding,
             step_state=step_state))
@@ -586,7 +586,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     if not py_utils.use_tpu():
       correct_preds = tf.cast(
           tf.equal(tf.argmax(logits, 2, output_type=tf.int32), target_labels),
-          layers.FPropDtype(p))
+          py_utils.FPropDtype(p))
       correct_next_preds = tf.reduce_sum(correct_preds * target_weights)
       accuracy = tf.identity(
           correct_next_preds / target_weights_sum_eps,
@@ -743,8 +743,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       def AddToMetric(acc, scale, metric):
         assert len(acc) == 2
         assert len(metric) == 2
-        return (acc[0] + scale * tf.cast(metric[0], layers.FPropDtype(p)),
-                acc[1] + scale * tf.cast(metric[1], layers.FPropDtype(p)))
+        return (acc[0] + scale * tf.cast(metric[0], py_utils.FPropDtype(p)),
+                acc[1] + scale * tf.cast(metric[1], py_utils.FPropDtype(p)))
 
       for logit_name, loss_weight in p.logit_types.iteritems():
         metrics, per_sequence_loss = self._ComputeMetrics(
@@ -754,8 +754,10 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
           tf.logging.info('Merging metric %s: %s', k, v)
           merged_metrics[k + '/' + logit_name] = v
           if k not in merged_metrics:
-            merged_metrics[k] = (tf.zeros(shape=[], dtype=layers.FPropDtype(p)),
-                                 tf.zeros(shape=[], dtype=layers.FPropDtype(p)))
+            merged_metrics[k] = (tf.zeros(
+                shape=[], dtype=py_utils.FPropDtype(p)),
+                                 tf.zeros(
+                                     shape=[], dtype=py_utils.FPropDtype(p)))
           merged_metrics[k] = AddToMetric(merged_metrics[k], loss_weight, v)
         merged_per_sequence_loss += loss_weight * per_sequence_loss
       return merged_metrics, merged_per_sequence_loss
@@ -801,20 +803,20 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
             _NewTensorArray(
                 name='rnn%d_outs' % i,
                 max_seq_length=max_seq_length,
-                dtype=layers.FPropDtype(p)) for i in range(p.rnn_layers)
+                dtype=py_utils.FPropDtype(p)) for i in range(p.rnn_layers)
         ],
         step_outs=_NewTensorArray(
             name='step_outs',
             max_seq_length=max_seq_length,
-            dtype=layers.FPropDtype(p)),
+            dtype=py_utils.FPropDtype(p)),
         atten_probs=_NewTensorArray(
             name='atten_probs',
             max_seq_length=max_seq_length,
-            dtype=layers.FPropDtype(p)),
+            dtype=py_utils.FPropDtype(p)),
         logits=_NewTensorArray(
             name='logits',
             max_seq_length=max_seq_length,
-            dtype=layers.FPropDtype(p)),
+            dtype=py_utils.FPropDtype(p)),
         fusion=[
             _NewTensorArray(
                 name='fusion_states%d' % i,
@@ -1000,7 +1002,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
       atten_context_dim = self._GetAttenContextDim()
       out_dim = p.rnn_cell_dim + atten_context_dim
-      state0.step_outs = tf.zeros([dec_bs, out_dim], dtype=layers.FPropDtype(p))
+      state0.step_outs = tf.zeros([dec_bs, out_dim],
+                                  dtype=py_utils.FPropDtype(p))
       target_embs = self.emb.EmbLookup(theta.emb, targets.ids)
       target_embs = self._ApplyDropout(target_embs)
       inputs = py_utils.NestedMap(

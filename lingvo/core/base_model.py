@@ -641,7 +641,7 @@ class BaseTask(base_layer.BaseLayer):
       else:
         # vn.scale is dependent on global_step.
         p.vn.scale = tf.cast(self._global_step > tp.vn_start_step,
-                             p.dtype) * tp.vn_std
+                             py_utils.FPropDtype(p)) * tp.vn_std
 
   def _GetMaskUpdateOp(self):
     """Returns op to update masks and threshold variables for model pruning."""

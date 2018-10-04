@@ -2117,6 +2117,10 @@ def CheckShapes(shapes):
     assert s.is_fully_defined()
 
 
+def FPropDtype(params):
+  return params.fprop_dtype if params.fprop_dtype is not None else params.dtype
+
+
 def UpdateFpropDtype(params, fprop_dtype):
   """Recursively update the fprop_dtype of the Params."""
   for key, val in params.IterParams():

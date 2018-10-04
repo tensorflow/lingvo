@@ -360,7 +360,7 @@ class AdditiveAttention(BaseAttentionLayer):
 
     # noinline and compiled cannot be set at the same time
     @function.Defun(
-        *([layers.FPropDtype(p)] * 7), noinline=not py_utils.use_tpu())
+        *([py_utils.FPropDtype(p)] * 7), noinline=not py_utils.use_tpu())
     def AttenProbs(concated_source_vecs, source_padding, query_vec_reshaped, v,
                    per_step_source_padding, source_segment_id,
                    query_segment_id):
@@ -502,7 +502,7 @@ class AdditiveAttention(BaseAttentionLayer):
       query_vec = py_utils.Matmul(query_vec, w)
       # [sl, b]
       @function.Defun(
-          *([layers.FPropDtype(p)] * 7), noinline=not py_utils.use_tpu())
+          *([py_utils.FPropDtype(p)] * 7), noinline=not py_utils.use_tpu())
       def AttenProbs(x, source_padding, y, v, per_step_source_padding,
                      source_segment_id, query_segment_id):
         """Calculates atten probs with padding."""
@@ -617,7 +617,7 @@ class AdditiveAttention(BaseAttentionLayer):
     p = self.params
     # This is just a dummy state. The first dimension of the state has to match
     # decoder_batch_size.
-    zs = tf.zeros([decoder_batch_size, 1], dtype=layers.FPropDtype(p))
+    zs = tf.zeros([decoder_batch_size, 1], dtype=py_utils.FPropDtype(p))
     return zs
 
   def ComputeContextVectorWithSource(self,
@@ -737,7 +737,7 @@ class DotProductAttention(BaseAttentionLayer):
       self.CreateVariable('per_dim_scale', pc, ScaleFn)
 
     @function.Defun(
-        *[layers.FPropDtype(p)] * 7, noinline=not py_utils.use_tpu())
+        *[py_utils.FPropDtype(p)] * 7, noinline=not py_utils.use_tpu())
     def AttenProbs(per_dim_scale, source_padding, concated_source_vecs,
                    query_vec, per_step_source_padding, source_segment_id,
                    query_segment_id):
@@ -781,7 +781,8 @@ class DotProductAttention(BaseAttentionLayer):
       concated_source_vecs = tf.transpose(concated_source_vecs, [1, 0, 2])
 
       logit_scale = tf.stop_gradient(
-          tf.rsqrt(tf.cast(tf.shape(query_vec)[1], dtype=layers.FPropDtype(p))))
+          tf.rsqrt(
+              tf.cast(tf.shape(query_vec)[1], dtype=py_utils.FPropDtype(p))))
       source_batch = tf.shape(concated_source_vecs)[0]
       target_batch = tf.shape(query_vec)[0]
       query_vec *= per_dim_scale

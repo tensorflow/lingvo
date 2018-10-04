@@ -158,7 +158,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       target_time = tf.shape(query_vec)[0]
       target_bs = tf.shape(query_vec)[1]
       triangle_padding = 1.0 - tf.matrix_band_part(
-          tf.ones([target_time, target_time], dtype=layers.FPropDtype(p)), -1,
+          tf.ones([target_time, target_time], dtype=py_utils.FPropDtype(p)), -1,
           0)
       # [time,  batch, time]
       causal_padding = tf.tile(

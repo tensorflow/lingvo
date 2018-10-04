@@ -40,10 +40,6 @@ def _HistogramSummary(p, name, v):
 RNN_CELL_WT = 'rnn_cell_weight_variable'
 
 
-def _FPropDtype(params):
-  return params.fprop_dtype if params.fprop_dtype is not None else params.dtype
-
-
 class RNNCell(quant_utils.QuantizableLayer):
   # pylint: disable=line-too-long
   """RNN cells.
@@ -350,8 +346,10 @@ class LSTMCellSimple(RNNCell):
 
   def zero_state(self, batch_size):
     p = self.params
-    zero_m = tf.zeros((batch_size, self.output_size), dtype=_FPropDtype(p))
-    zero_c = tf.zeros((batch_size, self.hidden_size), dtype=_FPropDtype(p))
+    zero_m = tf.zeros((batch_size, self.output_size),
+                      dtype=py_utils.FPropDtype(p))
+    zero_c = tf.zeros((batch_size, self.hidden_size),
+                      dtype=py_utils.FPropDtype(p))
     if p.is_inference:
       zero_m = self.QTensor('zero_m', zero_m)
       zero_c = self.QTensor('zero_c', zero_c)
@@ -741,8 +739,10 @@ class QuantizedLSTMCell(RNNCell):
 
   def zero_state(self, batch_size):
     p = self.params
-    zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=_FPropDtype(p))
-    zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=_FPropDtype(p))
+    zero_m = tf.zeros((batch_size, p.num_output_nodes),
+                      dtype=py_utils.FPropDtype(p))
+    zero_c = tf.zeros((batch_size, p.num_output_nodes),
+                      dtype=py_utils.FPropDtype(p))
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def GetOutput(self, state):
