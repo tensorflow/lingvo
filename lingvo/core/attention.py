@@ -271,6 +271,8 @@ class BaseAttentionLayer(base_layer.LayerBase):
     Returns:
       Result of the softmax.
     """
+    if logits.dtype.is_complex:
+      logits = tf.abs(logits)
     assert logits.dtype.is_floating
     assert hasattr(logits.dtype, 'max')
     very_negative_logits = (
@@ -1835,7 +1837,9 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # Transpose probs to be of shape [sb, tb/sb, sl]
       probs_reshaped = tf.transpose(probs_reshaped, [1, 0, 2])
       # [sb, tb/sb, sl] * [sb, sl, context_dim] = [sb, tb/sb, context_dim]
-      summed = tf.matmul(probs_reshaped, concated_source_contexts)
+      summed = tf.matmul(
+          tf.cast(probs_reshaped, concated_source_contexts.dtype),
+          concated_source_contexts)
       # summed is of shape [tb/sb, sb, context_dim]
       summed = tf.transpose(summed, [1, 0, 2])
       return tf.reshape(summed, [tb, -1]), probs
@@ -1878,7 +1882,9 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       logits = tf.transpose(logits)
       source_padding = tf.transpose(source_padding)
       probs = self._PaddedSoftmax(logits, source_padding)
-      summed = tf.matmul(tf.expand_dims(probs, 1), concated_source_contexts)
+      summed = tf.matmul(
+          tf.cast(tf.expand_dims(probs, 1), concated_source_contexts.dtype),
+          concated_source_contexts)
       return tf.squeeze(summed, 1), probs
 
     if p.same_batch_size:
@@ -1929,7 +1935,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
 
   def ZeroAttentionState(self, source_seq_length, decoder_batch_size):
     p = self.params
-    dtype = p.dtype
+    dtype = p.dtype.real_dtype
     num_features = len(p.location_features)
     with tf.name_scope(p.name):
       state = tf.concat([

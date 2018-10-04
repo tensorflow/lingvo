@@ -863,20 +863,21 @@ def CreateVariable(name,
   ]):
     scale *= 1.0 / math.sqrt(dim0)
 
+  init_dtype = dtype.real_dtype
   if method in ['gaussian', 'gaussian_sqrt_dim']:
     v_init = tf.random_normal_initializer(
-        mean=0.0, stddev=scale, seed=seed, dtype=dtype)
+        mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
   elif method in ['uniform', 'uniform_sqrt_dim']:
     v_init = tf.random_uniform_initializer(
-        minval=-scale, maxval=scale, seed=seed, dtype=dtype)
+        minval=-scale, maxval=scale, seed=seed, dtype=init_dtype)
   elif method in ['uniform_unit_scaling']:
     v_init = tf.uniform_unit_scaling_initializer(
-        factor=scale, seed=seed, dtype=dtype)
+        factor=scale, seed=seed, dtype=init_dtype)
   elif method in ['truncated_gaussian', 'truncated_gaussian_sqrt_dim']:
     v_init = tf.truncated_normal_initializer(
-        mean=0.0, stddev=scale, seed=seed, dtype=dtype)
+        mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
   elif method in ['constant']:
-    v_init = tf.constant_initializer(value=scale, dtype=dtype)
+    v_init = tf.constant_initializer(value=scale, dtype=init_dtype)
   elif method in ['xavier']:
     # pylint: disable=unused-argument
     def XavierUniform(shape, dtype, partition_info):
@@ -908,7 +909,21 @@ def CreateVariable(name,
         'Expecting \'params.shape\' being None when '
         '\'init_wrapper\' is specified, instead getting %s') % p.shape
     # Later variable will init from Tensor value instead of intializer callable.
-    v_init = init_wrapper(dtype, v_init)
+    v_init = init_wrapper(init_dtype, v_init)
+  if dtype == tf.complex64:
+
+    def ComplexWrapper(init):
+
+      def _Wrapper(shape, dtype, partition_info):
+        # A more complex alternative may be to use the init function for
+        # magnitudes and uniform random for phases instead.
+        shape = [2] + shape
+        value = init(shape, init_dtype, partition_info)
+        return tf.complex(value[0], value[1])
+
+      return _Wrapper
+
+    v_init = ComplexWrapper(v_init)
 
   # TODO(yonghui): Possibly get away from variable_scope and implement our own
   # variable sharing mechanism.
@@ -1240,7 +1255,9 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
 
   def ScaleOrZero(var, grad, scale):
     grad = CheckNumerics(grad, '%s is not finite.' % var.name)
-    return tf.where(tf.equal(scale, 0.), tf.zeros_like(grad), scale * grad)
+    return tf.where(
+        tf.equal(scale, 0.), tf.zeros_like(grad),
+        tf.cast(scale, grad.dtype) * grad)
 
   def Scale(item):
     """Scales the gradient."""
@@ -1853,6 +1870,16 @@ def Matmul(x, y, *args, **kwargs):
   return tf.matmul(x, y, *args, **kwargs)
 
 
+def clip_by_value(t, clip_value_min, clip_value_max, name=None):
+  if t.dtype.is_complex:
+    return tf.complex(
+        tf.clip_by_value(
+            tf.real(t), clip_value_min, clip_value_max, '%s_real' % name),
+        tf.clip_by_value(
+            tf.imag(t), clip_value_min, clip_value_max, '%s_imag' % name))
+  return tf.clip_by_value(t, clip_value_min, clip_value_max, name)
+
+
 def SumSquared(tensor_list):
   """Computes sum([x*x for x in tensor_list]."""
   with tf.name_scope('SumSquared'):
@@ -1860,9 +1887,9 @@ def SumSquared(tensor_list):
     for t in tensor_list:
       with tf.device(t.device):
         if isinstance(t, tf.IndexedSlices):
-          sum_squared += [tf.reduce_sum(tf.square(t.values))]
+          sum_squared += [tf.reduce_sum(tf.abs(t.values)**2)]
         else:
-          sum_squared += [tf.reduce_sum(tf.square(t))]
+          sum_squared += [tf.reduce_sum(tf.abs(t)**2)]
     return tf.add_n(sum_squared)
 
 

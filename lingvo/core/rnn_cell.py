@@ -187,7 +187,7 @@ def ZoneOut(prev_v, cur_v, padding_v, zo_prob, is_eval, random_uniform):
   else:
     assert random_uniform is not None
     random_uniform = py_utils.HasShape(random_uniform, tf.shape(prev_v))
-    zo_p = tf.cast(random_uniform < zo_prob, prev_v.dtype)
+    zo_p = tf.cast(random_uniform < zo_prob, padding_v.dtype)
     zo_p += padding_v
     # If padding_v is 1, we always carry over the previous state.
     zo_p = tf.minimum(zo_p, 1.0)
@@ -404,7 +404,7 @@ class LSTMCellSimple(RNNCell):
       new_c = output_gate
     # Clip the cell states to reasonable value.
     if p.cell_value_cap is not None:
-      new_c = tf.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
+      new_c = py_utils.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
     if p.output_nonlinearity:
       new_m = fns.qmultiply(tf.sigmoid(o_g), tf.tanh(new_c), qt='m_output')
     else:
@@ -1047,7 +1047,7 @@ class LayerNormalizedLSTMCell(RNNCell):
       cap = self.cc_schedule.CurrentCap(theta.cc_schedule)
     else:
       cap = params.cell_value_cap
-    new_c = tf.clip_by_value(new_c, -cap, cap)
+    new_c = py_utils.clip_by_value(new_c, -cap, cap)
 
     if params.output_nonlinearity:
       new_m = tf.sigmoid(o_g) * tf.tanh(new_c)
@@ -1274,7 +1274,7 @@ class ConvLSTMCell(RNNCell):
         value=xmw + bias, num_or_size_splits=4, axis=3)
     new_c = tf.sigmoid(f_g) * state0.c + tf.sigmoid(i_g) * tf.tanh(i_i)
     # Clip the cell states to reasonable value.
-    new_c = tf.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
+    new_c = py_utils.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
     if p.output_nonlinearity:
       new_m = tf.sigmoid(o_g) * tf.tanh(new_c)
     else:
@@ -1399,7 +1399,7 @@ class SRUCell(RNNCell):
     h_t = r_t * g_c_t + (1.0 - r_t) * resized
 
     # Clip the cell states to reasonable value.
-    c_t = tf.clip_by_value(c_t, -p.cell_value_cap, p.cell_value_cap)
+    c_t = py_utils.clip_by_value(c_t, -p.cell_value_cap, p.cell_value_cap)
 
     c_t = ZoneOut(state0.c, c_t, inputs.padding, p.zo_prob, p.is_eval,
                   p.random_seed)
@@ -1511,7 +1511,7 @@ class QRNNPoolingCell(RNNCell):
 
     # Clip the cell states to reasonable value.
     if p.cell_value_cap is not None:
-      new_c = tf.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
+      new_c = py_utils.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
 
     # Apply Zoneout.
     return self._ApplyZoneOut(state0, inputs, new_c, new_m)
