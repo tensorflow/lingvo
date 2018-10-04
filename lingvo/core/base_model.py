@@ -893,9 +893,24 @@ class SingleTaskModel(BaseModel):
   """Model that consists of a single task."""
 
   @classmethod
-  def Params(cls):
+  def Params(cls, task_params=None):
     p = super(SingleTaskModel, cls).Params()
     p.Define('task', None, 'Task Params.')
+
+    if task_params is not None:
+      # Copy over model parameters from the task parameters.
+      p.task = task_params
+      base_layer.LayerBase.CopyBaseParams(p.task, p)
+      tp = p.train
+      tp.start_up_delay_steps = p.task.train.start_up_delay_steps
+      tp.max_steps = p.task.train.max_steps
+      tp.tpu_steps_per_loop = p.task.train.tpu_steps_per_loop
+      tp.ema_decay = p.task.train.ema_decay
+      # init_from_checkpoint_rules does not need to be copied.
+      tp.early_stop = p.task.train.early_stop
+      tp.save_interval_seconds = p.task.train.save_interval_seconds
+      tp.summary_interval_steps = p.task.train.summary_interval_steps
+
     return p
 
   @base_layer.initializer
