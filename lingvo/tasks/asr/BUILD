@@ -70,3 +70,52 @@ py_library(
         "//lingvo/tasks/lm:layers",
     ],
 )
+
+py_library(
+    name = "decoder_utils",
+    srcs = ["decoder_utils.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "decoder",
+    srcs = [
+        "decoder.py",
+    ],
+    deps = [
+        ":decoder_utils",
+        ":fusion",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:attention",
+        "//lingvo/core:base_decoder",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:layers",
+        "//lingvo/core:plot",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:recurrent",
+        "//lingvo/core:rnn_cell",
+        "//lingvo/core:summary_utils",
+        "//lingvo/core/ops:py_x_ops",
+    ],
+)
+
+py_test(
+    name = "decoder_test",
+    size = "large",
+    srcs = ["decoder_test.py"],
+    shard_count = 10,
+    deps = [
+        ":decoder",
+        # Implicit python proto dependency.
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:py_utils",
+        "//lingvo/core:test_utils",
+        "//lingvo/core/ops:hyps_py_pb2",
+    ],
+)
