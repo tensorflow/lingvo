@@ -82,10 +82,10 @@ class DecoderTest(tf.test.TestCase):
     src_seq_len = 5
     src_enc = tf.random_normal([src_seq_len, 2, 8],
                                seed=982774838,
-                               dtype=lingvo_layers.FPropDtype(params))
+                               dtype=py_utils.FPropDtype(params))
     src_enc_padding = tf.constant(
         [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
-        dtype=lingvo_layers.FPropDtype(params))
+        dtype=py_utils.FPropDtype(params))
     # shape=[4, 5]
     target_ids = tf.transpose(
         tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 15], [5, 6, 7, 8],
@@ -100,7 +100,7 @@ class DecoderTest(tf.test.TestCase):
     target_paddings = tf.transpose(
         tf.constant([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0],
                      [1, 1, 1, 0]],
-                    dtype=lingvo_layers.FPropDtype(params)))
+                    dtype=py_utils.FPropDtype(params)))
     target_transcripts = tf.constant(['abcd', 'bcde', 'klmp', 'fghi', 'kfcf'])
     target_weights = 1.0 - target_paddings
     # ids/labels/weights/paddings are all in [batch, time] shape.
