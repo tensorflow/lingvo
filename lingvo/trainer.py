@@ -924,8 +924,11 @@ class RunnerManager(object):
     """Returns params for `model_name` on the dataset `dataset_name`."""
     try:
       cfg = base_runner.GetParams(model_name, dataset_name)
-    except AttributeError:
-      cfg = base_runner.GetParams(model_name, dataset_name.title())
+    except AttributeError as e:
+      dataset_name_retry = dataset_name.title()
+      tf.logging.warning('Exception configuring dataset %s, retrying as %s: %s',
+                         dataset_name, dataset_name_retry, e)
+      cfg = base_runner.GetParams(model_name, dataset_name_retry)
     cls.UpdateClusterParamsFromFlags(cfg, job_name)
     return cfg
 
