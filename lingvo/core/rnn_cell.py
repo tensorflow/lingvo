@@ -228,7 +228,6 @@ class LSTMCellSimple(RNNCell):
              'Whether or not to apply tanh non-linearity on lstm output.')
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
-    p.Define('random_seed', None, 'Random seed. Useful for unittests.')
     p.Define('enable_lstm_bias', True, 'Enable the LSTM Cell bias.')
     p.Define(
         'couple_input_forget_gates', False,
@@ -699,7 +698,6 @@ class QuantizedLSTMCell(RNNCell):
   @classmethod
   def Params(cls):
     p = super(QuantizedLSTMCell, cls).Params()
-    p.Define('random_seed', None, 'Random seed. Useful for unittests.')
     p.Define('cc_schedule', quant_utils.LinearClippingCapSchedule.Params(),
              'Clipping cap schedule.')
     return p
@@ -917,7 +915,6 @@ class LayerNormalizedLSTMCell(RNNCell):
              'Whether or not to apply tanh non-linearity on lstm output.')
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
-    p.Define('random_seed', None, 'Random seed. Useful for unittests.')
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
@@ -1201,7 +1198,6 @@ class ConvLSTMCell(RNNCell):
              'Whether or not to apply tanh non-linearity on lstm output.')
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
-    p.Define('random_seed', None, 'Random seed. Useful for unittests.')
 
     return p
 
@@ -1332,7 +1328,6 @@ class SRUCell(RNNCell):
         ' scalar or a scalar tensor.')
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
-    p.Define('random_seed', None, 'Random seed. Useful for unittests.')
     return p
 
   @base_layer.initializer
@@ -1450,7 +1445,6 @@ class QRNNPoolingCell(RNNCell):
         'no capping is applied.')
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
-    p.Define('random_seed', None, 'Random seed. Useful for unittests.')
     p.Define('pooling_formula', 'INVALID',
              'Options: quasi_ifo, sru. Which pooling math to use')
     return p

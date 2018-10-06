@@ -42,7 +42,6 @@ class BaseInputGenerator(base_layer.BaseLayer):
     p = super(BaseInputGenerator, cls).Params()
     p.name = 'input'
     p.Define('batch_size', 0, 'Batch size.')
-    p.Define('random_seed', None, 'Random seed used for input sampling.')
     p.Define(
         'num_samples', 0,
         'If non-zero, the dataset contains these many samples. '

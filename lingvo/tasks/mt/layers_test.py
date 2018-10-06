@@ -115,7 +115,6 @@ class LayersTest(tf.test.TestCase):
       params = self._TransformerParams()
       params.is_transparent = True
       params.num_transparent_outputs = 2
-      params.transparent_merger_tpl.random_seed = 0
 
       xformer = mt_layers.TransformerStack(params)
 

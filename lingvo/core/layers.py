@@ -1591,8 +1591,6 @@ class FeedForwardNet(base_layer.BaseLayer):
     # expectation during eval leads to worse quality.
     p.Define('dropout_at_eval', False,
              'Whether or not to also perform dropout at eval time.')
-    p.Define('dropout_random_seed', None,
-             'If not None, the random seed to use in tf.nn.dropout.')
     p.Define(
         'skip_connections', None,
         'This can be a single string or a tuple/list of strings, one per '
@@ -1705,7 +1703,7 @@ class FeedForwardNet(base_layer.BaseLayer):
         layer_out = _ACTIVATIONS[activation[i]](layer_out)
       if dropout_prob[i] > 0.0 and (not p.is_eval or p.dropout_at_eval):
         layer_out = tf.nn.dropout(
-            layer_out, 1.0 - dropout_prob[i], seed=p.dropout_random_seed)
+            layer_out, 1.0 - dropout_prob[i], seed=p.random_seed)
       if skip_connection == 'DenseNet':
         layer_in = tf.concat([layer_in, layer_out], axis=-1)
       else:
@@ -1724,7 +1722,6 @@ class DropoutLayer(base_layer.BaseLayer):
     p.Define(
         'noise_shape', None, 'A 1-D `Tensor` of type `int32`, representing'
         ' the shape for randomly generated keep/drop flags.')
-    p.Define('seed', None, 'Random seed')
     return p
 
   @base_layer.initializer
@@ -1744,7 +1741,10 @@ class DropoutLayer(base_layer.BaseLayer):
     p = self.params
     if p.keep_prob < 1.0 and not p.is_eval:
       return tf.nn.dropout(
-          inputs, keep_prob=p.keep_prob, noise_shape=p.noise_shape, seed=p.seed)
+          inputs,
+          keep_prob=p.keep_prob,
+          noise_shape=p.noise_shape,
+          seed=p.random_seed)
     else:
       return inputs
 
@@ -1756,7 +1756,6 @@ class DeterministicDropoutLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super(DeterministicDropoutLayer, cls).Params()
     p.Define('keep_prob', 1.0, 'Keep probability.')
-    p.Define('seed', None, 'Random seed')
     return p
 
   def FProp(self, theta, inputs):
@@ -1772,9 +1771,7 @@ class DeterministicDropoutLayer(base_layer.BaseLayer):
     p = self.params
     if p.keep_prob < 1.0 and not p.is_eval:
       return py_utils.DeterministicDropout(
-          inputs,
-          self.params.keep_prob,
-          py_utils.GetOpSeedPair(op_seed=self.params.seed))
+          inputs, p.keep_prob, py_utils.GetOpSeedPair(op_seed=p.random_seed))
     else:
       return inputs
 
@@ -2289,10 +2286,6 @@ class WeightedSumLayer(base_layer.BaseLayer):
     p.Define('weighted_merger_dropout_prob', 0.1,
              'Applies dropout to the weights.')
     p.Define(
-        'random_seed', None,
-        'If set, this decides the random seed to apply in dropout.'
-        ' Set this random_seed only for unittests.')
-    p.Define(
         'weighted_merger_softmax', True, 'If set, applies a softmax '
         'layer on top of the weights for normalization.')
     p.Define('add_weight_summaries', False, 'If set, creates summaries for the '
@@ -2320,7 +2313,6 @@ class WeightedSumLayer(base_layer.BaseLayer):
     if p.weighted_merger_dropout_prob > 0.0:
       dropout_tpl = DropoutLayer.Params()
       dropout_tpl.keep_prob = (1.0 - p.weighted_merger_dropout_prob)
-      dropout_tpl.seed = p.random_seed
       self.CreateChild('weighted_merger_dropout', dropout_tpl)
     else:
       self.CreateChild('weighted_merger_dropout', IdentityLayer.Params())

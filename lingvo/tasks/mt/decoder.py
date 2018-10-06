@@ -56,13 +56,9 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     p = super(MTBaseDecoder, cls).Params()
     p.Define('label_smoothing', None, 'Label smoothing class.')
     p.Define('softmax', layers.SimpleFullSoftmax.Params(), 'Softmax params.')
-    p.Define('per_word_avg_loss', False,
-             'Compute loss averaged per word. If False '
-             'loss is computed averaged per sequence.')
-    p.Define('random_seed', None,
-             'If set, this decides the random seed to apply in various random'
-             ' ops such that this decoder is deterministic. Set this'
-             ' random_seed only for unittests.')
+    p.Define(
+        'per_word_avg_loss', False, 'Compute loss averaged per word. If False '
+        'loss is computed averaged per sequence.')
     p.Define('unidi_rnn_type', 'func', 'Options: func, native_cudnn. '
              'func: FRNN, native_cudnn: CuDNNLSTM.')
     p.Define('feed_attention_context_vec_to_softmax', False,
@@ -831,10 +827,8 @@ class TransformerDecoder(MTBaseDecoder):
 
       dropout_tpl = layers.DropoutLayer.Params()
       dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
-      dropout_tpl.seed = p.random_seed
       self.CreateChild('input_dropout', dropout_tpl)
 
-      p.trans_tpl.random_seed = p.random_seed
       params_trans_layers = []
       for i in range(p.num_trans_layers):
         params = p.trans_tpl.Copy()

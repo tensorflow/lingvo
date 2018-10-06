@@ -45,11 +45,6 @@ class TransformerStack(base_layer.BaseLayer):
     p.Define('transformer_tpl', layers_with_attention.TransformerLayer.Params(),
              'TransformerLayer params tpl.')
 
-    p.Define('random_seed', None,
-             'If set, this decides the random seed to apply in various random'
-             ' ops such that this encoder is deterministic. Set this'
-             ' random_seed only for unittests.')
-
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define('ln_output', False,
              'If set, layer normalization is applied to the final output'
@@ -81,7 +76,6 @@ class TransformerStack(base_layer.BaseLayer):
         params.name = 'trans_%d' % (i)
         params.source_dim = p.model_dim
         params.packed_input = p.packed_input
-        params.random_seed = p.random_seed
         transformer_layer_params.append(params)
 
       self.CreateChildren('trans', transformer_layer_params)

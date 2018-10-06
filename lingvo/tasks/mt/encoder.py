@@ -56,13 +56,10 @@ class MTEncoderV1(base_encoder.BaseEncoder):
     p.Define('dropout_prob', 0.0, 'Prob at which we do dropout.')
     p.Define('unidi_rnn_type', 'func', 'Options: func, native_cudnn. '
              'func: FRNN, native_cudnn: CuDNNLSTM.')
-    p.Define('bidi_rnn_type', 'func', 'Options: func, native_cudnn. '
-             'func: BidirectionalFRNN, '
-             ' native_cudnn: BidirectionalNativeCuDNNLSTM.')
-    p.Define('random_seed', None,
-             'If set, this decides the random seed to apply in various random'
-             ' ops such that this encoder is deterministic. Set this'
-             ' random_seed only for unittests.')
+    p.Define(
+        'bidi_rnn_type', 'func', 'Options: func, native_cudnn. '
+        'func: BidirectionalFRNN, '
+        ' native_cudnn: BidirectionalNativeCuDNNLSTM.')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
 
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
@@ -139,7 +136,7 @@ class MTEncoderV1(base_encoder.BaseEncoder):
       dropout_p = layers.DropoutLayer.Params().Set(
           name='dropout_layer',
           keep_prob=1.0 - p.dropout_prob,
-          seed=p.random_seed + 84828474 if p.random_seed else None)
+          random_seed=p.random_seed + 84828474 if p.random_seed else None)
       self.CreateChild('dropout', dropout_p)
 
   def ApplyClipping(self, theta, x):
@@ -222,11 +219,6 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
     p.Define(
         'unidi_rnn_type', 'func', 'Options: func, native_cudnn. '
         'func: FRNN, native_cudnn: CuDNNLSTM.')
-    p.Define(
-        'random_seed', None,
-        'If set, this decides the random seed to apply in various random'
-        ' ops such that this encoder is deterministic. Set this'
-        ' random_seed only for unittests.')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
 
     p.Define('is_transparent', False,
@@ -283,14 +275,13 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
       dropout_p = layers.DropoutLayer.Params().Set(
           name='dropout_layer',
           keep_prob=1.0 - p.dropout_prob,
-          seed=p.random_seed + 827366448 if p.random_seed else None)
+          random_seed=p.random_seed + 827366448 if p.random_seed else None)
       self.CreateChild('dropout', dropout_p)
 
       if p.is_transparent:
         transparent_params = p.transparent_merger_tpl.Copy()
         transparent_params.name = 'transparent'
         transparent_params.num_sources = p.num_lstm_layers
-        transparent_params.random_seed = p.random_seed
         self.CreateChild('transparent_merger', transparent_params)
 
   def ApplyClipping(self, theta, x):
@@ -354,13 +345,10 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
     p.Define('residual_start', 2,
              'Layer at which we start residual connections.')
     p.Define('encoder_out_dim', 1024, 'Depth of the encoder output.')
-    p.Define('bidi_rnn_type', 'func', 'Options: func, native_cudnn. '
-             'func: BidirectionalFRNN, '
-             ' native_cudnn: BidirectionalNativeCuDNNLSTM.')
-    p.Define('random_seed', None,
-             'If set, this decides the random seed to apply in various random'
-             ' ops such that this encoder is deterministic. Set this'
-             ' random_seed only for unittests.')
+    p.Define(
+        'bidi_rnn_type', 'func', 'Options: func, native_cudnn. '
+        'func: BidirectionalFRNN, '
+        ' native_cudnn: BidirectionalNativeCuDNNLSTM.')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
 
     p.Define('is_transparent', False,
@@ -441,14 +429,13 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
       dropout_p = layers.DropoutLayer.Params().Set(
           name='dropout_layer',
           keep_prob=1.0 - p.dropout_prob,
-          seed=p.random_seed + 827366448 if p.random_seed else None)
+          random_seed=p.random_seed + 827366448 if p.random_seed else None)
       self.CreateChild('dropout', dropout_p)
 
       if p.is_transparent:
         transparent_params = p.transparent_merger_tpl.Copy()
         transparent_params.name = 'transparent'
         transparent_params.num_sources = p.num_lstm_layers
-        transparent_params.random_seed = p.random_seed
         self.CreateChild('transparent_merger', transparent_params)
 
   def ApplyClipping(self, theta, x):
@@ -535,10 +522,6 @@ class TransformerEncoder(base_encoder.BaseEncoder):
 
     p.Define('model_dim', 1024, 'Characteristic depth (dimension).')
     p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
-    p.Define('random_seed', None,
-             'If set, this decides the random seed to apply in various random'
-             ' ops such that this encoder is deterministic. Set this'
-             ' random_seed only for unittests.')
 
     p.Define('transformer_stack', mt_layers.TransformerStack.Params(),
              'TransformerStack layer params.')
@@ -575,11 +558,9 @@ class TransformerEncoder(base_encoder.BaseEncoder):
 
       dropout_tpl = layers.DropoutLayer.Params()
       dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
-      dropout_tpl.seed = p.random_seed
       self.CreateChild('input_dropout', dropout_tpl)
 
     p.transformer_stack.name = p.name
-    p.transformer_stack.random_seed = p.random_seed
     self.CreateChild('transformer_stack', p.transformer_stack)
 
   def FProp(self, theta, input_batch):

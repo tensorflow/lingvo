@@ -84,7 +84,6 @@ class ModelV1(BaseClassifier):
     p.Define('batch_norm', False, 'Apply BN or not after the conv.')
     p.Define('dropout_prob', 0.0,
              'Probability of the dropout applied after pooling.')
-    p.Define('dropout_seed', None, 'Dropout\'s random seed.')
 
     tp = p.train
     tp.learning_rate = 1e-4  # Adam base LR.
@@ -148,7 +147,7 @@ class ModelV1(BaseClassifier):
       # Dropout (optional)
       if p.dropout_prob > 0.0 and not p.is_eval:
         act = tf.nn.dropout(
-            act, keep_prob=1.0 - p.dropout_prob, seed=p.dropout_seed)
+            act, keep_prob=1.0 - p.dropout_prob, seed=p.random_seed)
     # FC
     act = self.fc.FProp(theta.fc, tf.reshape(act, [batch, -1]))
 

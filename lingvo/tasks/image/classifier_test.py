@@ -48,9 +48,8 @@ class ClassifierTest(tf.test.TestCase):
     with g.as_default():
       tf.set_random_seed(1618)
       p = model_registry.GetParams('image.mnist.LeNet5', 'Test')
+      p.random_seed = 73234288
       p.input.ckpt = self.data_path
-      p.input.random_seed = 73234288
-      p.task.dropout_seed = 73234288
       p.task.params_init = py_utils.WeightInit.Uniform(0.1, seed=73234288)
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
         model = p.cls(p)

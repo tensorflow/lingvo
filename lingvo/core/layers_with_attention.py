@@ -76,11 +76,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         'residual_dropout_tpl', layers.DropoutLayer.Params(),
         'Residual dropout params template. keep_prop will be reset to '
         '(1.0 - residual_dropout_prob).')
-    p.Define(
-        'random_seed', None,
-        'If set, this decides the random seed to apply in various random'
-        ' ops (attention, residual, feed-forward) such that this layer is'
-        ' deterministic. Set this random_seed only for unittests.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
     return p
@@ -103,7 +98,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       params.ctx_post_proj_dim = p.source_dim
       params.num_attention_heads = p.num_attention_heads
       params.atten_dropout_prob = p.atten_dropout_prob
-      params.random_seed = p.random_seed
       params.packed_input = p.packed_input
       self.CreateChild('atten', params)
 
@@ -115,7 +109,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
       dropout_tpl = p.residual_dropout_tpl.Copy()
       dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
-      dropout_tpl.seed = p.random_seed
       self.CreateChild('residual_dropout', dropout_tpl)
 
   def FProp(self,
@@ -268,10 +261,6 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
         'relu_dropout_prob', 0.0,
         'Probability at which we apply dropout to the hidden layer '
         'of feed-forward network.')
-    p.Define(
-        'random_seed', None,
-        'If set, this decides the random seed to apply in dropout.'
-        ' Set this random_seed only for unittests.')
     return p
 
   @base_layer.initializer
@@ -301,7 +290,6 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
           self.CreateChild('res_proj_layer', pj)
 
       params.dropout_prob = [p.relu_dropout_prob, 0.0]
-      params.dropout_random_seed = p.random_seed
       self.CreateChild('fflayer', params)
 
       # Initialize feed-forward layer norm
@@ -312,7 +300,6 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
 
       dropout_tpl = p.residual_dropout_tpl.Copy()
       dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
-      dropout_tpl.seed = p.random_seed
       self.CreateChild('residual_dropout', dropout_tpl)
 
   def FProp(self, theta, inputs, paddings):
@@ -365,10 +352,6 @@ class TransformerLayer(base_layer.BaseLayer):
         'is_decoder', False,
         'If set, introduces a second attention layer, which attends to'
         ' the auxiliary source contexts.')
-    p.Define(
-        'random_seed', None,
-        'If set, this decides the random seed to apply in dropout.'
-        ' Set this random_seed only for unittests.')
     p.Define('tr_aux_atten_tpl', None, 'Transformer Attention Layer params.')
     p.Define(
         'mask_self_atten', False, 'If True, use masked self-attention. '
@@ -391,7 +374,6 @@ class TransformerLayer(base_layer.BaseLayer):
       params.name = 'multihead_self_atten'
       params.source_dim = p.source_dim
       params.packed_input = p.packed_input
-      params.random_seed = p.random_seed
       if p.is_decoder:
         params.is_masked = True
       else:
@@ -406,7 +388,6 @@ class TransformerLayer(base_layer.BaseLayer):
         params.name = 'multihead_atten'
         params.source_dim = p.source_dim
         params.packed_input = p.packed_input
-        params.random_seed = p.random_seed
         self.CreateChild('atten', params)
 
       # Initialize feed-forward layer
@@ -414,7 +395,6 @@ class TransformerLayer(base_layer.BaseLayer):
       params.name = 'tr_fflayer'
       params.input_dim = p.source_dim
       params.output_dim = p.output_dim
-      params.random_seed = p.random_seed
       self.CreateChild('fflayer', params)
 
   def FProp(self,
@@ -726,8 +706,6 @@ class StyleLayer(base_layer.BaseLayer):
         'enable_ctx_post_proj', True,
         'If True, computed context is post projected into'
         ' ctx_post_proj_dim.')
-    p.Define('random_seed', None,
-             'If not None, the random seed used in various ops.')
     return p
 
   @base_layer.initializer
@@ -758,8 +736,7 @@ class StyleLayer(base_layer.BaseLayer):
           ctx_post_proj_dim=p.output_dim,
           num_attention_heads=p.num_heads,
           use_source_vec_as_attention_value=False,
-          enable_ctx_post_proj=p.enable_ctx_post_proj,
-          random_seed=p.random_seed)
+          enable_ctx_post_proj=p.enable_ctx_post_proj)
       self.CreateChild('atten', atten_p)
 
   def EmbLookup(self, theta, ids):

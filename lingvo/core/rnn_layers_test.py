@@ -87,11 +87,11 @@ class LayersTestBase(tf.test.TestCase):
         sfrnn_params = cls.Params()
         sfrnn_params.name = 'sfrnn'
         sfrnn_params.dtype = dtype
+        sfrnn_params.random_seed = 123456
         sfrnn_params.cell_tpl = params
         sfrnn_params.num_layers = num_layers
         sfrnn_params.skip_start = 2
         sfrnn_params.dropout.keep_prob = keep_prob
-        sfrnn_params.dropout.seed = 123456
         with tf.name_scope('sfrnn'):
           sfrnn = sfrnn_params.cls(sfrnn_params)
 
@@ -280,7 +280,7 @@ class LayersTest(LayersTestBase):
     # Train graph
     with tf.Graph().as_default() as g:
       with self.session(use_gpu=True, graph=g) as sess:
-        g.seed = 87654321
+        tf.set_random_seed(87654321)
         init_op, outputs, final = _CreateLayer(is_eval=False)  # pylint:disable=unbalanced-tuple-unpacking
         saver = tf.train.Saver()
 
@@ -297,7 +297,7 @@ class LayersTest(LayersTestBase):
     # Eval graph
     with tf.Graph().as_default() as g:
       with self.session(use_gpu=False, graph=g) as sess:
-        g.seed = 87654321
+        tf.set_random_seed(87654321)
         outputs, final = _CreateLayer(is_eval=True)  # pylint:disable=unbalanced-tuple-unpacking
         saver = tf.train.Saver()
 
@@ -331,7 +331,7 @@ class LayersTest(LayersTestBase):
 
     with tf.Graph().as_default() as g:
       with self.session(use_gpu=True) as sess:
-        g.seed = 87654321
+        tf.set_random_seed(87654321)
         params = self._CreateCuDNNLSTMParams(
             input_nodes, cell_nodes, dtype=dtype, is_eval=False)
         rnn = rnn_layers.CuDNNLSTM(params)

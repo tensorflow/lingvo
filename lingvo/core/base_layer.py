@@ -165,6 +165,9 @@ class BaseLayer(object):
     # None value will make FProp use dtype instead of fprop_dtype.
     # TODO(lepikhin): all @function.Defun should use p.fprop_dtype if it is set.
     p.Define('fprop_dtype', None, 'Activations datatype to use.')
+    p.Define(
+        'random_seed', None, 'Random seed for deterministic unittests. This '
+        'is inherited by child layers if they do not set a random_seed.')
     p.Define('vn', DefaultVN(), 'How variational noise should be applied.')
     p.Define('params_init', py_utils.DefaultParamInit(),
              'How params should be initialized.')
@@ -198,6 +201,8 @@ class BaseLayer(object):
       to_params.dtype = from_params.dtype
     if from_params.fprop_dtype is not None:
       to_params.fprop_dtype = from_params.fprop_dtype
+    if to_params.random_seed is None:
+      to_params.random_seed = from_params.random_seed
     if to_params.is_eval is None:
       to_params.is_eval = from_params.is_eval
     if to_params.is_inference is None:

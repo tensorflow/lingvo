@@ -254,8 +254,7 @@ class TransformerModelTest(tf.test.TestCase):
   def testBPropWithAccumComparison(self):
 
     def _SetDefaults(p):
-      p.encoder.random_seed = 12345
-      p.decoder.random_seed = 12345
+      p.random_seed = 12345
       p.decoder.input_dropout_prob = 0.0
       mp = p.encoder.transformer_stack.transparent_merger_tpl
       mp.weighted_merger_dropout_prob = 0.0

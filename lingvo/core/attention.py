@@ -79,10 +79,6 @@ class BaseAttentionLayer(base_layer.BaseLayer):
         'atten_dropout_deterministic', False,
         'Whether to dropout in a fully deterministic way, which is more '
         'suitable for TPU.')
-    p.Define(
-        'random_seed', None,
-        'If set, this decides the random seed to apply in dropout. '
-        'Only set this random_seed for unit tests.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
     return p
@@ -1172,7 +1168,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           query_dim=att_dim,
           hidden_dim=att_dim,
           dtype=p.dtype,
-          random_seed=p.random_seed,
           atten_dropout_prob=p.atten_dropout_prob,
           atten_dropout_deterministic=p.atten_dropout_deterministic,
           packed_input=p.packed_input)

@@ -204,7 +204,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         'input; if the layer also normalizes its output, then the '
         'normalization is done over this sum. Set to 0 to disable '
         'residual connections.')
-    p.Define('random_seed', None, 'A random seed for unit-test.')
     p.Define('fusion', fusion.NullFusion.Params(), 'Fusion class params.')
     p.Define('parallel_iterations', 30,
              'Max number of iterations to run in parallel for while loop.')

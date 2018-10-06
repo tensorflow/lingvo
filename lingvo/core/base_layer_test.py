@@ -46,18 +46,22 @@ class BaseLayerTest(tf.test.TestCase):
     to_param = layer_base_p.Copy()
     from_param.is_eval = False
     from_param.vn.global_vn = True
+    from_param.random_seed = 1234
     # Target use default, overwrite.
     base_layer.BaseLayer.CopyBaseParams(from_param, to_param)
     self.assertEqual(False, to_param.is_eval)
     self.assertTrue(to_param.vn.global_vn)
+    self.assertEqual(1234, to_param.random_seed)
     to_param = layer_base_p.Copy()
     to_param.is_eval = True
     to_param.vn.per_step_vn = True
+    to_param.random_seed = 4321
     # Target does not use default, should not overwrite.
     base_layer.BaseLayer.CopyBaseParams(from_param, to_param)
     self.assertEqual(True, to_param.is_eval)
     self.assertTrue(to_param.vn.per_step_vn)
     self.assertFalse(to_param.vn.global_vn)
+    self.assertEqual(4321, to_param.random_seed)
 
   def testCreateChildren(self):
     layer_p = base_layer.BaseLayer.Params()

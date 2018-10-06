@@ -689,10 +689,6 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
         'sub-layer.')
     p.Define('softmax', layers.SimpleFullSoftmax.Params(),
              'The softmax layer params.')
-    p.Define(
-        'random_seed', None,
-        'If set, this decides the random seed to apply in various random '
-        'ops. Set this random_seed only for unittests.')
 
     # Default config for the transformer layers.
     p.trans_tpl.is_decoder = False
@@ -718,7 +714,7 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
       self.CreateChild('position_emb', p.position_emb)
 
       dropout_tpl = layers.DropoutLayer.Params().Set(
-          keep_prob=(1.0 - p.input_dropout_prob), seed=p.random_seed)
+          keep_prob=(1.0 - p.input_dropout_prob))
       self.CreateChild('input_dropout', dropout_tpl)
 
       params_trans_layers = []
@@ -726,7 +722,6 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
         params = p.trans_tpl.Copy()
         params.source_dim = p.model_dim
         params.name = 'layer_%d' % i
-        params.random_seed = p.random_seed
         params_trans_layers.append(params)
       self.CreateChildren('trans', params_trans_layers)
 

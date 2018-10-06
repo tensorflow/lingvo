@@ -1881,7 +1881,7 @@ class FeedForwardNetTest(tf.test.TestCase):
       tf.set_random_seed(3980847392)
       p = layers.DropoutLayer.Params()
       p.keep_prob = 0.5
-      p.seed = 1234
+      p.random_seed = 1234
       p.name = 'dropout'
 
       dl = p.cls(p)
@@ -1898,7 +1898,7 @@ class FeedForwardNetTest(tf.test.TestCase):
       tf.set_random_seed(3980847392)
       p = layers.DropoutLayer.Params()
       p.keep_prob = 0.5
-      p.seed = 1234
+      p.random_seed = 1234
       p.name = 'dropout'
       p.is_eval = True
 
