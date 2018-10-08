@@ -916,18 +916,12 @@ class FRNNWithAttention(base_layer.BaseLayer):
       assert src_segment_id is not None
 
     # Initial attention state.
-    (source_vec, source_contexts, source_padding,
-     source_segment_id) = atten.InitForSourcePacked(
-         theta=theta.atten,
-         source_vecs=src_encs,
-         source_contexts=src_contexts,
-         source_padding=src_paddings,
-         source_segment_id=src_segment_id)
-    return py_utils.NestedMap(
-        source_vec=source_vec,
-        source_contexts=source_contexts,
-        source_padding=source_padding,
-        source_segment_id=source_segment_id)
+    return atten.InitForSourcePacked(
+        theta=theta.atten,
+        source_vecs=src_encs,
+        source_contexts=src_contexts,
+        source_padding=src_paddings,
+        source_segment_id=src_segment_id)
 
   def zero_state(self,
                  theta,
@@ -971,13 +965,9 @@ class FRNNWithAttention(base_layer.BaseLayer):
       state0.atten, state0.atten_probs, state0.atten_state = (
           atten.ComputeContextVectorWithSource(
               theta.atten,
-              packed_src.source_vec,
-              packed_src.source_contexts,
-              packed_src.source_padding,
-              packed_src.source_segment_id,
-              tf.zeros(
-                  [batch_size, p.cell.num_output_nodes],
-                  dtype=packed_src.source_vec.dtype),
+              packed_src,
+              tf.zeros([batch_size, p.cell.num_output_nodes],
+                       dtype=packed_src.source_vecs.dtype),
               zero_atten_state,
               step_state=state0.step_state))
     return state0
@@ -1054,7 +1044,6 @@ class FRNNWithAttention(base_layer.BaseLayer):
     def CellFn(theta, state0, inputs):
       """Computes one step forward."""
       if p.packed_input:
-        batch = tf.shape(inputs.act)[0]
         state0_mod = state0.DeepCopy()
         state0_mod = self.reset_atten_state(theta, state0_mod, inputs)
       else:
@@ -1072,10 +1061,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
       state1.atten, state1.atten_probs, state1.atten_state = (
           atten.ComputeContextVectorWithSource(
               theta.atten,
-              theta.source_vec,
-              theta.source_contexts,
-              theta.source_padding,
-              theta.source_segment_id,
+              theta.packed_src,
               rcell.GetOutput(state1.rnn),
               state0_mod.atten_state,
               step_state=state0_mod.step_state,
@@ -1090,12 +1076,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
 
     acc_state, final_state = recurrent.Recurrent(
         theta=py_utils.NestedMap(
-            rnn=theta.cell,
-            source_vec=packed_src.source_vec,
-            source_contexts=packed_src.source_contexts,
-            source_padding=packed_src.source_padding,
-            source_segment_id=packed_src.source_segment_id,
-            atten=theta.atten),
+            rnn=theta.cell, packed_src=packed_src, atten=theta.atten),
         state0=state0,
         inputs=py_utils.NestedMap(
             act=inputs,
@@ -1241,46 +1222,36 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
     query_vec0 = tf.zeros([batch_size, p.cell.num_output_nodes], dtype)
 
     ctxs0 = []
-    transformed_src_vecs = py_utils.NestedMap()
-    transposed_src_ctxs = py_utils.NestedMap()
-    src_ps = py_utils.NestedMap()
-    src_seg_ids = py_utils.NestedMap()
+    packed_srcs = py_utils.NestedMap()
     for i, src_name in enumerate(p.source_names):
       att_idx = (0 if p.share_attention else i)
 
-      (source_vecs, source_contexts, source_padding,
-       source_segment_id) = self.attentions[att_idx].InitForSourcePacked(
-           theta.attentions[att_idx], src_encs[src_name], src_encs[src_name],
-           src_paddings[src_name])
-
-      transformed_src_vecs[src_name] = source_vecs
-      transposed_src_ctxs[src_name] = source_contexts
-      src_ps[src_name] = source_padding
-      src_seg_ids[src_name] = source_segment_id
+      packed_srcs[src_name] = self.attentions[att_idx].InitForSourcePacked(
+          theta.attentions[att_idx], src_encs[src_name], src_encs[src_name],
+          src_paddings[src_name])
 
       # Initial attention state.
       s_seq_len = tf.shape(src_encs[src_name])[0]
       zero_atten_state = self.attentions[att_idx].ZeroAttentionState(
           s_seq_len, batch_size)
       ctxs0.append(self.attentions[att_idx].ComputeContextVectorWithSource(
-          theta.attentions[att_idx], source_vecs, source_contexts,
-          source_padding, source_segment_id, query_vec0, zero_atten_state)[0])
+          theta.attentions[att_idx], packed_srcs[src_name], query_vec0,
+          zero_atten_state)[0])
 
     # Initial attention state is the output of merger-op.
     state0.atten = self.atten_merger.FProp(theta.atten_merger, ctxs0,
                                            query_vec0)
-    return (state0, transformed_src_vecs, transposed_src_ctxs, src_ps,
-            src_seg_ids)
+    return state0, packed_srcs
 
   def FProp(self, theta, src_encs, src_paddings, inputs, paddings):
     """Forward propagate through a RNN layer with attention(s).
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
-      src_encs: A `.NestedMap` object containing source encoding tensors,
-        each of shape [source_seq_length, batch_size, source_dim]. Children
-        names of the `.NestedMap` is defined by source_names.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      src_encs: A `.NestedMap` object containing source encoding tensors, each
+        of shape [source_seq_length, batch_size, source_dim]. Children names of
+        the `.NestedMap` is defined by source_names.
       src_paddings: A `.NestedMap` object contraining source padding tensors,
         each of shape [source_seq_length, batch_size]. Children names of the
         `.NestedMap` is defined by source_names.
@@ -1322,9 +1293,8 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
     ], src_paddings[src_name_0])
 
     # Compute source transformations and initial rnn states.
-    (state0, transformed_src_vecs, transposed_src_ctxs, src_padding,
-     src_seg_id) = self.InitAttention(theta, src_encs, src_paddings,
-                                      tf.shape(inputs)[1])
+    state0, packed_src = self.InitAttention(theta, src_encs, src_paddings,
+                                            tf.shape(inputs)[1])
 
     # Collect individual attention parameters for CellFn.
     attens_theta = py_utils.NestedMap({
@@ -1347,9 +1317,8 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
       for i, src_name in enumerate(p.source_names):
         att_idx = (0 if p.share_attention else i)
         local_ctxs.append(attentions[att_idx].ComputeContextVectorWithSource(
-            theta.attens[src_name], theta.src_vecs[src_name],
-            theta.src_ctxs[src_name], theta.src_p[src_name],
-            theta.src_seg_id[src_name], query_vec, state0.atten)[0])
+            theta.attens[src_name], theta.packed_src[src_name], query_vec,
+            state0.atten)[0])
       state1.atten = self.atten_merger.FProp(theta.atten_merger, local_ctxs,
                                              query_vec)
       return state1, py_utils.NestedMap()
@@ -1359,10 +1328,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
         theta=py_utils.NestedMap(
             rnn=theta.cell,
             attens=attens_theta,
-            src_p=src_padding,
-            src_vecs=transformed_src_vecs,
-            src_ctxs=transposed_src_ctxs,
-            src_seg_id=src_seg_id,
+            packed_src=packed_src,
             atten_merger=theta.atten_merger),
         state0=state0,
         inputs=py_utils.NestedMap(act=inputs, padding=paddings),

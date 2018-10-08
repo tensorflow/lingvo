@@ -162,19 +162,14 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       causal_padding = None
 
     query_dim = tf.shape(query_vec)[-1]
-    (concated_source_vecs, concated_source_contexts,
-     source_padding, source_segment_id) = self.atten.PackSource(
-         theta.atten, source_vecs, source_vecs, source_paddings,
-         source_segment_id)
+    packed_src = self.atten.PackSource(theta.atten, source_vecs, source_vecs,
+                                       source_paddings, source_segment_id)
 
     if query_segment_id is not None:
       query_segment_id = tf.reshape(query_segment_id, [-1])
     ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithSource(
         theta.atten,
-        concated_source_vecs,
-        concated_source_contexts,
-        source_padding,
-        source_segment_id,
+        packed_src,
         tf.reshape(query_vec, [-1, query_dim]),
         per_step_source_padding=causal_padding,
         query_segment_id=query_segment_id)
@@ -208,20 +203,21 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     assert p.is_masked  # Must be causal attention.
     query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
-    cached_source_vecs = prefix_state.key
-    cached_source_contexts = prefix_state.value
-    (extended_source_vecs,
-     extended_source_contexts, _, _) = self.atten.ExtendSourcePacked(
-         theta.atten, query_vec, query_vec, None, None, cached_source_vecs,
-         cached_source_contexts, None, None)
+    cached_packed_src = py_utils.NestedMap(
+        source_vecs=prefix_state.key,
+        source_contexts=prefix_state.value,
+        source_padding=None,
+        source_segment_id=None)
+    extended_packed_src = self.atten.ExtendSourcePacked(
+        theta.atten, query_vec, query_vec, None, None, cached_packed_src)
     ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithCachedSource(
-        theta.atten, extended_source_vecs, extended_source_contexts, None, None,
-        query_vec)
+        theta.atten, extended_packed_src, query_vec)
 
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     h = query_vec + tf.reshape(ctx_vec, tf.shape(query_vec))
     new_states = py_utils.NestedMap(
-        key=extended_source_vecs, value=extended_source_contexts)
+        key=extended_packed_src.source_vecs,
+        value=extended_packed_src.source_contexts)
     return h, atten_prob, new_states
 
 
@@ -773,11 +769,10 @@ class StyleLayer(base_layer.BaseLayer):
     styles_paddings = tf.zeros([p.num_styles, b_size])
     atten_probs = tf.tile(tf.expand_dims(inp, 1), [1, p.num_heads, 1])
     atten_probs = tf.reshape(atten_probs, [-1, p.num_styles])
-    _, packed_context, _, _ = (
-        self.atten.InitForSourcePacked(theta.atten, styles_w, styles_w,
-                                       styles_paddings))
+    packed_src = self.atten.InitForSourcePacked(theta.atten, styles_w, styles_w,
+                                                styles_paddings)
     style_emb, _ = self.atten.ComputeContextVectorWithAttenProbs(
-        theta.atten, packed_context, atten_probs)
+        theta.atten, packed_src.source_contexts, atten_probs)
     return style_emb
 
   def FProp(self, theta, inp):
@@ -787,11 +782,9 @@ class StyleLayer(base_layer.BaseLayer):
     b_size = tf.shape(inp)[0]
     styles_w = tf.tile(tf.nn.tanh(theta.styles_w), [1, b_size, 1])
     styles_paddings = tf.zeros([p.num_styles, b_size])
-    packed_vec, packed_context, packed_padding, packed_seg_id = (
-        self.atten.InitForSourcePacked(theta.atten, styles_w, styles_w,
-                                       styles_paddings))
+    packed_src = self.atten.InitForSourcePacked(theta.atten, styles_w, styles_w,
+                                                styles_paddings)
     style_emb, probs, _ = self.atten.ComputeContextVectorWithSource(
-        theta.atten, packed_vec, packed_context, packed_padding, packed_seg_id,
-        inp)
+        theta.atten, packed_src, inp)
     # TODO(yonghui): Extract and return the attention probabilities.
     return style_emb, probs

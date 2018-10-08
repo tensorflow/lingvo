@@ -557,14 +557,14 @@ class AttentionTest(tf.test.TestCase):
           num_attention_heads=2,
           use_source_vec_as_attention_value=False)
       atten = params.cls(params)
-      _, packed_context, _, _ = atten.InitForSourcePacked(
-          atten.theta, source_vecs, source_contexts, source_padding)
+      packed_src = atten.InitForSourcePacked(atten.theta, source_vecs,
+                                             source_contexts, source_padding)
       tf.global_variables_initializer().run()
       atten_probs = tf.constant([[1.0] + [0.0] * 5] * 3 * 2, dtype=tf.float32)
       atten_vec_proj, atten_vec = atten.ComputeContextVectorWithAttenProbs(
-          atten.theta, packed_context, atten_probs)
+          atten.theta, packed_src.source_contexts, atten_probs)
       atten_vec_proj, atten_vec, packed_context = sess.run(
-          [atten_vec_proj, atten_vec, packed_context])
+          [atten_vec_proj, atten_vec, packed_src.source_contexts])
       self.assertAllClose(
           atten_vec,
           np.reshape(np.transpose(packed_context, (0, 2, 1)),
@@ -599,59 +599,44 @@ class AttentionTest(tf.test.TestCase):
           packed_input=True)
       atten = params.cls(params)
       theta = atten.theta
-      source_vec1, source_context1, source_padding1, source_seg_id1 = (
-          atten.InitForSourcePacked(theta, source_vecs, source_contexts,
-                                    source_padding, source_seg_id))
-      source_vec2 = tf.zeros([3, 0, 4], dtype=source_vec1.dtype)
-      source_context2 = tf.zeros([3, 0, 6], dtype=source_context1.dtype)
-      source_padding2 = tf.zeros([3, 0, 2], dtype=source_padding1.dtype)
-      source_seg_id2 = tf.zeros([3, 0, 2], dtype=source_padding1.dtype)
+      packed_src1 = atten.InitForSourcePacked(
+          theta, source_vecs, source_contexts, source_padding, source_seg_id)
+      cached_src = py_utils.NestedMap(
+          source_vecs=tf.zeros([3, 0, 4], dtype=packed_src1.source_vecs.dtype),
+          source_contexts=tf.zeros([3, 0, 6],
+                                   dtype=packed_src1.source_contexts.dtype),
+          source_padding=tf.zeros([3, 0, 2],
+                                  dtype=packed_src1.source_padding.dtype),
+          source_segment_id=tf.zeros([3, 0, 2],
+                                     dtype=packed_src1.source_segment_id.dtype))
       for i in range(6):
-        (source_vec2, source_context2,
-         source_padding2, source_seg_id2) = atten.ExtendSourcePacked(
-             theta, source_vecs[i, :, :], source_contexts[i, :, :],
-             source_padding[i, :], source_seg_id[i, :], source_vec2,
-             source_context2, source_padding2, source_seg_id2)
+        cached_src = atten.ExtendSourcePacked(
+            theta, source_vecs[i, :, :], source_contexts[i, :, :],
+            source_padding[i, :], source_seg_id[i, :], cached_src)
+      packed_src2 = atten.PackCachedSource(cached_src)
       tf.global_variables_initializer().run()
 
       atten_vec_1, prob_1, _ = atten.ComputeContextVectorWithSource(
-          theta,
-          source_vec1,
-          source_context1,
-          source_padding1,
-          source_seg_id1,
-          query_vec,
-          query_segment_id=query_seg_id)
+          theta, packed_src1, query_vec, query_segment_id=query_seg_id)
       atten_vec_2, prob_2, _ = atten.ComputeContextVectorWithCachedSource(
-          theta,
-          source_vec2,
-          source_context2,
-          source_padding2,
-          source_seg_id2,
-          query_vec,
-          query_segment_id=query_seg_id)
+          theta, cached_src, query_vec, query_segment_id=query_seg_id)
 
-      source_vec2 = tf.reshape(tf.transpose(source_vec2, [1, 0, 2]), [6, 6, 2])
-      # source_context1 is of shape [batch_size * num_heads, seq_len, dim]
-      # source_context2 is of shape [batch_size, seq_len, num_heads * dim]
-      source_context2 = tf.transpose(
-          tf.reshape(tf.transpose(source_context2, [1, 0, 2]), [6, 6, 3]),
-          [1, 0, 2])
-      source_padding2 = tf.reshape(
-          tf.transpose(source_padding2, [1, 0, 2]), [6, 6])
-
-      (source_vec1_v, source_context1_v, source_padding1_v, source_vec2_v,
-       source_context2_v, source_padding2_v, atten_vec1_v, prob1_v,
-       atten_vec2_v, prob2_v) = sess.run([
-           source_vec1, source_context1, source_padding1, source_vec2,
-           source_context2, source_padding2, atten_vec_1, prob_1, atten_vec_2,
-           prob_2
-       ])
-      self.assertAllClose(source_vec1_v, source_vec2_v)
-      self.assertAllClose(source_context1_v, source_context2_v)
-      self.assertAllClose(source_padding1_v, source_padding2_v)
-      self.assertAllClose(atten_vec1_v, atten_vec2_v)
+      packed_src1_v, packed_src2_v, cached_src_v = sess.run(
+          [packed_src1, packed_src2, cached_src])
+      tf.logging.info('packed_src1=%s', packed_src1_v)
+      tf.logging.info('packed_src2=%s', packed_src2_v)
+      tf.logging.info('cached_src=%s', cached_src_v)
+      self.assertAllClose(packed_src1_v.source_vecs, packed_src2_v.source_vecs)
+      self.assertAllClose(packed_src1_v.source_contexts,
+                          packed_src2_v.source_contexts)
+      self.assertAllClose(packed_src1_v.source_padding,
+                          packed_src2_v.source_padding)
+      self.assertAllClose(packed_src1_v.source_segment_id,
+                          packed_src2_v.source_segment_id)
+      atten_vec1_v, prob1_v, atten_vec2_v, prob2_v = sess.run(
+          [atten_vec_1, prob_1, atten_vec_2, prob_2])
       self.assertAllClose(prob1_v, prob2_v)
+      self.assertAllClose(atten_vec1_v, atten_vec2_v)
 
   def testMultiHeadedAttentionExtendCachedSourceVecsAdditiveFloat32(self):
     self._testMultiHeadedAttentionExtendCachedSourceVecsHelper(
@@ -692,34 +677,31 @@ class AttentionTest(tf.test.TestCase):
           num_attention_heads=2,
           use_source_vec_as_attention_value=False)
       atten = params.cls(params)
-      source_vec1, source_context1, source_padding1, source_seg_id1 = (
-          atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
-                                    source_padding))
-      source_vec2 = tf.zeros([3, 0, 4])
-      source_context2 = tf.zeros([3, 0, 6])
+      packed_src1 = atten.InitForSourcePacked(atten.theta, source_vecs,
+                                              source_contexts, source_padding)
+      cached_src = py_utils.NestedMap(
+          source_vecs=tf.zeros([3, 0, 4], dtype=packed_src1.source_vecs.dtype),
+          source_contexts=tf.zeros([3, 0, 6],
+                                   dtype=packed_src1.source_contexts.dtype),
+          source_padding=None,
+          source_seg_id=None)
       for i in range(6):
-        (source_vec2, source_context2, _, _) = atten.ExtendSourcePacked(
-            atten.theta, source_vecs[i, :, :], source_contexts[i, :, :], None,
-            None, source_vec2, source_context2, None, None)
+        cached_src = atten.ExtendSourcePacked(atten.theta, source_vecs[i, :, :],
+                                              source_contexts[i, :, :], None,
+                                              None, cached_src)
+      packed_src2 = atten.PackCachedSource(cached_src)
       tf.global_variables_initializer().run()
 
       atten_vec_1, prob_1, _ = atten.ComputeContextVectorWithSource(
-          atten.theta, source_vec1, source_context1, source_padding1,
-          source_seg_id1, query_vec)
+          atten.theta, packed_src1, query_vec)
       atten_vec_2, prob_2, _ = atten.ComputeContextVectorWithCachedSource(
-          atten.theta, source_vec2, source_context2, None, None, query_vec)
-
-      source_vec2 = tf.reshape(tf.transpose(source_vec2, [1, 0, 2]), [6, 6, 2])
-      # source_context1 is of shape [batch_size * num_heads, seq_len, dim]
-      # source_context2 is of shape [batch_size, seq_len, num_heads * dim]
-      source_context2 = tf.transpose(
-          tf.reshape(tf.transpose(source_context2, [1, 0, 2]), [6, 6, 3]),
-          [1, 0, 2])
+          atten.theta, cached_src, query_vec)
 
       (source_vec1_v, source_context1_v, source_vec2_v, source_context2_v,
        atten_vec1_v, prob1_v, atten_vec2_v, prob2_v) = sess.run([
-           source_vec1, source_context1, source_vec2, source_context2,
-           atten_vec_1, prob_1, atten_vec_2, prob_2
+           packed_src1.source_vecs, packed_src1.source_contexts,
+           packed_src2.source_vecs, packed_src2.source_contexts, atten_vec_1,
+           prob_1, atten_vec_2, prob_2
        ])
       self.assertAllClose(source_vec1_v, source_vec2_v)
       self.assertAllClose(source_context1_v, source_context2_v)

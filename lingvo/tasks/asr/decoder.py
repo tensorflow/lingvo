@@ -377,15 +377,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
   def _InitAttention(self, theta, source_encs, source_paddings):
     """Intializes attention and returns a NestedMap with those values."""
-    (packed_src_vec, packed_src_context, packed_src_paddings,
-     packed_src_segment_id) = self.atten.InitForSourcePacked(
-         theta.atten, source_encs, source_encs, source_paddings)
-    return py_utils.NestedMap(
-        packed_src_vec=packed_src_vec,
-        packed_src_context=packed_src_context,
-        packed_src_paddings=packed_src_paddings,
-        packed_src_segment_id=packed_src_segment_id,
-        original_src_paddings=source_paddings)
+    packed_src = self.atten.InitForSourcePacked(theta.atten, source_encs,
+                                                source_encs, source_paddings)
+    return packed_src
 
   def BaseZeroState(self,
                     theta,
@@ -407,10 +401,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     (atten_context, atten_probs, atten_states) = (
         self.atten.ComputeContextVectorWithSource(
             theta.atten,
-            packed_src.packed_src_vec,
-            packed_src.packed_src_context,
-            packed_src.packed_src_paddings,
-            packed_src.packed_src_segment_id,
+            packed_src,
             tf.zeros([bs, p.rnn_cell_dim], dtype=py_utils.FPropDtype(p)),
             zero_atten_state,
             per_step_source_padding=per_step_source_padding,
@@ -703,7 +694,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     return metrics, predictions
 
   def ComputeLoss(self, theta, predictions, targets):
-    p = self.params
     metrics, _ = self.ComputeMetricsAndPerSequenceLoss(theta, predictions,
                                                        targets)
     return metrics
@@ -1285,8 +1275,7 @@ class AsrDecoder(AsrDecoderBase):
       rnn_out: A Tensor of shape [batch_size, query_dim]; output of the
         first layer of decoder RNN, which is the query vector used for
         attention.
-      packed_src: A NestedMap containing packed_src_vec, packed_src_context,
-        packed_src_paddings, and packed_src_segment_id.
+      packed_src: A NestedMap returned by self.atten.InitForSourcePacked.
       attention_state: The attention state computed at the previous timestep.
         Varies with the type of attention, but is usually a Tensor or a
         NestedMap of Tensors of shape [batch_size, <state_dim>].
@@ -1302,10 +1291,7 @@ class AsrDecoder(AsrDecoderBase):
     """
     return self.atten.ComputeContextVectorWithSource(
         theta.atten,
-        packed_src.packed_src_vec,
-        packed_src.packed_src_context,
-        packed_src.packed_src_paddings,
-        packed_src.packed_src_segment_id,
+        packed_src,
         rnn_out,
         attention_state=attention_state,
         per_step_source_padding=per_step_src_padding,
