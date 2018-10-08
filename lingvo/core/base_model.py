@@ -504,10 +504,13 @@ class BaseTask(base_layer.BaseLayer):
 
   def ApplyExponentialMovingAverage(self, ema):
     """Wraps `self.train_op` with an op updating exponential moving average."""
-    # We need to apply EMA to all trainable variables of this Task, not just
-    # bprop vars, so that we create a shadow '/ExponentialMovingAverage'
-    # variable for every trainable variable.
-    all_vars = set(self.vars.Flatten()) & set(tf.trainable_variables())
+    # We need to apply EMA to trainable and moving average variable of this
+    # Task, not just bprop vars, so that we create a shadow
+    # '/ExponentialMovingAverage' variable for every trainable and moving
+    # average variable.
+    all_vars = set(tf.trainable_variables()) | set(
+        tf.moving_average_variables())
+    all_vars &= set(self.vars.Flatten())
     for var in all_vars:
       tf.logging.debug('ApplyExponentialMovingAverage: %s', var.name)
     with tf.control_dependencies(
