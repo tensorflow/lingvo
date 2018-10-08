@@ -74,6 +74,10 @@ class Trial(object):
     """Returns whether the trial should stop."""
     raise NotImplementedError('Abstract method')
 
+  def ReportDone(self):
+    """Report that the trial is completed."""
+    raise NotImplementedError('Abstract method')
+
   def ShouldStopAndMaybeReport(self, global_step, metrics_dict):
     """Returns whether the trial should stop.
 
@@ -93,7 +97,7 @@ class Trial(object):
   def _DoReportTrainingProgress(self, global_step, metrics_dict):
     raise NotImplementedError('Abstract method')
 
-  def ReportEvalMeasure(self, global_step, is_final, metrics_dict):
+  def ReportEvalMeasure(self, global_step, metrics_dict):
     """Reports eval measurement and returns whether the trial should stop."""
     raise NotImplementedError('Abstract method')
 
@@ -113,10 +117,13 @@ class NoOpTrial(Trial):
   def ShouldStop(self):
     return False
 
+  def ReportDone(self):
+    return False
+
   def ShouldStopAndMaybeReport(self, global_step, metrics_dict):
     del global_step, metrics_dict  # Unused
     return False
 
-  def ReportEvalMeasure(self, global_step, is_final, metrics_dict):
-    del global_step, is_final, metrics_dict  # Unused
+  def ReportEvalMeasure(self, global_step, metrics_dict):
+    del global_step, metrics_dict  # Unused
     return False
