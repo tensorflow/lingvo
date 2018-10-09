@@ -16,6 +16,7 @@ py_library(
         ":base_layer",
         ":layers",
         ":py_utils",
+        ":quant_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],

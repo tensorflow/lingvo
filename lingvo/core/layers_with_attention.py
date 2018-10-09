@@ -285,7 +285,10 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
           pj.activation = 'NONE'
           self.CreateChild('res_proj_layer', pj)
 
-      params.dropout_prob = [p.relu_dropout_prob, 0.0]
+      params.dropout = [
+          params.dropout.cls.Params().Set(keep_prob=1.0 - p.relu_dropout_prob),
+          params.dropout.cls.Params().Set(keep_prob=1.0)
+      ]
       self.CreateChild('fflayer', params)
 
       # Initialize feed-forward layer norm

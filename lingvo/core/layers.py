@@ -1566,31 +1566,19 @@ class FeedForwardNet(base_layer.BaseLayer):
     p.Define('input_dim', 0, 'Depth of the input to the network.')
     p.Define('hidden_layer_dims', [], 'Depth of the hidden layer outputs.')
     p.Define(
-        'dropout_prob', 0.0,
-        'Probability at which we apply dropout to the hidden layer'
-        ' outputs. This can be a single float, or a tuple/list of floats '
+        'dropout', DropoutLayer.Params(),
+        'Dropout layer params. Can be a single params or a tuple/list of params'
         ' having the same length as the number of layers.')
     p.Define(
         'batch_norm', False,
         'Whether or not to apply BN to hidden layer output. '
-        'This can be a single bool or a tuple/list of bools having the '
+        'This can be a single bool or a tuple/list of bools having the'
         ' same length as the number of layers.')
     p.Define(
         'activation', 'RELU',
         'The activation function to use. Can be a single string, or a'
         ' tuple/list of strings having the same length as the number'
         ' of layers.')
-    p.Define(
-        'init', None, 'The initialization to use. Can be None, indicating the '
-        'default initialization is used for every underlying '
-        'ProjectionLayer; or a single WeightInit param, to be used for '
-        'every layer; or a tuple/list of WeightInit params having the '
-        'same length as the number of layers.')
-    # We typically want to replace dropout by expectation during eval.
-    # However, in certain cases E(f(x)) != f(E(x)), and replacing dropout by its
-    # expectation during eval leads to worse quality.
-    p.Define('dropout_at_eval', False,
-             'Whether or not to also perform dropout at eval time.')
     p.Define(
         'skip_connections', None,
         'This can be a single string or a tuple/list of strings, one per '
@@ -1610,23 +1598,21 @@ class FeedForwardNet(base_layer.BaseLayer):
     assert p.name
 
     batch_norm = p.batch_norm
-    init = p.init
     num_layers = len(p.hidden_layer_dims)
     if isinstance(batch_norm, (list, tuple)):
       assert len(batch_norm) == num_layers
     else:
       batch_norm = [batch_norm] * num_layers
-    if isinstance(init, (list, tuple)):
-      assert len(init) == num_layers
-    elif init is None:
-      init = [p.params_init] * num_layers
-    else:
-      init = [init] * num_layers
     self._skip_connections = p.skip_connections
     if isinstance(self._skip_connections, (list, tuple)):
       assert len(self._skip_connections) == num_layers
     else:
       self._skip_connections = [p.skip_connections] * num_layers
+    params_dropout_layers = p.dropout
+    if isinstance(params_dropout_layers, (list, tuple)):
+      assert len(params_dropout_layers) == num_layers
+    else:
+      params_dropout_layers = [params_dropout_layers] * num_layers
 
     with tf.variable_scope(p.name):
       # Residual connections work better in the form of:
@@ -1656,12 +1642,10 @@ class FeedForwardNet(base_layer.BaseLayer):
             activation='NONE',
             input_dim=in_dim,
             output_dim=proj_out_dim,
-            params_init=init[i],
             name=name)
         params_fc_layers.append(params_i)
         if batch_norm[i]:
-          bn_params_i = BatchNormLayer.Params().Set(
-              name=name, dim=proj_out_dim, params_init=init[i])
+          bn_params_i = BatchNormLayer.Params().Set(name=name, dim=proj_out_dim)
           params_bn_layers.append(bn_params_i)
         else:
           ident_params_i = IdentityLayer.Params().Set(name=name)
@@ -1670,6 +1654,7 @@ class FeedForwardNet(base_layer.BaseLayer):
 
       self.CreateChildren('fc', params_fc_layers)
       self.CreateChildren('bn', params_bn_layers)
+      self.CreateChildren('dropout', params_dropout_layers)
 
   def FProp(self, theta, inputs, paddings=None):
     p = self.params
@@ -1679,12 +1664,6 @@ class FeedForwardNet(base_layer.BaseLayer):
       activation = [activation] * num_layers
     else:
       assert len(activation) == num_layers
-
-    dropout_prob = p.dropout_prob
-    if isinstance(dropout_prob, (list, tuple)):
-      assert len(dropout_prob) == num_layers
-    else:
-      dropout_prob = [dropout_prob] * num_layers
 
     in_dim, layer_in = p.input_dim, inputs
     prev_proj_out = None
@@ -1701,9 +1680,7 @@ class FeedForwardNet(base_layer.BaseLayer):
       layer_out = self.bn[i].FProp(theta.bn[i], layer_out, paddings)
       if activation[i] != 'NONE':
         layer_out = _ACTIVATIONS[activation[i]](layer_out)
-      if dropout_prob[i] > 0.0 and (not p.is_eval or p.dropout_at_eval):
-        layer_out = tf.nn.dropout(
-            layer_out, 1.0 - dropout_prob[i], seed=p.random_seed)
+      layer_out = self.dropout[i].FProp(theta.dropout[i], layer_out)
       if skip_connection == 'DenseNet':
         layer_in = tf.concat([layer_in, layer_out], axis=-1)
       else:
@@ -1722,11 +1699,12 @@ class DropoutLayer(base_layer.BaseLayer):
     p.Define(
         'noise_shape', None, 'A 1-D `Tensor` of type `int32`, representing'
         ' the shape for randomly generated keep/drop flags.')
+    # We typically want to replace dropout by expectation during eval.
+    # However, in certain cases E(f(x)) != f(E(x)), and replacing dropout by its
+    # expectation during eval leads to worse quality.
+    p.Define('dropout_at_eval', False,
+             'Whether or not to also perform dropout at eval time.')
     return p
-
-  @base_layer.initializer
-  def __init__(self, params):
-    super(DropoutLayer, self).__init__(params)
 
   def FProp(self, theta, inputs):
     """Apply dropout to inputs.
@@ -1739,7 +1717,7 @@ class DropoutLayer(base_layer.BaseLayer):
       inputs with dropout applied at training time.
     """
     p = self.params
-    if p.keep_prob < 1.0 and not p.is_eval:
+    if p.keep_prob < 1.0 and (not p.is_eval or p.dropout_at_eval):
       return tf.nn.dropout(
           inputs,
           keep_prob=p.keep_prob,
@@ -1756,6 +1734,11 @@ class DeterministicDropoutLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super(DeterministicDropoutLayer, cls).Params()
     p.Define('keep_prob', 1.0, 'Keep probability.')
+    # We typically want to replace dropout by expectation during eval.
+    # However, in certain cases E(f(x)) != f(E(x)), and replacing dropout by its
+    # expectation during eval leads to worse quality.
+    p.Define('dropout_at_eval', False,
+             'Whether or not to also perform dropout at eval time.')
     return p
 
   def FProp(self, theta, inputs):
@@ -1769,7 +1752,7 @@ class DeterministicDropoutLayer(base_layer.BaseLayer):
       inputs with dropout applied at training time.
     """
     p = self.params
-    if p.keep_prob < 1.0 and not p.is_eval:
+    if p.keep_prob < 1.0 and (not p.is_eval or p.dropout_at_eval):
       return py_utils.DeterministicDropout(
           inputs, p.keep_prob, py_utils.GetOpSeedPair(op_seed=p.random_seed))
     else:

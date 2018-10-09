@@ -1702,11 +1702,11 @@ class FeedForwardNetTest(tf.test.TestCase):
       p = layers.FeedForwardNet.Params().Set(
           name='ffn',
           input_dim=10,
-          dropout_prob=0.5,
           hidden_layer_dims=[20, 30],
           batch_norm=True,
           activation='TANH',
           params_init=py_utils.WeightInit.Uniform(1.0))
+      p.dropout.keep_prob = 0.5
       proj_l = p.cls(p)
       a = tf.constant(1.0, shape=[20, 10])
       proj_l.FPropDefaultTheta(a)
@@ -1714,11 +1714,14 @@ class FeedForwardNetTest(tf.test.TestCase):
       p = layers.FeedForwardNet.Params().Set(
           name='ffn2',
           input_dim=10,
-          dropout_prob=[0.5, 0.1],
           hidden_layer_dims=[20, 30],
           batch_norm=True,
           activation='TANH',
           params_init=py_utils.WeightInit.Uniform(1.0))
+      p.dropout = [
+          layers.DropoutLayer.Params().Set(keep_prob=0.5),
+          layers.DropoutLayer.Params().Set(keep_prob=0.9)
+      ]
       proj_l = p.cls(p)
       a = tf.constant(1.0, shape=[20, 10])
       proj_l.FPropDefaultTheta(a)
@@ -1726,11 +1729,14 @@ class FeedForwardNetTest(tf.test.TestCase):
       p = layers.FeedForwardNet.Params().Set(
           name='ffn3',
           input_dim=10,
-          dropout_prob=[0.5, 0.1],
           hidden_layer_dims=[20, 30],
           batch_norm=[True, False],
           activation=['TANH', 'RELU'],
           params_init=py_utils.WeightInit.Uniform(1.0))
+      p.dropout = [
+          layers.DropoutLayer.Params().Set(keep_prob=0.5),
+          layers.DropoutLayer.Params().Set(keep_prob=0.9)
+      ]
       proj_l = p.cls(p)
       a = tf.constant(1.0, shape=[20, 10])
       proj_l.FPropDefaultTheta(a)
@@ -1743,7 +1749,6 @@ class FeedForwardNetTest(tf.test.TestCase):
           name='ffn',
           input_dim=10,
           hidden_layer_dims=[20, 30],
-          dropout_prob=0.0,
           batch_norm=False,
           activation=['RELU', 'NONE'])
       params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
@@ -1785,7 +1790,6 @@ class FeedForwardNetTest(tf.test.TestCase):
           name='ffn',
           input_dim=20,
           hidden_layer_dims=[10, 10, 20, 25],
-          dropout_prob=0.0,
           batch_norm=True,
           activation=['RELU', 'RELU', 'RELU', 'RELU'],
           skip_connections=[None, 'ResNet', 'DenseNet', 'DenseNet'])
@@ -1860,7 +1864,6 @@ class FeedForwardNetTest(tf.test.TestCase):
           name='ffn',
           input_dim=10,
           hidden_layer_dims=[20, 30],
-          dropout_prob=0.0,
           batch_norm=True,
           activation=['RELU', 'NONE'])
       params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)

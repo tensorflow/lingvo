@@ -2314,7 +2314,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
           input_dim=p.query_dim,
           hidden_layer_dims=[p.gmm_mlp_hidden_dim, p.num_mixtures * 3],
           activation=['SIGMOID', 'NONE'],
-          init=py_utils.WeightInit.Xavier(0.1))
+          params_init=py_utils.WeightInit.Xavier(0.1))
       self.CreateChild('GMM', gmm_params)
 
       # TODO(ngyuzh): change variance to scale to make it simpler.
