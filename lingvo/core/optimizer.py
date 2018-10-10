@@ -113,6 +113,28 @@ class Momentum(Base):
     summary_utils.scalar(self.params, 'momentum_lr', lr)
 
 
+class RMSProp(Base):
+  """RMSProp optimizer."""
+
+  @classmethod
+  def Params(cls):
+    p = super(RMSProp, cls).Params()
+    p.Define('decay', 0.9, 'Discounting factor for the history/coming gradient')
+    p.Define('momentum', 0.9, 'Momentum in RMSProp.')
+    p.Define(
+        'epsilon', 1.0,
+        'Epsilon term for RMSProp. Small value to avoid zero denominator.')
+    return p
+
+  def GetOptimizer(self, lr):
+    p = self.params
+    return tf.train.RMSPropOptimizer(
+        lr, p.decay, momentum=p.momentum, epsilon=p.epsilon)
+
+  def AddSummary(self, lr, optimizer, var_grad):
+    summary_utils.scalar(self.params, 'rmsprop_lr', lr)
+
+
 class Adagrad(Base):
   """Adagrad."""
 
