@@ -65,7 +65,7 @@ RUN pip --no-cache-dir install \
 
 RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
 
-ARG bazel_version=0.16.1
+ARG bazel_version=0.17.2
 # This is to install bazel, for development purposes.
 ENV BAZEL_VERSION ${bazel_version}
 RUN mkdir /bazel && \
