@@ -767,6 +767,23 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                          targets,
                          src_segment_id,
                          targets_per_batch_element=1):
+    """Computes logits.
+
+    Args:
+      theta: A NestedMap object containing weights values of this layer and its
+        child layers.
+      source_encs: a Tensor of shape [max_source_length, batch, source_dims].
+      source_paddings: a Tensor of shape [max_source_length, batch].
+      targets: A dict of string to tensors representing the targets one is
+        trying to predict. Each tensor in targets is of shape [batch, time].
+      src_segment_id: (unused).
+      targets_per_batch_element: (unused).
+
+    Returns:
+      A NestedMap object containing logit tensors as values, each of shape
+      [target_batch, max_target_length, vocab_size]. One of the keys must be
+      'logits'.
+    """
     del src_segment_id, targets_per_batch_element
     p = self.params
     if p.use_while_loop_based_unrolling:
