@@ -889,7 +889,8 @@ class SimpleEmbeddingLayer(base_layer.BaseLayer):
         'in TPU compatibility mode, we reshape the normal 2D weight'
         'tensor to [num_rows, embed_dim] to be '
         '[num_rows, embed_dim // 128, 128].')
-
+    p.Define('apply_pruning', False,
+             'Whether to prune the weights while training')
     return p
 
   @base_layer.initializer
@@ -916,14 +917,35 @@ class SimpleEmbeddingLayer(base_layer.BaseLayer):
       emb_shape_suf = [p.embedding_dim]
     weight_shape = [p.vocab_size] + emb_shape_suf
 
-    pc = py_utils.WeightParams(
-        shape=weight_shape,
-        init=p.params_init,
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
-
     with tf.variable_scope(p.name):
-      self.CreateVariable('wm', pc)
+      # Define weights
+      pc = py_utils.WeightParams(
+          shape=weight_shape,
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+
+      if p.apply_pruning:
+        mask_pc = py_utils.WeightParams(pc.shape,
+                                        py_utils.WeightInit.Constant(1.0),
+                                        p.dtype)
+        threshold_pc = py_utils.WeightParams([],
+                                             py_utils.WeightInit.Constant(0.0),
+                                             tf.float32)
+        self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'threshold', threshold_pc, theta_fn=None, trainable=False)
+
+        def MaskWeightFn(weight):
+          return tf.multiply(
+              self.AddGlobalVN(weight), self.vars.mask, 'masked_weights')
+
+        self.CreateVariable('wm', pc, theta_fn=MaskWeightFn)
+        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                         self.vars.threshold)
+
+      else:
+        self.CreateVariable('wm', pc)
 
     # flags passed to @function.Defun
     compiled = py_utils.use_xla()
@@ -1334,6 +1356,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
         'num_shards', 1,
         'Number of shards to split params into. num_shards should'
         ' divide num_classes.')
+    p.Define('apply_pruning', False,
+             'Whether to prune the weights while training')
     return p
 
   @base_layer.initializer
@@ -1361,8 +1385,38 @@ class SimpleFullSoftmax(SoftmaxLayer):
           init=p.params_init,
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
+
+      if p.apply_pruning:
+        mask_pc = py_utils.WeightParams(pc.shape,
+                                        py_utils.WeightInit.Constant(1.0),
+                                        p.dtype)
+        threshold_pc = py_utils.WeightParams([],
+                                             py_utils.WeightInit.Constant(0.0),
+                                             tf.float32)
+
       for i in range(p.num_shards):
-        self.CreateVariable('weight_%d' % i, pc, self.AddGlobalVN)
+        weights_var_name = 'weight_%d' % i
+        if p.apply_pruning:
+          mask_var_name = 'mask_%d' % i
+          threshold_var_name = 'threshold_%d' % i
+          self.CreateVariable(
+              mask_var_name, mask_pc, theta_fn=None, trainable=False)
+          self.CreateVariable(
+              threshold_var_name, threshold_pc, theta_fn=None, trainable=False)
+
+          def MaskWeightFn(weight):
+            return tf.multiply(
+                self.AddGlobalVN(weight), getattr(self.vars, mask_var_name),
+                'masked_weights')
+
+          self.CreateVariable(weights_var_name, pc, theta_fn=MaskWeightFn)
+          py_utils.AddToPruningCollections(
+              getattr(self.vars, weights_var_name),
+              getattr(self.vars, mask_var_name),
+              getattr(self.vars, threshold_var_name))
+
+        else:
+          self.CreateVariable(weights_var_name, pc, self.AddGlobalVN)
 
       pc = py_utils.WeightParams(
           shape=[num_classes_per_shard],

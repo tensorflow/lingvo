@@ -1182,6 +1182,55 @@ class EmbeddingLayerTest(tf.test.TestCase):
   def testSimpleEmbeddingLayerGather(self):
     self._testSimpleEmbeddingLayer(False, False, 'gather')
 
+  def testSimpleEmbeddingLayerMasked(self):
+    g = tf.Graph()
+    with g.as_default():
+      tf.set_random_seed(398847392)
+      params = layers.SimpleEmbeddingLayer.Params()
+      params.name = 'emd'
+      params.dtype = tf.float32
+      params.vocab_size = 10
+      params.embedding_dim = 5
+      params.fprop_mode = 'gather'
+      params.use_3d_weight_tensor = False
+      params.params_init = py_utils.WeightInit.Gaussian(0.01)
+      params.vn.global_vn = False
+      params.vn.per_step_vn = False
+      params.apply_pruning = True
+
+      emb_layer = layers.SimpleEmbeddingLayer(params)
+      emb_matrix = emb_layer.vars.wm
+      ids = tf.constant([[1], [2]])
+      outputs = emb_layer.EmbLookupDefaultTheta(ids)
+
+      self.assertTrue('wm' in emb_layer.vars.wm.name)
+      self.assertTrue('mask' in emb_layer.vars.mask.name)
+      self.assertTrue('threshold' in emb_layer.vars.threshold.name)
+
+      self.assertEqual(emb_layer.theta.wm.get_shape(), tf.TensorShape([10, 5]))
+      self.assertEqual(emb_layer.theta.mask.get_shape(), tf.TensorShape([10,
+                                                                         5]))
+      self.assertEqual(emb_layer.theta.threshold.get_shape(),
+                       tf.TensorShape([]))
+
+      embedding_var_count = 1
+      wts = tf.get_collection('SimpleEmbeddingLayer_vars')
+      self.assertEqual(embedding_var_count, len(wts))
+
+      embedding_mask_count = 1
+      masks = tf.get_collection('masks')
+      self.assertEqual(embedding_mask_count, len(masks))
+
+      emebdding_threshold_count = 1
+      threshold = tf.get_collection('thresholds')
+      self.assertEqual(emebdding_threshold_count, len(threshold))
+
+    with self.session(use_gpu=False, graph=g) as sess:
+      tf.global_variables_initializer().run()
+      emb_matrix_val, _, outputs_val = sess.run([emb_matrix, ids, outputs])
+
+      self.assertAllClose(emb_matrix_val[1:3], outputs_val[:, 0, :])
+
   def _testSimpleEmbeddingLayerGrad(self, use_matmul, use_3d_weight_tensor):
     g = tf.Graph()
     with g.as_default():
@@ -1412,7 +1461,8 @@ class SoftmaxLayerTest(tf.test.TestCase):
                             training_step=-1,
                             seed=None,
                             dtype=tf.float32,
-                            fprop_dtype=None):
+                            fprop_dtype=None,
+                            apply_pruning=False):
     if fprop_dtype is None:
       fprop_dtype = dtype
     with self.session(use_gpu=True, graph=tf.Graph()) as sess:
@@ -1440,6 +1490,7 @@ class SoftmaxLayerTest(tf.test.TestCase):
       params.num_classes = 32
       params.num_shards = num_shards
       params.chunk_size = chunk_size
+      params.apply_pruning = apply_pruning
       params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
 
       if default_qdomain is not None:
@@ -1476,6 +1527,100 @@ class SoftmaxLayerTest(tf.test.TestCase):
         if step_op:
           sess.run([step_op])
       return sess.run(xent_loss)
+
+  def testSimpleFullSoftmaxMasked(self):
+    num_shards = 2
+    apply_pruning = True
+    params = layers.SimpleFullSoftmax.Params()
+    params.name = 'softmax'
+    params.dtype = tf.float32
+    params.input_dim = 10
+    params.num_classes = 32
+    params.fprop_dtype = tf.float32
+    params.num_shards = num_shards
+    params.apply_pruning = apply_pruning
+    softmax_layer = layers.SimpleFullSoftmax(params)
+
+    self.assertTrue('weight_0' in softmax_layer.vars.weight_0.name)
+    self.assertTrue('weight_1' in softmax_layer.vars.weight_1.name)
+    self.assertTrue('mask_0' in softmax_layer.vars.mask_0.name)
+    self.assertTrue('mask_1' in softmax_layer.vars.mask_1.name)
+    self.assertTrue('threshold_0' in softmax_layer.vars.threshold_0.name)
+    self.assertTrue('threshold_1' in softmax_layer.vars.threshold_1.name)
+
+    self.assertEqual(softmax_layer.theta.weight_0.get_shape(),
+                     tf.TensorShape([10, 16]))
+    self.assertEqual(softmax_layer.theta.weight_1.get_shape(),
+                     tf.TensorShape([10, 16]))
+    self.assertEqual(softmax_layer.theta.mask_0.get_shape(),
+                     tf.TensorShape([10, 16]))
+    self.assertEqual(softmax_layer.theta.mask_1.get_shape(),
+                     tf.TensorShape([10, 16]))
+    self.assertEqual(softmax_layer.theta.threshold_0.get_shape(),
+                     tf.TensorShape([]))
+    self.assertEqual(softmax_layer.theta.threshold_0.get_shape(),
+                     tf.TensorShape([]))
+
+    softmax_var_count = 4  # 2 each for weights and biases (we have 2 shards)
+    wts = tf.get_collection('SimpleFullSoftmax_vars')
+    self.assertEqual(softmax_var_count, len(wts))
+
+    softmax_mask_count = 2
+    masks = tf.get_collection('masks')
+    self.assertEqual(softmax_mask_count, len(masks))
+
+    softmax_threshold_count = 2
+    threshold = tf.get_collection('thresholds')
+    self.assertEqual(softmax_threshold_count, len(threshold))
+
+    # Sampled and Masked
+    xent_loss = self._RunSimpleFullSoftmax(
+        num_samples=32, seed=12345, apply_pruning=True)
+    loss = xent_loss.total_xent
+    log_perplexity = xent_loss.avg_xent
+    self.assertNear(loss, 8.701365, 1e-5)
+    self.assertNear(log_perplexity, 3.955166, 1e-5)
+
+    # Sharded and Masked
+    xent_loss = self._RunSimpleFullSoftmax(num_shards=2, apply_pruning=True)
+    loss = xent_loss.total_xent
+    log_perplexity = xent_loss.avg_xent
+    self.assertNear(loss, 6.14888, 1e-5)
+    self.assertNear(log_perplexity, 2.79495, 1e-5)
+
+    # Non_2D and Masked
+    xent_loss = self._RunSimpleFullSoftmax(
+        inputs=np.random.rand(4, 3, 10),
+        class_weights=np.ones((4, 3)),
+        class_ids=np.random.randint(32, size=(4, 3)),
+        apply_pruning=True)
+    self.assertEqual(xent_loss.logits.shape, (4, 3, 32))
+    self.assertEqual(xent_loss.per_example_xent.shape, (4, 3))
+    self.assertEqual(xent_loss.per_example_weight.shape, (4, 3))
+
+    xent_loss = self._RunSimpleFullSoftmax(
+        inputs=np.random.rand(4, 3, 10),
+        class_weights=np.ones((4, 3)),
+        class_probabilities=np.random.uniform(size=(4, 3, 32)),
+        apply_pruning=True)
+    self.assertEqual(xent_loss.logits.shape, (4, 3, 32))
+    self.assertEqual(xent_loss.per_example_xent.shape, (4, 3))
+    self.assertEqual(xent_loss.per_example_weight.shape, (4, 3))
+
+    # Chunked and Masked
+    for chunk_size in (0, 1, 2, 3, 4, 5):
+      print('chunk_size = ', chunk_size)
+      xent_output = self._RunSimpleFullSoftmax(
+          chunk_size=chunk_size, apply_pruning=True)
+      loss = xent_output.total_xent
+      log_perplexity = xent_output.avg_xent
+      print('xent_output ', xent_output)
+      print('xent_output.per_example_argmax.dtype ',
+            xent_output.per_example_argmax.dtype)
+      self.assertAllClose(loss, 6.22425)
+      self.assertAllClose(log_perplexity, 2.82920)
+      self.assertAllEqual(xent_output.per_example_argmax,
+                          np.argmax(xent_output.logits, axis=1))
 
   def testSimpleFullSoftmax_Sampled(self):
     xent_loss = self._RunSimpleFullSoftmax(num_samples=32, seed=12345)
