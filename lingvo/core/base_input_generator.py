@@ -60,10 +60,22 @@ class BaseInputGenerator(base_layer.BaseLayer):
   def __init__(self, params):
     super(BaseInputGenerator, self).__init__(params)
     self._made_tpu_infeed = False
+    # parameter to tell the bprop one hot for all the files.
+    self._bprop_onehot = tf.constant([1], dtype=tf.float32)
+    # Each entry is a regular expression specifying the set of variables
+    # to bprop per data source.
+    self._bprop_variable_filters = ['']
 
   def CommonInputOpArgs(self):
     """Common input params."""
     return {}
+
+  def GetBpropVariableFilters(self):
+    return self._bprop_variable_filters
+
+  def GetInputSourceOneHot(self):
+    """Get the current bprop type of the input generator batch."""
+    return self._bprop_onehot
 
   def InputBatchSize(self):
     """Returns the batch size for the current step."""
@@ -209,8 +221,9 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     p = super(BaseInputGeneratorFromFiles, cls).Params()
     p.Define(
         'file_pattern', '',
-        'A single file pattern string or a list <file_pattern, weight> pairs.'
-        'In the later case, probablistic samples are from the inputs '
+        'A single file pattern string, a list of <file_pattern, weight> pairs'
+        'or a list of  <file_pattern, weight, bprop_variable_filter> tuples.'
+        'In the later 2 cases, probablistic samples are from the inputs '
         'proportional to their weights. Typically, values are binary '
         'protocol buffers containing train/eval samples. Keys are not used.')
     p.Define('file_random_seed', 301,
@@ -296,14 +309,16 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         # lambda to make sure that the record is drawn from data source
         # only if it will be used.
         return lambda: self._DataSourceFromFilePattern(file_pattern)
-
       inputs = []
       weights = []
-      for (file_pattern, weight) in input_file_pattern:
+      for input_entry in input_file_pattern:
+        file_pattern, weight = input_entry[:2]
         inputs.append(_MakeDataSourceFromFilePatternFunc(file_pattern))
         weights.append(weight)
-
-      data_source = py_utils.MixByWeight(inputs, weights)
+        bprop_variable_filter = input_entry[2] if len(input_entry) > 2 else ''
+        self._bprop_variable_filters.append(bprop_variable_filter)
+      data_source, selected_bprop = py_utils.MixByWeight(inputs, weights)
+      self._bprop_onehot = selected_bprop
     else:
       raise ValueError()
     return data_source

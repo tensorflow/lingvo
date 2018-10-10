@@ -1235,6 +1235,33 @@ def ComputeGradients(loss, vmap):
   return var_grad.Filter(lambda v_g: v_g[1] is not None)
 
 
+def MaskGradients(var_grad, grad_mask, grad_onehot):
+  """Computes gradients of variables in vmap w.r.t.
+
+  loss.
+
+  Args:
+    var_grad: A `.NestedMap` of (variable, gradient)
+    grad_mask: A `.NestedMap` of (variable, mask).
+    grad_onehot: A 1-hot vector of the current data source selected.
+
+  Returns:
+    var_grad - a `.NestedMap` of (variable, mask *  gradient).
+  """
+
+  def ApplyMask(entry):
+    var, grad = entry
+    grad_mask_dotproduct = tf.tensordot(grad_onehot, grad_mask[var.name], 1)
+    if isinstance(grad, tf.IndexedSlices):
+      return (var,
+              tf.IndexedSlices(grad.values * grad_mask_dotproduct,
+                               grad.indices))
+    else:
+      return (var, grad * grad_mask_dotproduct)
+
+  return var_grad.Transform(ApplyMask)
+
+
 def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
   """Scale gradients by grad_scale on same device as corresponding variables.
 
@@ -2077,22 +2104,22 @@ def StackTensorsRecursively(values):
 
 
 def MixByWeight(inputs, weights):
-  """Returns a weighted random choice from the give inputs.
+  """Returns a weighted random choice and bprop type from the give inputs.
 
   Args:
-    inputs: a list of callables, where each callable returns
-      a tf.Tensor or a nested structure containing tf.Tensor.
-      Function return types must be consistent across elements.
-      The tf.Operation to compute the result tensor will only be invoked for
-      one input at a time. For example, if each fn represents an input record
-      stream, a record will be drawn only from a selected stream while the other
-      streams will remain unchanged.
+    inputs: a list of callables, where each callable returns a tf.Tensor or a
+      nested structure containing tf.Tensor. Function return types must be
+      consistent across elements. The tf.Operation to compute the result tensor
+      will only be invoked for one input at a time. For example, if each fn
+      represents an input record stream, a record will be drawn only from a
+      selected stream while the other streams will remain unchanged.
     weights: a 1D tensor of float > 0 of the same length as inputs.
 
   Returns:
     A probablistic sample from the inputs proportional to the weights. The
     return type will be the same as return type of individual 'fn' from the
     inputs.
+    A one-hot vector of the source selected.
   """
   weights = tf.convert_to_tensor(weights, dtype=tf.float32)
   weights = with_dependencies([
@@ -2103,10 +2130,16 @@ def MixByWeight(inputs, weights):
   lower = tf.cumsum(weights, exclusive=True)
   upper = tf.cumsum(weights, exclusive=False)
   r = tf.random_uniform(shape=[], maxval=upper[-1])
-  return tf.case(
+  return_input = tf.case(
       [(tf.logical_and(lower[i] <= r, r < upper[i]), inputs[i])
        for i in range(len(inputs))],
       exclusive=True)
+  selected_index = tf.case(
+      [(tf.logical_and(lower[i] <= r, r < upper[i]), lambda i=i: i)
+       for i in range(len(inputs))],
+      exclusive=True)
+  bprop_index = tf.one_hot(selected_index, len(inputs), dtype=tf.float32)
+  return return_input, bprop_index
 
 
 def CheckShapes(shapes):

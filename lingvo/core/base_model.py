@@ -192,6 +192,8 @@ class BaseTask(base_layer.BaseLayer):
     self._train_op = None
     self._eval_metrics = {}
 
+    # Create the gradient mask,
+    self._per_input_gradient_mask = None
     self._shared_global_step = py_utils.GetOrCreateGlobalStep()
     tp = p.train
     if tp:
@@ -333,6 +335,9 @@ class BaseTask(base_layer.BaseLayer):
     """Calls `FProp` with this layer's parameters."""
     return self.FProp(self.theta)
 
+  def GetVarGrads(self):
+    return self._var_grads
+
   def AdjustGradients(self, vars_gradients):
     """Allow for custom gradient manipulation prior to clipping."""
     return vars_gradients
@@ -341,6 +346,10 @@ class BaseTask(base_layer.BaseLayer):
     """Constructs the backward graph."""
     p = self.params
     vs = self.vars
+    bprop_variable_filters = self.input_generator.GetBpropVariableFilters()
+    # Only compute the mask if the variable filters are not empty.
+    if bprop_variable_filters != [''] * len(bprop_variable_filters):
+      self._ComputeGradientMask(bprop_variable_filters)
     if p.train.bprop_variable_filter:
 
       def VariableFilter(v):
@@ -352,6 +361,26 @@ class BaseTask(base_layer.BaseLayer):
       vs = vs.Filter(VariableFilter)
       tf.logging.info('Filtered bprop variables: %s', vs)
     self._BPropForVariables(vs)
+
+  def _ComputeGradientMask(self, bprop_variable_filters):
+    """Compute gradient mask for each variable and bprop_variable_filters.
+
+    Note that per_input_gradient_mask[var][i] will be 1 if var matches
+    bprop_variable_filter[i], 0 otherwise.
+
+    Args:
+      bprop_variable_filters: A list of regex bprop_variable_filters for each
+        file pattern.
+    """
+    self._per_input_gradient_mask = py_utils.NestedMap()
+    all_vars = set(self.vars.Flatten())
+    for var in all_vars:
+      self._per_input_gradient_mask[var.name] = (
+          tf.zeros(len(bprop_variable_filters), dtype=tf.float32))
+      for i in range(len(bprop_variable_filters)):
+        if re.search(bprop_variable_filters[i], var.name):
+          self._per_input_gradient_mask[var.name] += (
+              tf.one_hot(i, len(bprop_variable_filters), dtype=tf.float32))
 
   def _HasNanOrInf(self, var_grads):
     """Returns a bool tensor to indicate if `var_grads` contains NaNs or Infs.
@@ -452,6 +481,11 @@ class BaseTask(base_layer.BaseLayer):
           self._var_grads, tp.l2_regularizer_weight)
       summary_utils.scalar(p, 'l2_loss', l2_loss)
 
+    # Mask gradients only if the mask is set.
+    if self._per_input_gradient_mask:
+      bprop_onehot = self.input_generator.GetInputSourceOneHot()
+      self._var_grads = py_utils.MaskGradients(
+          self._var_grads, self._per_input_gradient_mask, bprop_onehot)
     # Histogram summary.
     summary_utils.CollectVarHistogram(p, self._var_grads)
 

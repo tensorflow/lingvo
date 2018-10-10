@@ -389,6 +389,34 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertEqual([_[0] for _ in var_grads.FlattenItems()], ['a'])
       self.assertEqual(var_grads.a[0].name, 'a:0')
 
+  def testMaskGradient(self):
+    with self.session(use_gpu=False) as sess:
+      a = tf.get_variable('a', [])
+      b = tf.get_variable('b', [])
+      c = tf.get_variable('c', [])
+      d = tf.get_variable('d', [])
+      e = tf.get_variable('e', [])
+      l = a + b + c + d
+      zeros = tf.zeros(3, dtype=tf.float32)
+      select = tf.one_hot(1, 3, dtype=tf.float32)
+      vmap = py_utils.NestedMap(
+          a=a, b=b, c=c, d=d, n=py_utils.NestedMap(aa=a, e=e))
+      grad_mask = py_utils.NestedMap()
+      grad_mask['a:0'] = zeros
+      grad_mask['b:0'] = zeros
+      grad_mask['c:0'] = select
+      grad_mask['d:0'] = select
+      grad_onehot = tf.one_hot(1, 3, dtype=tf.float32)
+      var_grads = py_utils.ComputeGradients(l, vmap)
+      var_grads_mask = py_utils.MaskGradients(var_grads, grad_mask, grad_onehot)
+      sess.run(tf.global_variables_initializer())
+      _, var_grads_mask_vals = sess.run([var_grads, var_grads_mask])
+      # 'a' and 'b' are masked, while 'c' and 'd' are not.
+      self.assertEqual(var_grads_mask_vals['a'][1], 0)
+      self.assertEqual(var_grads_mask_vals['b'][1], 0)
+      self.assertEqual(var_grads_mask_vals['c'][1], 1)
+      self.assertEqual(var_grads_mask_vals['d'][1], 1)
+
   def testSkipL2Regularization(self):
     with self.session(use_gpu=False) as sess:
       beta = tf.get_variable(
@@ -1049,7 +1077,7 @@ class MixByWeightTest(tf.test.TestCase):
       def _AddFn(var):
         return lambda: tf.assign_add(var, 1)
 
-      op = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], [0.7, 0.3])
+      op, _ = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], [0.7, 0.3])
       for _ in range(100):
         sess.run(op)
       a, b = sess.run([var_a, var_b])
@@ -1068,7 +1096,7 @@ class MixByWeightTest(tf.test.TestCase):
       def _AddFn(var):
         return lambda: tf.assign_add(var, 1)
 
-      op = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], var_w)
+      op, _ = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], var_w)
 
       # all weight goes to 'a'
       sess.run([tf.assign(var_w, [1.0, 0.0])])
@@ -1085,6 +1113,34 @@ class MixByWeightTest(tf.test.TestCase):
       a, b = sess.run([var_a, var_b])
       self.assertEqual(10, a)
       self.assertEqual(10, b)
+
+  def testMixByWeightAndBpropType(self):
+    var_a = tf.get_variable('a', trainable=False, initializer=0)
+    var_b = tf.get_variable('b', trainable=False, initializer=0)
+
+    with self.session() as sess:
+      sess.run(tf.global_variables_initializer())
+
+      def _AddFn(var):
+        return lambda: tf.assign_add(var, 1)
+
+      op, bprop = py_utils.MixByWeight(
+          [_AddFn(var_a), _AddFn(var_b)], [1.0, 0.0])
+      for _ in range(10):
+        sess.run(op)
+      bprop_v, a, b = sess.run([bprop, var_a, var_b])
+      self.assertEqual(10, a)
+      self.assertEqual(0, b)
+      self.assertAllClose(np.array([1, 0]), np.squeeze(bprop_v))
+
+      op, bprop = py_utils.MixByWeight(
+          [_AddFn(var_a), _AddFn(var_b)], [0.0, 1.0])
+      for _ in range(10):
+        sess.run(op)
+      bprop_v, a, b = sess.run([bprop, var_a, var_b])
+      self.assertEqual(10, a)
+      self.assertEqual(10, b)
+      self.assertAllClose(np.array([0, 1]), np.squeeze(bprop_v))
 
 
 if __name__ == '__main__':
