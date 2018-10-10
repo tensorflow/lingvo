@@ -127,9 +127,9 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       const float valid_eos_max_logit_delta,
                       const float lm_weight, const Tensor& lm_log_probs,
                       bool is_first_step, const Tensor& is_last_chunk,
-                      bool merge_paths, std::vector<bool>* eos_in_topk,
-                      std::vector<Hyp>* top_k, std::vector<Hyp>* extra_m,
-                      std::vector<Hyp>* eos_hyps,
+                      bool merge_paths, bool allow_empty_terminated_hyp,
+                      std::vector<bool>* eos_in_topk, std::vector<Hyp>* top_k,
+                      std::vector<Hyp>* extra_m, std::vector<Hyp>* eos_hyps,
                       std::vector<int32>* terminal_syms) {
   VLOG(1) << "Topk clear, num_beams: " << num_beams;
   CHECK_EQ(hyps.size(), num_beams * k);
@@ -245,7 +245,11 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                 // hypothesis, even though <eos> was not predicted, and
                 // indicate that the final symbol for the hypothesis is
                 // <epsilon>, not <eos>.
-                if (e.global_score > eos_score_threshold) {
+                if (e.global_score > eos_score_threshold &&
+                    // Only allow an empty hyp (all <epsilon>s) to be
+                    // considered terminated, if explicitly permitted.
+                    // 'prev_ids' contains only non-epsilons.
+                    (allow_empty_terminated_hyp || !e.prev_ids.empty())) {
                   (*eos_in_topk)[hyp_id] = true;
                   (*eos_hyps)[hyp_id] = e;
                   (*terminal_syms)[hyp_id] = eoc_id;
@@ -286,6 +290,8 @@ class BeamSearchStepOp : public OpKernel {
                                      &valid_eos_max_logit_delta_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("lm_weight", &lm_weight_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("merge_paths", &merge_paths_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("allow_empty_terminated_hyp",
+                                     &allow_empty_terminated_hyp_));
 
     CHECK_GE(eos_id_, 0);
     CHECK_GT(beam_size_, 0.0);
@@ -575,8 +581,8 @@ class BeamSearchStepOp : public OpKernel {
     ComputeTopKPlusM(hyps, scores, num_hyps_per_beam_, 0, eos_id_, eoc_id_,
                      num_beams, valid_eos_max_logit_delta_, lm_weight_,
                      lm_log_probs, t == 0, is_last_chunk, merge_paths_,
-                     &eos_in_topk, &top_k_hyps, &extra_m_hyps, &eos_hyps,
-                     &terminal_syms);
+                     allow_empty_terminated_hyp_, &eos_in_topk, &top_k_hyps,
+                     &extra_m_hyps, &eos_hyps, &terminal_syms);
 
     Tensor* out_best_scores = NULL;
     Tensor* out_cumulative_scores = NULL;
@@ -656,6 +662,7 @@ class BeamSearchStepOp : public OpKernel {
   float valid_eos_max_logit_delta_ = 0.0;
   float lm_weight_ = 0.0;
   bool merge_paths_ = false;
+  bool allow_empty_terminated_hyp_ = true;
 };
 
 REGISTER_KERNEL_BUILDER(Name("BeamSearchStep").Device(DEVICE_CPU),

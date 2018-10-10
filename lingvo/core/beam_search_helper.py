@@ -195,6 +195,14 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'probability for that combined hyp will be the sum of the '
         'probabilities of the component hyps.  This can only be applied '
         'for epsilon-emitting models (RNN-T and NT).')
+    p.Define(
+        'allow_empty_terminated_hyp', True, 'Whether it is okay to consider a '
+        'hyp that consists only of epsilons as terminated.  By default this '
+        'is true, as an utterance may consist of silence.  It should be set '
+        'to false when EMBR training epsilon-emitting models (e.g., RNN-T), '
+        'which are prone to emit all-epsilon hyps even in the presence of '
+        'speech.  Note that a hyp that terminates in EOS is not considered '
+        'empty, so this flag has no effect for non-epsilon-emitting models.')
     p.name = 'beam_search'
     return p
 
@@ -273,7 +281,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
          num_hyps_per_beam=num_hyps_per_beam,
          valid_eos_max_logit_delta=p.valid_eos_max_logit_delta,
          lm_weight=p.lm_log_probs_weight,
-         merge_paths=p.merge_paths)
+         merge_paths=p.merge_paths,
+         allow_empty_terminated_hyp=p.allow_empty_terminated_hyp)
 
     new_step_ids = tf.reshape(out_hyps[cur_step, :], tf.shape(step_ids))
     new_step_ids.set_shape(step_ids.get_shape())

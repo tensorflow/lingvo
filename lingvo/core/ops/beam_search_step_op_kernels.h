@@ -230,9 +230,9 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       const float valid_eos_max_logit_delta,
                       const float lm_weight, const Tensor& lm_log_probs,
                       bool is_first_step, const Tensor& is_last_chunk,
-                      bool merge_paths, std::vector<bool>* eos_in_topk,
-                      std::vector<Hyp>* top_k, std::vector<Hyp>* extra_m,
-                      std::vector<Hyp>* eos_hyps,
+                      bool merge_paths, bool allow_empty_terminated_hyp,
+                      std::vector<bool>* eos_in_topk, std::vector<Hyp>* top_k,
+                      std::vector<Hyp>* extra_m, std::vector<Hyp>* eos_hyps,
                       std::vector<int32>* terminal_symbol);
 
 }  // namespace lingvo

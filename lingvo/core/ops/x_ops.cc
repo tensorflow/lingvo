@@ -122,6 +122,7 @@ REGISTER_OP("BeamSearchStep")
     .Attr("valid_eos_max_logit_delta: float = 5.0")
     .Attr("lm_weight: float = 0.0")
     .Attr("merge_paths: bool = false")
+    .Attr("allow_empty_terminated_hyp: bool = true")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(2));
       c->set_output(1, c->input(3));
@@ -228,6 +229,13 @@ merge_paths: If true, hyps which are identical when epsilons are removed will
     be combined into a single hyp.  The probability for that combined hyp will
     be the sum of the probabilities of the component hyps.  This can only be
     applied for epsilon-emitting models (RNN-T and NT).
+allow_empty_terminated_hyp: Whether it is okay to consider a hyp that consists
+    only of epsilons as terminated.  By default this is true, as an
+    utterance may consist of silence.  It should be set to false when EMBR
+    training epsilon-emitting models (e.g., RNN-T), which are prone to emit
+    all-epsilon hyps even in the absence of silence.  Note that a hyp that
+    terminates in EOS is not considered empty, so this flag has no effect for
+    non-epsilon-emitting models.
 )doc");
 
 REGISTER_OP("TopKTerminatedHyps")
