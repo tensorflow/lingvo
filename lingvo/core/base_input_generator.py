@@ -311,6 +311,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         return lambda: self._DataSourceFromFilePattern(file_pattern)
       inputs = []
       weights = []
+      self._bprop_variable_filters = []
       for input_entry in input_file_pattern:
         file_pattern, weight = input_entry[:2]
         inputs.append(_MakeDataSourceFromFilePatternFunc(file_pattern))
