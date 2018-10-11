@@ -81,9 +81,7 @@ py_library(
 
 py_library(
     name = "decoder",
-    srcs = [
-        "decoder.py",
-    ],
+    srcs = ["decoder.py"],
     deps = [
         ":decoder_utils",
         ":fusion",
@@ -117,5 +115,15 @@ py_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         "//lingvo/core/ops:hyps_py_pb2",
+    ],
+)
+
+py_library(
+    name = "model_test_input_generator",
+    srcs = ["model_test_input_generator.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_input_generator",
+        "//lingvo/core:py_utils",
     ],
 )
