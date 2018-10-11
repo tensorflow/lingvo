@@ -74,27 +74,6 @@ bool IsDuplicateHyp(const Hyp& cur_hyp, const Hyp& other_hyp,
   }
 }
 
-bool IsDuplicateHypothesis(const Hypothesis& cur_hyp,
-                           const Hypothesis& other_hyp, const int epsilon_id) {
-  std::vector<int32> cur_hyp_word_ids;
-  std::vector<int32> other_hyp_word_ids;
-  for (int id : cur_hyp.ids()) {
-    if (id != epsilon_id) {
-      cur_hyp_word_ids.push_back(id);
-    }
-  }
-  for (int id : other_hyp.ids()) {
-    if (id != epsilon_id) {
-      other_hyp_word_ids.push_back(id);
-    }
-  }
-  if (cur_hyp_word_ids.size() != other_hyp_word_ids.size()) {
-    return false;
-  }
-  return std::equal(cur_hyp_word_ids.begin(), cur_hyp_word_ids.end(),
-                    other_hyp_word_ids.begin());
-}
-
 float LogSumExp(float a, float b) {
   const float m = std::max(a, b);
   return m + log(exp(a - m) + exp(b - m));
@@ -678,6 +657,7 @@ class TopKTerminatedHypsOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("coverage_penalty", &coverage_penalty_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("target_seq_length_ratio",
                                      &target_seq_length_ratio_));
+    // TODO(anjuli): Remove eoc_id_ which is no longer used.
     OP_REQUIRES_OK(ctx, ctx->GetAttr("eoc_id", &eoc_id_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("merge_paths", &merge_paths_));
     CHECK_GE(length_normalization_, 0.0);
@@ -695,13 +675,13 @@ class TopKTerminatedHypsOp : public OpKernel {
     int num_steps = in_done_hyps.dim_size(0);
     static thread::ThreadPool* workers = new thread::ThreadPool(
         Env::Default(), "topk_terminated_hyps", kNumWorkers);
-    const int epsilon_id_for_path_merging = merge_paths_ ? eoc_id_ : -1;
-    std::vector<TopK<Hypothesis, BetterTerminatedHyp, ExtractNormalizedScore,
-                     InsertHypothesisWithEpsilonDedupe>>
+    // No Insert struct is provided, so we use DefaultInsert, which inserts
+    // without deduping.  No deduping is necessary here because we dedupe
+    // partial hyps at each step of beam search.
+    std::vector<TopK<Hypothesis, BetterTerminatedHyp, ExtractNormalizedScore>>
         topk_vec(num_beams,
-                 TopK<Hypothesis, BetterTerminatedHyp, ExtractNormalizedScore,
-                      InsertHypothesisWithEpsilonDedupe>(
-                     k, epsilon_id_for_path_merging));
+                 TopK<Hypothesis, BetterTerminatedHyp, ExtractNormalizedScore>(
+                     k, /* unused epsilon id */ -1));
     // Each mutex is used to protect corresponding topk_vec.
     std::vector<mutex> mu_vec(num_beams);
     auto t_done_hyps = in_done_hyps.matrix<string>();
@@ -711,9 +691,8 @@ class TopKTerminatedHypsOp : public OpKernel {
             Hypothesis hypothesis;
             for (int32 hyp_id = start; hyp_id < limit; ++hyp_id) {
               // The topk for this beam.
-              TopK<Hypothesis, BetterTerminatedHyp, ExtractNormalizedScore,
-                   InsertHypothesisWithEpsilonDedupe>* topk =
-                  &topk_vec[hyp_id % num_beams];
+              TopK<Hypothesis, BetterTerminatedHyp, ExtractNormalizedScore>*
+                  topk = &topk_vec[hyp_id % num_beams];
               for (int32 step_id = 0; step_id < num_steps; ++step_id) {
                 const string& str_hyps = t_done_hyps(step_id, hyp_id);
                 if (!str_hyps.empty()) {

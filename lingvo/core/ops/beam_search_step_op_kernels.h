@@ -122,38 +122,6 @@ struct InsertHypWithEpsilonDedupe {
   const HigherScore better_hyp;
 };
 
-// Returns true if 'cur_hyp' ad 'other_hyp' represent the same label sequence
-// when epsilons are ignored, and false otherwise.
-bool IsDuplicateHypothesis(const Hypothesis& cur_hyp,
-                           const Hypothesis& other_hyp, const int epsilon_id);
-
-// An insertion operator that first checks whether 'hyp'  is a duplicate of any
-// hyp already in 'items'.  If so, these two hyps are merged.
-// This check is only performed if we are using a model that emits epsilons
-// (NT or RNN-T).
-struct InsertHypothesisWithEpsilonDedupe {
-  explicit InsertHypothesisWithEpsilonDedupe(int _epsilon_id)
-      : epsilon_id(_epsilon_id), better_hyp() {}
-  void operator()(const Hypothesis& hyp, std::vector<Hypothesis>* items) const {
-    if (epsilon_id < 0) {
-      items->push_back(hyp);
-      return;
-    }
-    for (int i = 0; i < items->size(); ++i) {
-      const Hypothesis& old_hyp = (*items)[i];
-      if (IsDuplicateHypothesis(hyp, old_hyp, epsilon_id)) {
-        Hypothesis combined_hyp = better_hyp(hyp, old_hyp) ? hyp : old_hyp;
-        combined_hyp.set_normalized_score(
-            LogSumExp(hyp.normalized_score(), old_hyp.normalized_score()));
-        (*items)[i] = combined_hyp;
-        return;
-      }
-    }
-    items->push_back(hyp);
-  }
-  int epsilon_id;
-  const BetterTerminatedHyp better_hyp;
-};
 
 // A helper class keeps track of top K highest ranked elements added.
 // Comp(x, y) returns true iff x is ranked higher than y.
