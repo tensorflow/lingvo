@@ -75,6 +75,17 @@ py_library(
     name = "decoder_utils",
     srcs = ["decoder_utils.py"],
     deps = [
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:py_utils",
+    ],
+)
+
+py_test(
+    name = "decoder_utils_test",
+    srcs = ["decoder_utils_test.py"],
+    deps = [
+        ":decoder_utils",
         # Implicit tensorflow dependency.
     ],
 )
