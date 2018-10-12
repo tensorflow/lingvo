@@ -59,6 +59,8 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     p.Define('align_label_with_frame', False,
              'Whether to generate label-frame alignments.')
     p.Define('bprop_filter', '', 'The filter to apply to one of the sources.')
+    p.Define('target_transcript', 'dummy_transcript',
+             'Text to use for transcript.')
     return p
 
   def __init__(self, params):
@@ -171,7 +173,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     }
     if not p.for_mt:
       d['transcripts'] = tf.constant(
-          'dummy transcript', shape=[target_shape[0]])
+          p.target_transcript, shape=[target_shape[0]])
     if p.align_label_with_frame:
       source_len = p.source_shape[1]
       d['alignments'] = tf.cast(
