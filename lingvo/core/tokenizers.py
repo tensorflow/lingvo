@@ -18,9 +18,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
+
+import tensorflow as tf
+
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core.ops import py_x_ops
+from lingvo.core import wpm_encoder
 
 
 class BaseTokenizer(base_layer.BaseLayer):
@@ -207,3 +212,111 @@ class BpeTokenizer(BaseTokenizer):
 
     return py_x_ops.bpe_ids_to_words(
         token_ids=ids, seq_lengths=lens, vocab_filepath=p.codes_filepath)
+
+
+class WpmTokenizer(BaseTokenizer):
+  """Tokenizer for word-piece models."""
+
+  @classmethod
+  def Params(cls):
+    p = super(WpmTokenizer, cls).Params()
+    p.Define(
+        'vocab_filepath', None,
+        'Specifies a filepath to the WPM vocab. The vocab is sorted by '
+        'descending merge score.')
+    p.Define('lowercase', False, 'Lowercase all text as a preprocessing step.')
+    return p
+
+  BOW_STR = b'\xe2\x96\x81'.decode('utf-8')
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(WpmTokenizer, self).__init__(params)
+    self._wpm_encoder = wpm_encoder.WpmEncoder(params.vocab_filepath)
+    p = self.params
+    assert p.target_unk_id == self._wpm_encoder.unk_id
+    assert p.target_sos_id == self._wpm_encoder.sentence_start_id
+    assert p.target_eos_id == self._wpm_encoder.sentence_end_id
+
+  def _PostProcessIds(self, parsed_token_ids, max_length, append_eos):
+    """Post-process token ids.
+
+    This generates `token_ids`, `target_ids`, and `paddings` in the format that
+    is expected for tokenizers. This performs padding to a fixed length and
+    appends the end-of-sentence token as appropriate.
+
+    Args:
+      parsed_token_ids: a list of vectors of token ids. The vectors have
+        variable length.
+      max_length: a python integer. The maximum length of the returned arrays.
+        That is, only up to the first `max_length` tokens will be used,
+        including the `max_length`-th unless we append EOS.
+      append_eos: a python bool. See `BaseTokenizer` for explanation.
+
+    Returns:
+      token_ids: a tensor of sequences of WPM ids starting with SOS. Sequences
+        always end with EOS unless the sequence exceeds the maximum length.
+        Always padded with EOS.
+      target_ids: a tensor of sequences of WPM ids not starting with SOS
+        but ending with EOS. Always padded with EOS.
+      paddings: a tensor of floats indicating, at each position, whether
+        the corresponding position is padded.
+    """
+    if append_eos is None:
+      append_eos = self.params.append_eos
+    eos_len = 1 if append_eos else 0
+    max_seqlen = np.minimum(
+        np.amax([len(ids) for ids in parsed_token_ids]) + eos_len, max_length)
+    token_ids, target_ids, paddings = [], [], []
+    for ids in parsed_token_ids:
+      ids = list(ids)  # It was a tuple.
+      if append_eos:
+        ids += [self.eos_id]
+      # This truncates after the eos is added, so some sentences might
+      # not have </s> at the end.
+      ids = ids[:np.minimum(max_seqlen, len(ids))]
+      seq_len = len(ids)
+      pad_len = max_seqlen - seq_len
+      token_ids += [[self.sos_id] + ids + [self.eos_id] * pad_len]
+      target_ids += [ids + [self.eos_id] * pad_len]
+      paddings += [[0.] * seq_len + [1.] * pad_len]
+    token_ids = np.matrix(token_ids)
+    target_ids = np.matrix(target_ids)
+    paddings = np.matrix(paddings, dtype=np.float32)
+    return [token_ids, target_ids, paddings]
+
+  def _WpmEncode(self, batch_strs, max_length, append_eos):
+    """Takes a batch of python strings and returns id/padding numpy matrices."""
+    token_ids = []
+    for sentence in batch_strs:
+      if sentence:
+        text = self.BOW_STR + sentence.replace(' ', self.BOW_STR)
+        encoded_ids = zip(*self._wpm_encoder.EncodeToStringAndIds(text))[1]
+        token_ids += [encoded_ids]
+      else:
+        token_ids += [[]]
+    return self._PostProcessIds(token_ids, max_length, append_eos)
+
+  def _StringsToIdsImpl(self, strs, max_length, append_eos):
+    """Takes a tensor of strings and returns id/padding tensors."""
+    if self.params.lowercase:
+      strs = [s.lower() for s in strs]
+    return tf.py_func(self._WpmEncode, [strs, max_length, append_eos],
+                      [tf.int64, tf.int64, tf.float32])
+
+  def _WpmDecode(self, ids, lengths):
+    """Takes numpy integer matrices and returns vectors of strings."""
+    assert len(ids) == len(lengths)
+    strs = []
+    for k in range(len(ids)):
+      i = ids[k][:lengths[k]]
+      wpm_str = self._wpm_encoder.Decode(i)
+      txt = ''.join(wpm_str).replace(self.BOW_STR, ' ')
+      # Remove the first space that's inserted in front of each word.
+      txt = txt.lstrip(' ')
+      strs += [txt]
+    return [strs]
+
+  def IdsToStrings(self, ids, lens):
+    """Takes id tensors and returns vector of `tf.string`s."""
+    return tf.py_func(self._WpmDecode, [ids, lens], tf.string)

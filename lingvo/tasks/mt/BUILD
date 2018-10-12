@@ -169,3 +169,10 @@ py_test(
         "//lingvo/core:test_helper",
     ],
 )
+
+filegroup(
+    name = "wpm_ende",
+    srcs = glob(include = [
+        "wpm-ende*.voc",
+    ]),
+)

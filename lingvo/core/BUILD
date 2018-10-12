@@ -610,12 +610,45 @@ py_test(
 )
 
 py_library(
+    name = "wpm_encoder",
+    srcs = ["wpm_encoder.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "wpm_encoder_test",
+    srcs = ["wpm_encoder_test.py"],
+    deps = [
+        ":wpm_encoder",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
     name = "tokenizers",
     srcs = ["tokenizers.py"],
     deps = [
         ":base_layer",
         ":py_utils",
+        ":wpm_encoder",
+        # Implicit numpy dependency.
         "//lingvo/core/ops:py_x_ops",
+    ],
+)
+
+py_test(
+    name = "tokenizers_test",
+    srcs = ["tokenizers_test.py"],
+    data = [
+        "//lingvo/tasks/mt:wpm_ende",
+    ],
+    deps = [
+        ":tokenizers",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:test_helper",
     ],
 )
 

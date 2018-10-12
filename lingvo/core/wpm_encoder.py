@@ -35,7 +35,7 @@ import sys
 import tensorflow as tf
 
 # Must be a large ID.
-NO_TOKEN = sys.maxint
+NO_TOKEN = sys.maxsize
 NO_TOKEN_STRING = '<unk>'
 
 SENTENCE_START_STRING = '<s>'
@@ -140,6 +140,9 @@ class WpmEncoder(object):
       encoded_words += self.EncodeWord(w)
     return ' '.join(encoded_words)
 
+  def Decode(self, ids):
+    return [self._TokenToString(i) for i in ids]
+
   @property
   def sentence_start_id(self):
     return self._piece2id[SENTENCE_START_STRING]
@@ -155,3 +158,7 @@ class WpmEncoder(object):
   @property
   def sentence_end_string(self):
     return SENTENCE_END_STRING
+
+  @property
+  def unk_id(self):
+    return self._piece2id[NO_TOKEN_STRING]

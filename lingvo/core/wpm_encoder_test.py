@@ -23,7 +23,7 @@ import os
 
 import tensorflow as tf
 
-from lingvo.tools import wpm_encoder
+from lingvo.core import wpm_encoder
 
 
 class WpmEncoderTest(tf.test.TestCase):

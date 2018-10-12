@@ -22,7 +22,7 @@ import numpy as np
 
 import tensorflow as tf
 
-from lingvo.tools import wpm_encoder
+from lingvo.core import wpm_encoder
 
 tf.flags.DEFINE_string(
     'source_filepaths', '',
