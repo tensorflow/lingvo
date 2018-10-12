@@ -421,9 +421,11 @@ class BeamSearchHelper(base_layer.BaseLayer):
                           tf.TensorShape(step_ids.get_shape()),
                           _GetShapes(core_bs_states),
                           _GetShapes(flat_other_states, none_shapes=True)))
+    # [target_seq_len, num_beams * num_hyps_per_beam].
     final_done_hyps = final_bs_states[5]
     final_other_states = other_states.Pack(flat_final_other_states)
 
+    # [num_beams, num_hyps_per_beam].
     topk_hyps = py_x_ops.top_k_terminated_hyps(
         final_done_hyps,
         source_seq_lengths,
@@ -434,8 +436,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
         target_seq_length_ratio=p.target_seq_length_ratio,
         eoc_id=p.target_eoc_id,
         merge_paths=p.merge_paths)
+    # [num_beams * num_hyps_per_beam, ...].
     topk_ids, topk_lens, topk_scores = py_x_ops.unpack_hyp(
         tf.reshape(topk_hyps, [-1]), max_seq_length=p.target_seq_len)
+    # [num_beams, num_hyps_per_beam].
     topk_scores = tf.reshape(topk_scores, tf.shape(topk_hyps))
 
     return BeamSearchDecodeOutput(final_done_hyps, topk_hyps, topk_ids,
