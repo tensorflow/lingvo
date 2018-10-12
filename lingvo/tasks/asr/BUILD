@@ -91,9 +91,18 @@ py_test(
 )
 
 py_library(
+    name = "contextualizer_base",
+    srcs = ["contextualizer_base.py"],
+    deps = [
+        "//lingvo/core:base_layer",
+    ],
+)
+
+py_library(
     name = "decoder",
     srcs = ["decoder.py"],
     deps = [
+        ":contextualizer_base",
         ":decoder_utils",
         ":fusion",
         # Implicit six dependency.

@@ -33,6 +33,7 @@ from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import rnn_cell
 from lingvo.core import summary_utils
+from lingvo.tasks.asr import contextualizer_base
 from lingvo.tasks.asr import decoder_utils
 from lingvo.tasks.asr import fusion
 
@@ -234,6 +235,12 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         'use_unnormalized_logits_as_log_probs', True,
         'If true, decoder beam search may return unnormalized logits as '
         'log_probs. Used for backwards-compatibility.')
+    p.Define(
+        'contextualizer', contextualizer_base.NullContextualizer.Params(),
+        'A contextualizer that can be used'
+        'to inject context into the decoder. The default NullContextualizer '
+        'does not add parameters to the model nor changes the '
+        'computation.')
 
     # Set some reasonable default values.
     # Default config for the embedding layer.
@@ -270,9 +277,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     assert p.packed_input is False, ('Packed inputs are not yet supported for '
                                      'AsrDecoderBase.')
 
-    atten_context_dim = self._GetAttenContextDim()
-    assert atten_context_dim > 0
-
     self._max_label_prob = 1 - p.min_ground_truth_prob
     self._decay_interval = p.min_prob_step - p.prob_decay_start_step
     if self._decay_interval <= 0:
@@ -286,6 +290,10 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
     name = p.name
     with tf.variable_scope(name):
+      self.CreateChild('contextualizer', p.contextualizer)
+      atten_context_dim = self._GetAttenContextDim()
+      assert atten_context_dim > 0
+
       p.emb.dtype = p.dtype
       p.emb.embedding_dim = p.emb_dim
       self.CreateChild('emb', p.emb)
@@ -347,9 +355,10 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
   def _GetAttenContextDim(self):
     p = self.params
-    if p.atten_context_dim:
-      return p.atten_context_dim
-    return p.source_dim
+    audio_context_dim = (
+        p.atten_context_dim if p.atten_context_dim else p.source_dim)
+    additional_context_dim = self.contextualizer.GetContextDim()
+    return audio_context_dim + additional_context_dim
 
   def _ApplyDropout(self,
                     x_in,
@@ -379,6 +388,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     """Intializes attention and returns a NestedMap with those values."""
     packed_src = self.atten.InitForSourcePacked(theta.atten, source_encs,
                                                 source_encs, source_paddings)
+    self.contextualizer.InitAttention(theta.contextualizer, packed_src)
     return packed_src
 
   def BaseZeroState(self,
@@ -406,6 +416,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
             zero_atten_state,
             per_step_source_padding=per_step_source_padding,
             step_state=step_state))
+    atten_context = self.contextualizer.ZeroAttention(
+        theta.contextualizer, bs, misc_zero_states, atten_context, packed_src)
 
     return rnn_states, atten_context, atten_probs, atten_states, packed_src
 
@@ -786,6 +798,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     """
     del src_segment_id, targets_per_batch_element
     p = self.params
+    self.contextualizer.SetContextMap(targets)
     if p.use_while_loop_based_unrolling:
       predictions = self.ComputePredictionsDynamic(theta, source_encs,
                                                    source_paddings, targets)
@@ -1350,6 +1363,7 @@ class AsrDecoder(AsrDecoderBase):
       decoder (usually logits), and the new decoder state after processing the
       current step.
     """
+    misc_states = decoder_step_state.misc_states
     new_rnn_states = []
     new_rnn_states_0, _ = self.rnn_cell[0].FProp(
         theta.rnn_cell[0], decoder_step_state.rnn_states[0],
@@ -1366,7 +1380,12 @@ class AsrDecoder(AsrDecoderBase):
          packed_src,
          decoder_step_state.atten_states,
          per_step_src_padding=per_step_src_padding,
-         step_state=decoder_step_state.misc_states.step_state)
+         step_state=misc_states.step_state)
+    # Here the attention context is being updated according to the
+    # contextualizer (the default contextualizer is a no-op).
+    new_atten_context = self.contextualizer.QueryAttention(
+        theta.contextualizer, rnn_out, misc_states, new_atten_context,
+        packed_src)
     for i, cell in enumerate(self.rnn_cell[1:], 1):
       new_rnn_states_i, _ = cell.FProp(
           theta.rnn_cell[i], decoder_step_state.rnn_states[i],
@@ -1380,7 +1399,7 @@ class AsrDecoder(AsrDecoderBase):
           deterministic=use_deterministic_random,
           # Use i * 1000 as extra seed to make dropout at every layer different.
           extra_seed=i * 1000,
-          step_state=decoder_step_state.misc_states.step_state)
+          step_state=misc_states.step_state)
       if i + 1 >= self.params.residual_start > 0:
         rnn_out += new_rnn_out
       else:
@@ -1393,7 +1412,7 @@ class AsrDecoder(AsrDecoderBase):
         atten_context=new_atten_context,
         atten_probs=new_atten_probs,
         atten_states=new_atten_states,
-        misc_states=decoder_step_state.misc_states)
+        misc_states=misc_states)
 
   def _GetNumHypsForBeamSearch(self, source_encs, num_hyps_per_beam):
     """Returns number of hypothesis times batch_size.
