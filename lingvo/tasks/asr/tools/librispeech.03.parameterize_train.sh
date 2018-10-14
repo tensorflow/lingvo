@@ -40,10 +40,10 @@ done
 #  148688     50        train-other-500
 #  281241    100        Total
 #
-# We expect a total of, say, 25GB, so we want 100 shards to get into the 250MB
+# We expect a total of, say, 100GB, so we want 100 shards to get into the 1GB
 # range. We use 10 processors, each alloted a range of 10 output shards.
 
-# Second pass: Create tf.Examples. It takes about 2 hours.
+# Second pass: Create tf.Examples. It takes about 90 minutes.
 
 rm -f FAILED
 subset=train-clean-100

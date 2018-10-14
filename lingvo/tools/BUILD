@@ -64,5 +64,6 @@ py_binary(
     deps = [
         ":audio_lib",
         # Implicit tensorflow dependency.
+        "//lingvo/core:asr_frontend",
     ],
 )
