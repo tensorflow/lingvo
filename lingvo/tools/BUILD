@@ -37,6 +37,14 @@ py_binary(
     ],
 )
 
+py_binary(
+    name = "compute_stats",
+    srcs = ["compute_stats.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+    ],
+)
+
 py_library(
     name = "audio_lib",
     srcs = ["audio_lib.py"],
