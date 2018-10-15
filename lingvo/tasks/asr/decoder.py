@@ -886,10 +886,16 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         fusion=new_seq_outs_fusion_states,
         misc=new_seq_outs_misc_states)
 
+  def _GetAttenProbsFromSequenceOutTensorArrays(self, atten_probs):
+    return tf.transpose(atten_probs.stack(), [1, 0, 2])
+
   def _GetPredictionFromSequenceOutTensorArrays(self, seq_out_tas):
-    seq_logits = seq_out_tas.logits.stack()
-    # [time, batch, num_classes]->[batch, time, num_classes].
-    return py_utils.NestedMap(logits=tf.transpose(seq_logits, [1, 0, 2]))
+    # [max_target_length, batch, dim] -> [batch, max_target_length, dim].
+    return py_utils.NestedMap(
+        logits=tf.transpose(seq_out_tas.logits.stack(), [1, 0, 2]),
+        attention=py_utils.NestedMap(
+            probs=self._GetAttenProbsFromSequenceOutTensorArrays(seq_out_tas
+                                                                 .atten_probs)))
 
   def _GetInitialTargetInfo(self, targets, max_seq_length, target_embs):
     return AsrDecoderBase.TargetInfo(
@@ -1123,8 +1129,13 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
           # Transpose to [batch, time, num_classes].
           logits_without_bias=tf.transpose(seq_logits, [1, 0, 2]),
           logits=tf.transpose(adjusted_logits, [1, 0, 2]))
-      if additional_atten_probs:
-        predictions.attention = py_utils.NestedMap(additional_atten_probs)
+      attention_map = py_utils.NestedMap(probs=accumulated_states.atten_probs)
+      for k, v in additional_atten_probs:
+        attention_map[k] = v
+      # Transpose attention probs from [target_length, batch, source_length] to
+      # [batch, target_length, source_length].
+      predictions.attention = attention_map.Transform(
+          lambda x: tf.transpose(x, [1, 0, 2]))
       return predictions
 
   def SingleDecodeStep(self,
