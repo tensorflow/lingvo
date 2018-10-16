@@ -191,6 +191,7 @@ class BaseTask(base_layer.BaseLayer):
     self._num_predictions = None
     self._train_op = None
     self._eval_metrics = {}
+    self._trainer_verbose_tensors = {}
 
     # Create the gradient mask,
     self._per_input_gradient_mask = None
@@ -244,6 +245,15 @@ class BaseTask(base_layer.BaseLayer):
       one of the keys is expected to be 'loss'.
     """
     raise NotImplementedError('Abstract method')
+
+  def ProcessFetchedTrainerVerboseTensors(self, global_step, eval_result):
+    """Called each train loop with the eval of the trainer verbose tensors.
+
+    Args:
+      global_step: eval result of the global step.
+      eval_result: eval result for the trainer_verbose_tensors set.
+    """
+    pass
 
   def FPropTower(self, theta, input_batch):
     """Forward propagation through one tower of the model.
@@ -646,6 +656,26 @@ class BaseTask(base_layer.BaseLayer):
   def total_examples(self):
     """Returns the total number of training examples processed so far."""
     return self._total_examples.Value()
+
+  @property
+  def trainer_verbose_tensors(self):
+    """Return the dict of verbose tensors to eval in the training loop."""
+    return self._trainer_verbose_tensors
+
+  def AddTrainerVerboseTensor(self, name, target):
+    """Add a (set of) tensors to be evaluated in the training loop.
+
+    Args:
+      name: A python string. The name of the target(s).
+      target: A Tensor or a list or dict of Tensors.
+
+    Raises:
+      ValueError: if `name` is already defined.
+
+    """
+    if name in self._trainer_verbose_tensors:
+      raise ValueError('Verbose target %s has already been defined.' % name)
+    self._trainer_verbose_tensors[name] = target
 
   def IncrementTotalSamples(self, value=None):
     """Updates the total number of training examples with the batch size."""

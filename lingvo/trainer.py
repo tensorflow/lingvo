@@ -464,15 +464,18 @@ class Trainer(base_runner.BaseRunner):
             except AttributeError:
               pass
 
-        _, global_step, eval_metrics = sess.run([
+        _, global_step, eval_metrics, fetched_verbose_tensors = sess.run([
             model_task.train_op,
             self._model.global_step,
             model_task.eval_metrics,
+            model_task.trainer_verbose_tensors,
         ])
         msg = 'step:%6d' % (global_step)
         for key, (val, _) in sorted(six.iteritems(eval_metrics)):
           msg += ' %s:%.8g' % (key, val)
           self._SummarizeValue(global_step, key, val, self._summary_writer)
+        model_task.ProcessFetchedTrainerVerboseTensors(global_step,
+                                                       fetched_verbose_tensors)
         if global_step >= next_status_step:
           self._SetStatusMessage(msg)
           next_status_step = global_step + status_interval_steps
