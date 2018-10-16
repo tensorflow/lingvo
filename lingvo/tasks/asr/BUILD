@@ -147,3 +147,39 @@ py_library(
         "//lingvo/core:py_utils",
     ],
 )
+
+py_library(
+    name = "model",
+    srcs = ["model.py"],
+    deps = [
+        ":decoder",
+        ":decoder_utils",
+        ":encoder",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_layer",
+        "//lingvo/core:base_model",
+        "//lingvo/core:lr_schedule",
+        "//lingvo/core:metrics",
+        "//lingvo/core:py_utils",
+    ],
+)
+
+py_test(
+    name = "model_test",
+    srcs = ["model_test.py"],
+    deps = [
+        ":decoder",
+        ":model",
+        ":model_test_input_generator",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_layer",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:lr_schedule",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:summary_utils",
+        "//lingvo/core:test_utils",
+    ],
+)
