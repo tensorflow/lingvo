@@ -94,5 +94,76 @@ class DecoderUtilsComputeWerTest(tf.test.TestCase):
       self.assertAllEqual(wer.eval(), [[1, 2], [1, 2]])
 
 
+class DecoderUtilsFilterTest(tf.test.TestCase):
+
+  def testFilterEpsilon(self):
+    s = "no epsilon"
+    self.assertEqual(s, decoder_utils.FilterEpsilon(s))
+
+    s = "<epsilon>epsilon tokens are<epsilon>removed<epsilon>"
+    self.assertEqual("epsilon tokens are removed",
+                     decoder_utils.FilterEpsilon(s))
+
+  def testFilterNoise(self):
+    s = "no noise"
+    self.assertEqual(s, decoder_utils.FilterNoise(s))
+
+    s = "<noise> noise tokens are <noise> removed <noise>"
+    self.assertEqual("noise tokens are removed", decoder_utils.FilterNoise(s))
+
+
+class DecoderUtilsEditDistanceTest(tf.test.TestCase):
+
+  def testEditDistance1(self):
+    ref = "a b c d e f g h"
+    hyp = "a b c d e f g h"
+    self.assertEqual((0, 0, 0, 0), decoder_utils.EditDistance(ref, hyp))
+
+    ref = "a b c d e f g h"
+    hyp = "a b d e f g h"
+    self.assertEqual((0, 0, 1, 1), decoder_utils.EditDistance(ref, hyp))
+
+    ref = "a b c d e f g h"
+    hyp = "a b c i d e f g h"
+    self.assertEqual((1, 0, 0, 1), decoder_utils.EditDistance(ref, hyp))
+
+    ref = "a b c d e f g h"
+    hyp = "a b c i e f g h"
+    self.assertEqual((0, 1, 0, 1), decoder_utils.EditDistance(ref, hyp))
+
+    ref = "a b c d e f g j h"
+    hyp = "a b c i d e f g h"
+    self.assertEqual((1, 0, 1, 2), decoder_utils.EditDistance(ref, hyp))
+
+    ref = "a b c d e f g j h"
+    hyp = "a b c i e f g h k"
+    self.assertEqual((1, 1, 1, 3), decoder_utils.EditDistance(ref, hyp))
+
+    ref = ""
+    hyp = ""
+    self.assertEqual((0, 0, 0, 0), decoder_utils.EditDistance(ref, hyp))
+    ref = ""
+    hyp = "a b c"
+    self.assertEqual((3, 0, 0, 3), decoder_utils.EditDistance(ref, hyp))
+
+    ref = "a b c d"
+    hyp = ""
+    self.assertEqual((0, 0, 4, 4), decoder_utils.EditDistance(ref, hyp))
+
+  def testEditDistanceInIds(self):
+    ref = [0, 1, 2, 3, 9]
+    hyp = [0, 2, 3, 5, 6]
+    self.assertEqual((1, 1, 1, 3), decoder_utils.EditDistanceInIds(ref, hyp))
+
+  def testEditDistanceSkipsEmptyTokens(self):
+    ref = "a b c d e   f g h"
+    hyp = "a b c d e f g h"
+    self.assertEqual((0, 0, 0, 0), decoder_utils.EditDistance(ref, hyp))
+
+    ref = "a b c d e f g h"
+    hyp = "a b c d e   f g h"
+    self.assertEqual((0, 0, 0, 0), decoder_utils.EditDistance(ref, hyp))
+
+
 if __name__ == "__main__":
   tf.test.main()
