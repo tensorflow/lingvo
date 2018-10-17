@@ -106,9 +106,22 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
     src_frames, src_paddings = self._MaybePadSourceInputs(
         src_frames, src_paddings)
 
+    # We expect src_inputs to be of shape
+    # [batch_size, num_frames, feature_dim, channels].
+    src_frames = tf.expand_dims(src_frames, dim=-1)
+
+    # Convert target ids, labels, paddings, and weights from shape [batch_size,
+    # 1, num_frames] to [batch_size, num_frames]
+    tgt_ids = tf.squeeze(tgt_ids, axis=1)
+    tgt_labels = tf.squeeze(tgt_labels, axis=1)
+    tgt_paddings = tf.squeeze(tgt_paddings, axis=1)
+
     tgt = py_utils.NestedMap(
-        ids=tgt_ids, labels=tgt_labels, paddings=tgt_paddings)
-    src = py_utils.NestedMap(inputs=src_frames, paddings=src_paddings)
+        ids=tgt_ids,
+        labels=tgt_labels,
+        paddings=tgt_paddings,
+        weights=1.0 - tgt_paddings)
+    src = py_utils.NestedMap(src_inputs=src_frames, paddings=src_paddings)
 
     self._tgt = tgt
     self._src = src

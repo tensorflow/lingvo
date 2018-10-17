@@ -113,24 +113,26 @@ class InputTest(tf.test.TestCase):
       shapes = vals.Transform(lambda x: x.shape)
       tf.logging.info('Shapes: %s', shapes.DebugString())
       # sample_ids      (3, 1)
-      # src.inputs      (3, 1235, 40)
+      # src.src_inputs  (3, 1235, 40, 1)
       # src.paddings    (3, 1235)
-      # tgt.ids         (3, 1, 30)
-      # tgt.labels      (3, 1, 30)
-      # tgt.paddings    (3, 1, 30)
+      # tgt.ids         (3, 30)
+      # tgt.labels      (3, 30)
+      # tgt.paddings    (3, 30)
+      # tgt.weights     (3, 30)
       batch_size = p.bucket_batch_limit[0]
       max_num_frames = np.amax([xdef[0] for xdef in self._example_def.values()])
       if p.append_eos_frame:
         max_num_frames += 1
-      tgt_shape = [batch_size, 1, p.target_max_length]
+      tgt_shape = [batch_size, p.target_max_length]
       self._AssertShapesAsExpected(
           shapes, {
               'sample_ids': [batch_size, 1],
-              'src.inputs': [batch_size, max_num_frames, p.frame_size],
+              'src.src_inputs': [batch_size, max_num_frames, p.frame_size, 1],
               'src.paddings': [batch_size, max_num_frames],
               'tgt.ids': tgt_shape,
               'tgt.labels': tgt_shape,
-              'tgt.paddings': tgt_shape
+              'tgt.paddings': tgt_shape,
+              'tgt.weights': tgt_shape
           })
       for b in range(batch_size):
         ex = vals.Transform(lambda x: x[b])
@@ -140,7 +142,8 @@ class InputTest(tf.test.TestCase):
         if p.append_eos_frame:
           ref_num_frames += 1
         ref_num_padding_frames = max_num_frames - ref_num_frames
-        zero_frames = ex.src.inputs[max_num_frames - ref_num_padding_frames:]
+        zero_frames = ex.src.src_inputs[max_num_frames -
+                                        ref_num_padding_frames:]
         self._AssertAllZeros(zero_frames)
         zero_paddings = ex.src.paddings[:ref_num_frames]
         one_paddings = ex.src.paddings[ref_num_frames:]
@@ -152,15 +155,17 @@ class InputTest(tf.test.TestCase):
         # paddings: [0 0 0 1 1 1 1]
         ref_num_graphemes = len(ref[1])
         ref_tgt_ids_padding = p.target_max_length - ref_num_graphemes - 1
-        self.assertEqual(ex.tgt.ids[0][0], p.tokenizer.target_sos_id)
-        self.assertAllEqual(ex.tgt.ids[0][-ref_tgt_ids_padding:],
+        self.assertEqual(ex.tgt.ids[0], p.tokenizer.target_sos_id)
+        self.assertAllEqual(ex.tgt.ids[-ref_tgt_ids_padding:],
                             [2] * ref_tgt_ids_padding)
-        self.assertAllEqual(ex.tgt.labels[0][-ref_tgt_ids_padding - 1:],
+        self.assertAllEqual(ex.tgt.labels[-ref_tgt_ids_padding - 1:],
                             [2] * (ref_tgt_ids_padding + 1))
-        self.assertAllEqual(ex.tgt.ids[0][1:1 + ref_num_graphemes],
-                            ex.tgt.labels[0][:ref_num_graphemes])
-        self._AssertAllZeros(ex.tgt.paddings[0][:ref_num_graphemes + 1])
-        self._AssertAllOnes(ex.tgt.paddings[0][ref_num_graphemes + 1:])
+        self.assertAllEqual(ex.tgt.ids[1:1 + ref_num_graphemes],
+                            ex.tgt.labels[:ref_num_graphemes])
+        self._AssertAllZeros(ex.tgt.paddings[:ref_num_graphemes + 1])
+        self._AssertAllOnes(ex.tgt.paddings[ref_num_graphemes + 1:])
+        self._AssertAllOnes(ex.tgt.weights[:ref_num_graphemes + 1])
+        self._AssertAllZeros(ex.tgt.weights[ref_num_graphemes + 1:])
 
   def testAsrInput(self):
     p = self._GenerateSetup(append_eos_frame=True)
