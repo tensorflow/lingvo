@@ -659,6 +659,7 @@ py_library(
         ":py_utils",
         ":wpm_encoder",
         # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
         "//lingvo/core/ops:py_x_ops",
     ],
 )

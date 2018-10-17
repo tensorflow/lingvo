@@ -33,7 +33,7 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
   def Params(cls):
     """Defaults params for `LmInput`."""
     p = super(LmInput, cls).Params()
-    p.tokenizer = tokenizers.SimpleTokenizer.Params()
+    p.tokenizer = tokenizers.AsciiTokenizer.Params()
     return p
 
   def __init__(self, params):

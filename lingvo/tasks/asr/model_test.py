@@ -308,6 +308,7 @@ class AsrModelTest(tf.test.TestCase):
       l_names = sorted([p.cls.__name__ for p in lps])
       expected_layers = sorted([
           'AdditiveAttention',
+          'AsciiTokenizer',
           'AsrDecoder',
           'AsrEncoder',
           'AsrModel',
@@ -325,7 +326,6 @@ class AsrModelTest(tf.test.TestCase):
           'PiecewiseConstantLearningRateSchedule',
           'ProjectionLayer',
           'SimpleFullSoftmax',
-          'SimpleTokenizer',
           'TestInputGenerator',
       ])
       self.assertEqual(expected_layers, l_names)

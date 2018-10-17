@@ -13,8 +13,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef LINGVO_CORE_OPS_SIMPLE_TOKENIZER_H_
-#define LINGVO_CORE_OPS_SIMPLE_TOKENIZER_H_
+#ifndef LINGVO_CORE_OPS_ASCII_TOKENIZER_H_
+#define LINGVO_CORE_OPS_ASCII_TOKENIZER_H_
 
 #include <string>
 #include <vector>
@@ -24,13 +24,13 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-// Convert string to a set of graphemes.
-string ConvertString(const string& transcript);
-
 // A static simple tokenizer that maps a small vocabulary of character
 // tokens for (lower case) letters, digits, and punctuation symbols.
-class SimpleTokenizer {
+class AsciiTokenizer {
  public:
+  // Convert string to a set of graphemes.
+  static string ConvertString(const string& transcript);
+
   // Returns the number of tokens.
   static int32 NumTokens();
 
@@ -46,4 +46,4 @@ class SimpleTokenizer {
 
 }  // namespace lingvo
 }  // namespace tensorflow
-#endif  // LINGVO_CORE_OPS_SIMPLE_TOKENIZER_H_
+#endif  // LINGVO_CORE_OPS_ASCII_TOKENIZER_H_

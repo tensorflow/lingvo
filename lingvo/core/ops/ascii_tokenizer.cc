@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#include "lingvo/core/ops/simple_tokenizer.h"
+#include "lingvo/core/ops/ascii_tokenizer.h"
 
 #include <algorithm>
 #include <string>
@@ -24,13 +24,6 @@ limitations under the License.
 
 namespace tensorflow {
 namespace lingvo {
-
-string ConvertString(const string& transcript) {
-  string result = transcript;
-  std::transform(result.begin(), result.end(), result.begin(), ::tolower);
-  return result;
-}
-
 namespace {
 
 const string& FindOrDie(const std::unordered_map<int32, string>& m, int32 k) {
@@ -124,9 +117,15 @@ const CharTokenizer* GetTokenizer() {
 
 }  // namespace
 
-int32 SimpleTokenizer::NumTokens() { return kMaxTokenId + 1; }
+string AsciiTokenizer::ConvertString(const string& transcript) {
+  string result = transcript;
+  std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+  return result;
+}
 
-std::vector<int32> SimpleTokenizer::StringToIds(const string& label) {
+int32 AsciiTokenizer::NumTokens() { return kMaxTokenId + 1; }
+
+std::vector<int32> AsciiTokenizer::StringToIds(const string& label) {
   const CharTokenizer* tokenizer = GetTokenizer();
   const string converted = ConvertString(label);
   const StringPiece converted_view(converted);
@@ -159,8 +158,7 @@ std::vector<int32> SimpleTokenizer::StringToIds(const string& label) {
   return ids;
 }
 
-std::vector<string> SimpleTokenizer::IdToStrings(
-    const std::vector<int32>& ids) {
+std::vector<string> AsciiTokenizer::IdToStrings(const std::vector<int32>& ids) {
   const CharTokenizer* tokenizer = GetTokenizer();
   std::vector<string> out_strings(ids.size());
   for (int i = 0; i < ids.size(); ++i) {
@@ -169,7 +167,7 @@ std::vector<string> SimpleTokenizer::IdToStrings(
   return out_strings;
 }
 
-string SimpleTokenizer::JoinLabels(const std::vector<string>& labels) {
+string AsciiTokenizer::JoinLabels(const std::vector<string>& labels) {
   return str_util::Join(labels, "");
 }
 

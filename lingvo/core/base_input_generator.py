@@ -347,7 +347,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
              'The maximum length of the target sequence.')
     p.Define('pad_to_max_seq_length', False,
              'If True, input tensors will be padded to max_length.')
-    p.Define('tokenizer', tokenizers.SimpleTokenizer.Params(),
+    p.Define('tokenizer', tokenizers.AsciiTokenizer.Params(),
              'Tokenizer params.')
     p.Define(
         'tokenizer_dict', {},

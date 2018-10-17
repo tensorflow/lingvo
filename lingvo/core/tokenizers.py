@@ -113,7 +113,7 @@ class BaseTokenizer(base_layer.BaseLayer):
     raise NotImplementedError('Abstract method.')
 
 
-class SimpleTokenizer(BaseTokenizer):
+class AsciiTokenizer(BaseTokenizer):
   """A simple grapheme tokenizer.
 
   Maps a small vocabulary of character tokens for (lower case) letters, digits,
@@ -121,11 +121,11 @@ class SimpleTokenizer(BaseTokenizer):
   """
 
   def _StringsToIdsImpl(self, strs, max_length, append_eos):
-    return py_x_ops.label_to_token_id(
+    return py_x_ops.ascii_to_token_id(
         strs, maxlen=max_length, append_eos=append_eos)
 
   def IdsToStrings(self, ids, lens):
-    return py_x_ops.id_to_token(ids, lens)
+    return py_x_ops.id_to_ascii(ids, lens)
 
 
 class VocabFileTokenizer(BaseTokenizer):

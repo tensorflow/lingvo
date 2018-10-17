@@ -29,13 +29,12 @@ class TokenizerOpsTest(tf.test.TestCase):
   def testLabelsToTokenId(self):
     with self.session(use_gpu=False) as sess:
       token_ids, target_ids, paddings = sess.run(
-          py_x_ops.label_to_token_id(
-              [
-                  'hElLo', 'sIr<epsilon>', 'What a <unk> day', 'america\'s',
-                  '<noise> early', '1:00 AM', '<text_only>morning'
-              ],
-              append_eos=True,
-              maxlen=10))
+          py_x_ops.ascii_to_token_id([
+              'hElLo', 'sIr<epsilon>', 'What a <unk> day', 'america\'s',
+              '<noise> early', '1:00 AM', '<text_only>morning'
+          ],
+                                     append_eos=True,
+                                     maxlen=10))
     self.assertAllEqual(token_ids, [
         [1, 12, 9, 16, 16, 19, 2, 2, 2, 2],
         [1, 23, 13, 22, 73, 2, 2, 2, 2, 2],
@@ -61,13 +60,12 @@ class TokenizerOpsTest(tf.test.TestCase):
   def testLabelsToTokenIdAppendEOSFalse(self):
     with self.session(use_gpu=False) as sess:
       token_ids, target_ids, paddings = sess.run(
-          py_x_ops.label_to_token_id(
-              [
-                  'hElLo', 'sIr<epsilon>', 'What a <unk> day', 'america\'s',
-                  '<noise> early', '1:00 AM', '100%'
-              ],
-              append_eos=False,
-              maxlen=10))
+          py_x_ops.ascii_to_token_id([
+              'hElLo', 'sIr<epsilon>', 'What a <unk> day', 'america\'s',
+              '<noise> early', '1:00 AM', '100%'
+          ],
+                                     append_eos=False,
+                                     maxlen=10))
     self.assertAllEqual(
         token_ids,
         [[1, 12, 9, 16, 16, 19, 2, 2, 2, 2], [1, 23, 13, 22, 73, 2, 2, 2, 2, 2],
@@ -97,7 +95,7 @@ class TokenizerOpsTest(tf.test.TestCase):
                     2], [40, 34, 39, 39, 3, 5, 17, 2, 2,
                          2], [52, 2, 2, 2, 2, 2, 2, 2, 2, 2]]
       seq_lens = [5, 4, 9, 9, 7, 7, 1]
-      tokens = sess.run(py_x_ops.id_to_token(token_ids, seq_lens))
+      tokens = sess.run(py_x_ops.id_to_ascii(token_ids, seq_lens))
 
     self.assertEqual(tokens.tolist(), [
         'hello', 'sir<epsilon>', 'what a <unk> ', "america's", '<noise> early',

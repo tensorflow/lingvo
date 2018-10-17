@@ -65,9 +65,9 @@ lingvo_cc_library(
 )
 
 lingvo_cc_library(
-    name = "simple_tokenizer",
-    srcs = ["simple_tokenizer.cc"],
-    hdrs = ["simple_tokenizer.h"],
+    name = "ascii_tokenizer",
+    srcs = ["ascii_tokenizer.cc"],
+    hdrs = ["ascii_tokenizer.h"],
 )
 
 lingvo_cc_library(
@@ -248,12 +248,18 @@ py_test(
     ],
 )
 
+lingvo_cc_library(
+    name = "tokenizer_op_headers",
+    hdrs = ["tokenizer_op_headers.h"],
+)
+
 custom_kernel_library(
     name = "tokenizer_ops_kernels",
     srcs = ["tokenizer_ops_kernels.cc"],
+    hdrs = ["tokenizer_op_headers.h"],
     op_def_lib = [":x_ops"],
     deps = [
-        ":simple_tokenizer",
+        ":ascii_tokenizer",
         ":simple_vocab",
     ],
 )

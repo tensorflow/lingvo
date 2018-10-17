@@ -373,7 +373,7 @@ output: A list of output tensors whose types are T.
 f: A function that returns a list of tensors (T).
 )doc");
 
-REGISTER_OP("LabelToTokenId")
+REGISTER_OP("AsciiToTokenId")
     .Input("labels: string")
     .Output("token_ids: int32")
     .Output("target_ids: int32")
@@ -381,7 +381,7 @@ REGISTER_OP("LabelToTokenId")
     .Attr("append_eos: bool = true")
     .Attr("maxlen: int = 300")
     .Doc(R"doc(
-Converts label strings into token ids.
+Converts ASCII label strings into token ids.
 
 labels: A vector of shape [batch].
 token_ids: A matrix of shape [batch, maxlen].
@@ -437,12 +437,12 @@ load_token_ids_from_vocab: Whether token ids are present in vocab (i.e. vocab
 delimiter: The delimiter to split the labels to tokens by.
 )doc");
 
-REGISTER_OP("IdToToken")
+REGISTER_OP("IdToAscii")
     .Input("token_ids: int32")
     .Input("seq_lengths: int32")
     .Output("sequence: string")
     .Doc(R"doc(
-Converts sequences from token ids to actual tokens.
+Converts sequences from token ids to actual ASCII tokens.
 
 token_ids: A matrix of shape [batch, seq_len].
 seq_lengths: A vector of shape [batch]. seq_lengths[i] is the length of the
