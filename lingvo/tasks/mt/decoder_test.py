@@ -366,6 +366,8 @@ class TransformerDecoderTest(tf.test.TestCase):
     src_paddings = tf.zeros([src_time, src_batch], dtype=dtype)
     tgt_time = 5
     tgt_batch = 8
+    self.tgt_batch = tgt_batch
+
     tgt_ids = tf.constant(
         np.random.randint(20, size=[tgt_batch, tgt_time]), dtype=tf.int32)
     tgt_labels = tf.constant(
@@ -381,13 +383,14 @@ class TransformerDecoderTest(tf.test.TestCase):
     return (src_enc, src_paddings, tgts)
 
   def _testPackedInputs(self, dtype=tf.float32):
+    p = self._DecoderParams()
     np.random.seed(_NUMPY_RANDOM_SEED)
     src_time = 5
     batch = 2
     emb_dims = 4
     tgt_time = 5
     src_enc = tf.constant(
-        np.random.normal(size=[src_time, batch, emb_dims]), dtype=dtype)
+        np.random.normal(size=[src_time, batch, p.source_dim]), dtype=dtype)
     paddings = tf.zeros([src_time, batch], dtype=dtype)
     tgt_ids = tf.constant(
         np.random.randint(20, size=[batch, tgt_time]), dtype=tf.int32)
@@ -476,13 +479,15 @@ class TransformerDecoderTest(tf.test.TestCase):
       self.assertAlmostEqual(15.864315, actual_loss, delta=0.0001)
 
   def _testExtendStep(self, sess, dec, src_enc, src_padding, tgts):
+    p = self._DecoderParams()
     l_out1 = dec._FProp(dec.theta, src_enc, src_padding, tgts, None)
 
     prefix_states = py_utils.NestedMap()
     for i in range(6):
       layer_i_states = py_utils.NestedMap()
-      layer_i_states.key = tf.zeros([8, 0, 4])
-      layer_i_states.value = tf.zeros([8, 0, 4])
+      # the middle dim is for num of transformer layers. Here's 0 as placeholder
+      layer_i_states.key = tf.zeros([self.tgt_batch, 0, p.model_dim])
+      layer_i_states.value = tf.zeros([self.tgt_batch, 0, p.model_dim])
       prefix_states['layer_%i' % i] = layer_i_states
 
     l_out2 = []
