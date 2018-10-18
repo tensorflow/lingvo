@@ -1302,22 +1302,27 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
   return vs_gs_scale.Transform(Scale)
 
 
-SKIP_L2_REGULARIZATION = '__lingvo_skip_l2_regularization'
+SKIP_LP_REGULARIZATION = '__lingvo_skip_lp_regularization'
 
 
-def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
-  """Adjusts the map of (var, grad) with L2 regularization.
+def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
+  """Adjusts the map of (var, grad) with Lp regularization, where p=1.0 or 2.0.
 
   Args:
     var_grads: a `.NestedMap` of (variable, gradient).
-    l2_regularizer_weight: L2 regularization weight.
+    lp_regularizer_weight: Lp regularization weight.
+    p: For now we support 1.0 or 2.0.
 
   Returns:
-    A tuple (l2_loss, var_grads).
+    A tuple (lp_loss, var_grads).
 
-    - l2_loss: A scalar. The l2 loss.
-    - var_grads: a `.NestedMap` of (variable, gradient) regulated by L2.
+    - lp_loss: A scalar. The lp loss.
+    - var_grads: a `.NestedMap` of (variable, gradient) regulated by Lp.
   """
+  # TODO(yuancao): For now we support p=1 or 2, but this can be extended to
+  # lp-norm in general.
+
+  assert p in [2.0, 1.0], 'For now we only support L1/L2 regularization.'
 
   def GetVar(item):
     var, grad = item
@@ -1329,13 +1334,19 @@ def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
     else:
       return var
 
-  l2_loss = 0.5 * l2_regularizer_weight * SumSquared(
-      var_grads.Filter(
-          lambda v_g: v_g[0] not in tf.get_collection(SKIP_L2_REGULARIZATION))
-      .Transform(GetVar).Flatten())
+  if p == 2.0:
+    lp_loss = 0.5 * lp_regularizer_weight * SumSquared(
+        var_grads.Filter(
+            lambda v_g: v_g[0] not in tf.get_collection(SKIP_LP_REGULARIZATION))
+        .Transform(GetVar).Flatten())
+  elif p == 1.0:
+    lp_loss = lp_regularizer_weight * SumAbs(
+        var_grads.Filter(
+            lambda v_g: v_g[0] not in tf.get_collection(SKIP_LP_REGULARIZATION))
+        .Transform(GetVar).Flatten())
 
-  def L2Grad(item):
-    """Adjusts item's grad w/ L2 loss term."""
+  def LpGrad(item):
+    """Adjusts item's grad w/ Lp loss term."""
     var, grad = item
     if isinstance(grad, tf.IndexedSlices):
       # Note: IndexedSlces appears for embedding lookups.
@@ -1354,23 +1365,31 @@ def AdjustGradientsWithL2Loss(var_grads, l2_regularizer_weight):
 
         # Gradients for duplicated ids will be summed when they get
         # applied, and hence we account for that by first dividing
-        # gradient resulting from l2 loss by how many times the id is
+        # gradient resulting from lp loss by how many times the id is
         # duplicated.
         #
         # For each id in 'ids', we know counts[id] is non-zero,
         # hence, it's always safe to take reciprocal.
         weights = tf.reciprocal(tf.gather(counts, ids))
         weights = tf.expand_dims(weights, -1)  # [#ids, 1]
-        delta = l2_regularizer_weight * weights * values
+        if p == 2.0:
+          grad_v = values
+        elif p == 1.0:
+          grad_v = tf.sign(values)
+        delta = lp_regularizer_weight * weights * grad_v
         grad = tf.IndexedSlices(grad.values + delta, ids)
-    elif var not in tf.get_collection(SKIP_L2_REGULARIZATION):
+    elif var not in tf.get_collection(SKIP_LP_REGULARIZATION):
       with tf.device(var.device):
-        delta = l2_regularizer_weight * var
+        if p == 2.0:
+          grad_v = var
+        elif p == 1.0:
+          grad_v = tf.sign(var)
+        delta = lp_regularizer_weight * grad_v
       with tf.device(grad.device):
         grad += delta
     return (var, grad)
 
-  return l2_loss, var_grads.Transform(L2Grad)
+  return lp_loss, var_grads.Transform(LpGrad)
 
 
 def SplitRecursively(x, num_splits, axis=-1):
@@ -1907,17 +1926,24 @@ def clip_by_value(t, clip_value_min, clip_value_max, name=None):
   return tf.clip_by_value(t, clip_value_min, clip_value_max, name)
 
 
-def SumSquared(tensor_list):
-  """Computes sum([x*x for x in tensor_list]."""
-  with tf.name_scope('SumSquared'):
-    sum_squared = []
+def _TransformAndSum(tensor_list, transform):
+  with tf.name_scope('TransformAndSum'):
+    sum_transform = []
     for t in tensor_list:
       with tf.device(t.device):
         if isinstance(t, tf.IndexedSlices):
-          sum_squared += [tf.reduce_sum(tf.abs(t.values)**2)]
+          sum_transform += [tf.reduce_sum(transform(t.values))]
         else:
-          sum_squared += [tf.reduce_sum(tf.abs(t)**2)]
-    return tf.add_n(sum_squared)
+          sum_transform += [tf.reduce_sum(transform(t))]
+    return tf.add_n(sum_transform)
+
+
+def SumSquared(tensor_list):
+  return _TransformAndSum(tensor_list, lambda v: tf.abs(v)**2)
+
+
+def SumAbs(tensor_list):
+  return _TransformAndSum(tensor_list, tf.abs)
 
 
 def PiecewiseConstant(x_in, boundaries, values, vdtype):

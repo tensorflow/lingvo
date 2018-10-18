@@ -422,7 +422,7 @@ class PyUtilsTest(tf.test.TestCase):
       beta = tf.get_variable(
           'beta',
           initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
-      tf.add_to_collection(py_utils.SKIP_L2_REGULARIZATION, beta)
+      tf.add_to_collection(py_utils.SKIP_LP_REGULARIZATION, beta)
       gamma = tf.get_variable(
           'gamma',
           initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
@@ -432,8 +432,8 @@ class PyUtilsTest(tf.test.TestCase):
       vmap = py_utils.NestedMap(beta=beta, gamma=gamma)
       var_grads = py_utils.ComputeGradients(loss, vmap)
       self.assertEqual(sorted(var_grads.keys()), ['beta', 'gamma'])
-      l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithL2Loss(
-          var_grads, 0.1)
+      l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithLpLoss(
+          var_grads, 0.1, p=2.0)
 
       sess.run(tf.global_variables_initializer())
       var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run(
@@ -468,8 +468,8 @@ class PyUtilsTest(tf.test.TestCase):
       vmap = py_utils.NestedMap(emb=emb, weight=weight, bias=bias)
       var_grads = py_utils.ComputeGradients(loss, vmap)
       self.assertEqual(sorted(var_grads.keys()), ['emb', 'weight'])
-      l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithL2Loss(
-          var_grads, 0.1)
+      l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithLpLoss(
+          var_grads, 0.1, p=2.0)
 
       sess.run(tf.global_variables_initializer())
       var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run(
@@ -497,6 +497,73 @@ class PyUtilsTest(tf.test.TestCase):
           var_grads_with_l2_vals.emb[1].values, var_grads_vals.emb[1].values +
           0.1 * np.array([[1 / 3.], [1 / 2.], [1 / 3.], [1 / 3.], [1 / 2.]
                          ]) * var_grads_vals.emb[0][[2, 5, 2, 2, 5], :])
+
+  def testSkipL1Regularization(self):
+    with self.session(use_gpu=False) as sess:
+      beta = tf.get_variable(
+          'beta',
+          initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
+      tf.add_to_collection(py_utils.SKIP_LP_REGULARIZATION, beta)
+      gamma = tf.get_variable(
+          'gamma',
+          initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
+      act = tf.constant(np.arange(10).reshape([1, 10]), tf.float32)
+      pred = act * gamma + beta
+      loss = tf.reduce_sum(pred)
+      vmap = py_utils.NestedMap(beta=beta, gamma=gamma)
+      var_grads = py_utils.ComputeGradients(loss, vmap)
+      self.assertEqual(sorted(var_grads.keys()), ['beta', 'gamma'])
+      l1_loss, var_grads_with_l1 = py_utils.AdjustGradientsWithLpLoss(
+          var_grads, 0.1, p=1.0)
+
+      sess.run(tf.global_variables_initializer())
+      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run(
+          [var_grads, l1_loss, var_grads_with_l1])
+      print('var_grads_vals = ', var_grads_vals)
+      print('var_grads_with_l1_vals = ', var_grads_with_l1_vals)
+      self.assertAllEqual(var_grads_vals.beta[0],
+                          var_grads_with_l1_vals.beta[0])
+      self.assertAllEqual(var_grads_vals.gamma[0],
+                          var_grads_with_l1_vals.gamma[0])
+      self.assertAllEqual(l1_loss_val,
+                          0.1 * np.sum(np.abs(var_grads_vals.gamma[0])))
+
+  def testAdjustGradientsWithL1Loss(self):
+    with self.session(use_gpu=False) as sess:
+      emb = tf.get_variable(
+          'emb',
+          initializer=tf.constant(np.arange(100).reshape([10, 10]), tf.float32))
+      act = tf.gather(emb, [2, 5, 2, 2, 5])
+      weight = tf.get_variable(
+          'w', initializer=tf.constant(np.ones([10, 1]), tf.float32))
+      bias = tf.get_variable('b', initializer=tf.constant([0.217]))
+      pred = tf.matmul(act, weight) + tf.stop_gradient(bias)
+      loss = tf.reduce_sum(pred)
+      vmap = py_utils.NestedMap(emb=emb, weight=weight, bias=bias)
+      var_grads = py_utils.ComputeGradients(loss, vmap)
+      self.assertEqual(sorted(var_grads.keys()), ['emb', 'weight'])
+      l1_loss, var_grads_with_l1 = py_utils.AdjustGradientsWithLpLoss(
+          var_grads, 0.1, p=1.0)
+
+      sess.run(tf.global_variables_initializer())
+      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run(
+          [var_grads, l1_loss, var_grads_with_l1])
+      print('var_grads_vals = ', var_grads_vals)
+      print('var_grads_with_l1_vals = ', var_grads_with_l1_vals)
+      self.assertAllEqual(var_grads_vals.emb[0], var_grads_with_l1_vals.emb[0])
+      self.assertAllEqual(var_grads_vals.weight[0],
+                          var_grads_with_l1_vals.weight[0])
+      self.assertAllEqual(
+          l1_loss_val, 0.1 * (np.sum(np.abs(var_grads_vals.weight[0])) + np.sum(
+              np.abs(var_grads_vals.emb[0][2, :])) + np.sum(
+                  np.abs(var_grads_vals.emb[0][5, :]))))
+
+      # With l1, gradients of emb and weight are adjusted.
+      self.assertAllClose(
+          var_grads_with_l1_vals.weight[1],
+          var_grads_vals.weight[1] + 0.1 * var_grads_vals.weight[0])
+      self.assertAllClose(var_grads_with_l1_vals.emb[1].indices,
+                          var_grads_vals.emb[1].indices)
 
   def testSplitAndConcat(self):
     with self.session():

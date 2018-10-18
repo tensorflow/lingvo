@@ -75,6 +75,10 @@ class BaseTask(base_layer.BaseLayer):
         'l2_regularizer_weight', None,
         'If not None, L2 regularization to apply to the weights. '
         'Otherwise, disable L2 regularization.')
+    tp.Define(
+        'l1_regularizer_weight', None,
+        'If not None, L1 regularization to apply to the weights. '
+        'Otherwise, disable L1 regularization.')
     tp.Define('learning_rate', 0.0, 'learning rate to use.')
     tp.Define('clip_gradient_norm_to_value', 0.0,
               'Clip gradient norm to this value.')
@@ -487,15 +491,22 @@ class BaseTask(base_layer.BaseLayer):
 
     # L2 regularizer.
     if tp.l2_regularizer_weight is not None:
-      l2_loss, self._var_grads = py_utils.AdjustGradientsWithL2Loss(
-          self._var_grads, tp.l2_regularizer_weight)
+      l2_loss, self._var_grads = py_utils.AdjustGradientsWithLpLoss(
+          self._var_grads, tp.l2_regularizer_weight, p=2.0)
       summary_utils.scalar(p, 'l2_loss', l2_loss)
+
+    # L1 regularizer.
+    if tp.l1_regularizer_weight is not None:
+      l1_loss, self._var_grads = py_utils.AdjustGradientsWithLpLoss(
+          self._var_grads, tp.l1_regularizer_weight, p=1.0)
+      summary_utils.scalar(p, 'l1_loss', l1_loss)
 
     # Mask gradients only if the mask is set.
     if self._per_input_gradient_mask:
       bprop_onehot = self.input_generator.GetInputSourceOneHot()
       self._var_grads = py_utils.MaskGradients(
           self._var_grads, self._per_input_gradient_mask, bprop_onehot)
+
     # Histogram summary.
     summary_utils.CollectVarHistogram(p, self._var_grads)
 
