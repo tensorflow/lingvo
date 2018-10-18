@@ -185,9 +185,7 @@ class _Cluster(object):
 
     if p.job == 'controller':
       self._job_spec = p.controller
-    elif p.job == 'trainer':
-      self._job_spec = p.worker
-    elif p.job == 'trainer_client':
+    elif p.job in ('trainer', 'worker', 'trainer_client'):
       self._job_spec = p.worker
     elif p.job == 'evaler':
       self._job_spec = p.evaler
@@ -284,11 +282,10 @@ class _Cluster(object):
       return self.ListDevices(self._job_spec)[self.task:(self.task + 1), :]
 
     if self.job == 'trainer_client' and self.sync:
-      # In async mode, trainer_client can use every device.
+      # In sync mode, trainer_client can use every device.
       return self.ListDevices(self._job_spec)
 
-    if (self.job == 'controller') or (self.job == 'evaler') or (
-        self.job == 'decoder'):
+    if self.job in ('controller', 'evaler', 'decoder'):
       # Our current policy is that each controller/evaler/decoder task
       # only uses 1 replica.
       return self.ListDevices(self._job_spec)[self.task:(self.task + 1), :]

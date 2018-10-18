@@ -190,11 +190,11 @@ def CopyTrainerToSharedMount():
 
 def InstallAndStartProcess(cluster_spec):
   """Unpacks the trainer and kick off training."""
+  cluster_spec_flag = MakeFlagClusterSpec(cluster_spec)
   for job_name, machines in six.iteritems(cluster_spec):
     task_idx = 0
     for machine_port in machines:
       machine_name = _Machine(machine_port)
-      cluster_spec_flag = MakeFlagClusterSpec(cluster_spec)
       _ExecInDocker(
           machine_name, [
               os.path.join(SHARED_FS_MOUNTPOINT, "trainer.par"),
