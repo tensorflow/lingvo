@@ -969,6 +969,10 @@ class RunnerManager(object):
         FLAGS.worker_replicas = len(cluster_spec_dict['worker'])
         FLAGS.ps_job = '/job:worker'
         FLAGS.ps_replicas = FLAGS.worker_replicas
+      elif role == 'trainer_client':
+        assert FLAGS.mode == 'sync', (
+            '\'trainer_client\' jobs should only be in sync mode')
+        start_server = False
     if start_server:
       cluster = tf.train.ClusterSpec(cluster_spec_dict)
       server = tf.train.Server(
