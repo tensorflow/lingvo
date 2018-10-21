@@ -258,6 +258,7 @@ class LSTMCellSimple(RNNCell):
     self.TrackQTensor(
         'zero_c',
         'mixed',
+        'c_add_bias',
         'c_input_gate',
         'c_forget_gate',
         'c_output_gate',
@@ -363,20 +364,18 @@ class LSTMCellSimple(RNNCell):
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
-    p = self.params
     fns = self.fns
     wm = self.QWeight(theta.wm)
-    concat = tf.concat(inputs.act + [state0.m], 1)
-    if p.enable_lstm_bias:
-      b = self.QWeight(tf.expand_dims(theta.b, 0), domain='c_state')
-      return fns.qadd(tf.matmul(concat, wm), b, qt='fc')
-
-    return fns.qmatmul(concat, wm, qt='fc')
+    mixed = fns.qmatmul(tf.concat(inputs.act + [state0.m], 1), wm, qt='fc')
+    return mixed
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
     p = self.params
     fns = self.fns
+    if p.enable_lstm_bias:
+      b = self.QWeight(tf.expand_dims(theta.b, 0), domain='c_state')
+      xmw = fns.qadd(xmw, b, qt='c_add_bias')
 
     if not p.couple_input_forget_gates:
       i_i, i_g, f_g, o_g = tf.split(value=xmw, num_or_size_splits=4, axis=1)
