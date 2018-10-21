@@ -238,7 +238,13 @@ class WpmTokenizer(BaseTokenizer):
     assert p.target_sos_id == self._wpm_encoder.sentence_start_id
     assert p.target_eos_id == self._wpm_encoder.sentence_end_id
 
-  def _PostProcessIds(self, parsed_token_ids, max_length, append_eos):
+  def _PadOrTruncate(self, x, desired_len, pad_value):
+    if len(x) > desired_len:
+      return x[:desired_len]
+    pad_len = desired_len - len(x)
+    return x + [pad_value] * pad_len
+
+  def _PostProcessIds(self, parsed_token_ids, desired_length, append_eos):
     """Post-process token ids.
 
     This generates `token_ids`, `target_ids`, and `paddings` in the format that
@@ -248,9 +254,9 @@ class WpmTokenizer(BaseTokenizer):
     Args:
       parsed_token_ids: a list of vectors of token ids. The vectors have
         variable length.
-      max_length: a python integer. The maximum length of the returned arrays.
-        That is, only up to the first `max_length` tokens will be used,
-        including the `max_length`-th unless we append EOS.
+      desired_length: a python integer. The second dimension of the
+        returned arrays. All sequences are padded or truncated to that
+        length.
       append_eos: a python bool. See `BaseTokenizer` for explanation.
 
     Returns:
@@ -264,9 +270,6 @@ class WpmTokenizer(BaseTokenizer):
     """
     if append_eos is None:
       append_eos = self.params.append_eos
-    eos_len = 1 if append_eos else 0
-    max_seqlen = np.minimum(
-        np.amax([len(ids) for ids in parsed_token_ids]) + eos_len, max_length)
     token_ids, target_ids, paddings = [], [], []
     for ids in parsed_token_ids:
       ids = list(ids)  # It was a tuple.
@@ -274,15 +277,20 @@ class WpmTokenizer(BaseTokenizer):
         ids += [self.eos_id]
       # This truncates after the eos is added, so some sentences might
       # not have </s> at the end.
-      ids = ids[:np.minimum(max_seqlen, len(ids))]
-      seq_len = len(ids)
-      pad_len = max_seqlen - seq_len
-      token_ids += [[self.sos_id] + ids + [self.eos_id] * pad_len]
-      target_ids += [ids + [self.eos_id] * pad_len]
-      paddings += [[0.] * seq_len + [1.] * pad_len]
+      token_ids += [
+          self._PadOrTruncate([self.sos_id] + ids, desired_length, self.eos_id)
+      ]
+      target_ids += [self._PadOrTruncate(ids, desired_length, self.eos_id)]
+      paddings += [self._PadOrTruncate([0.] * len(ids), desired_length, 1.)]
     token_ids = np.matrix(token_ids)
     target_ids = np.matrix(target_ids)
     paddings = np.matrix(paddings, dtype=np.float32)
+    assert token_ids.shape == target_ids.shape, (
+        'Shapes mismatch: %s vs %s' % (token_ids.shape, target_ids.shape))
+    assert token_ids.shape == paddings.shape, (
+        'Shapes mismatch: %s vs %s' % (token_ids.shape, paddings.shape))
+    assert token_ids.shape[1] == desired_length, (
+        'Length mismatch: %s vs %s' % (token_ids.shape[1], desired_length))
     return [token_ids, target_ids, paddings]
 
   def _WpmEncode(self, batch_strs, max_length, append_eos):
@@ -290,6 +298,8 @@ class WpmTokenizer(BaseTokenizer):
     token_ids = []
     for sentence in batch_strs:
       if sentence:
+        if self.params.lowercase:
+          sentence = sentence.lower()
         text = self.BOW_STR + sentence.replace(' ', self.BOW_STR)
         encoded_ids = zip(*self._wpm_encoder.EncodeToStringAndIds(text))[1]
         token_ids += [encoded_ids]
@@ -299,10 +309,10 @@ class WpmTokenizer(BaseTokenizer):
 
   def _StringsToIdsImpl(self, strs, max_length, append_eos):
     """Takes a tensor of strings and returns id/padding tensors."""
-    if self.params.lowercase:
-      strs = [s.lower() for s in strs]
-    return tf.py_func(self._WpmEncode, [strs, max_length, append_eos],
-                      [tf.int64, tf.int64, tf.float32])
+    ids, labels, paddings = tf.py_func(self._WpmEncode,
+                                       [strs, max_length, append_eos],
+                                       [tf.int64, tf.int64, tf.float32])
+    return [tf.to_int32(ids), tf.to_int32(labels), paddings]
 
   def _WpmDecode(self, ids, lengths):
     """Takes numpy integer matrices and returns vectors of strings."""

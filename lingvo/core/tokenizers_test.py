@@ -37,14 +37,12 @@ class TokenizersTest(tf.test.TestCase):
     wpm_tokenizer = p.cls(p)
     with self.session(use_gpu=False) as sess:
       token_ids, target_ids, paddings = sess.run(
-          wpm_tokenizer.StringsToIds([
-              'WOULD THAT IT WERE SO SIMPLE',
-              'THIS IS IT',
-              '',
-          ], 6, True))
-    self.assertAllEqual(token_ids,
-                        [[1, 926, 601, 560, 1273, 721, 5490],
-                         [1, 647, 470, 560, 2, 2, 2], [1, 2, 2, 2, 2, 2, 2]])
+          wpm_tokenizer.StringsToIds(
+              tf.constant(['WOULD THAT IT WERE SO SIMPLE', 'THIS IS IT', ''],
+                          dtype=tf.string), 6, True))
+    self.assertAllEqual(
+        token_ids, [[1, 926, 601, 560, 1273, 721], [1, 647, 470, 560, 2, 2],
+                    [1, 2, 2, 2, 2, 2]])
     self.assertAllEqual(target_ids,
                         [[926, 601, 560, 1273, 721, 5490],
                          [647, 470, 560, 2, 2, 2], [2, 2, 2, 2, 2, 2]])
