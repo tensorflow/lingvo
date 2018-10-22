@@ -73,7 +73,8 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
     TF_CHECK_OK(yielder->Yield(&v));
   }
 
-  EXPECT_EQ(yielder->current_epoch(), 37);
+  // End of the 37th epoch | start of the 38th epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 37 || yielder->current_epoch() == 38);
   yielder->Close();
 }
 
@@ -125,7 +126,8 @@ TEST(RecordYielderTest, TfRecordYielderBasicTest) {
     TF_CHECK_OK(yielder->Yield(&v));
   }
 
-  EXPECT_EQ(yielder->current_epoch(), 37);
+  // End of the 37th epoch | start of the 38th epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 37 || yielder->current_epoch() == 38);
   yielder->Close();
 }
 
@@ -215,9 +217,11 @@ TEST(RecordYielder, MatchFilesFromMultiplePatterns) {
   // If we iterated through both shards (rather than 1 shard twice), there
   // should be no duplicates, and we should be at the end of the first epoch.
   EXPECT_EQ(new_end, epoch.end());
-  EXPECT_EQ(yielder->current_epoch(), 1);
+  // End of the 1st epoch | start of the 2nd epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
   TF_CHECK_OK(yielder->Yield(&v));
-  EXPECT_EQ(yielder->current_epoch(), 2);
+  // End of the 2st epoch | start of the 3nd epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
   yielder->Close();
 }
 
