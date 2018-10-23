@@ -485,14 +485,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
         return xs
 
-  def ComputeLoss(self, theta, predictions, targets):
-    segment_id = None
-    if self.params.packed_input:
-      segment_id = tf.transpose(targets.segment_ids)
-    return self._FPropSoftmax(theta, predictions, tf.transpose(targets.labels),
-                              tf.transpose(targets.weights),
-                              tf.transpose(targets.paddings), segment_id)
-
   @py_utils.NameScopeDecorator('MTDecoderV1/InitDecoder')
   def _InitDecoder(self, theta, source_encs, source_paddings, num_hyps):
     """Returns initial decoder states.
