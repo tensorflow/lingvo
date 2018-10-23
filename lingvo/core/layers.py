@@ -74,6 +74,11 @@ class IdentityLayer(base_layer.BaseLayer):
     p = self.params
     return tf.identity(inputs, name=p.name)
 
+  @classmethod
+  def FPropMeta(cls, p, inputs, *args):
+    py_utils.CheckShapes((inputs,))
+    return py_utils.NestedMap(flops=0, out_shapes=(inputs,))
+
 
 class BatchNormLayer(base_layer.BaseLayer):
   """Batch normalization layer."""
