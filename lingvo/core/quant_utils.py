@@ -249,6 +249,22 @@ class QuantizableLayer(base_layer.BaseLayer):
       return ts
     return qd.QuantizeTensors(t_name, ts, eval_only=eval_only)
 
+  def GetQTensorRange(self, t_name, ts):
+    """Returns the range for a quantized tensor.
+
+    t_name must have been previously create via TrackQTensor and t should be
+    previously quantized.
+
+    Args:
+      t_name: Preivously created QTensor t_name to fetch range from.
+      t: Tensor to retrieve range from.
+
+    Returns:
+      The (min, max) range of the quantized tensor.
+    """
+    qd = self._tracked_tensors[t_name]
+    return qd.GetTensorRange(t_name, ts)
+
   def QWeight(self, w, domain='weight'):
     """Quantizes a weight.
 
@@ -860,6 +876,22 @@ class QDomain(base_layer.BaseLayer):
     """
     return ts
 
+  def GetTensorRange(self, t_name, ts):
+    """Retrieves the range of a tensor given the t_name used by CreateTensor.
+
+    Note, this computes the batch range across the list of tensors at training
+    time but fetches the stored tensor over time. This depends on
+    QuantizeTensors updating the appropriate value.
+
+    Args:
+      t_name: Tensor name.
+      ts: Tensor to determine the range for.
+
+    Returns:
+      A min-max pair that represents the tensor range.
+    """
+    raise NotImplementedError('Abstract method: NormalizeTensors')
+
 
 class SymetricScheduledClipQDomain(QDomain):
   """A quantization domain that does symetric scheduled clipping.
@@ -1081,6 +1113,21 @@ class PassiveAsymQDomain(QDomain):
         summary_utils.histogram(
             self.params, '%s/%s_%d' % (self._qvars_scope.name, t_name, i), t)
       return ts_out
+
+  def GetTensorRange(self, t_name, ts):
+    p = self.params
+    # Always straddle a real zero point.
+    if p.is_eval:
+      # At eval/inference time, use the memorized range.
+      # Important: Don't capture these variables in training mode so as to
+      # avoid extra/unnecessary captures.
+      min_var = tf.stop_gradient(self._GetQStateVar(t_name, 'min'))
+      max_var = tf.stop_gradient(self._GetQStateVar(t_name, 'max'))
+      return (min_var, max_var)
+    # Calculate min/max for all tensors.
+    batch_min = tf.minimum(tf.reduce_min(ts), 0.0)
+    batch_max = tf.maximum(tf.reduce_max(ts), 0.0)
+    return (tf.stop_gradient(batch_min), tf.stop_gradient(batch_max))
 
   def PostTrainingStepUpdate(self, global_step):
     ops = [super(PassiveAsymQDomain, self).PostTrainingStepUpdate(global_step)]
