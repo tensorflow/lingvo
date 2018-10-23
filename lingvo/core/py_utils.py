@@ -31,9 +31,9 @@ from six.moves import zip
 import tensorflow as tf
 
 from tensorflow.contrib.model_pruning.python.layers import core_layers as pruning_layers
+from tensorflow.contrib.tpu.python.tpu import tpu
 from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.core.protobuf import rewriter_config_pb2
-
 from lingvo.core import hyperparams
 from lingvo.core import retry
 from lingvo.core.ops import py_x_ops
@@ -280,6 +280,34 @@ def use_resource_variables():  # pylint: disable=invalid-name
 def outside_all_rewrites():
   with tf.control_dependencies(None):
     yield
+
+
+def _MakeFnPinComputationToHostDevice(func):
+  """Pin func to host device."""
+
+  def _WrapperFn(*args, **kwargs):
+    with tf.device('/replica:0/task:0/device:CPU:*'):
+      return func(*args, **kwargs)
+
+  return _WrapperFn
+
+
+def RunOnTpuHost(func, *args, **kwargs):
+  """Runs the given function call on TPU host.
+
+  Invokes func(*args, **kwargs) directly if not running on tpu.
+
+  Args:
+    func: the function to invoke.
+
+  Returns:
+    The function return value.
+  """
+  if use_tpu():
+    return tpu.outside_compilation(
+        _MakeFnPinComputationToHostDevice(func), *args, **kwargs)
+  else:
+    return func(*args, **kwargs)
 
 
 _tpu_device_assignment = None
