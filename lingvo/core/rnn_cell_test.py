@@ -271,8 +271,8 @@ class RNNCellTest(tf.test.TestCase):
           groups=py_utils.SplitRecursively(
               py_utils.NestedMap(
                   c=tf.constant(np.random.uniform(size=(3, 8)), tf.float32),
-                  m=tf.constant(np.random.uniform(size=(
-                      3, 8)), tf.float32)), params.num_groups))
+                  m=tf.constant(np.random.uniform(
+                      size=(3, 8)), tf.float32)), params.num_groups))
 
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
       self.assertEqual(params.num_groups, len(state1.groups))
@@ -297,23 +297,27 @@ class RNNCellTest(tf.test.TestCase):
       m_expected = [[
           -0.07857136, 0.43932292, 0.11373602, 0.16337454, 0.01618987,
           0.09685542, -0.20168062, 0.52612996
-      ], [
-          0.07929622, 0.18910739, -0.11084013, 0.32307294, 0.03500029,
-          -0.05823045, 0.16963124, 0.27039385
-      ], [
-          0.11623365, 0.38104215, 0.00935007, 0.22124135, -0.17368057,
-          0.10859803, -0.06948104, 0.10925373
-      ]]
+      ],
+                    [
+                        0.07929622, 0.18910739, -0.11084013, 0.32307294,
+                        0.03500029, -0.05823045, 0.16963124, 0.27039385
+                    ],
+                    [
+                        0.11623365, 0.38104215, 0.00935007, 0.22124135,
+                        -0.17368057, 0.10859803, -0.06948104, 0.10925373
+                    ]]
       c_expected = [[
           -0.23670214, 0.66260374, 0.24650344, 0.28946888, 0.03051668,
           0.15143034, -0.52736223, 0.88325077
-      ], [
-          0.16262427, 0.28568456, -0.19542629, 0.52116692, 0.06872599,
-          -0.1123996, 0.31477568, 0.49881396
-      ], [
-          0.19667494, 0.68746102, 0.02078706, 0.30816019, -0.36376655,
-          0.16003416, -0.16141629, 0.16648693
-      ]]
+      ],
+                    [
+                        0.16262427, 0.28568456, -0.19542629, 0.52116692,
+                        0.06872599, -0.1123996, 0.31477568, 0.49881396
+                    ],
+                    [
+                        0.19667494, 0.68746102, 0.02078706, 0.30816019,
+                        -0.36376655, 0.16003416, -0.16141629, 0.16648693
+                    ]]
       out_expected = m_expected
       # pylint: enable=bad-whitespace, line-too-long
       if num_shuffle_shards > 1:
@@ -882,6 +886,26 @@ class RNNCellTest(tf.test.TestCase):
     self.assertAllClose(m_expected, m_v)
     self.assertAllClose(c_expected, c_v)
 
+  def testLNLSTMCellLean(self):
+    m_v, c_v = self._testLNLSTMCell(rnn_cell.LayerNormalizedLSTMCellLean)
+    m_expected = [[-0.20482419, 0.55676991], [-0.55648255, 0.20511301],
+                  [-0.20482422, 0.55676997]]
+    c_expected = [[0.14834785, 0.3804915], [-0.00927544, 0.38059637],
+                  [-0.01014781, 0.46336061]]
+    self.assertAllClose(m_expected, m_v)
+    self.assertAllClose(c_expected, c_v)
+
+  def testLNLSTMCellLeanProj(self):
+    m_v, c_v = self._testLNLSTMCell(
+        rnn_cell.LayerNormalizedLSTMCellLean, num_hidden_nodes=4)
+    m_expected = [[0.51581347, 0.22646663], [0.56025136, 0.16842051],
+                  [0.58704823, -0.07126484]]
+    c_expected = [[-0.36676273, 1.03294277, 0.24229959, 0.43976486],
+                  [-0.15832338, 1.22740746, 0.19910295, -0.14970522],
+                  [-0.57552516, 0.9139322, 0.41805002, 0.58792269]]
+    self.assertAllClose(m_expected, m_v)
+    self.assertAllClose(c_expected, c_v)
+
   def _testLNLSTMCell(self, cell_cls, num_hidden_nodes=0):
     with self.session(use_gpu=False):
       params = cell_cls.Params()
@@ -1083,8 +1107,8 @@ class RNNCellTest(tf.test.TestCase):
   def testQuantizedLSTMCellSimpleHiddenNodes(self):
     m_expected = [[0.382812, 0.296875], [0.164062, 0.171875],
                   [0.3125, -0.039062]]
-    c_expected = [[-0.160339, 0.795929, 0.449707,
-                   0.347534], [-0.049194, 0.548279, -0.060852, -0.106354],
+    c_expected = [[-0.160339, 0.795929, 0.449707, 0.347534],
+                  [-0.049194, 0.548279, -0.060852, -0.106354],
                   [-0.464172, 0.345947, 0.407349, 0.430878]]
     self._testQuantizedLSTMCellSimpleHelper(
         is_inference=False,

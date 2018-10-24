@@ -1133,7 +1133,6 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
           tf.square(x - mean), axis=[last_dim], keepdims=True)
       return (x - mean) * tf.rsqrt(variance + p.layer_norm_epsilon)
 
-    # TODO(yonghui): define a function to reduce memory usage here.
     def _PerGateLayerNorm(x, scale):
       """Applies per-gate layer normalization 'x'.
 
@@ -1152,6 +1151,151 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
       return tf.reshape(x_norm, tf.shape(x)) * tf.expand_dims(scale, 0)
 
     return _PerGateLayerNorm(xmw, theta.ln_scale)
+
+
+class LayerNormalizedLSTMCellLean(RNNCell):
+  """A very lean layer normalized LSTM cell.
+
+  This version is around 20% faster on TPU than LayerNormalizedLSTMCellSimple as
+  it avoids certain reshape ops which are not free on TPU.
+
+  Note, this version doesn't support all the options as implemented in
+  LayerNormalizedLSTMCellSimple, like quantization, zoneout regularization and
+  etc. Please use the other version if you even need those options. Another
+  difference is that in this version, c_state is also being layer-normalized.
+
+  state:
+    m: the lstm output. [batch, cell_nodes]
+    c: the lstm cell state. [batch, cell_nodes]
+
+  inputs:
+    act: a list of input activations. [batch, input_nodes]
+    padding: the padding. [batch, 1].
+    reset_mask: optional 0/1 float input to support packed input training.
+        Shape [batch, 1]
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(LayerNormalizedLSTMCellLean, cls).Params()
+    p.Define(
+        'num_hidden_nodes', 0, 'Number of projection hidden nodes '
+        '(see https://arxiv.org/abs/1603.08042). '
+        'Set to 0 to disable projection.')
+    p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqrt against.')
+
+    # TODO(yonghui): Get rid of the following two params.
+    p.Define('output_nonlinearity', True,
+             'Whether or not to apply tanh non-linearity on lstm output.')
+    p.Define('zo_prob', 0.0,
+             'If > 0, applies ZoneOut regularization with the given prob.')
+
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    """Initializes LayerNormalizedLSTMCellLean"""
+    super(LayerNormalizedLSTMCellLean, self).__init__(params)
+    assert isinstance(params, hyperparams.Params)
+    p = self.params
+
+    assert p.output_nonlinearity
+    assert p.zo_prob == 0.0
+
+    with tf.variable_scope(p.name) as scope:
+      # Define weights.
+      wm_pc = py_utils.WeightParams(
+          shape=[p.num_input_nodes + self.output_size, 4 * self.hidden_size],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=self._VariableCollections())
+      self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
+
+      if p.num_hidden_nodes:
+        w_proj = py_utils.WeightParams(
+            shape=[self.hidden_size, self.output_size],
+            init=p.params_init,
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
+
+      ln_params = ['i_g', 'i_i', 'f_g', 'o_g', 'c']
+      for ln_name in ln_params:
+        pc = py_utils.WeightParams(
+            shape=[self.hidden_size],
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('ln_scale_' + ln_name, pc, self.AddGlobalVN)
+        self.CreateVariable('bias_' + ln_name, pc, self.AddGlobalVN)
+
+  @property
+  def output_size(self):
+    return self.params.num_output_nodes
+
+  @property
+  def hidden_size(self):
+    return self.params.num_hidden_nodes or self.params.num_output_nodes
+
+  def batch_size(self, inputs):
+    return tf.shape(inputs.act[0])[0]
+
+  def zero_state(self, batch_size):
+    p = self.params
+    zero_m = tf.zeros((batch_size, self.output_size), dtype=_FPropDtype(p))
+    zero_c = tf.zeros((batch_size, self.hidden_size), dtype=_FPropDtype(p))
+    return py_utils.NestedMap(m=zero_m, c=zero_c)
+
+  def _ResetState(self, state, inputs):
+    state.m = inputs.reset_mask * state.m
+    state.c = inputs.reset_mask * state.c
+    return state
+
+  def GetOutput(self, state):
+    return state.m
+
+  def _Mix(self, theta, state0, inputs):
+    assert isinstance(inputs.act, list)
+    mixed = tf.matmul(tf.concat(inputs.act + [state0.m], 1), theta.wm)
+    return mixed
+
+  def _LayerNorm(self, x, scale, bias):
+    """Applies layer normalization on the last dimension of 'x'.
+
+    Args:
+      x: activation tensor, where the last dimension represents channels.
+
+    Returns:
+      Layer normalized 'x', with the same shape as the input.
+    """
+    p = self.params
+    mean = tf.reduce_mean(x, axis=[1], keepdims=True)
+    centered = x - mean
+    variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
+    normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+    return normed * scale + bias
+
+  def _Gates(self, xmw, theta, state0, inputs):
+    """Compute the new state."""
+    p = self.params
+    i_i, i_g, f_g, o_g = tf.split(value=xmw, num_or_size_splits=4, axis=1)
+    i_i = self._LayerNorm(i_i, theta.ln_scale_i_i + 1.0, theta.bias_i_i)
+    i_g = self._LayerNorm(i_g, theta.ln_scale_i_g + 1.0, theta.bias_i_g)
+    f_g = self._LayerNorm(f_g, theta.ln_scale_f_g + 1.0, theta.bias_f_g)
+    o_g = self._LayerNorm(o_g, theta.ln_scale_o_g + 1.0, theta.bias_o_g)
+    new_c = tf.sigmoid(f_g) * state0.c + tf.sigmoid(i_g) * tf.tanh(i_i)
+    new_c_normed = self._LayerNorm(new_c, theta.ln_scale_c + 1.0, theta.bias_c)
+    new_m = tf.sigmoid(o_g) * tf.tanh(new_c_normed)
+
+    if p.num_hidden_nodes:
+      new_m = tf.matmul(new_m, theta.w_proj)
+
+    # Now take care of padding.
+    padding = inputs.padding
+    new_m = py_utils.ApplyPadding(padding, new_m, state0.m)
+    new_c = py_utils.ApplyPadding(padding, new_c, state0.c)
+
+    return py_utils.NestedMap(m=new_m, c=new_c)
 
 
 class ConvLSTMCell(RNNCell):
