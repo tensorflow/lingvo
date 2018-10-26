@@ -1026,7 +1026,23 @@ class PadSequenceDimensionTest(tf.test.TestCase):
       x = tf.random_normal(shape=(3, 3), seed=123456)
       length = 6
       padded_x = py_utils.PadSequenceDimension(x, length, 0)
+      self.assertEqual(padded_x.shape.as_list(), [3, 6])
       real_x = sess.run(padded_x)
+      # pyformat: disable
+      expected_x = [[0.38615, 2.975221, -0.852826, 0., 0., 0.],
+                    [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
+                    [0.255314, -0.985647, 1.461641, 0., 0., 0.]]
+      # pyformat: enable
+      self.assertAllClose(expected_x, real_x)
+
+  def testPadSequenceDimension_2D_UnknownShape(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      shape = tf.placeholder(tf.int32)
+      x = tf.random_normal(shape=shape, seed=123456)
+      length = 6
+      padded_x = py_utils.PadSequenceDimension(x, length, 0)
+      self.assertEqual(padded_x.shape, None)
+      real_x = sess.run(padded_x, feed_dict={shape: [3, 3]})
       # pyformat: disable
       expected_x = [[0.38615, 2.975221, -0.852826, 0., 0., 0.],
                     [-0.571142, -0.432439, 0.413158, 0., 0., 0.],

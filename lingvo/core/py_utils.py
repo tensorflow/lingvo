@@ -2006,18 +2006,30 @@ def PadSequenceDimension(x, length, pad_val, shape=None):
     The padded tensor with shape [batch, seq_len, ...], where
     ret[:, :seq_len, ...] == x.
   """
-  rank = tf.rank(x)
-  with tf.control_dependencies([assert_greater_equal(rank, 2)]):
-    slen = tf.shape(x)[1]
-  pad_len = length - slen
-  pad = tf.scatter_nd([[1, 1]], [pad_len], [rank, 2])
+  if x.shape.ndims is not None:
+    rank = x.shape.ndims
+    assert rank >= 2
+    slen = GetShape(x, rank)[1]
+    pad_len = length - slen
+    pad = [[0, 0] for _ in range(rank)]
+    pad[1][1] = pad_len
+  else:
+    rank = tf.rank(x)
+    with tf.control_dependencies([assert_greater_equal(rank, 2)]):
+      slen = tf.shape(x)[1]
+    pad_len = length - slen
+    pad = tf.scatter_nd([[1, 1]], [pad_len], [rank, 2])
   x = tf.pad(x, pad, constant_values=pad_val)
+  if x.shape.ndims is not None:
+    static_shape = x.shape.as_list()
+    static_shape[1] = length
+    x.set_shape(static_shape)
 
   if shape:
     if not isinstance(shape, (list, tuple)):
       raise TypeError('Shape must be a list or tuple.')
     x = HasRank(x, len(shape))
-    x.set_shape(shape)
+    x = tf.ensure_shape(x, shape)
   return x
 
 
