@@ -633,6 +633,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
             decoder_step_zero_state.fusion_states,
             decoder_step_zero_state.misc_states)
 
+  # TODO(rpang): add 'theta' as an arg to BeamSearchDecode().
   def BeamSearchDecode(self,
                        source_encs,
                        source_paddings,
@@ -650,11 +651,12 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       BeamSearchDecodeOutput, a namedtuple containing the decode results
     """
     return self.beam_search.BeamSearchDecode(
-        source_encs, source_paddings, num_hyps_per_beam_override,
+        self.theta, source_encs, source_paddings, num_hyps_per_beam_override,
         self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
         self._PostBeamSearchStepCallback)
 
   def _InitBeamSearchStateCallback(self,
+                                   theta,
                                    source_encs,
                                    source_paddings,
                                    num_hyps_per_beam,
@@ -662,6 +664,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     raise NotImplementedError('_InitBeamSearchStateCallback')
 
   def _PreBeamSearchStepCallback(self,
+                                 theta,
                                  source_encs,
                                  source_paddings,
                                  step_ids,
@@ -671,6 +674,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     raise NotImplementedError('_PreBeamSearchStepCallback')
 
   def _PostBeamSearchStepCallback(self,
+                                  theta,
                                   source_encs,
                                   source_paddings,
                                   new_step_ids,
@@ -1452,6 +1456,7 @@ class AsrDecoder(AsrDecoderBase):
     return atten_probs
 
   def _InitBeamSearchStateCallback(self,
+                                   theta,
                                    source_encs,
                                    source_paddings,
                                    num_hyps_per_beam,
@@ -1461,7 +1466,7 @@ class AsrDecoder(AsrDecoderBase):
     num_hyps = self._GetNumHypsForBeamSearch(source_encs, num_hyps_per_beam)
     (rnn_states, atten_context, atten_probs,
      atten_states, fusion_states, misc_states) = self.InitDecoder(
-         self.theta, source_encs, source_paddings, num_hyps)
+         theta, source_encs, source_paddings, num_hyps)
     atten_probs = self._PostProcessAttenProbsForBeamSearch(atten_probs)
     all_atten_states = py_utils.NestedMap({
         'atten_context': atten_context,
@@ -1479,6 +1484,7 @@ class AsrDecoder(AsrDecoderBase):
     return initial_results, other_states
 
   def _PreBeamSearchStepCallback(self,
+                                 theta,
                                  source_encs,
                                  source_paddings,
                                  step_ids,
@@ -1491,7 +1497,7 @@ class AsrDecoder(AsrDecoderBase):
     fake_step_labels = tf.identity(step_ids)
     step_paddings = tf.zeros(tf.shape(step_ids), dtype=p.dtype)
     step_weights = tf.ones(tf.shape(step_ids), dtype=p.dtype)
-    embs = self.emb.EmbLookupDefaultTheta(tf.reshape(step_ids, [-1]))
+    embs = self.emb.EmbLookup(theta.emb, tf.reshape(step_ids, [-1]))
     prev_rnn_states = states.rnn_states
     prev_atten_states = states.all_atten_states.atten_states
     prev_atten_context = states.all_atten_states.atten_context
@@ -1516,16 +1522,16 @@ class AsrDecoder(AsrDecoderBase):
         misc=py_utils.NestedMap())
 
     lm_output, fusion_states = self.fusion.FPropLm(
-        self.theta.fusion, prev_fusion_states, cur_target_info.id,
+        theta.fusion, prev_fusion_states, cur_target_info.id,
         cur_target_info.padding)
 
     fused_emb, fusion_states = self.fusion.FuseEmb(
-        self.theta.fusion, fusion_states, lm_output, cur_target_info.emb)
+        theta.fusion, fusion_states, lm_output, cur_target_info.emb)
     cur_target_info = self.OverrideEmbedding(cur_target_info, fused_emb)
 
-    packed_src = self._InitAttention(self.theta, source_encs, source_paddings)
+    packed_src = self._InitAttention(theta, source_encs, source_paddings)
     step_out, new_decoder_step_state = self.SingleDecodeStep(
-        self.theta,
+        theta,
         packed_src,
         cur_target_info=cur_target_info,
         decoder_step_state=prev_decoder_step_state)
@@ -1550,7 +1556,7 @@ class AsrDecoder(AsrDecoderBase):
           step_out, [p.rnn_cell_dim, atten_context_dim], axis=-1)
 
     softmax_input, fusion_states = self.fusion.FuseOutput(
-        self.theta.fusion, fusion_states, lm_output, softmax_input)
+        theta.fusion, fusion_states, lm_output, softmax_input)
 
     xent_loss = self.softmax.XentLoss(
         [softmax_input],
@@ -1584,6 +1590,7 @@ class AsrDecoder(AsrDecoderBase):
     return bs_results, new_states
 
   def _PostBeamSearchStepCallback(self,
+                                  theta,
                                   source_encs,
                                   source_paddings,
                                   new_step_ids,

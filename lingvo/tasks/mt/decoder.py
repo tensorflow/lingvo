@@ -598,6 +598,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     self._atten.SetInitializationSourceState(new_init_state)
 
   def _InitBeamSearchStateCallback(self,
+                                   theta,
                                    source_encs,
                                    source_paddings,
                                    num_hyps_per_beam,
@@ -628,7 +629,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     num_beams = py_utils.GetShape(source_encs)[1]
     num_hyps = num_beams * num_hyps_per_beam
     rnn_states, init_atten_context, atten_probs, atten_states = (
-        self._InitDecoder(self.theta, source_encs, source_paddings, num_hyps))
+        self._InitDecoder(theta, source_encs, source_paddings, num_hyps))
 
     initial_results = py_utils.NestedMap({'atten_probs': atten_probs})
 
@@ -641,6 +642,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
   @py_utils.NameScopeDecorator('MTDecoderV1/PreBeamSearchStepCallback')
   def _PreBeamSearchStepCallback(self,
+                                 theta,
                                  source_encs,
                                  source_paddings,
                                  step_ids,
@@ -683,14 +685,14 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     prev_atten_probs = states['atten_probs']
     prev_atten_states = states['atten_states']
     step_paddings = tf.zeros(py_utils.GetShape(step_ids), dtype=p.dtype)
-    embs = self.emb.EmbLookupDefaultTheta(tf.reshape(step_ids, [-1]))
-    embs = self.ApplyClipping(self.theta, embs)
+    embs = self.emb.EmbLookup(theta.emb, tf.reshape(step_ids, [-1]))
+    embs = self.ApplyClipping(theta, embs)
     atten_context, atten_probs, rnn_states, step_out, atten_states = (
-        self._DecodeStep(self.theta, embs, step_paddings, prev_atten_context,
+        self._DecodeStep(theta, embs, step_paddings, prev_atten_context,
                          prev_rnn_states, prev_atten_states))
     atten_probs = tf.reshape(atten_probs, tf.shape(prev_atten_probs))
 
-    logits = self.softmax.Logits(self.theta.softmax, [step_out])
+    logits = self.softmax.Logits(theta.softmax, [step_out])
     log_probs = self.fns.qlogsoftmax(
         logits, qmin=p.qlogsoftmax_range_min, qmax=0.0)
 
@@ -713,6 +715,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     return bs_results, new_states
 
   def _PostBeamSearchStepCallback(self,
+                                  theta,
                                   source_encs,
                                   source_paddings,
                                   new_step_ids,
@@ -742,7 +745,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     """
     del additional_source_info  # Unused.
     return self.beam_search.BeamSearchDecode(
-        source_encs, source_paddings, num_hyps_per_beam_override,
+        self.theta, source_encs, source_paddings, num_hyps_per_beam_override,
         self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
         self._PostBeamSearchStepCallback)
 
@@ -1005,6 +1008,7 @@ class TransformerDecoder(MTBaseDecoder):
                        src_segment_id)
 
   def _InitBeamSearchStateCallback(self,
+                                   theta,
                                    source_encs,
                                    source_paddings,
                                    num_hyps_per_beam,
@@ -1012,6 +1016,8 @@ class TransformerDecoder(MTBaseDecoder):
     """Returns initial beams search states.
 
     Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       source_encs: A tensor of shape [src_len, src_batch, source_dim].
           Can be [time, batch, depth, num_layers] if is_transparent is set.
       source_paddings: A tensor of shape [src_len, src_batch].
@@ -1060,6 +1066,7 @@ class TransformerDecoder(MTBaseDecoder):
     })
 
   def _PreBeamSearchStepCallback(self,
+                                 theta,
                                  source_encs,
                                  source_paddings,
                                  step_ids,
@@ -1069,6 +1076,8 @@ class TransformerDecoder(MTBaseDecoder):
     """Returns logits for sampling ids and the next model states.
 
     Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       source_encs: A tensor of shape [src_len, src_batch, source_dim].
           Can be [time, batch, depth, num_layers] if is_transparent is set.
       source_paddings: A tensor of shape [src_len, src_batch].
@@ -1104,15 +1113,14 @@ class TransformerDecoder(MTBaseDecoder):
     new_states = states.Pack(states.Flatten())
 
     layer_out, updated_prefix_states = self.ExtendStep(
-        self.theta, source_encs, source_paddings,
-        tf.squeeze(step_ids, 1),
+        theta, source_encs, source_paddings, tf.squeeze(step_ids, 1),
         target_time[0][0], prefix_states)
 
     new_states.prefix_states = updated_prefix_states
     new_states.time_step = target_time + 1
 
     softmax_input = tf.reshape(layer_out, [-1, p.softmax.input_dim])
-    logits = self.softmax.Logits(self.theta.softmax, [softmax_input])
+    logits = self.softmax.Logits(theta.softmax, [softmax_input])
 
     num_hyps = py_utils.GetShape(step_ids)[0]
     source_len = py_utils.GetShape(source_encs)[0]
@@ -1135,6 +1143,7 @@ class TransformerDecoder(MTBaseDecoder):
     return bs_results, new_states
 
   def _PostBeamSearchStepCallback(self,
+                                  theta,
                                   source_encs,
                                   source_paddings,
                                   new_step_ids,
@@ -1148,6 +1157,6 @@ class TransformerDecoder(MTBaseDecoder):
                        source_paddings,
                        num_hyps_per_beam_override=0):
     return self.beam_search.BeamSearchDecode(
-        source_encs, source_paddings, num_hyps_per_beam_override,
+        self.theta, source_encs, source_paddings, num_hyps_per_beam_override,
         self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
         self._PostBeamSearchStepCallback)
