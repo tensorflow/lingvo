@@ -338,6 +338,7 @@ py_library(
 lingvo_cuda_py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
+    shard_count = 20,
     deps = [
         ":layers",
         ":py_utils",

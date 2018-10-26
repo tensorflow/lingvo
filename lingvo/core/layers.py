@@ -134,6 +134,10 @@ class BatchNormLayer(base_layer.BaseLayer):
     self._epsilon = 0.001
     self._decay = p.decay
 
+  @property
+  def epsilon(self):
+    return self._epsilon
+
   @staticmethod
   def _Moments(inputs, mask, enable_cross_replica_sum_on_tpu=False):
     """Computes mean and variance over the valid data points in inputs."""
@@ -167,24 +171,42 @@ class BatchNormLayer(base_layer.BaseLayer):
     ], sum_vv / count_v)
     return mean, variance
 
-  def FProp(self, theta, inputs, paddings=None):
-    """Apply batch normalization.
+  def _GetDefaultPaddings(self, inputs):
+    """Gets the default paddings for an input."""
+    return tf.zeros(
+        tf.concat([tf.shape(inputs)[:-1], [1]], 0), dtype=inputs.dtype)
+
+  def GetCurrentMoments(self, theta):
+    """Gets the current computed moments, which should be applied at eval.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: The inputs tensor.  Shaped [..., dim].
-      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as
-        the input tensor.
-    Returns:
-      Output after applying batch normalization, with the same shape as
-      'inputs'.
-    """
-    if paddings is None:
-      paddings = tf.zeros(
-          tf.concat([tf.shape(inputs)[:-1], [1]], 0), dtype=inputs.dtype)
+      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as the
+        input tensor.
 
+    Returns:
+      Tuple of (mean, variance, beta, gamma).
+    """
+    return self._moving_mean, self._moving_variance, theta.beta, theta.gamma
+
+  def ComputeAndUpdateMoments(self, theta, inputs, paddings=None):
+    """Computes moments and updates state.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor.  Shaped [..., dim].
+      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as the
+        input tensor.
+
+    Returns:
+      Tuple of (mean, variance, beta, gamma).
+    """
     p = self.params
+    if paddings is None:
+      paddings = self._GetDefaultPaddings(inputs)
     inputs = py_utils.with_dependencies([
         py_utils.assert_shape_match([tf.shape(inputs)[-1]], [p.dim]),
         py_utils.assert_shape_match([tf.shape(paddings)[-1]], [1]),
@@ -237,7 +259,28 @@ class BatchNormLayer(base_layer.BaseLayer):
       else:
         beta = theta.beta
         gamma = theta.gamma
+      return norm_mean, norm_variance, beta, gamma
 
+  def FProp(self, theta, inputs, paddings=None):
+    """Apply batch normalization.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor.  Shaped [..., dim].
+      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as the
+        input tensor.
+
+    Returns:
+      Output after applying batch normalization, with the same shape as
+      'inputs'.
+    """
+    p = self.params
+    if paddings is None:
+      paddings = self._GetDefaultPaddings(inputs)
+    with tf.name_scope(p.name):
+      norm_mean, norm_variance, beta, gamma = self.ComputeAndUpdateMoments(
+          theta, inputs, paddings)
       with tf.control_dependencies([
           py_utils.assert_greater_equal(norm_variance,
                                         tf.zeros_like(norm_variance)),
@@ -299,7 +342,7 @@ def _ComputeOutputPadding(in_padding, stride):
   return out_padding
 
 
-class ConvLayer(base_layer.BaseLayer):
+class ConvLayer(quant_utils.QuantizableLayer):
   """Convolution layer, with optional batch-normalization and activation."""
 
   @classmethod
@@ -337,6 +380,12 @@ class ConvLayer(base_layer.BaseLayer):
         'Decay in updating the mean and variance moving average used in'
         ' batch normalization.')
     p.Define(
+        'bn_fold_weights', False,
+        'Fold the batch norm parameters into the convolution weights at '
+        'eval/inference time as per https://arxiv.org/pdf/1712.05877.pdf. '
+        'Requires that batch_norm be True and is incompatible with some other '
+        'parameters (conv_last=True).')
+    p.Define(
         'causal_convolution', False,
         'If true, conv layer output only depends on time steps in'
         ' the past.')
@@ -346,7 +395,8 @@ class ConvLayer(base_layer.BaseLayer):
         'i.e., first apply batch normalization on the input, followed '
         'by activation, and finally the convolution. '
         'Otherwise, apply convolution first, followed by batch '
-        'normalization and activation.')
+        'normalization and activation. Not compatible with bn_fold_weights '
+        'or quantization.')
     p.Define(
         'weight_norm', False,
         'If true, apply weight normalization to weights as proposed by'
@@ -394,6 +444,7 @@ class ConvLayer(base_layer.BaseLayer):
                 dtype=p.dtype,
                 collections=[self.__class__.__name__ + '_vars']))
 
+    self.TrackQTensor('activation')
     if p.batch_norm:
       bn_params = BatchNormLayer.Params().Set(
           # batch normalization dimension is number of input channels if we
@@ -404,6 +455,11 @@ class ConvLayer(base_layer.BaseLayer):
           name=p.name,
           params_init=p.params_init)
       self.CreateChild('bn', bn_params)
+
+    if p.bn_fold_weights:
+      assert p.batch_norm, 'bn_fold_weights requires batch_norm = True'
+      assert not p.conv_last, 'bn_fold_weights requires conv_last = False'
+
     # TODO(yonghui): implement the variational noise logic.
 
   def OutShape(self, in_shape):
@@ -426,42 +482,112 @@ class ConvLayer(base_layer.BaseLayer):
     oc = f_outc
     return tf.TensorShape([n, ot, of, oc])
 
-  def _ApplyConv(self, theta, inputs):
+  def _GetWeights(self,
+                  theta,
+                  convolution_lambda,
+                  folded_bn_padding,
+                  cast_dtype=None):
+    """Gets a dictionary of weights and biases for the convolution.
+
+    This is necessary for some operating modes where the weights are fused
+    with batch normalization differently for training vs eval.
+
+    Args:
+      theta: A `.NestedMap` object containing underlying weights values of this
+        layer and its children layers.
+      convolution_lambda: Lambda which takes the convolution weights and runs
+        the convolution.
+      folded_bn_padding: Padding to apply to folded batch normalization moment
+        computation (or None for no padding).
+      cast_dtype: If not None, cast weights to the given dtype.
+
+    Returns:
+      Tuple of (weights, biases).
+    """
     p = self.params
+
+    # Original weights.
     w = theta.w
-    strides = [p.filter_stride[0], p.filter_stride[1]]
     # TODO(miachen): remove casting once tf.nn.conv2d supports tf.float64.
-    assert inputs.dtype == w.dtype
-    dtype = inputs.dtype
-    if dtype != tf.float32:
-      inputs = tf.cast(inputs, tf.float32)
+    if cast_dtype:
       w = tf.cast(w, tf.float32)
     if p.weight_norm:
       w = tf.nn.l2_normalize(w, [0, 1, 2]) * tf.reshape(
           (theta.g + 1.0), [1, 1, 1, p.filter_shape[-1]])
 
-    conv_padding = 'SAME'
+    # Original bias.
+    if p.bias:
+      b = theta.b
+    else:
+      b = tf.zeros(p.filter_shape[-1], dtype=w.dtype)
+
+    # Pass-through if weights are not folded with batch normalization.
+    if not p.bn_fold_weights:
+      return w, b
+
+    # If batch norm is fused with weights, then compute the weights as from
+    # figure C.8 of https://arxiv.org/pdf/1712.05877.pdf for training and
+    # figure C.6 for eval.
+    if p.is_eval:
+      # Gets current moments without updating.
+      mean, variance, beta, gamma = self.bn.GetCurrentMoments(theta.bn)
+    else:
+      # Updates moments based on a trial run of the convolution.
+      raw_conv_output = convolution_lambda(w)
+      mean, variance, beta, gamma = self.bn.ComputeAndUpdateMoments(
+          theta.bn, raw_conv_output, folded_bn_padding)
+
+    # Fold weights and bias. Note that this layer's bias is not used (not
+    # applicable for batch norm case).
+    sigma_recip = tf.rsqrt(variance + self.bn.epsilon)
+    w = w * gamma * sigma_recip
+    b = (beta - (gamma * mean * sigma_recip))
+    return w, b
+
+  def _ApplyConv(self, theta, inputs, folded_bn_padding=None):
+    p = self.params
+    strides = [p.filter_stride[0], p.filter_stride[1]]
+    # TODO(miachen): remove casting once tf.nn.conv2d supports tf.float64.
+    assert inputs.dtype == theta.w.dtype
+    dtype = inputs.dtype
+    cast_dtype = None
+    if dtype != tf.float32:
+      cast_dtype = tf.float32
+      inputs = tf.cast(inputs, cast_dtype)
+
+    padding_algorithm = 'SAME'
     if p.causal_convolution:
       assert p.filter_shape[1] == 1, 'Only 1D causal convolutions supported.'
       # Use VALID padding and shift the inputs to the right to ensure that the
       # first output only depends on the first input and so on. The output is
       # the same size as the input, as if the convolution used SAME padding.
-      conv_padding = 'VALID'
+      padding_algorithm = 'VALID'
       # The effective spatial filter width for dilated convolutions is
       # (kernel_width - 1) * dilation_rate + 1 as according to
       # https://www.tensorflow.org/api_docs/python/tf/nn/convolution.
       causal_pad_size = (p.filter_shape[0] - 1) * p.dilation_rate[0]
       inputs = tf.pad(inputs, [[0, 0], [causal_pad_size, 0], [0, 0], [0, 0]])
-    out = tf.nn.convolution(
-        inputs,
-        w,
-        strides=strides,
-        dilation_rate=p.dilation_rate,
-        data_format='NHWC',
-        padding=conv_padding)
-    if p.bias:
-      b = tf.cast(theta.b, tf.float32)
-      out = tf.nn.bias_add(out, b)
+
+    # Lambda for computing the actual convolution.
+    def ComputeRawConvolution(conv_weights):
+      return tf.nn.convolution(
+          inputs,
+          conv_weights,
+          strides=strides,
+          dilation_rate=p.dilation_rate,
+          data_format='NHWC',
+          padding=padding_algorithm)
+
+    w, b = self._GetWeights(
+        theta, ComputeRawConvolution, folded_bn_padding, cast_dtype=cast_dtype)
+
+    out = ComputeRawConvolution(self.QWeight(w))
+
+    # Note that we always apply the bias (which may be zero) because some
+    # normalization mechanisms do implicitly produce a bias.
+    b = tf.cast(b, tf.float32)
+    out = tf.nn.bias_add(out, b)
+
     if dtype != tf.float32:
       out = tf.cast(out, dtype)
     return py_utils.HasShape(out, [-1, -1, -1, p.filter_shape[3]])
@@ -504,38 +630,74 @@ class ConvLayer(base_layer.BaseLayer):
         conv_padding = None
       else:
         conv_padding = _ComputeOutputPadding(paddings, p.filter_stride[0])
+
       if p.conv_last:
-        out = inputs
-        out_padding = paddings
+        out = self._ComputeConvLast(theta, inputs, paddings, conv_padding)
       else:
-        out = self._ApplyConv(theta, inputs)
-        out_padding = conv_padding
-
-      if p.batch_norm:
-        if out_padding is None:
-          out_padding_expanded = None
-        else:
-          batch_time = tf.shape(out_padding)
-          batch_time_any_any = tf.concat([batch_time, [-1, -1]], 0)
-          out = py_utils.with_dependencies([
-              py_utils.assert_shape_match(batch_time, [-1, -1]),
-              py_utils.assert_shape_match(tf.shape(out), batch_time_any_any)
-          ], out)
-          out_padding_expanded = tf.reshape(out_padding,
-                                            tf.concat([batch_time, [1, 1]], 0))
-        out = self.bn.FProp(theta.bn, out, out_padding_expanded)
-
-      if p.activation != 'NONE':
-        out = _ACTIVATIONS[p.activation](out)
-
-      if p.conv_last:
-        out = self._ApplyConv(theta, out)
+        out = self._Compute(theta, inputs, paddings, conv_padding)
 
       # Lastly zeroing out padded states.
       if conv_padding is not None:
         out *= tf.expand_dims(tf.expand_dims(1.0 - conv_padding, -1), -1)
 
       return out, conv_padding
+
+  def _Compute(self, theta, inputs, paddings, conv_padding):
+    """Computes the forward prop (conv, bn, act)."""
+    p = self.params
+
+    bn_padding = conv_padding
+    if bn_padding is None:
+      bn_padding_expanded = None
+    else:
+      batch_time = tf.shape(bn_padding)
+      batch_time_any_any = tf.concat([batch_time, [-1, -1]], 0)
+      bn_padding_expanded = tf.reshape(bn_padding,
+                                       tf.concat([batch_time, [1, 1]], 0))
+
+    out = self._ApplyConv(theta, inputs, bn_padding_expanded)
+    if bn_padding is not None:
+      out = py_utils.with_dependencies([
+          py_utils.assert_shape_match(batch_time, [-1, -1]),
+          py_utils.assert_shape_match(tf.shape(out), batch_time_any_any)
+      ], out)
+
+    # Only apply batch norm if it was not folded into the weights.
+    if p.batch_norm and not p.bn_fold_weights:
+      out = self.bn.FProp(theta.bn, out, bn_padding_expanded)
+
+    if p.activation != 'NONE':
+      out = self.fns[_ACTIVATIONS_QUANT[p.activation]](out, qt='activation')
+    else:
+      out = self.QTensor('activation', out)
+    return out
+
+  def _ComputeConvLast(self, theta, inputs, paddings, conv_padding):
+    """Computes the forward prop in conv_last mode (bn, act, conv)."""
+    p = self.params
+    out = inputs
+    out_padding = paddings
+
+    if p.batch_norm:
+      if out_padding is None:
+        out_padding_expanded = None
+      else:
+        batch_time = tf.shape(out_padding)
+        batch_time_any_any = tf.concat([batch_time, [-1, -1]], 0)
+        out = py_utils.with_dependencies([
+            py_utils.assert_shape_match(batch_time, [-1, -1]),
+            py_utils.assert_shape_match(tf.shape(out), batch_time_any_any)
+        ], out)
+        out_padding_expanded = tf.reshape(out_padding,
+                                          tf.concat([batch_time, [1, 1]], 0))
+      out = self.bn.FProp(theta.bn, out, out_padding_expanded)
+
+    if p.activation != 'NONE':
+      out = _ACTIVATIONS[p.activation](out)
+
+    out = self._ApplyConv(theta, out)
+
+    return out
 
 
 class ProjectionLayer(quant_utils.QuantizableLayer):

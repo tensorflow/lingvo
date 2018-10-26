@@ -347,7 +347,10 @@ class ConvLayerTest(tf.test.TestCase):
                           activation='RELU',
                           conv_last=False,
                           strides=(2, 2),
-                          dilation_rate=(1, 1)):
+                          dilation_rate=(1, 1),
+                          bn_fold_weights=False,
+                          is_eval=False,
+                          quantized=False):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
@@ -361,10 +364,14 @@ class ConvLayerTest(tf.test.TestCase):
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.conv_last = conv_last
       params.batch_norm = batch_norm
+      params.bn_fold_weights = bn_fold_weights
       params.weight_norm = weight_norm
       params.bias = bias
       params.activation = activation
-      params.is_eval = False
+      params.is_eval = is_eval
+
+      if quantized:
+        params.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
 
       conv_layer = layers.ConvLayer(params)
       in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
@@ -489,6 +496,51 @@ class ConvLayerTest(tf.test.TestCase):
     actual = self._evalConvLayerFProp(weight_norm=True)
     print(['actual1 = ', np.array_repr(actual)])
     self.assertAllClose(expected_output, actual)
+
+  def testConvLayerFoldedBatchNormFProp(self):
+    actual_unfolded = self._evalConvLayerFProp(
+        batch_norm=True, bn_fold_weights=False)
+    actual_folded = self._evalConvLayerFProp(
+        batch_norm=True, bn_fold_weights=True)
+    print('testConvLayerFoldedBatchNormFProp folded = ',
+          np.array_repr(actual_folded))
+    print('testConvLayerFoldedBatchNormFProp unfolded = ',
+          np.array_repr(actual_unfolded))
+    self.assertAllClose(actual_folded, actual_unfolded)
+
+  def testConvLayerFoldedBatchNormFPropEval(self):
+    actual_unfolded = self._evalConvLayerFProp(
+        batch_norm=True, bn_fold_weights=False, is_eval=True)
+    actual_folded = self._evalConvLayerFProp(
+        batch_norm=True, bn_fold_weights=True, is_eval=True)
+    print('testConvLayerFoldedBatchNormFPropEval folded = ',
+          np.array_repr(actual_folded))
+    print('testConvLayerFoldedBatchNormFPropEval unfolded = ',
+          np.array_repr(actual_unfolded))
+    self.assertAllClose(actual_folded, actual_unfolded)
+
+  def testConvLayerFoldedBatchNormFPropQuantized(self):
+    # pyformat: disable
+    # pylint: disable=bad-whitespace
+    expected_output = [
+       [[[ 0.36997819,  0.91361964],
+         [ 0.07550576,  0.        ]],
+
+        [[ 0.35487702,  0.        ],
+         [ 1.92539668,  0.        ]]],
+       [[[ 0.27937129,  0.        ],
+         [ 0.        ,  0.        ]],
+
+        [[ 0.        ,  0.86831617],
+         [ 0.        ,  1.59317136]]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+
+    actual_folded = self._evalConvLayerFProp(
+        batch_norm=True, bn_fold_weights=True, quantized=True)
+    print('testConvLayerFoldedBatchNormFPropQuantized folded = ',
+          np.array_repr(actual_folded))
+    self.assertAllClose(actual_folded, expected_output)
 
   def testCausalConvLayerFProp(self):
     with self.session(use_gpu=True) as sess:
