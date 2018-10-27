@@ -271,6 +271,7 @@ class BeamSearchStepOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("merge_paths", &merge_paths_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("allow_empty_terminated_hyp",
                                      &allow_empty_terminated_hyp_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("ensure_full_beam", &ensure_full_beam_));
 
     CHECK_GE(eos_id_, 0);
     CHECK_GT(beam_size_, 0.0);
@@ -619,6 +620,29 @@ class BeamSearchStepOp : public OpKernel {
 
     // Now check for all_done
     t_all_done() = true;
+    if (ensure_full_beam_) {
+      // First check how many EOS hyps we have.  If we have fewer than
+      // num_hyps_per_beam for any beam, we are NOT done.
+      for (int beam_id = 0; beam_id < num_beams; ++beam_id) {
+        int num_done_hyps = 0;
+        for (int index_in_beam = 0; index_in_beam < num_hyps_per_beam_;
+             ++index_in_beam) {
+          for (int time_step = 0; time_step < t; ++time_step) {
+            int index = beam_id * num_hyps_per_beam_ + index_in_beam;;
+            if (!t_out_done_hyps(time_step, index).empty()) {
+              ++num_done_hyps;
+            }
+          }
+        }
+        if (num_done_hyps < num_hyps_per_beam_) {
+          t_all_done() = false;
+          break;
+        }
+      }
+      if (t_all_done() == false) return;
+    }
+    // Now check for hyp quality.  If for any beam we still have hyps within
+    // 'beam_size' of best score, we are NOT done.
     for (int i = 0; i < num_hyps; ++i) {
       const Hyp& hyp = top_k_hyps[i];
       const int beam_id = hyp.beam_id;
@@ -642,6 +666,7 @@ class BeamSearchStepOp : public OpKernel {
   float lm_weight_ = 0.0;
   bool merge_paths_ = false;
   bool allow_empty_terminated_hyp_ = true;
+  bool ensure_full_beam_ = false;
 };
 
 REGISTER_KERNEL_BUILDER(Name("BeamSearchStep").Device(DEVICE_CPU),

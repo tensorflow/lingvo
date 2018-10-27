@@ -36,10 +36,17 @@ class BeamSearchOpTest(tf.test.TestCase):
     np.random.seed(12345)
     tf.set_random_seed(398849988)
 
-  def _testBeamSearchOpHelper(
-      self, b_size, num_beams, seq_len, lm_weight, init_best_score, probs,
-      init_atten_probs, atten_probs, best_scores_expected, cum_scores_expected,
-      scores_expected, hyps_expected, prev_hyps_expected, atten_probs_expected):
+  def _runBeamSearchOpHelper(self,
+                             b_size,
+                             num_beams,
+                             seq_len,
+                             lm_weight,
+                             init_best_score,
+                             probs,
+                             init_atten_probs,
+                             atten_probs,
+                             beam_size=3.0,
+                             ensure_full_beam=False):
     eos_id = 2
     num_classes = 5
     num_hyps_per_beam = b_size / num_beams
@@ -68,7 +75,8 @@ class BeamSearchOpTest(tf.test.TestCase):
            i,
            lm_log_probs,
            eos_id=eos_id,
-           beam_size=3.0,
+           beam_size=beam_size,
+           ensure_full_beam=ensure_full_beam,
            num_hyps_per_beam=num_hyps_per_beam,
            valid_eos_max_logit_delta=0.1,
            lm_weight=lm_weight)
@@ -79,6 +87,20 @@ class BeamSearchOpTest(tf.test.TestCase):
            best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
            atten_probs, done, scores, atten_probs, lm_log_probs
        ])
+
+    return (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
+            atten_probs, done, scores, atten_probs, lm_log_probs)
+
+  def _testBeamSearchOpHelper(
+      self, b_size, num_beams, seq_len, lm_weight, init_best_score, probs,
+      init_atten_probs, atten_probs, best_scores_expected, cum_scores_expected,
+      scores_expected, hyps_expected, prev_hyps_expected, atten_probs_expected):
+
+    (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
+     atten_probs, done, scores,
+     atten_probs, lm_log_probs) = self._runBeamSearchOpHelper(
+         b_size, num_beams, seq_len, lm_weight, init_best_score, probs,
+         init_atten_probs, atten_probs)
 
     tf.logging.info(np.array_repr(best_scores))
     tf.logging.info(np.array_repr(cumulative_scores))
@@ -462,6 +484,51 @@ class BeamSearchOpTest(tf.test.TestCase):
 
     self._SameHyp(expected_for_beam_0, done_hyps[2, 0])
     self._SameHyp(expected_for_beam_1, done_hyps[2, 1])
+
+
+  def _testBeamSearchStoppingHelper(self, beam_size, ensure_full_beam):
+    b_size = 2
+    num_beams = 1
+    seq_len = 3
+    lm_weight = 0.
+    probs = [
+        # Only finish one beam with EOS.
+        np.log([[0.05, 0.05, 0.9], [0.05, 0.9, 0.05]]),
+    ]
+
+    results = self._runBeamSearchOpHelper(
+        b_size,
+        num_beams,
+        seq_len,
+        lm_weight,
+        _MIN_SCORE,
+        probs,
+        init_atten_probs=tf.zeros([b_size, 0]),
+        atten_probs=np.zeros([seq_len, b_size, 0]),
+        beam_size=beam_size,
+        ensure_full_beam=ensure_full_beam)
+    all_done = results[7]
+    return all_done
+
+  def test_beam_size_large(self):
+    # With default beam size, we are not yet all done, because we still have an
+    # active hyp within 3.0 of best done hyp.
+    all_done = self._testBeamSearchStoppingHelper(3.0, False)
+    self.assertEqual(False, all_done)
+
+  def test_beam_size_small(self):
+    # With small beam size, we are all done, because the active hyp is not
+    # within such a narrow margin of best done hyp.
+    all_done = self._testBeamSearchStoppingHelper(0.1, False)
+    self.assertEqual(True, all_done)
+
+  def test_ensure_full_beam(self):
+    # With small beam size and ensure_full_beam, we are _not_ yet done,
+    # because we require to have two done hyps before stopping, regardless of
+    # beam size.
+    all_done = self._testBeamSearchStoppingHelper(0.1, True)
+    self.assertEqual(False, all_done)
+
 
   def _SameHyp(self, expected_hyp_str, real_serialized_hyp):
     hyp1 = hyps_pb2.Hypothesis()

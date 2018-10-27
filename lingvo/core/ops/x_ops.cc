@@ -123,6 +123,7 @@ REGISTER_OP("BeamSearchStep")
     .Attr("lm_weight: float = 0.0")
     .Attr("merge_paths: bool = false")
     .Attr("allow_empty_terminated_hyp: bool = true")
+    .Attr("ensure_full_beam: bool = false")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(2));
       c->set_output(1, c->input(3));
@@ -236,6 +237,11 @@ allow_empty_terminated_hyp: Whether it is okay to consider a hyp that consists
     all-epsilon hyps even in the absence of silence.  Note that a hyp that
     terminates in EOS is not considered empty, so this flag has no effect for
     non-epsilon-emitting models.
+ensure_full_beam: If True, we will not set the all_done output to True until we
+     have found 'num_hyps_per_beam' terminated hyps AND no active hyps have a
+     score within 'beam_size' of the best terminated hyp.  If False, only the
+     second condition must be satisfied.  Generally this should be False unless
+     beam search is being run as part of minimum word error rate training.
 )doc");
 
 REGISTER_OP("TopKTerminatedHyps")

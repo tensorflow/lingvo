@@ -212,6 +212,15 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'which are prone to emit all-epsilon hyps even in the presence of '
         'speech.  Note that a hyp that terminates in EOS is not considered '
         'empty, so this flag has no effect for non-epsilon-emitting models.')
+    p.Define(
+        'ensure_full_beam', False, 'If True, we will not terminate the search '
+        'until both of these conditions are satisfied: we have found '
+        'num_hyps_per_beam terminated hyps AND no active hyps have a score '
+        'within beam_size of the best terminated hyp.  If False, only the '
+        'second condition must be satisfied.  Note that in either case, we can '
+        'also terminate if we have run for target_seq_len steps.  Generally '
+        'this should be False unless beam search is being run as part of '
+        'minimum word error rate training.')
     p.name = 'beam_search'
     return p
 
@@ -293,7 +302,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
          valid_eos_max_logit_delta=p.valid_eos_max_logit_delta,
          lm_weight=p.lm_log_probs_weight,
          merge_paths=p.merge_paths,
-         allow_empty_terminated_hyp=p.allow_empty_terminated_hyp)
+         allow_empty_terminated_hyp=p.allow_empty_terminated_hyp,
+         ensure_full_beam=p.ensure_full_beam)
 
     new_step_ids = tf.reshape(out_hyps[cur_step, :], tf.shape(step_ids))
     new_step_ids.set_shape(step_ids.get_shape())
