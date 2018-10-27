@@ -342,12 +342,16 @@ def _ComputeOutputPadding(in_padding, stride):
   return out_padding
 
 
-class ConvLayer(quant_utils.QuantizableLayer):
-  """Convolution layer, with optional batch-normalization and activation."""
+class BaseConv2DLayer(quant_utils.QuantizableLayer):
+  """Base class for 2D convolution layers.
+
+  Has support for optional batch-normalization, activation and sequence
+  padding.
+  """
 
   @classmethod
   def Params(cls):
-    p = super(ConvLayer, cls).Params()
+    p = super(BaseConv2DLayer, cls).Params()
     p.Define(
         'filter_shape', (0, 0, 0, 0),
         'Filter shape. Must be a sequence of length 4. Elements are in'
@@ -401,11 +405,16 @@ class ConvLayer(quant_utils.QuantizableLayer):
         'weight_norm', False,
         'If true, apply weight normalization to weights as proposed by'
         ' Salimans and Kingma, 2016: https://arxiv.org/abs/1602.07868')
+    p.Define(
+        'disable_activation_quantization', False,
+        'Disables the quantization tracking/clamping for the output '
+        'activation. This is most often used in conjunction with a concat '
+        'layer which needs to have a merged set of statistics.')
     return p
 
   @base_layer.initializer
   def __init__(self, params):
-    super(ConvLayer, self).__init__(params)
+    super(BaseConv2DLayer, self).__init__(params)
     p = self.params
     assert p.name
     assert len(p.filter_shape) == 4
@@ -431,7 +440,7 @@ class ConvLayer(quant_utils.QuantizableLayer):
         self.CreateVariable(
             'b',
             py_utils.WeightParams(
-                shape=[p.filter_shape[-1]],
+                shape=[self.output_channels],
                 init=py_utils.WeightInit.Constant(0.0),
                 dtype=p.dtype,
                 collections=[self.__class__.__name__ + '_vars']))
@@ -439,21 +448,20 @@ class ConvLayer(quant_utils.QuantizableLayer):
         self.CreateVariable(
             'g',
             py_utils.WeightParams(
-                shape=[p.filter_shape[-1]],
+                shape=self.filter_output_shape,
                 init=py_utils.WeightInit.Constant(0.0),
                 dtype=p.dtype,
                 collections=[self.__class__.__name__ + '_vars']))
 
-    self.TrackQTensor('activation')
+    if not p.disable_activation_quantization:
+      self.TrackQTensor('activation')
     if p.batch_norm:
+      # batch normalization dimension is number of input channels
+      # (filter_shape[2]) if we apply batch_norm on input and convolution
+      # in the end, number of output channels otherwise.
+      bn_dim = p.filter_shape[2] if p.conv_last else self.output_channels
       bn_params = BatchNormLayer.Params().Set(
-          # batch normalization dimension is number of input channels if we
-          # apply batch_norm on input and convolution in the end, number of
-          # output channels otherwise.
-          dim=p.filter_shape[2 if p.conv_last else 3],
-          decay=p.bn_decay,
-          name=p.name,
-          params_init=p.params_init)
+          dim=bn_dim, decay=p.bn_decay, name=p.name, params_init=p.params_init)
       self.CreateChild('bn', bn_params)
 
     if p.bn_fold_weights:
@@ -462,6 +470,45 @@ class ConvLayer(quant_utils.QuantizableLayer):
 
     # TODO(yonghui): implement the variational noise logic.
 
+  @property
+  def output_channels(self):
+    """The number of output channels for this conv layer."""
+    # Normal convolution filter shape is [..., out_channels].
+    p = self.params
+    return p.filter_shape[-1]
+
+  @property
+  def filter_output_shape(self):
+    """Final dims of the filter corresponding to the output channels.
+
+    Returns:
+      A one (standard conv) or two (depthwise conv) element shape representing
+      the final dimensions of the filter weights that are output channel
+      specific for this layer. This shape is needed for any arithmetic that
+      needs to convert between a linear list of filter weights and the
+      arrangement in the actual filter.
+    """
+    # Standard convolution has all output channels in the last dim.
+    p = self.params
+    return [p.filter_shape[-1]]
+
+  def _EvaluateConvKernel(self, inputs, filter_w, strides, dilation_rate,
+                          padding_algorithm, data_format):
+    """Evaluates the lower level convolution kernel.
+
+    Args:
+      inputs: As to tf.nn.convolution.
+      filter_w: As to tf.nn.depthwise_conv2d.
+      strides: As to tf.nn.convolution.
+      dilation_rate: As to tf.nn.convolution.
+      padding_algorithm: As to tf.nn.convolution (padding argument).
+      data_format: As to tf.nn.convolution.
+
+    Returns:
+      Convolution kernel output.
+    """
+    raise NotImplementedError()
+
   def OutShape(self, in_shape):
     """Compute the output shape given the input shape."""
     p = self.params
@@ -469,7 +516,8 @@ class ConvLayer(quant_utils.QuantizableLayer):
     assert in_shape.ndims == 4
     # In the order of batch, time, frequency, channel
     n, t, f, c = in_shape.as_list()
-    _, _, f_inc, f_outc = p.filter_shape
+    _, _, f_inc, _ = p.filter_shape
+    f_outc = self.output_channels
     # Last two dimensions has to be specified.
     assert f > 0 and c > 0
     assert c == f_inc
@@ -502,28 +550,37 @@ class ConvLayer(quant_utils.QuantizableLayer):
       cast_dtype: If not None, cast weights to the given dtype.
 
     Returns:
-      Tuple of (weights, biases).
+      Tuple of (filter, biases).
     """
     p = self.params
 
     # Original weights.
-    w = theta.w
+    filter_w = theta.w
+    filter_output_shape = self.filter_output_shape
     # TODO(miachen): remove casting once tf.nn.conv2d supports tf.float64.
     if cast_dtype:
-      w = tf.cast(w, tf.float32)
+      filter_w = tf.cast(filter_w, tf.float32)
     if p.weight_norm:
-      w = tf.nn.l2_normalize(w, [0, 1, 2]) * tf.reshape(
-          (theta.g + 1.0), [1, 1, 1, p.filter_shape[-1]])
+      if len(filter_output_shape) == 1:
+        # Normalize along the last dim (standard conv).
+        filter_w = tf.nn.l2_normalize(filter_w, [0, 1, 2]) * tf.reshape(
+            (theta.g + 1.0), [1, 1, 1, p.filter_shape[-1]])
+      elif len(filter_output_shape) == 2:
+        # Normalize along the last two dimensions (depthwise conv).
+        filter_w = tf.nn.l2_normalize(filter_w, [0, 1]) * tf.reshape(
+            (theta.g + 1.0), [1, 1] + filter_output_shape)
+      else:
+        assert False, 'Unsupported weight norm filter shape'
 
     # Original bias.
     if p.bias:
       b = theta.b
     else:
-      b = tf.zeros(p.filter_shape[-1], dtype=w.dtype)
+      b = tf.zeros([self.output_channels], dtype=filter_w.dtype)
 
     # Pass-through if weights are not folded with batch normalization.
     if not p.bn_fold_weights:
-      return w, b
+      return filter_w, b
 
     # If batch norm is fused with weights, then compute the weights as from
     # figure C.8 of https://arxiv.org/pdf/1712.05877.pdf for training and
@@ -533,22 +590,26 @@ class ConvLayer(quant_utils.QuantizableLayer):
       mean, variance, beta, gamma = self.bn.GetCurrentMoments(theta.bn)
     else:
       # Updates moments based on a trial run of the convolution.
-      raw_conv_output = convolution_lambda(w)
+      raw_conv_output = convolution_lambda(filter_w)
       mean, variance, beta, gamma = self.bn.ComputeAndUpdateMoments(
           theta.bn, raw_conv_output, folded_bn_padding)
 
     # Fold weights and bias. Note that this layer's bias is not used (not
     # applicable for batch norm case).
     sigma_recip = tf.rsqrt(variance + self.bn.epsilon)
-    w = w * gamma * sigma_recip
+    scale_correction = gamma * sigma_recip
+    # Normal conv will have all weights in the last dim
+    # ([_, _, _, output_channels]), which matches the 1D layout from
+    # batch norm. Depthwise uses the last two dims so reshape
+    # ([_, _, in_c, c_multiplier]).
+    scale_correction = tf.reshape(scale_correction, filter_output_shape)
+    filter_w = filter_w * scale_correction
     b = (beta - (gamma * mean * sigma_recip))
-    return w, b
+    return filter_w, b
 
   def _ApplyConv(self, theta, inputs, folded_bn_padding=None):
     p = self.params
     strides = [p.filter_stride[0], p.filter_stride[1]]
-    # TODO(miachen): remove casting once tf.nn.conv2d supports tf.float64.
-    assert inputs.dtype == theta.w.dtype
     dtype = inputs.dtype
     cast_dtype = None
     if dtype != tf.float32:
@@ -569,19 +630,23 @@ class ConvLayer(quant_utils.QuantizableLayer):
       inputs = tf.pad(inputs, [[0, 0], [causal_pad_size, 0], [0, 0], [0, 0]])
 
     # Lambda for computing the actual convolution.
-    def ComputeRawConvolution(conv_weights):
-      return tf.nn.convolution(
+    def ComputeRawConvolution(filter_w):
+      return self._EvaluateConvKernel(
           inputs,
-          conv_weights,
+          filter_w=filter_w,
           strides=strides,
           dilation_rate=p.dilation_rate,
           data_format='NHWC',
-          padding=padding_algorithm)
+          padding_algorithm=padding_algorithm)
 
-    w, b = self._GetWeights(
+    filter_w, b = self._GetWeights(
         theta, ComputeRawConvolution, folded_bn_padding, cast_dtype=cast_dtype)
 
-    out = ComputeRawConvolution(self.QWeight(w))
+    # TODO(miachen): remove casting once tf.nn.conv2d supports tf.float64.
+    assert inputs.dtype == filter_w.dtype
+
+    filter_w = self.QWeight(filter_w)
+    out = ComputeRawConvolution(filter_w)
 
     # Note that we always apply the bias (which may be zero) because some
     # normalization mechanisms do implicitly produce a bias.
@@ -590,22 +655,21 @@ class ConvLayer(quant_utils.QuantizableLayer):
 
     if dtype != tf.float32:
       out = tf.cast(out, dtype)
-    return py_utils.HasShape(out, [-1, -1, -1, p.filter_shape[3]])
+    return py_utils.HasShape(out, [-1, -1, -1, self.output_channels])
 
   def FProp(self, theta, inputs, paddings=None):
     """Apply convolution to inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
-      inputs: The inputs tensor. It is expected to be of shape [batch,
-          time, frequency, channel]. The time dimension corresponds to
-          the height dimension as in images and the frequency
-          dimension corresponds to the width dimension as in images.
-      paddings: The paddings tensor. If None, the inputs have no
-        paddings in the sense of sequence training (e.g., in CNN
-        models). Otherwise, it is expected to be of shape [batch,
-        time].
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor. It is expected to be of shape [batch, time,
+        frequency, channel]. The time dimension corresponds to the height
+        dimension as in images and the frequency dimension corresponds to the
+        width dimension as in images.
+      paddings: The paddings tensor. If None, the inputs have no paddings in the
+        sense of sequence training (e.g., in CNN models). Otherwise, it is
+        expected to be of shape [batch, time].
 
     Returns:
       outputs, out_paddings pair.
@@ -666,10 +730,12 @@ class ConvLayer(quant_utils.QuantizableLayer):
     if p.batch_norm and not p.bn_fold_weights:
       out = self.bn.FProp(theta.bn, out, bn_padding_expanded)
 
+    # Apply activation.
     if p.activation != 'NONE':
-      out = self.fns[_ACTIVATIONS_QUANT[p.activation]](out, qt='activation')
-    else:
+      out = _ACTIVATIONS[p.activation](out)
+    if not p.disable_activation_quantization:
       out = self.QTensor('activation', out)
+
     return out
 
   def _ComputeConvLast(self, theta, inputs, paddings, conv_padding):
@@ -698,6 +764,147 @@ class ConvLayer(quant_utils.QuantizableLayer):
     out = self._ApplyConv(theta, out)
 
     return out
+
+
+class Conv2DLayer(BaseConv2DLayer):
+  """Convolution layer, with optional batch-normalization and activation."""
+
+  def _EvaluateConvKernel(self, inputs, filter_w, strides, dilation_rate,
+                          padding_algorithm, data_format):
+    p = self.params
+    return tf.nn.convolution(
+        inputs,
+        filter_w,
+        strides=strides,
+        dilation_rate=p.dilation_rate,
+        data_format='NHWC',
+        padding=padding_algorithm)
+
+
+# Alias of Conv2DLayer (for compatibility with historical uses).
+ConvLayer = Conv2DLayer
+
+
+class DepthwiseConv2DLayer(BaseConv2DLayer):
+  """Depthwise conv 2D layer.
+
+  paper: https://arxiv.org/abs/1610.02357
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(DepthwiseConv2DLayer, cls).Params()
+    # Redefine 'filter_shape' since the semantic of shape elements is different
+    # from regular Conv2D.
+    p.Delete('filter_shape')
+    p.Define(
+        'filter_shape', (0, 0, 0, 0),
+        'Filter shape. Must be a sequence of length 4. Elements are in'
+        ' the order of height (time), width (frequency), in_channel,'
+        ' channel_multipliers. ')
+    return p
+
+  @property
+  def output_channels(self):
+    """The number of output channels for this conv layer."""
+    p = self.params
+    # Depthwise convolution filter shape is:
+    #   [..., in_channels, channel_multiplier].
+    return p.filter_shape[-2] * p.filter_shape[-1]
+
+  @property
+  def filter_output_shape(self):
+    """Final dims of the filter corresponding to the output channels."""
+    # Depthwise convolution uses the final two dims for output channels.
+    p = self.params
+    _, _, in_c, c_mul = p.filter_shape
+    return [in_c, c_mul]
+
+  def _EvaluateConvKernel(self, inputs, filter_w, strides, dilation_rate,
+                          padding_algorithm, data_format):
+    p = self.params
+    return tf.nn.depthwise_conv2d(
+        inputs,
+        filter=filter_w,
+        strides=[1, strides[0], strides[1], 1],
+        rate=p.dilation_rate,
+        data_format='NHWC',
+        padding=padding_algorithm)
+
+
+class SeparableConv2DLayer(Conv2DLayer):
+  """Separable 2D convolution.
+
+  This class aggregates a DepthwiseConv2DLayer that feeds in to the point
+  wise convolution defined by this layer. Since the point wise convolution
+  controls the output, this class is defined in terms of that and delegates
+  to a depthwise sub-layer.
+
+  The `filter_shape` parameter is rewritten on initialization from the form:
+    (h, w, cin, cout)
+  To:
+    Depthwise filter: (h, w, cin, p.depth_multiplier)
+    Pointwise filter (on this instance): (1, 1, cin * p.depth_multiplier, cout)
+
+  This way, the layer is configured as if it were a normal 2D convolution
+  but is internally reconfigured to be separable.
+
+  paper: https://arxiv.org/abs/1610.02357
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(SeparableConv2DLayer, cls).Params()
+    p.Define(
+        'depth_multiplier', 1,
+        'Number of depthwise convolution output channels per input channel. '
+        'The total number of depthwise convolution output channels will be.'
+        'equal to in_channel * depth_multiplier.')
+    p.Define('depthwise_tpl',
+             DepthwiseConv2DLayer.Params().Set(activation='NONE'),
+             'Template for the depthwise conv sub-layer.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    # Rewrite the filter.
+    params = params.Copy()
+    h, w, cin, cout = params.filter_shape
+    params.filter_shape = (1, 1, cin * params.depth_multiplier, cout)
+    depthwise_filter_shape = (h, w, cin, params.depth_multiplier)
+
+    # Dilation rate and stride go to the depthwise layer and reset ours.
+    depthwise_filter_stride = params.filter_stride
+    depthwise_dilation_rate = params.dilation_rate
+    params.filter_stride = (1, 1)
+    params.dilation_rate = (1, 1)
+
+    super(SeparableConv2DLayer, self).__init__(params)
+    p = self.params
+    del params
+
+    # Create the depthwise sub-layer.
+    depthwise_params = p.depthwise_tpl.Copy().Set(
+        filter_shape=depthwise_filter_shape,
+        filter_stride=depthwise_filter_stride,
+        dilation_rate=depthwise_dilation_rate,
+        causal_convolution=p.causal_convolution,
+        weight_norm=p.weight_norm,
+        batch_norm=p.batch_norm,
+        bn_decay=p.bn_decay,
+        bn_fold_weights=p.bn_fold_weights)
+    with tf.variable_scope(p.name):
+      self.CreateChild('depthwise_conv', depthwise_params)
+
+  def FProp(self, theta, inputs, paddings=None):
+    inputs, paddings = self.depthwise_conv.FProp(theta.depthwise_conv, inputs,
+                                                 paddings)
+    return super(SeparableConv2DLayer, self).FProp(theta, inputs, paddings)
+
+  def OutShape(self, in_shape):
+    """Compute the output shape given the input shape."""
+    in_shape = self.depthwise_conv.OutShape(in_shape)
+    return super(SeparableConv2DLayer, self).OutShape(in_shape)
 
 
 class ProjectionLayer(quant_utils.QuantizableLayer):
@@ -2039,7 +2246,7 @@ class LayerNorm(base_layer.BaseLayer):
     return Normalize(inputs, theta.scale, theta.bias)
 
 
-class ConvSetLayer(base_layer.BaseLayer):
+class ConvSetLayer(quant_utils.QuantizableLayer):
   """Set of Convolutions with different filter sizes in a single layer.
 
     Applies a set of convolutions with different filter shapes to the inputs and
@@ -2076,11 +2283,20 @@ class ConvSetLayer(base_layer.BaseLayer):
         input_shape = filter_shape[2]
       assert input_shape == filter_shape[2]
 
+    # The same QTensor is used for all inputs to the concat.
+    self.TrackQTensor('activation')
+
     params_conv_set = []
     with tf.variable_scope(p.name):
       for filter_shape in p.filter_shapes:
         conv_p = p.cnn_tpl.Copy()
         conv_p.name = '%d_%d' % (filter_shape[0], filter_shape[1])
+        # Important: combined quantization will be done pre-concat versus
+        # by each layer on its output. Otherwise, inherit quantization params
+        # from this layer.
+        if p.qdomain.default is not None:
+          conv_p.qdomain.default = p.qdomain.default.Copy()
+        conv_p.disable_activation_quantization = True
         conv_p.filter_shape = filter_shape
         params_conv_set.append(conv_p)
       self.CreateChildren('conv_set', params_conv_set)
@@ -2125,6 +2341,10 @@ class ConvSetLayer(base_layer.BaseLayer):
       if output_paddings is None:
         output_paddings = conv_i_padding
       conv_outputs.append(conv_i_output)
+
+    # Track for quantization.
+    conv_outputs = [self.QTensor('activation', t) for t in conv_outputs]
+
     out = tf.concat(conv_outputs, -1)
     return out, output_paddings
 
