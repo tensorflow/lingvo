@@ -266,8 +266,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     p.Define('rnn_cell_dim', 1024, 'size of the rnn cells.')
     p.Define('rnn_layers', 8, 'Number of rnn layers.')
     p.Define('residual_start', 2, 'Start residual connections from this layer.')
-    p.Define('target_seq_len', 300, 'During beam search, decodes '
-             'up to this length.')
     p.Define('atten_rnn_cls', rnn_layers.FRNNWithAttention,
              'Which atten rnn cls to use.')
     p.Define('use_prev_atten_ctx', False,
@@ -312,6 +310,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     p.softmax.params_init = default_params_init
 
     # Default config for beam search.
+    p.target_seq_len = 300
     p.beam_search.length_normalization = 0.2
     p.beam_search.coverage_penalty = 0.2
 
@@ -393,7 +392,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         p.softmax.input_dim = p.rnn_cell_dim
       self.CreateChild('softmax', p.softmax)
 
-      p.beam_search.target_seq_len = p.target_seq_len
       self.CreateChild('beam_search', p.beam_search)
 
   def ApplyDropout(self, x_in):
@@ -770,7 +768,6 @@ class TransformerDecoder(MTBaseDecoder):
     p.Define('num_trans_layers', 6, 'Number of Transformer layers.')
     p.Define('trans_tpl', layers_with_attention.TransformerLayer.Params(),
              'Transformer layer params.')
-    p.Define('target_seq_len', 300, 'Target seq length.')
     p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
     p.Define(
         'is_transparent', False, 'If set, expects a tensor of shape '
@@ -796,6 +793,7 @@ class TransformerDecoder(MTBaseDecoder):
     p.trans_tpl.tr_fflayer_tpl.hidden_dim = 2048
 
     # Default config for beam search.
+    p.target_seq_len = 300
     p.beam_search.length_normalization = 0.5
     p.beam_search.coverage_penalty = 0.0
 
@@ -835,7 +833,6 @@ class TransformerDecoder(MTBaseDecoder):
       p.softmax.input_dim = p.model_dim
       self.CreateChild('softmax', p.softmax)
 
-      p.beam_search.target_seq_len = p.target_seq_len
       self.CreateChild('beam_search', p.beam_search)
 
   def _FProp(self, theta, source_encs, source_paddings, targets,

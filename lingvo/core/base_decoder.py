@@ -78,6 +78,9 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p = super(BaseBeamSearchDecoder, cls).Params()
     p.Define('target_sos_id', 1, 'Id of the target sequence sos symbol.')
     p.Define('target_eos_id', 2, 'Id of the target sequence eos symbol.')
+    # TODO(rpang): remove target_seq_len and use beam_search.target_seq_len
+    # instead.
+    p.Define('target_seq_len', 0, 'Target seq length.')
     p.Define('beam_search', beam_search_helper.BeamSearchHelper.Params(),
              'BeamSearchHelper params.')
     return p
@@ -86,6 +89,7 @@ class BaseBeamSearchDecoder(BaseDecoder):
   def __init__(self, params):
     super(BaseBeamSearchDecoder, self).__init__(params)
     p = self.params
+    p.beam_search.target_seq_len = p.target_seq_len
     p.beam_search.target_sos_id = p.target_sos_id
     p.beam_search.target_eos_id = p.target_eos_id
 

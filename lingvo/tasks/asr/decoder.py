@@ -189,7 +189,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p.Define('softmax', layers.SimpleFullSoftmax.Params(), 'Softmax params.')
     p.Define('softmax_uses_attention', True,
              'Controls whether attention is fed to the softmax or not.')
-    p.Define('target_seq_len', 0, 'Target seq length.')
     p.Define('source_dim', 0, 'Dimension of the source encodings.')
     p.Define('atten_context_dim', 0,
              'Depth of the attention context vector output.')
@@ -330,7 +329,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
       self._CreateAtten()
 
-      p.beam_search.target_seq_len = p.target_seq_len
       self.CreateChild('beam_search', p.beam_search)
 
       if p.label_smoothing is not None:
