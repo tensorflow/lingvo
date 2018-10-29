@@ -84,7 +84,11 @@ class RNN(base_layer.BaseLayer):
     p = super(RNN, cls).Params()
     p.Define('cell', rnn_cell.LSTMCellSimple.Params(),
              'Configs for the RNN cell.')
-    p.Define('sequence_length', 0, 'Sequence length.')
+    p.Define(
+        'sequence_length', 0,
+        'Sequence length to unroll. If > 0, then will unroll to this fixed '
+        'size. If 0, then will unroll to accommodate the size of the inputs '
+        'for each call to FProp.')
     p.Define('reverse', False,
              'Whether or not to unroll the sequence in reversed order.')
     p.Define('packed_input', False, 'To reset states for packed inputs.')
@@ -97,7 +101,11 @@ class RNN(base_layer.BaseLayer):
     assert p.packed_input is False, ('Packed inputs are currently not '
                                      'supported by Static RNN')
     p.cell.reset_cell_state = p.packed_input
+    assert p.sequence_length >= 0
     self.CreateChild('cell', p.cell)
+
+  def zero_state(self, batch_size):
+    return self.cell.zero_state(batch_size)
 
   def FProp(self, theta, inputs, paddings, state0=None):
     """Compute RNN forward pass.
@@ -120,9 +128,18 @@ class RNN(base_layer.BaseLayer):
     p = self.params
     rcell = self.cell
     assert isinstance(rcell, (rnn_cell.RNNCell))
+    if p.sequence_length == 0:
+      if isinstance(inputs, (tuple, list)):
+        sequence_length = len(inputs)
+      else:
+        sequence_length = py_utils.GetShape(inputs)[0]
+    else:
+      sequence_length = p.sequence_length
+    assert sequence_length >= 1, ('Sequence length must be defined or inputs '
+                                  'must have fixed shapes.')
     with tf.name_scope(p.name):
-      inputs_sequence = tf.unstack(inputs, num=p.sequence_length)
-      paddings_sequence = tf.unstack(paddings, num=p.sequence_length)
+      inputs_sequence = tf.unstack(inputs, num=sequence_length)
+      paddings_sequence = tf.unstack(paddings, num=sequence_length)
       # We start from all 0 states.
       if state0:
         state = state0
@@ -130,11 +147,11 @@ class RNN(base_layer.BaseLayer):
         inputs0 = py_utils.NestedMap(
             act=[inputs_sequence[0]], padding=paddings_sequence[0])
         state = rcell.zero_state(rcell.batch_size(inputs0))
-      outputs = [None] * p.sequence_length
+      outputs = [None] * sequence_length
       if p.reverse:
-        sequence = xrange(p.sequence_length - 1, -1, -1)
+        sequence = xrange(sequence_length - 1, -1, -1)
       else:
-        sequence = xrange(0, p.sequence_length, 1)
+        sequence = xrange(0, sequence_length, 1)
       for idx in sequence:
         cur_input = py_utils.NestedMap(act=[inputs[idx]], padding=paddings[idx])
         state, _ = rcell.FProp(theta.cell, state, cur_input)
