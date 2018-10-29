@@ -64,10 +64,11 @@ class IdentityLayer(base_layer.BaseLayer):
     """Identity mapping.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: The inputs tensor.  Shaped [..., input_dim].
       *args: Arguments to be ignored.
+
     Returns:
       Tensor with the same shape and type of inputs.
     """
@@ -309,7 +310,7 @@ def _ComputeOutputPadding(in_padding, stride):
 
   Args:
     in_padding: The paddings tensor. It is expected to be of shape [batch,
-        time].
+      time].
     stride: The time-stride between adjacent windows.
 
   Returns:
@@ -981,11 +982,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     """Apply projection to inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: The inputs tensor.  Shaped [..., input_dim].
       paddings: The paddings tensor.  Shaped [..., 1], where all but the last
         dimension match.
+
     Returns:
       Output after applying projection, and optionally batch normalization and
       relu non-linearity.
@@ -1098,14 +1100,15 @@ class PoolingLayer(base_layer.BaseLayer):
     """Apply pooling to inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: The inputs tensor. It is expected to be of shape [batch, time,
-          frequency, channel]. The time dimension corresponds to the height
-          dimension as in images and the frequency dimension corresponds to the
-          width dimension as in images.
+        frequency, channel]. The time dimension corresponds to the height
+        dimension as in images and the frequency dimension corresponds to the
+        width dimension as in images.
       paddings: The paddings tensor. It is expected to be of shape [batch,
-          time]. Defaults to None, which means there no paddings.
+        time]. Defaults to None, which means there no paddings.
+
     Returns:
       outputs, out_paddings pair.
     """
@@ -1519,8 +1522,8 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     positional embeddings corresponding to the input position tensor.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       position: Position tensor of dtype float and shape [bs, seq_length] to
         generate positional embeddings.
 
@@ -1569,8 +1572,8 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     the channels dimension.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       seq_length: Sequence length of the embeddings to be generated
 
     Returns:
@@ -1589,8 +1592,8 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     to FProp description for details of sinusoidal positional embeddings.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       position_tensor: Position tensor of shape [bs, seq_length] to generate
         positional embeddings.
 
@@ -1651,16 +1654,16 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
     provided.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
-      inputs: a list of a single tensor, or a single tensor with the shape
-        [..., input_dim].
-      class_weights: a tensor with shape [...] containing the weights
-          for each target word.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: a list of a single tensor, or a single tensor with the shape [...,
+        input_dim].
+      class_weights: a tensor with shape [...] containing the weights for each
+        target word.
       class_ids: a tensor with shape [..., 1] of int32 dtype containing the
-          target class labels.
-      class_probabilities: a tensor with shape [..., num_classes] of
-          float values indicating class-membership probabilities.
+        target class labels.
+      class_probabilities: a tensor with shape [..., num_classes] of float
+        values indicating class-membership probabilities.
 
     Returns:
       A `.NestedMap` containing the following fields
@@ -1850,10 +1853,10 @@ class SimpleFullSoftmax(SoftmaxLayer):
     """Returns the logits computed before the softmax.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
-      inputs: a list of a single tensor, or a single tensor with the shape
-        [N, input_dim].
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: a list of a single tensor, or a single tensor with the shape [N,
+        input_dim].
 
     Returns:
       logits [batch, num_classes]
@@ -1953,8 +1956,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
           p.num_classes)
       per_example_xent = tf.nn.sampled_softmax_loss(
           weights=[theta['weight_%d' % i] for i in range(p.num_shards)],
-          biases=tf.concat(
-              [theta['bias_%d' % i] for i in range(p.num_shards)], axis=0),
+          biases=tf.concat([theta['bias_%d' % i] for i in range(p.num_shards)],
+                           axis=0),
           labels=tf.reshape(class_ids, [-1, 1]),
           inputs=self._GetInputs(inputs),
           num_sampled=p.num_sampled,
@@ -2138,9 +2141,10 @@ class DropoutLayer(base_layer.BaseLayer):
     """Apply dropout to inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: The inputs tensor.
+
     Returns:
       inputs with dropout applied at training time.
     """
@@ -2153,6 +2157,13 @@ class DropoutLayer(base_layer.BaseLayer):
           seed=p.random_seed)
     else:
       return inputs
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, *args):
+    py_utils.CheckShapes((inputs,))
+    flops_per_element = 10  # Approximately 10 flops per element.
+    return py_utils.NestedMap(
+        flops=inputs.num_elements() * flops_per_element, out_shapes=(inputs,))
 
 
 class DeterministicDropoutLayer(base_layer.BaseLayer):
@@ -2173,9 +2184,10 @@ class DeterministicDropoutLayer(base_layer.BaseLayer):
     """Apply dropout to inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: The inputs tensor.
+
     Returns:
       inputs with dropout applied at training time.
     """
@@ -2220,9 +2232,10 @@ class LayerNorm(base_layer.BaseLayer):
     """Applies normalization over the last dimension (layer).
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: A tensor of shape [..., hidden_dim].
+
     Returns:
       tensor of the same shape with inputs
     """
@@ -2256,10 +2269,9 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
   @classmethod
   def Params(cls):
     p = super(ConvSetLayer, cls).Params()
-    p.Define(
-        'cnn_tpl',
-        ConvLayer.Params().Set(filter_stride=(1, 1)),
-        'Conv layer template for the set of conv layers.')
+    p.Define('cnn_tpl',
+             ConvLayer.Params().Set(filter_stride=(1, 1)),
+             'Conv layer template for the set of conv layers.')
     p.Define(
         'filter_shapes', [(0, 0, 0, 0)],
         'Must be a list of sequences of 4. Elements are in order of height'
@@ -2305,14 +2317,15 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
     """Apply all convolution sets to inputs and concatenate outputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: The inputs tensor. It is expected to be of shape [batch, time,
-          frequency, channel]. The time dimension corresponds to the height
-          dimension as in images and the frequency dimension corresponds to the
-          width dimension as in images.
+        frequency, channel]. The time dimension corresponds to the height
+        dimension as in images and the frequency dimension corresponds to the
+        width dimension as in images.
       paddings: The paddings tensor. It is expected to be of shape [batch,
-          time].
+        time].
+
     Returns:
       A tuple (out, output_paddings).
 
@@ -2382,15 +2395,15 @@ class LocalizedLabelSmoother(base_layer.BaseLayer):
     """Convert class_ids to 1hot and smooth by neighborhood.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       target_paddings: float32 matrix [bs, seq_len]
-      target_labels: int32 matrix [bs, seq_len]. This stores the target
-        label output at each decoder step as generated by the speech input
-        generator input_batch.tgt.labels
-      target_ids: int32 matrix [bs, seq_len]. This stores the
-        target_id that is fed to the decoder, as generated by the speech input
-        generator input_batch.tgt.ids
+      target_labels: int32 matrix [bs, seq_len]. This stores the target label
+        output at each decoder step as generated by the speech input generator
+        input_batch.tgt.labels
+      target_ids: int32 matrix [bs, seq_len]. This stores the target_id that is
+        fed to the decoder, as generated by the speech input generator
+        input_batch.tgt.ids
 
     Returns:
       A tensor [bs, seq_len, num_classes] denoting a smoothed distribution over
@@ -2463,15 +2476,15 @@ class UniformLabelSmoother(base_layer.BaseLayer):
     """Convert target_labels to 1hot and smooth uniformly.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       target_paddings: float32 matrix [bs, seq_len]
-      target_labels: int32 matrix [bs, seq_len]. This stores the target
-        label output at each decoder step as generated by the speech input
-        generator input_batch.tgt.labels
-      target_ids: int32 matrix [bs, seq_len]. This stores the
-        target_id that is fed to the decoder, as generated by the speech input
-        generator input_batch.tgt.ids
+      target_labels: int32 matrix [bs, seq_len]. This stores the target label
+        output at each decoder step as generated by the speech input generator
+        input_batch.tgt.labels
+      target_ids: int32 matrix [bs, seq_len]. This stores the target_id that is
+        fed to the decoder, as generated by the speech input generator
+        input_batch.tgt.ids
 
     Returns:
       A tensor of float32 [bs, seq_len, num_classes] denoting a smoothed
@@ -2563,11 +2576,12 @@ class HighwaySkipLayer(base_layer.BaseLayer):
     """Fprop for Highway Skip layer.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       x: feature at the lower layer.
       transformed_x: transformation of x at a higher layer.
       paddings: padding applied to the features.
+
     Returns:
       layer_out - activations after forward propagation.
     """
@@ -2634,10 +2648,11 @@ class GradNormTracker(base_layer.BaseLayer):
     update the moving avgs and forces to clip the gradients to 0.0.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       grad_norm: A float scalar tensor.
       has_nan: A boolean scalar tensor to indicate if the current batch has nan.
+
     Returns:
       A scalar float tensor with value of either 1.0 or 0.0. The value of 0.0
       means the gradient norm is excessively large or contains NaN, and the step
@@ -2745,9 +2760,10 @@ class WeightedSumLayer(base_layer.BaseLayer):
     """Combines the list of input tensors into a single tensor.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: A list of tensors of shape [time, batch, hidden_dim]
+
     Returns:
       A tensor of the same shape with input tensors.
     """
