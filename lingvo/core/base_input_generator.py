@@ -435,7 +435,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     """
     p = self.params
 
-    if external_max_length:
+    if external_max_length is not None:
       maxlen = external_max_length
     elif is_source:
       maxlen = p.source_max_length
