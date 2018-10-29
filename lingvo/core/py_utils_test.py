@@ -265,6 +265,23 @@ class PyUtilsTest(tf.test.TestCase):
       x = py_utils.Log(x, 'testLog', x=x, y=y)
       self.assertAllEqual(x.eval(), [[1, 2], [3, 4]])
 
+  def testSave(self):
+    g = tf.Graph()
+    with g.as_default():
+      x = tf.constant([[1, 2], [3, 4]])
+      y = tf.constant([10] * 4)
+      x = py_utils.Save(x, '%s/test' % self.get_temp_dir(), x=x, y=y)
+
+    with self.session(graph=g) as sess:
+      sess.run(tf.global_variables_initializer())
+      self.assertAllEqual(sess.run(x), [[1, 2], [3, 4]])
+
+    # Reads npy files and check the values.
+    read_x = np.load('%s/test.%08d.x.npy' % (self.get_temp_dir(), 0))
+    read_y = np.load('%s/test.%08d.y.npy' % (self.get_temp_dir(), 0))
+    self.assertAllEqual(read_x, [[1, 2], [3, 4]])
+    self.assertAllEqual(read_y, [10] * 4)
+
   def testGetShape(self):
     a = tf.constant([1])
     self.assertEqual(py_utils.GetShape(a), [1])

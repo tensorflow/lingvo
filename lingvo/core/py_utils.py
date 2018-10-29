@@ -205,6 +205,39 @@ def Log(value, prefix, **kwargs):
     return tf.identity(value)
 
 
+def _Save(steps, prefix, key, val):
+  filename = '%s.%08d.%s.npy' % (prefix, steps, key)
+  with tf.gfile.Open(filename, 'w') as outfile:
+    np.save(outfile, val)
+
+
+def Save(value, filename_prefix, **kwargs):
+  """Saves values of tensors into files.
+
+  Useful for debugging. E.g.,
+    x = ... a tf.Tensor ...
+    y = ... a tf.Tensor ...
+    z = compute(x, y)
+    z = Save(z, '/path/tmp', x=x, y=y, z=z)
+
+  Args:
+    value: A Tensor. Saving happens after this tensor is computed.
+    filename_prefix: Every tensor is saved with this filename prefix.
+    **kwargs: keywords and tensors. Tensors are logged in the sort order of
+      these keywards.
+
+  Returns:
+    value is returned.
+  """
+  last = value
+  steps = GetOrCreateGlobalStep()
+  for k in sorted(kwargs):
+    with tf.control_dependencies([last]):
+      last = tf.py_func(_Save, [steps, filename_prefix, k, kwargs[k]], [])
+  with tf.control_dependencies([last]):
+    return tf.identity(value)
+
+
 def HasRank(tensor, expected_rank):
   """Syntactic sugar for asserting that tensor has the expected rank."""
   if tensor.shape.ndims is not None and isinstance(expected_rank, int):
@@ -505,10 +538,8 @@ class NestedMap(dict):
     """Returns true if self and other is compatible.
 
     Args:
-      other: Another `.NestedMap`.
-
-    If x and y are two compatible `.NestedMap`, `x.Pack(y.Flatten())`
-    produces y and `y.Pack(x.Flatten())` produces x.
+      other: Another `.NestedMap`.  If x and y are two compatible `.NestedMap`,
+        `x.Pack(y.Flatten())` produces y and `y.Pack(x.Flatten())` produces x.
     """
 
     def DoCompare(x, y):
@@ -585,6 +616,7 @@ def ReadOnlyAttrDictView(backing):
 
   Args:
     backing: Dict-like object to wrap.
+
   Returns:
     Read-only Mapping that can be accessed by index (['foo']) or attr (d.foo).
   """
@@ -784,8 +816,8 @@ def VariableRenameScope(renames):
   """Append the renaming rules to the stack of renames.
 
   Args:
-    renames: pairs of (regexp, new_name_format). If the regexp matches,
-      the new_name_format will be interpolated using the matched groups.
+    renames: pairs of (regexp, new_name_format). If the regexp matches, the
+      new_name_format will be interpolated using the matched groups.
 
   Yields:
     scope in which the renaming rules are applied
@@ -845,16 +877,17 @@ def CreateVariable(name,
 
   Args:
     name: A string, name of the variable.
-    params: A WeightParams specifying the details of how
-        this variable should be constructed and initialized.
+    params: A WeightParams specifying the details of how this variable should be
+      constructed and initialized.
     reuse: Whether or not to reuse an existing variable. It has the same
-        semantics as the reuse arg in tf.variable_scope.
+      semantics as the reuse arg in tf.variable_scope.
     trainable: Whether or not the variable is trainable.
-    init_wrapper: a callback which takes a tf initializer callable and returns
-        a tensor. It is used when shape of the variable isn't statically
-        determinable.
+    init_wrapper: a callback which takes a tf initializer callable and returns a
+      tensor. It is used when shape of the variable isn't statically
+      determinable.
     collections: Override the default variable collection (
       tf.GraphKeys.GLOBAL_VARIABLES).
+
   Returns:
     tf.identity(var), var pair. The tf.identity() node is colocated
     with var.
@@ -1047,8 +1080,8 @@ def CreateLocalTheta(theta, device_list=None, label=None):
 
   Args:
     theta: a `.NestedMap` of variables.
-    device_list: list of devices to shard across. If None, defaults
-      to a list [''].
+    device_list: list of devices to shard across. If None, defaults to a list
+      [''].
     label: Logging label.
 
   Returns:
@@ -1130,13 +1163,13 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
     session: Tensorflow session.
     all_vars: List of all the parameters in the model.
     ckpts_loading_rules: A dictionary of checkpoint path: loading rules.
-        Checkpoint path must be a path to a pretrained model, and loading rules
+      Checkpoint path must be a path to a pretrained model, and loading rules
         is expected to be a tuple of two lists: the first consisting of tuples
-        of strings defining (regex to match parameter names in the model to
-        override, format string to determine the corresponding var in the
-        checkpoint), and the second list consisting of a list of regexes to
-        match parameter names in the model which should not be overridden,
-        even if they match those in the loading rules.
+          of strings defining (regex to match parameter names in the model to
+          override, format string to determine the corresponding var in the
+          checkpoint), and the second list consisting of a list of regexes to
+          match parameter names in the model which should not be overridden,
+          even if they match those in the loading rules.
 
   Raises:
     ValueError: if colliding vars exist or loading rules is not a list.
@@ -1209,7 +1242,9 @@ def _ComputeGradientsTpu(loss, all_vars):
 
 
 def ComputeGradients(loss, vmap):
-  """Computes gradients of variables in vmap w.r.t. to loss.
+  """Computes gradients of variables in vmap w.r.t.
+
+  to loss.
 
   Args:
     loss: A scalar Tensor.
@@ -1295,8 +1330,8 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
 
   Args:
     vs_gs_scale: A `.NestedMap` of (variable, gradient, scale).
-    grad_scale: If None, each vs_gs entry has the scale. Otherwise,
-      grad_scale applies to every entry.
+    grad_scale: If None, each vs_gs entry has the scale. Otherwise, grad_scale
+      applies to every entry.
 
   Returns:
     A `.NestedMap` of (variable, gradient * grad_scale). In particular, if
@@ -1812,6 +1847,7 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
   Args:
     loss: The loss that is being optimized for.
     batch_norm_updates: A list of batch normalization updates.
+
   Returns:
     A pair of lists. The first list contains all the batch normalization updates
     that are relevant to the loss being optimized, and the second list contains
@@ -1893,8 +1929,8 @@ def AddDebugTensor(tensor, summarize=None, name=None):
 
   Args:
     tensor: A tensor.
-    summarize: Only print this many entries of each tensor. If None,
-      then a maximum of 3 elements are printed per input tensor.
+    summarize: Only print this many entries of each tensor. If None, then a
+      maximum of 3 elements are printed per input tensor.
     name: An optional name for the tensor.
 
   Returns:
@@ -2055,11 +2091,12 @@ def ApplyPadding(padding, x, padded=None, broadcast=True):
   Args:
     padding: Tensor of padding values where 0 == keep and 1 == pad.
     x: Tensor to apply padding to.
-    padded: Optional. Values to include for padded elements. Defaults to
-        zeros. Must be the same shape as 'x' if specified.
-    broadcast: Whether to broadcast the padding shape to the shape of 'x'.
-        You almost certainly want this to be true as it matches how padding
-        would be expanded if applied arithmetically.
+    padded: Optional. Values to include for padded elements. Defaults to zeros.
+      Must be the same shape as 'x' if specified.
+    broadcast: Whether to broadcast the padding shape to the shape of 'x'. You
+      almost certainly want this to be true as it matches how padding would be
+      expanded if applied arithmetically.
+
   Returns:
     A tensor with the same shape as x with padded values masked.
   """
