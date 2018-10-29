@@ -1233,7 +1233,7 @@ class EmbeddingLayer(base_layer.BaseLayer):
     return tf.reshape(embs, out_shape)
 
 
-class SimpleEmbeddingLayer(base_layer.BaseLayer):
+class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
   """An embedding layer that is simple to compile (by XLA and Toco).
 
   The params use_matmul and use_gather control how the lookup is performed.
@@ -1462,7 +1462,7 @@ class SimpleEmbeddingLayer(base_layer.BaseLayer):
     if not py_utils.use_xla():
       ids = py_utils.with_dependencies(
           [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
-    embs_result = self._fprop(theta.wm, tf.reshape(ids, [-1]))
+    embs_result = self._fprop(self.QWeight(theta.wm), tf.reshape(ids, [-1]))
     if p.vn.global_vn or p.vn.per_step_vn:
       emb_noise = p.vn.scale * tf.random_normal(
           tf.shape(embs_result), stddev=1.0, dtype=embs_result.dtype)
