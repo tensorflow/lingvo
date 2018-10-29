@@ -66,6 +66,27 @@ class BaseClassifier(base_model.BaseTask):
       fig.AddSubplot([batch.raw, batch.label, prediction], Draw)
       fig.Finalize()
 
+  def _Accuracy(self, k, logits, labels, weights):
+    """Compute top-k accuracy.
+
+    Args:
+      k: An int scalar. Top-k.
+      logits: A [N, C] float tensor.
+      labels: A [N] int vector.
+      weights: A [N] float vector.
+
+    Returns:
+      A float scalar. The accuracy at precision k.
+    """
+    logits = py_utils.HasRank(logits, 2)
+    n, c = tf.unstack(tf.shape(logits), 2)
+    labels = py_utils.HasShape(labels, [n])
+    weights = py_utils.HasShape(weights, [n])
+    correct = tf.nn.in_top_k(logits, labels, k)
+    return tf.reduce_sum(
+        tf.cast(correct, weights.dtype) * weights) / tf.maximum(
+            1e-8, tf.reduce_sum(weights))
+
 
 class ModelV1(BaseClassifier):
   """CNNs with maxpooling followed by a softmax."""
@@ -88,8 +109,9 @@ class ModelV1(BaseClassifier):
     tp = p.train
     tp.learning_rate = 1e-4  # Adam base LR.
     tp.lr_schedule = (
-        lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
-        ).Set(warmup=100, decay_start=100000, decay_end=1000000, min=0.1))
+        lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule
+        .Params().Set(
+            warmup=100, decay_start=100000, decay_end=1000000, min=0.1))
     return p
 
   @base_layer.initializer
@@ -159,19 +181,18 @@ class ModelV1(BaseClassifier):
         class_weights=input_batch.weight,
         class_ids=labels)
 
-    accuracy = tf.reduce_sum(input_batch.weight * tf.to_float(
-        tf.equal(xent.per_example_argmax,
-                 tf.cast(labels, xent.per_example_argmax.dtype)))
-                            ) / tf.reduce_sum(input_batch.weight)
-
     self._AddSummary(input_batch, xent.per_example_argmax)
 
-    return {
+    rets = {
         'loss': (xent.avg_xent, batch),
-        'accuracy': (accuracy, batch),
         'log_pplx': (xent.avg_xent, batch),
         'num_preds': (batch, 1),
     }
+    if p.is_eval:
+      acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
+      acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
+      rets.update(accuracy=(acc1, batch), acc5=(acc5, batch))
+    return rets
 
   def Decode(self):
     p = self.params
@@ -208,6 +229,7 @@ class ModelV2(BaseClassifier):
       self.CreateChild('softmax', p.softmax)
 
   def FPropTower(self, theta, input_batch):
+    p = self.params
     batch = tf.shape(input_batch.data)[0]
 
     # Forward through layers.
@@ -224,16 +246,16 @@ class ModelV2(BaseClassifier):
           inputs=act,
           class_weights=input_batch.weight,
           class_ids=labels)
-      accuracy = tf.reduce_sum(input_batch.weight * tf.to_float(
-          tf.equal(xent.per_example_argmax,
-                   tf.cast(labels, xent.per_example_argmax.dtype)))
-                              ) / tf.reduce_sum(input_batch.weight)
 
     self._AddSummary(input_batch, xent.per_example_argmax)
 
-    return {
+    rets = {
         'loss': (xent.avg_xent, batch),
-        'accuracy': (accuracy, batch),
         'log_pplx': (xent.avg_xent, batch),
         'num_preds': (batch, 1),
     }
+    if p.is_eval:
+      acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
+      acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
+      rets.update(accuracy=(acc1, batch), acc5=(acc5, batch))
+    return rets
