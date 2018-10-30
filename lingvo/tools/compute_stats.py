@@ -49,7 +49,7 @@ class StatsCollector(object):
   def _ComputeMeanVar(self):
     mu = self._mean_acc / self._num_frames
     # The user is in charge of replacing NaNs with a floor value.
-    v = np.sqrt(self._var_acc - mu * mu)
+    v = np.sqrt(self._var_acc / self._num_frames - mu * mu)
     return mu, v
 
   def Accumulate(self, tf_ex):
