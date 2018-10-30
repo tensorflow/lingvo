@@ -1049,7 +1049,7 @@ class FCLayer(ProjectionLayer):
     return p
 
 
-class PoolingLayer(base_layer.BaseLayer):
+class PoolingLayer(quant_utils.QuantizableLayer):
   """Pooling layer, by default performs max-pooling."""
 
   @classmethod
@@ -1065,6 +1065,11 @@ class PoolingLayer(base_layer.BaseLayer):
         ' specifies the stride on the time dimension. The second int'
         ' specifies the stride on the frequency dimension.')
     p.Define('pooling_type', 'MAX', 'Pooling type: MAX|AVG')
+    p.Define(
+        'padding_algorithm', 'SAME',
+        'Padding algorithm. See the "returns" section of '
+        '`tf.nn.convolution` for details. '
+        'Roughly, VALID = NO_PADDING and SAME (default) = PAD INPUT')
     return p
 
   @base_layer.initializer
@@ -1077,6 +1082,7 @@ class PoolingLayer(base_layer.BaseLayer):
     assert all([x > 0 for x in p.window_shape])
     assert all([x > 0 for x in p.window_stride])
     assert p.pooling_type in ['MAX', 'AVG']
+    self.TrackQTensor('output')
 
   def OutShape(self, in_shape):
     """Compute the output shape given the input shape."""
@@ -1130,9 +1136,10 @@ class PoolingLayer(base_layer.BaseLayer):
           window,
           p.pooling_type,
           strides=stride,
-          padding='SAME',
+          padding=p.padding_algorithm,
           data_format='NHWC',
       )
+      out = self.QTensor('output', out)
       if out_padding is not None:
         out *= tf.expand_dims(tf.expand_dims(1.0 - out_padding, -1), -1)
       return out, out_padding
