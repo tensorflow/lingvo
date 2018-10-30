@@ -517,7 +517,7 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
     Returns:
       Clipped (or identity) x.
     """
-    cap = state
+    cap = tf.cast(state, x.dtype)
     return tf.clip_by_value(x, -cap, cap)
 
   def GetEndRange(self):
