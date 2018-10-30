@@ -235,6 +235,8 @@ class LSTMCellSimple(RNNCell):
         'tf.contrib.rnn.CoupledInputForgetGateLSTMCell')
     p.Define('apply_pruning', False, 'Whether to prune the weights while '
              'training')
+    p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
+             'Initialization parameters for bias')
 
     # Non-default quantization behaviour.
     p.qdomain.Define('c_state', None, 'Quantization for the c-state.')
@@ -308,7 +310,7 @@ class LSTMCellSimple(RNNCell):
       if p.enable_lstm_bias:
         bias_pc = py_utils.WeightParams(
             shape=[self.num_gates * self.hidden_size],
-            init=py_utils.WeightInit.Constant(0.0),
+            init=p.bias_init,
             dtype=p.dtype,
             collections=self._VariableCollections())
         self.CreateVariable('b', bias_pc, self.AddGlobalVN)
@@ -364,10 +366,17 @@ class LSTMCellSimple(RNNCell):
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
+    p = self.params
     fns = self.fns
     wm = self.QWeight(theta.wm)
-    mixed = fns.qmatmul(tf.concat(inputs.act + [state0.m], 1), wm, qt='fc')
-    return mixed
+    concat = tf.concat(inputs.act + [state0.m], 1)
+
+    if p.enable_lstm_bias:
+      # Defer quantization until after adding in the bias.
+      return tf.matmul(concat, wm)
+    else:
+      # Possibly any necessary quantization quantization here.
+      return fns.qmatmul(concat, wm, qt='fc')
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
