@@ -871,6 +871,7 @@ class UnpackHypOp : public OpKernel {
 
 REGISTER_KERNEL_BUILDER(Name("UnpackHyp").Device(DEVICE_CPU), UnpackHypOp);
 
+template <typename T>
 class HypsFromBeamSearchOuts : public OpKernel {
  public:
   explicit HypsFromBeamSearchOuts(OpKernelConstruction* ctx) : OpKernel(ctx) {
@@ -963,10 +964,10 @@ class HypsFromBeamSearchOuts : public OpKernel {
     auto t_hyps = hyps.matrix<int>();
     auto t_prev_hyps = prev_hyps.matrix<int>();
     auto t_done_hyps = done_hyps.matrix<bool>();
-    auto t_scores = scores.matrix<float>();
-    auto t_atten_probs = atten_probs.tensor<float, 3>();
-    auto t_eos_scores = eos_scores.matrix<float>();
-    auto t_eos_atten_probs = eos_atten_probs.tensor<float, 3>();
+    auto t_scores = scores.matrix<T>();
+    auto t_atten_probs = atten_probs.tensor<T, 3>();
+    auto t_eos_scores = eos_scores.matrix<T>();
+    auto t_eos_atten_probs = eos_atten_probs.tensor<T, 3>();
     const int seq_length = hyps.dim_size(0);
     const int num_hyps = hyps.dim_size(1);
 
@@ -982,7 +983,7 @@ class HypsFromBeamSearchOuts : public OpKernel {
         kNumWorkers, workers, num_hyps, seq_length * seq_length,
         [&](int64 start, int64 end) {
           std::vector<int> hyp_token_ids;
-          std::vector<float> hyp_local_scores;
+          std::vector<T> hyp_local_scores;
           std::vector<int> hyp_ids;
           Hypothesis terminated_hyps;
           const int num_beams = (num_hyps / num_hyps_per_beam_);
@@ -1012,16 +1013,17 @@ class HypsFromBeamSearchOuts : public OpKernel {
                 // Assemble terminated hyp.
                 terminated_hyps.set_beam_id(j % num_beams);
                 for (int l = hyp_local_scores.size() - 1; l >= 0; --l) {
-                  terminated_hyps.add_scores(hyp_local_scores[l]);
+                  terminated_hyps.add_scores(float(hyp_local_scores[l]));
                   terminated_hyps.add_ids(hyp_token_ids[l]);
                   const int cur_step = hyp_local_scores.size() - 1 - l;
                   auto* att_vec = terminated_hyps.add_atten_vecs();
                   for (int d = 0; d < atten_probs.dim_size(2); ++d) {
                     if (l == 0) {
                       att_vec->add_prob(
-                          t_eos_atten_probs(cur_step, hyp_ids[l], d));
+                          float(t_eos_atten_probs(cur_step, hyp_ids[l], d)));
                     } else {
-                      att_vec->add_prob(t_atten_probs(cur_step, hyp_ids[l], d));
+                      att_vec->add_prob(
+                          float(t_atten_probs(cur_step, hyp_ids[l], d)));
                     }
                   }
                 }
@@ -1037,7 +1039,14 @@ class HypsFromBeamSearchOuts : public OpKernel {
   int32 num_hyps_per_beam_ = 0;
 };
 
-REGISTER_KERNEL_BUILDER(Name("HypsFromBeamSearchOuts").Device(DEVICE_CPU),
-                        HypsFromBeamSearchOuts);
+REGISTER_KERNEL_BUILDER(Name("HypsFromBeamSearchOuts")
+                            .Device(DEVICE_CPU)
+                            .TypeConstraint<float>("T"),
+                        HypsFromBeamSearchOuts<float>);
+REGISTER_KERNEL_BUILDER(Name("HypsFromBeamSearchOuts")
+                            .Device(DEVICE_CPU)
+                            .TypeConstraint<bfloat16>("T"),
+                        HypsFromBeamSearchOuts<bfloat16>);
+
 }  // namespace lingvo
 }  // namespace tensorflow
