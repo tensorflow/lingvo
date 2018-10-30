@@ -329,8 +329,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
       self._CreateAtten()
 
-      self.CreateChild('beam_search', p.beam_search)
-
       if p.label_smoothing is not None:
         p.label_smoothing.name = 'smoother'
         if p.label_smoothing.num_classes == 0:

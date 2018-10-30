@@ -92,6 +92,7 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p.beam_search.target_seq_len = p.target_seq_len
     p.beam_search.target_sos_id = p.target_sos_id
     p.beam_search.target_eos_id = p.target_eos_id
+    self.CreateChild('beam_search', p.beam_search)
 
   def BeamSearchDecode(self, src_encs, src_enc_paddings):
     # pylint: disable=line-too-long

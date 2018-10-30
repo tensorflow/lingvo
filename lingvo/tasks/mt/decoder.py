@@ -392,8 +392,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         p.softmax.input_dim = p.rnn_cell_dim
       self.CreateChild('softmax', p.softmax)
 
-      self.CreateChild('beam_search', p.beam_search)
-
   def ApplyDropout(self, x_in):
     p = self.params
     assert 0 <= p.dropout_prob and p.dropout_prob < 1.0
@@ -832,8 +830,6 @@ class TransformerDecoder(MTBaseDecoder):
 
       p.softmax.input_dim = p.model_dim
       self.CreateChild('softmax', p.softmax)
-
-      self.CreateChild('beam_search', p.beam_search)
 
   def _FProp(self, theta, source_encs, source_paddings, targets,
              src_segment_id):
