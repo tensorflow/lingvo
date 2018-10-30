@@ -20,6 +20,7 @@ from __future__ import print_function
 
 from lingvo.core import base_layer
 from lingvo.core import beam_search_helper
+from lingvo.core import target_sequence_sampler
 
 
 class BaseDecoder(base_layer.BaseLayer):
@@ -83,6 +84,9 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p.Define('target_seq_len', 0, 'Target seq length.')
     p.Define('beam_search', beam_search_helper.BeamSearchHelper.Params(),
              'BeamSearchHelper params.')
+    p.Define('target_sequence_sampler',
+             target_sequence_sampler.TargetSequenceSampler.Params(),
+             'TargetSequenceSampler params.')
     return p
 
   @base_layer.initializer
@@ -93,6 +97,10 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p.beam_search.target_sos_id = p.target_sos_id
     p.beam_search.target_eos_id = p.target_eos_id
     self.CreateChild('beam_search', p.beam_search)
+    p.target_sequence_sampler.target_seq_len = p.target_seq_len
+    p.target_sequence_sampler.target_sos_id = p.target_sos_id
+    p.target_sequence_sampler.target_eos_id = p.target_eos_id
+    self.CreateChild('target_sequence_sampler', p.target_sequence_sampler)
 
   def BeamSearchDecode(self, src_encs, src_enc_paddings):
     # pylint: disable=line-too-long

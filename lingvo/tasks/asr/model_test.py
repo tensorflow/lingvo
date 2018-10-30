@@ -313,6 +313,7 @@ class AsrModelTest(tf.test.TestCase):
           'AsrEncoder',
           'AsrModel',
           'BeamSearchHelper',
+          'TargetSequenceSampler',
           'ConvLSTMCell',
           'Conv2DLayer',
           'Conv2DLayer',

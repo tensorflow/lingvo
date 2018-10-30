@@ -72,6 +72,7 @@ py_library(
     deps = [
         ":base_layer",
         ":beam_search_helper",
+        ":target_sequence_sampler",
     ],
 )
 
@@ -94,6 +95,30 @@ py_test(
     deps = [
         ":beam_search_helper",
         ":py_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "target_sequence_sampler",
+    srcs = [
+        "target_sequence_sampler.py",
+    ],
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        ":recurrent",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "target_sequence_sampler_test",
+    srcs = ["target_sequence_sampler_test.py"],
+    deps = [
+        ":py_utils",
+        ":target_sequence_sampler",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
