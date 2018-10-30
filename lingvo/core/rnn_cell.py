@@ -1251,8 +1251,10 @@ class LayerNormalizedLSTMCellLean(RNNCell):
 
   def zero_state(self, batch_size):
     p = self.params
-    zero_m = tf.zeros((batch_size, self.output_size), dtype=_FPropDtype(p))
-    zero_c = tf.zeros((batch_size, self.hidden_size), dtype=_FPropDtype(p))
+    zero_m = tf.zeros((batch_size, self.output_size),
+                      dtype=py_utils.FPropDtype(p))
+    zero_c = tf.zeros((batch_size, self.hidden_size),
+                      dtype=py_utils.FPropDtype(p))
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def _ResetState(self, state, inputs):
