@@ -757,10 +757,21 @@ class TopKTerminatedHypsOp : public OpKernel {
     Tensor cumulative_atten_prob(DT_FLOAT, {src_size});
     cumulative_atten_prob.flat<float>().setZero();
     for (int step = 0; step < hypothesis.atten_vecs_size(); ++step) {
+      const int hyp_prob_size = hypothesis.atten_vecs(step).prob_size();
       for (int src_id = 0; src_id < src_size; ++src_id) {
-        CHECK_LE(src_size, hypothesis.atten_vecs(step).prob_size());
-        cumulative_atten_prob.flat<float>()(src_id) +=
-            hypothesis.atten_vecs(step).prob(src_id);
+        if (src_id < hyp_prob_size) {
+          cumulative_atten_prob.flat<float>()(src_id) +=
+              hypothesis.atten_vecs(step).prob(src_id);
+        } else {
+          // This can happen e.g. for RNNT model. Here we simply assume
+          // atten_prob for those source positions are 0.0
+          VLOG(1) << "Missing atten_prob for source position "
+                  << src_id
+                  << ". Total available positions are "
+                  << hyp_prob_size
+                  << ".";
+          cumulative_atten_prob.flat<float>()(src_id) += 0.0;
+        }
       }
     }
     // Coverage is capped at 0.5 so that so long as a word is
