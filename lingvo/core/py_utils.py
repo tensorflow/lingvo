@@ -2266,6 +2266,15 @@ def UpdateFpropDtype(params, fprop_dtype):
       params.fprop_dtype = fprop_dtype
 
 
+def UpdateDtype(params, dtype):
+  """Recursively update the dtype of the Params."""
+  for key, val in params.IterParams():
+    if isinstance(val, hyperparams.Params):
+      UpdateDtype(val, dtype)
+    elif key == 'dtype':
+      params.dtype = dtype
+
+
 def NameScopeDecorator(name_scope):
   """Decorates a python function to introduce a tf.name_scope.
 
