@@ -507,11 +507,11 @@ class BaseTask(base_layer.BaseLayer):
       self._var_grads = py_utils.MaskGradients(
           self._var_grads, self._per_input_gradient_mask, bprop_onehot)
 
-    # Histogram summary.
-    summary_utils.CollectVarHistogram(p, self._var_grads)
-
     # Apply gradient clipping.
     has_nan_or_inf, _, self._var_grads = self.ScaleGradients(self._var_grads)
+
+    # Histogram summary.
+    summary_utils.CollectVarHistogram(p, self._var_grads)
 
     lrs = self.lr_schedule.Value(self._global_step)
     summary_utils.scalar(p, 'lr_schedule', lrs)
