@@ -340,6 +340,7 @@ class QuantizableLayer(base_layer.BaseLayer):
 
     # Supported quantized functions.
     WrapOp('qadd', tf.add)
+    WrapOp('qsubtract', tf.subtract)
     WrapOp('qmultiply', tf.multiply)
     WrapOp('qmatmul', py_utils.Matmul)
     WrapOp('qbatchmatmul', tf.matmul)
