@@ -33,6 +33,7 @@ from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
+from lingvo.core import quant_utils
 from lingvo.core import recurrent
 from lingvo.core import rnn_cell
 
@@ -206,7 +207,7 @@ class StackedRNNBase(base_layer.BaseLayer):
     return cell_tpls
 
 
-class StackedFRNNLayerByLayer(StackedRNNBase):
+class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
   """An implemention of StackedRNNBase which computes layer-by-layer."""
 
   @base_layer.initializer
@@ -227,6 +228,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase):
     self.CreateChildren('rnn', rnn_params)
 
     self.CreateChild('dropout', p.dropout)
+    self.TrackQTensor('residual')
 
   def zero_state(self, batch_size):
     p = self.params
@@ -261,8 +263,8 @@ class StackedFRNNLayerByLayer(StackedRNNBase):
       ys, state1.rnn[i] = self.rnn[i].FProp(theta.rnn[i], xs, paddings,
                                             state0.rnn[i])
       ys = self.dropout.FProp(theta.dropout, ys)
-      if i >= p.skip_start:
-        ys += xs
+      if p.skip_start >= 0 and i >= p.skip_start:
+        ys = self.fns.qadd(ys, xs, qt='residual')
       xs = ys
     return xs, state1
 

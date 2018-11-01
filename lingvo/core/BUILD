@@ -772,6 +772,7 @@ py_library(
         ":layers",
         ":layers_with_attention",
         ":py_utils",
+        ":quant_utils",
         ":recurrent",
         ":rnn_cell",
         # Implicit six dependency.
