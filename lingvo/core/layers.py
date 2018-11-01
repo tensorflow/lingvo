@@ -994,7 +994,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     """
     if paddings is None:
       paddings = tf.zeros(
-          tf.concat([tf.shape(inputs)[:-1], [1]], 0), dtype=inputs.dtype)
+          tf.concat([py_utils.GetShape(inputs)[:-1], [1]], axis=0),
+          dtype=inputs.dtype)
     p = self.params
     with tf.name_scope(p.name):
       if p.affine_last:
@@ -1022,17 +1023,17 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     fns = self.fns
     if p.weight_norm:
       w = tf.reshape((theta.g + 1.0) * tf.nn.l2_normalize(w, [0]),
-                     [-1, p.output_dim])
+                     [p.input_dim, p.output_dim])
     # Apply quantization after weight_norm. At inference time, weight
     # normalization reduces to a constant, and therefore, we want to make sure
     # to apply clipping after.
-
+    out = fns.qmatmul(
+        tf.reshape(inputs, [-1, p.input_dim]),
+        fns.qweight(w),
+        qt='affine_matmul')
     out = tf.reshape(
-        fns.qmatmul(
-            tf.reshape(inputs, [-1, p.input_dim]),
-            fns.qweight(w),
-            qt='affine_matmul'),
-        tf.concat([tf.shape(inputs)[:-1], [p.output_dim]], 0))
+        out, tf.concat([py_utils.GetShape(inputs)[:-1], [p.output_dim]],
+                       axis=0))
     if p.has_bias:
       out = fns.qadd(out, fns.qweight(theta.b), qt='affine_bias')
     return out
