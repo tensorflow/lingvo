@@ -1344,7 +1344,7 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
         lambda v_g: (v_g[0], v_g[1], grad_scale))
 
   def ScaleOrZero(var, grad, scale):
-    grad = CheckNumerics(grad, '%s is not finite.' % var.name)
+    grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
     return tf.where(
         tf.equal(scale, 0.), tf.zeros_like(grad),
         tf.cast(scale, grad.dtype) * grad)
