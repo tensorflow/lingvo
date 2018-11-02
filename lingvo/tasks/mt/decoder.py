@@ -923,7 +923,7 @@ class TransformerDecoder(MTBaseDecoder):
 
   def ExtendStep(self, theta, source_encs, source_paddings, new_ids,
                  t, prefix_states):
-    """Extend prefix as represeted by `prefix_states` by one more step.
+    """Extend prefix as represented by `prefix_states` by one more step.
 
     This function is expected to be called during fast decoding of Transformer
     models.
@@ -1055,7 +1055,7 @@ class TransformerDecoder(MTBaseDecoder):
 
     return initial_results, py_utils.NestedMap({
         'prefix_states': prefix_states,
-        'time_step': tf.zeros([batch_size, 1], dtype=tf.int32)
+        'time_step': 0
     })
 
   def _PreBeamSearchStepCallback(self,
@@ -1107,7 +1107,7 @@ class TransformerDecoder(MTBaseDecoder):
 
     layer_out, updated_prefix_states = self.ExtendStep(
         theta, source_encs, source_paddings, tf.squeeze(step_ids, 1),
-        target_time[0][0], prefix_states)
+        target_time, prefix_states)
 
     new_states.prefix_states = updated_prefix_states
     new_states.time_step = target_time + 1
