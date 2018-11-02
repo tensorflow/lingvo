@@ -894,6 +894,7 @@ class SeparableConv2DLayer(Conv2DLayer):
         batch_norm=p.batch_norm,
         bn_decay=p.bn_decay,
         bn_fold_weights=p.bn_fold_weights)
+    depthwise_params.qdomain.default = p.qdomain.default
     with tf.variable_scope(p.name):
       self.CreateChild('depthwise_conv', depthwise_params)
 
