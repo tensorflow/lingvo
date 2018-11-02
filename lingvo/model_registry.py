@@ -51,11 +51,19 @@ def _MaybeUpdateParamsFromFlags(cfg):
     raise ValueError('Only one of --model_params_override and'
                      ' --model_params_file_override may be specified.')
 
-  cfg.FromText(FLAGS.model_params_override.replace(';', '\n'))
+  if FLAGS.model_params_override:
+    params_override = FLAGS.model_params_override.replace(';', '\n')
+    tf.logging.info('Applying params overrides:\n%s\nTo:\n%s', params_override,
+                    cfg.ToText())
+    cfg.FromText(params_override)
   if (FLAGS.model_params_file_override and
       tf.gfile.Exists(FLAGS.model_params_file_override)):
-    text = tf.gfile.FastGFile(FLAGS.model_params_file_override, 'r').read()
-    cfg.FromText(text)
+    params_override = tf.gfile.FastGFile(FLAGS.model_params_file_override,
+                                         'r').read()
+    tf.logging.info('Applying params overrides from file %s:\n%s\nTo:\n%s',
+                    FLAGS.model_params_file_override, params_override,
+                    cfg.ToText())
+    cfg.FromText(params_override)
 
 
 class _ModelRegistryHelper(object):
