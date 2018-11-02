@@ -260,12 +260,11 @@ class LSTMCellSimple(RNNCell):
     self.TrackQTensor(
         'zero_c',
         'mixed',
-        'c_add_bias',
         'c_input_gate',
         'c_forget_gate',
         'c_output_gate',
         domain='c_state')
-    self.TrackQTensor('fc', domain='fullyconnected')
+    self.TrackQTensor('fc', 'add_bias', domain='fullyconnected')
 
     with tf.variable_scope(p.name) as scope:
       # Define weights.
@@ -372,7 +371,8 @@ class LSTMCellSimple(RNNCell):
     concat = tf.concat(inputs.act + [state0.m], 1)
 
     if p.enable_lstm_bias:
-      # Defer quantization until after adding in the bias.
+      # Defer quantization until after adding in the bias to support fusing
+      # matmul and bias add during inference.
       return tf.matmul(concat, wm)
     else:
       # Possibly any necessary quantization quantization here.
@@ -383,8 +383,8 @@ class LSTMCellSimple(RNNCell):
     p = self.params
     fns = self.fns
     if p.enable_lstm_bias:
-      b = self.QWeight(tf.expand_dims(theta.b, 0), domain='c_state')
-      xmw = fns.qadd(xmw, b, qt='c_add_bias')
+      b = self.QWeight(tf.expand_dims(theta.b, 0), domain='fc')
+      xmw = fns.qadd(xmw, b, qt='add_bias')
 
     if not p.couple_input_forget_gates:
       i_i, i_g, f_g, o_g = tf.split(value=xmw, num_or_size_splits=4, axis=1)
