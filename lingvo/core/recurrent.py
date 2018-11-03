@@ -233,7 +233,8 @@ def _EmptyWithFixShape(shape, nmap):
     same dtype as nmap.key, but with the fixed shape.
   """
 
-  return nmap.Transform(lambda x: inplace_ops.empty(shape, dtype=x.dtype))
+  return nmap.Transform(
+      lambda x: inplace_ops.empty(shape, dtype=x.dtype, init=True))
 
 
 def _EmptyLike(nmap):
