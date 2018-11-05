@@ -97,7 +97,7 @@ class Trial(object):
   def _DoReportTrainingProgress(self, global_step, metrics_dict):
     raise NotImplementedError('Abstract method')
 
-  def ReportEvalMeasure(self, global_step, metrics_dict):
+  def ReportEvalMeasure(self, global_step, metrics_dict, checkpoint_path):
     """Reports eval measurement and returns whether the trial should stop."""
     raise NotImplementedError('Abstract method')
 
@@ -124,6 +124,6 @@ class NoOpTrial(Trial):
     del global_step, metrics_dict  # Unused
     return False
 
-  def ReportEvalMeasure(self, global_step, metrics_dict):
-    del global_step, metrics_dict  # Unused
+  def ReportEvalMeasure(self, global_step, metrics_dict, checkpoint_path):
+    del global_step, metrics_dict, checkpoint_path  # Unused
     return False

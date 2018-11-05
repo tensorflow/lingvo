@@ -744,7 +744,7 @@ class Evaler(base_runner.BaseRunner):
         text_filename=os.path.join(self._eval_dir, 'score.txt'))
 
     is_final = global_step >= self.params.train.max_steps
-    should_stop = self._trial.ReportEvalMeasure(global_step, metrics_dict)
+    should_stop = self._trial.ReportEvalMeasure(global_step, metrics_dict, path)
     return should_stop or is_final
 
 
