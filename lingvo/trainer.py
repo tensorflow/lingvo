@@ -741,7 +741,8 @@ class Evaler(base_runner.BaseRunner):
         self._summary_writer,
         os.path.basename(self._eval_dir),
         global_step, {k: v.Summary(k) for k, v in six.iteritems(metrics_dict)},
-        text_filename=os.path.join(self._eval_dir, 'score.txt'))
+        text_filename=os.path.join(self._eval_dir,
+                                   'score-{:08d}.txt'.format(global_step)))
 
     is_final = global_step >= self.params.train.max_steps
     should_stop = self._trial.ReportEvalMeasure(global_step, metrics_dict, path)
@@ -880,7 +881,8 @@ class Decoder(base_runner.BaseRunner):
         os.path.basename(self._decoder_dir),
         global_step,
         summaries,
-        text_filename=os.path.join(self._decoder_dir, 'score.txt'))
+        text_filename=os.path.join(self._decoder_dir,
+                                   'score-{:08d}.txt'.format(global_step)))
     self._ExportMetrics(
         decode_checkpoint=global_step,
         dec_metrics=dec_metrics,

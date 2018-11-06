@@ -72,6 +72,12 @@ class BaseTrainerTest(tf.test.TestCase):
         return True
     return False
 
+  def _GetMatchedFileName(self, files, substr):
+    for f in files:
+      if substr in f:
+        return f
+    return None
+
   def _HasLine(self, filename, pattern):
     """Returns True iff one line in the given file matches the pattern."""
     with tf.gfile.FastGFile(filename, 'r') as f:
@@ -133,9 +139,9 @@ class TrainerTest(BaseTrainerTest):
     self.assertTrue(self._HasFile(dev_files, 'params.txt'))
     self.assertTrue(self._HasFile(dev_files, 'eval_dev.pbtxt'))
     self.assertTrue(self._HasFile(dev_files, 'tfevents'))
-    self.assertTrue(self._HasFile(dev_files, 'score.txt'))
+    self.assertTrue(self._HasFile(dev_files, 'score'))
     self.assertTrue(
-        self._HasLine(os.path.join(logdir, 'eval_dev/score.txt'), 'log_pplx'))
+        self._HasLine(self._GetMatchedFileName(dev_files, 'score'), 'log_pplx'))
 
   def testDecoder(self):
     logdir = os.path.join(tf.test.get_temp_dir(),
@@ -152,10 +158,10 @@ class TrainerTest(BaseTrainerTest):
     self.assertTrue(self._HasFile(dec_files, 'params.txt'))
     self.assertTrue(self._HasFile(dec_files, 'decoder_dev.pbtxt'))
     self.assertTrue(self._HasFile(dec_files, 'tfevents'))
-    self.assertTrue(self._HasFile(dec_files, 'score.txt'))
+    self.assertTrue(self._HasFile(dec_files, 'score'))
     self.assertTrue(
         self._HasLine(
-            os.path.join(logdir, 'decoder_dev/score.txt'), 'examples/sec'))
+            self._GetMatchedFileName(dec_files, 'score'), 'examples/sec'))
 
 
 class TrainerWithTrialTest(TrainerTest):
@@ -220,9 +226,9 @@ class TrainerWithTrialTest(TrainerTest):
     self.assertTrue(self._HasFile(dev_files, 'params.txt'))
     self.assertTrue(self._HasFile(dev_files, 'eval_dev.pbtxt'))
     self.assertTrue(self._HasFile(dev_files, 'tfevents'))
-    self.assertTrue(self._HasFile(dev_files, 'score.txt'))
+    self.assertTrue(self._HasFile(dev_files, 'score'))
     self.assertTrue(
-        self._HasLine(os.path.join(logdir, 'eval_dev/score.txt'), 'log_pplx'))
+        self._HasLine(self._GetMatchedFileName(dev_files, 'score'), 'log_pplx'))
 
 
 if __name__ == '__main__':
