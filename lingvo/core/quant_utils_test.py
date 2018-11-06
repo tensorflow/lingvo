@@ -182,6 +182,77 @@ class QuantizableLayerTest(tf.test.TestCase):
       for k in minmax_vars:
         self.assertNotEqual(init_minmax_vars[k], minmax_vars[k])
 
+  def testLayerWithPassiveAsymQDomainTrainQuantDisabledInital(self):
+    p = SampleQuantizedProjectionLayer.Params()
+    p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
+    p.qdomain.default.delay_start_steps = -1
+    with self.session() as sess:
+      self._testLayerHelper(
+          'testLayerWithPassiveAsymQDomainTrainQuantDisabledInital',
+          sess,
+          p,
+          expected=self.NO_QDOMAIN_EXPECTED)
+
+  def testLayerWithPassiveAsymQDomainTrainQuantDisabledStep16(self):
+    p = SampleQuantizedProjectionLayer.Params()
+    p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
+    p.qdomain.default.delay_start_steps = -1
+    with self.session() as sess:
+      self._testLayerHelper(
+          'testLayerWithPassiveAsymQDomainTrainQuantDisabledStep16',
+          sess,
+          p,
+          expected=self.NO_QDOMAIN_EXPECTED,
+          global_step=16)
+
+  def testLayerWithPassiveAsymQDomainEvalQuantDisabled(self):
+    p = SampleQuantizedProjectionLayer.Params()
+    p.is_eval = True
+    p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
+    p.qdomain.default.delay_start_steps = -1
+    with self.session() as sess:
+      self._testLayerHelper(
+          'testLayerWithPassiveAsymQDomainEvalQuantDisabled',
+          sess,
+          p,
+          not_expected=self.NO_QDOMAIN_EXPECTED)
+
+  def testLayerWithPassiveAsymQDomainTrainQuantDelayNotSatisfied(self):
+    p = SampleQuantizedProjectionLayer.Params()
+    p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
+    p.qdomain.default.delay_start_steps = 8
+    with self.session() as sess:
+      self._testLayerHelper(
+          'testLayerWithPassiveAsymQDomainTrainQuantDelayNotSatisfied',
+          sess,
+          p,
+          expected=self.NO_QDOMAIN_EXPECTED,
+          global_step=3)
+
+  def testLayerWithPassiveAsymQDomainTrainQuantDelaySatisfied(self):
+    p = SampleQuantizedProjectionLayer.Params()
+    p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
+    p.qdomain.default.delay_start_steps = 8
+    with self.session() as sess:
+      self._testLayerHelper(
+          'testLayerWithPassiveAsymQDomainTrainQuantDelaySatisfied',
+          sess,
+          p,
+          not_expected=self.NO_QDOMAIN_EXPECTED,
+          global_step=8)
+
+  def testLayerWithPassiveAsymQDomainTrainQuantDelaySatisfiedPlusOne(self):
+    p = SampleQuantizedProjectionLayer.Params()
+    p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
+    p.qdomain.default.delay_start_steps = 8
+    with self.session() as sess:
+      self._testLayerHelper(
+          'testLayerWithPassiveAsymQDomainTrainQuantDelaySatisfied',
+          sess,
+          p,
+          not_expected=self.NO_QDOMAIN_EXPECTED,
+          global_step=9)
+
   def testLayerWithSymetricScheduledClipQDomain(self):
     # pyformat: disable
     expected = [
@@ -210,7 +281,13 @@ class QuantizableLayerTest(tf.test.TestCase):
           expected=expected,
           global_step=16)
 
-  def _testLayerHelper(self, test_case, sess, p, expected=None, global_step=-1):
+  def _testLayerHelper(self,
+                       test_case,
+                       sess,
+                       p,
+                       expected=None,
+                       not_expected=None,
+                       global_step=-1):
     tf.set_random_seed(398847392)
     np.random.seed(12345)
     p.name = 'proj'
@@ -234,6 +311,8 @@ class QuantizableLayerTest(tf.test.TestCase):
           np.array_repr(output))
     if expected is not None:
       self.assertAllClose(output, expected)
+    if not_expected is not None:
+      self.assertNotAllClose(output, not_expected)
     return l
 
 
