@@ -8,6 +8,7 @@ py_library(
     name = "all_params",
     # LINT.IfChange(task_dirs)
     deps = [
+        "//lingvo/tasks/asr/params",
         "//lingvo/tasks/image/params",
         "//lingvo/tasks/lm/params",
         "//lingvo/tasks/mt/params",

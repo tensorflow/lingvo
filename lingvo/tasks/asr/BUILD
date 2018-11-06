@@ -183,3 +183,8 @@ py_test(
         "//lingvo/core:test_utils",
     ],
 )
+
+filegroup(
+    name = "wpm_files",
+    srcs = ["wpm_16k_librispeech.vocab"],
+)
