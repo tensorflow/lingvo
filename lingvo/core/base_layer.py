@@ -643,7 +643,8 @@ class BaseLayer(object):
         list(self._private_children.values()))
     for v in self._children_list:
       assert v in created_children, (
-          '%s is not created by BaseLayer.CreateChild(ren).' % v.params.name)
+          '%s is not created by BaseLayer.CreateChild(ren) in %r.' %
+          (v.params.name, self))
 
   def _VerifyVarsAndTheta(self):
     """Verify that vars and theta have the same nested structure."""
