@@ -337,6 +337,11 @@ class BaseLayer(object):
     """Returns the child layer of the given name."""
     if name in self._private_children:
       return self._private_children[name]
+    elif (hasattr(type(self), name) and
+          isinstance(getattr(type(self), name), property)):
+      # There was an AttributeError raised by a property getter.
+      # Call property getter again directly to raise the same error.
+      return getattr(type(self), name).fget(self)
     else:
       raise AttributeError('%s is not a sub-layer of %s.' % (name, self))
 

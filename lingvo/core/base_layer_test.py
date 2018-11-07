@@ -203,6 +203,32 @@ class BaseLayerTest(tf.test.TestCase):
       layer.AddFunction('test1', lambda: 2)
     self.assertEquals(1, layer.fns.test1())
 
+  def testAttributeErrorInPropertyGetter(self):
+
+    class BadLayer(base_layer.BaseLayer):
+
+      @classmethod
+      def Params(cls):
+        return super(BadLayer, cls).Params()
+
+      @base_layer.initializer
+      def __init__(self, params):
+        super(BadLayer, self).__init__(params)
+
+      @property
+      def bad_property(self):
+        raise AttributeError('INTERNAL')
+
+    layer_p = BadLayer.Params()
+    layer_p.name = 'test'
+    layer = layer_p.cls(layer_p)
+
+    with self.assertRaisesRegexp(AttributeError, 'bad_sub_layer'):
+      _ = layer.bad_sub_layer
+
+    with self.assertRaisesRegexp(AttributeError, 'INTERNAL'):
+      _ = layer.bad_property
+
 
 if __name__ == '__main__':
   tf.test.main()
