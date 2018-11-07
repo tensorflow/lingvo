@@ -156,19 +156,18 @@ cc_library(
             strip_prefix = "googletest-release-1.8.0",
         )
 
-
 def lingvo_protoc_deps():
-  native.new_http_archive(
-      name = "protobuf_protoc",
-      build_file_content = """
+    native.new_http_archive(
+        name = "protobuf_protoc",
+        build_file_content = """
 filegroup(
     name = "protoc_bin",
     srcs = ["bin/protoc"],
     visibility = ["//visibility:public"],
 )
 """,
-      urls = [
-          "https://github.com/google/protobuf/releases/download/v3.6.0/protoc-3.6.0-linux-x86_64.zip",
-      ],
-      sha256 = "84e29b25de6896c6c4b22067fb79472dac13cf54240a7a210ef1cac623f5231d",
-  )
+        urls = [
+            "https://github.com/google/protobuf/releases/download/v3.6.0/protoc-3.6.0-linux-x86_64.zip",
+        ],
+        sha256 = "84e29b25de6896c6c4b22067fb79472dac13cf54240a7a210ef1cac623f5231d",
+    )

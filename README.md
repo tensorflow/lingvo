@@ -150,18 +150,12 @@ install and run the software in multiple configuration.
 
 ### Installation
 
-To install the toolkit, you need:
+The prerequisites of the toolkit are:
 
 *   a TensorFlow [installation](https://www.tensorflow.org/install/),
 *   a `C++` compiler (only g++ 4.8 is officially supported),
 *   the bazel build system, and
 *   the protobuf package.
-
-To build, use:
-
-```shell
-bazel build -c opt //lingvo:trainer
-```
 
 ### Running the MNIST image model
 

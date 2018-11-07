@@ -14,7 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 
-ROOT=/usr/local/google/librispeech
+ROOT=/tmp/librispeech
 
 # From:
 # http://www.openslr.org/12/
