@@ -179,14 +179,14 @@ class BaseRunner(object):
       #   AbortedError: processes restarts.
       #   OutOfRangeError: Test/dev datasets are exhausted.
       self._SetStatusMessage(
-          '%s exception: %s\n' % (job_name, e), retrying=True)
+          '%s exception: %r\n' % (job_name, e), retrying=True)
       for msg in traceback.format_exc().split('\n'):
         tf.logging.error(msg)
       raise
     except Exception as e:  # pylint: disable=broad-except
       # Allow the job to die on errors that are unlikely to be transient,
       # e.g. caused by a mis-configured model.
-      self._SetStatusMessage('%s exception: %s\n' % (job_name, e))
+      self._SetStatusMessage('%s exception: %r\n' % (job_name, e))
       # Prints the error message line by line to avoid message cropping.
       msgv = traceback.format_exc().split('\n')
       for msg in msgv:
