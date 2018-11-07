@@ -14,6 +14,7 @@ py_library(
         "//lingvo/core:lr_schedule",
         "//lingvo/core:optimizer",
         "//lingvo/core:py_utils",
+        "//lingvo/core:tokenizers",
         "//lingvo/tasks/lm:input_generator",
         "//lingvo/tasks/lm:layers",
         "//lingvo/tasks/lm:model",

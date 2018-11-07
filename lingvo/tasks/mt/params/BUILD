@@ -28,7 +28,6 @@ py_library(
         "//lingvo/tasks/mt:decoder",
         "//lingvo/tasks/mt:encoder",
         "//lingvo/tasks/mt:input_generator",
-        "//lingvo/tasks/mt:layers",
         "//lingvo/tasks/mt:model",
     ],
 )

@@ -3,7 +3,7 @@
 # device="gpu"; (Leave empty to build and run CPU only docker)
 #
 # sudo docker build --tag tensorflow:lingvo $(test "$device" = "gpu" && echo "--build-arg base_image=nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04") - < lingvo/docker/dev.dockerfile
-# sudo docker run --rm $(test "$device" = "gpu" && echo "--runtime=nvidia") -it -v /tmp/lingvo:/tmp/lingvo -v ${HOME}/.gitconfig:/home/${USER}/.gitconfig:ro -p 6006:6006 --name lingvo tensorflow:lingvo bash
+# sudo docker run --rm $(test "$device" = "gpu" && echo "--runtime=nvidia") -it -v /tmp/lingvo:/tmp/lingvo -v ${HOME}/.gitconfig:/home/${USER}/.gitconfig:ro -p 6006:6006 -p 8888:8888 --name lingvo tensorflow:lingvo bash
 
 # TODO(drpng): upgrade to latest (17.10)
 ARG cpu_base_image="ubuntu:16.04"
@@ -52,6 +52,7 @@ RUN pip --no-cache-dir install \
         h5py \
         ipykernel \
         jupyter \
+        jupyter_http_over_ws \
         matplotlib \
         numpy \
         pandas \
@@ -62,6 +63,8 @@ RUN pip --no-cache-dir install \
         sklearn \
         && \
     python -m ipykernel.kernelspec
+
+RUN jupyter serverextension enable --py jupyter_http_over_ws
 
 RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
 

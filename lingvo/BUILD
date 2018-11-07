@@ -135,7 +135,6 @@ lingvo_py_binary(
     deps = [
         ":model_imports",
         ":trainer_lib",
-        # Implicit IPython dependency.
     ],
 )
 
@@ -161,5 +160,14 @@ py_test(
         "//lingvo/core:py_utils",
         "//lingvo/tasks/image:input_generator",
         "//lingvo/tasks/image/params:mnist",
+    ],
+)
+
+lingvo_py_binary(
+    name = "ipython_kernel",
+    srcs = ["ipython_kernel.py"],
+    deps = [
+        ":model_imports",  # build_cleaner: keep
+        ":trainer_lib",  # build_cleaner: keep
     ],
 )
