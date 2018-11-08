@@ -158,9 +158,9 @@ def AddNormSummary(params, name, vs_gs):
   """
   flatten = py_utils.NestedMap(child=vs_gs).Flatten()
   v_norm = tf.sqrt(py_utils.SumSquared([v for (v, _) in flatten]))
-  scalar(params, 'var_norm_%s' % name, v_norm)
+  scalar(params, 'var_norm/%s' % name, v_norm)
   g_norm = tf.sqrt(py_utils.SumSquared([g for (_, g) in flatten]))
-  scalar(params, 'grad_norm_%s' % name, g_norm)
+  scalar(params, 'grad_norm/%s' % name, g_norm)
   return v_norm, g_norm
 
 

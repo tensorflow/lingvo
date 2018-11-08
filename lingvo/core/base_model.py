@@ -439,6 +439,8 @@ class BaseTask(base_layer.BaseLayer):
 
     # Computes gradients' norm and adds their summaries. Note that all_grad_norm
     # may be nan, which may cause grad_scale to be nan.
+    for name, vg in var_grads.FlattenItems():
+      summary_utils.AddNormSummary(p, name, py_utils.NestedMap(s=vg))
     _, all_grad_norm = summary_utils.AddNormSummary(p, 'all', var_grads)
     grad_norm_is_nan_or_inf = tf.logical_or(
         tf.is_nan(all_grad_norm), tf.is_inf(all_grad_norm))
