@@ -152,7 +152,7 @@ install and run the software in multiple configuration.
 
 The prerequisites of the toolkit are:
 
-*   a TensorFlow [installation](https://www.tensorflow.org/install/),
+*   a TensorFlow [installation](https://www.tensorflow.org/install/) (>= 1.11),
 *   a `C++` compiler (only g++ 4.8 is officially supported),
 *   the bazel build system, and
 *   the protobuf package.

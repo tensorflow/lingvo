@@ -66,7 +66,7 @@ RUN pip --no-cache-dir install \
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws
 
-RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
+RUN pip --no-cache-dir install tensorflow$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.12
 
 ARG bazel_version=0.17.2
 # This is to install bazel, for development purposes.
@@ -83,6 +83,9 @@ RUN mkdir /bazel && \
 
 # TensorBoard
 EXPOSE 6006
+
+# Jupyter
+EXPOSE 8888
 
 WORKDIR "/tmp/lingvo"
 

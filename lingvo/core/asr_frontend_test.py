@@ -74,7 +74,7 @@ class AsrFrontendTest(tf.test.TestCase):
       # log_mel ~ [batch, time, feature_size, channel]
       tf.logging.info('mel ~ %s', log_mel.shape)
       # Squeeze the batch and channel dimensions out.
-      log_mel = np.squeeze(log_mel, axis=[0, 2])
+      log_mel = np.squeeze(log_mel, axis=(0, 3))
       t = log_mel.shape[0]
       mu = np.sum(log_mel, axis=0) / t
       d = log_mel - mu
@@ -99,7 +99,7 @@ class AsrFrontendTest(tf.test.TestCase):
       # log_mel ~ [batch, time, feature_size, channel]
       tf.logging.info('mel ~ %s', log_mel.shape)
       # Squeeze the batch and channel dimensions out.
-      log_mel = np.squeeze(log_mel, axis=[0, 2])
+      log_mel = np.squeeze(log_mel, axis=(0, 3))
       t = log_mel.shape[0]
       mu = np.sum(log_mel, axis=0) / t
       d = log_mel - mu
