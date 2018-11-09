@@ -56,7 +56,7 @@ def ComputeWer(hyps, refs):
   """
 
   def _NormalizeWhitespace(s):
-    return tf.regex_replace(tf.string_strip(s), r'\s+', ' ')
+    return tf.regex_replace(tf.strings.strip(s), r'\s+', ' ')
 
   hyps = _NormalizeWhitespace(hyps)
   refs = _NormalizeWhitespace(refs)
