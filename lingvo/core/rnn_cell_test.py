@@ -867,7 +867,13 @@ class RNNCellTest(tf.test.TestCase):
       prev_v = [[0.2, 0.0], [0.1, 0.4], [0.1, 0.5]]
       cur_v = [[0.3, 1.0], [0.0, 2.4], [0.2, 3.4]]
       padding_v = [[1.0], [0.0], [0.0]]
-      new_v = rnn_cell.ZoneOut(
+      params = rnn_cell.LSTMCellSimple.Params()
+      params.name = 'lstm'
+      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      params.num_input_nodes = 2
+      params.num_output_nodes = 2
+      lstm = rnn_cell.LSTMCellSimple(params)
+      new_v = lstm._ZoneOut(
           prev_v,
           cur_v,
           padding_v,
@@ -884,7 +890,13 @@ class RNNCellTest(tf.test.TestCase):
       prev_v = [[0.2, 0.0], [0.1, 0.4], [0.1, 0.5]]
       cur_v = [[0.3, 1.0], [0.0, 2.4], [0.2, 3.4]]
       padding_v = [[1.0], [0.0], [0.0]]
-      new_v = rnn_cell.ZoneOut(
+      params = rnn_cell.LSTMCellSimple.Params()
+      params.name = 'lstm'
+      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      params.num_input_nodes = 2
+      params.num_output_nodes = 2
+      lstm = rnn_cell.LSTMCellSimple(params)
+      new_v = lstm._ZoneOut(
           prev_v,
           cur_v,
           padding_v,
@@ -901,7 +913,13 @@ class RNNCellTest(tf.test.TestCase):
       prev_v = [[0.2, 0.0], [0.1, 0.4], [0.1, 0.5]]
       cur_v = [[0.3, 1.0], [0.0, 2.4], [0.2, 3.4]]
       padding_v = [[1.0], [0.0], [0.0]]
-      new_v = rnn_cell.ZoneOut(
+      params = rnn_cell.LSTMCellSimple.Params()
+      params.name = 'lstm'
+      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      params.num_input_nodes = 2
+      params.num_output_nodes = 2
+      lstm = rnn_cell.LSTMCellSimple(params)
+      new_v = lstm._ZoneOut(
           prev_v,
           cur_v,
           padding_v,

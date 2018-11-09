@@ -150,45 +150,77 @@ class RNNCell(quant_utils.QuantizableLayer):
     state1 = self._Gates(xmw, theta, state0_modified, inputs)
     return state1, py_utils.NestedMap()
 
+  def _ZoneOut(self,
+               prev_v,
+               cur_v,
+               padding_v,
+               zo_prob,
+               is_eval,
+               random_uniform,
+               qt=None,
+               qdomain=''):
+    """Apply ZoneOut regularlization to cur_v.
 
-def ZoneOut(prev_v, cur_v, padding_v, zo_prob, is_eval, random_uniform):
-  """Apply ZoneOut regularlization to cur_v.
+    Implements ZoneOut regularization as described in
+    https://arxiv.org/abs/1606.01305
 
-  Implements ZoneOut regularization as described in
-  https://arxiv.org/abs/1606.01305
-
-  Args:
-    prev_v: A tensor, values from the previous timestep.
-    cur_v: A tensor, values from the current timestep.
-    padding_v: A tensor, the paddings vector for the cur timestep.
-    zo_prob: A float, probability at which to apply ZoneOut regularization.
-    is_eval: A bool, whether or not in eval mode.
-    random_uniform: a tensor of random uniform numbers. This can be None if
+    Args:
+      prev_v: A tensor, values from the previous timestep.
+      cur_v: A tensor, values from the current timestep.
+      padding_v: A tensor, the paddings vector for the cur timestep.
+      zo_prob: A float, probability at which to apply ZoneOut regularization.
+      is_eval: A bool, whether or not in eval mode.
+      random_uniform: a tensor of random uniform numbers. This can be None if
         zo_prob=0.0
-  Returns:
-    cur_v after ZoneOut regularization has been applied.
-  """
-  prev_v = tf.convert_to_tensor(prev_v)
-  cur_v = tf.convert_to_tensor(cur_v)
-  padding_v = tf.convert_to_tensor(padding_v)
-  if zo_prob == 0.0:
-    # Special case for when ZoneOut is not enabled.
-    return py_utils.ApplyPadding(padding_v, cur_v, prev_v)
+      qt: A string, name of the qtensor for zone out math.
+      qdomain: A string, name of the qdomain for quantized zone out math.
 
-  if is_eval:
-    # We take expectation in the eval mode.
-    #
-    # If padding_v is 1, it always carries over the previous state.
-    zo_p = tf.minimum(1.0, tf.fill(tf.shape(prev_v), zo_prob) + padding_v)
-  else:
-    assert random_uniform is not None
-    random_uniform = py_utils.HasShape(random_uniform, tf.shape(prev_v))
-    zo_p = tf.cast(random_uniform < zo_prob, padding_v.dtype)
-    zo_p += padding_v
-    # If padding_v is 1, we always carry over the previous state.
-    zo_p = tf.minimum(zo_p, 1.0)
-  zo_p = tf.stop_gradient(zo_p)
-  return prev_v * zo_p + cur_v * (1.0 - zo_p)
+    Returns:
+      cur_v after ZoneOut regularization has been applied.
+    """
+    prev_v = tf.convert_to_tensor(prev_v)
+    cur_v = tf.convert_to_tensor(cur_v)
+    padding_v = tf.convert_to_tensor(padding_v)
+    if zo_prob == 0.0:
+      # Special case for when ZoneOut is not enabled.
+      return py_utils.ApplyPadding(padding_v, cur_v, prev_v)
+
+    if is_eval:
+      # We take expectation in the eval mode.
+      #
+      fns = self.fns
+      # This quantized mixed operation should probably occur as fused kernel to
+      # avoid quantized-math rounding errors. Current accuracy has not been
+      # verified.
+      prev_weight = self.QWeight(zo_prob, domain=qdomain)
+      new_weight = self.QWeight(1.0 - prev_weight, domain=qdomain)
+      if qt is None:
+        mix_prev = tf.multiply(tf.fill(tf.shape(prev_v), prev_weight), prev_v)
+        mix_curr = tf.multiply(tf.fill(tf.shape(cur_v), new_weight), cur_v)
+        mix = tf.add(mix_prev, mix_curr)
+      else:
+        mix_prev = fns.qmultiply(
+            self.QWeight(
+                tf.fill(tf.shape(prev_v), prev_weight), domain=qdomain),
+            prev_v,
+            qt=qt)
+        mix_curr = fns.qmultiply(
+            self.QWeight(tf.fill(tf.shape(cur_v), new_weight), domain=qdomain),
+            cur_v,
+            qt=qt)
+        mix = fns.qadd(mix_prev, mix_curr, qt=qt)
+
+      # If padding_v is 1, it always carries over the previous state.
+      return py_utils.ApplyPadding(padding_v, mix, prev_v)
+    else:
+      assert random_uniform is not None
+      random_uniform = py_utils.HasShape(random_uniform, tf.shape(prev_v))
+      zo_p = tf.cast(random_uniform < zo_prob, padding_v.dtype)
+      zo_p += padding_v
+      # If padding_v is 1, we always carry over the previous state.
+      zo_p = tf.minimum(zo_p, 1.0)
+      zo_p = tf.stop_gradient(zo_p)
+      return py_utils.ApplyPadding(zo_p, cur_v, prev_v)
 
 
 class LSTMCellSimple(RNNCell):
@@ -256,13 +288,18 @@ class LSTMCellSimple(RNNCell):
 
     assert p.cell_value_cap is None or p.qdomain.default is None
     self.TrackQTensor(
-        'zero_m', 'm_output', 'm_output_projection', domain='m_state')
+        'zero_m',
+        'm_output',
+        'm_output_projection',
+        'm_zoneout',
+        domain='m_state')
     self.TrackQTensor(
         'zero_c',
         'mixed',
         'c_input_gate',
         'c_forget_gate',
         'c_output_gate',
+        'c_zoneout',
         domain='c_state')
     self.TrackQTensor('fc', 'add_bias', domain='fullyconnected')
 
@@ -395,8 +432,7 @@ class LSTMCellSimple(RNNCell):
       # the range with c_input_gate and c_forget_gate.
       input_gate = fns.qmultiply(
           tf.sigmoid(i_g), tf.tanh(i_i), qt='c_forget_gate')
-      output_gate = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
-      new_c = output_gate
+      new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
     else:
       i_i, f_g, o_g = tf.split(value=xmw, num_or_size_splits=3, axis=1)
       if p.forget_gate_bias != 0.0:
@@ -406,8 +442,7 @@ class LSTMCellSimple(RNNCell):
       forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
       input_gate = fns.qmultiply(
           1.0 - tf.sigmoid(f_g), tf.tanh(i_i), qt='c_forget_gate')
-      output_gate = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
-      new_c = output_gate
+      new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
     # Clip the cell states to reasonable value.
     if p.cell_value_cap is not None:
       new_c = py_utils.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
@@ -435,10 +470,24 @@ class LSTMCellSimple(RNNCell):
       c_random_uniform = None
       m_random_uniform = None
 
-    new_c = ZoneOut(state0.c, new_c, self.QRPadding(inputs.padding), p.zo_prob,
-                    p.is_eval, c_random_uniform)
-    new_m = ZoneOut(state0.m, new_m, self.QRPadding(inputs.padding), p.zo_prob,
-                    p.is_eval, m_random_uniform)
+    new_c = self._ZoneOut(
+        state0.c,
+        new_c,
+        self.QRPadding(inputs.padding),
+        p.zo_prob,
+        p.is_eval,
+        c_random_uniform,
+        qt='c_zoneout',
+        qdomain='c_state')
+    new_m = self._ZoneOut(
+        state0.m,
+        new_m,
+        self.QRPadding(inputs.padding),
+        p.zo_prob,
+        p.is_eval,
+        m_random_uniform,
+        qt='m_zoneout',
+        qdomain='m_state')
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=new_m, c=new_c)
@@ -627,8 +676,14 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
 
   def zero_state(self, batch_size):
     p = self.params
-    zero_m = tf.zeros((batch_size, self.output_size), dtype=p.dtype)
-    zero_c = tf.zeros((batch_size, self.hidden_size), dtype=p.dtype)
+    zero_m = tf.zeros((batch_size, self.output_size),
+                      dtype=py_utils.FPropDtype(p))
+    zero_c = tf.zeros((batch_size, self.hidden_size),
+                      dtype=py_utils.FPropDtype(p))
+    if p.is_inference:
+      zero_m = self.QTensor('zero_m', zero_m)
+      zero_c = self.QTensor('zero_c', zero_c)
+
     # The first random seed changes for different layers and training steps.
     random_seed1 = self._prng_seed + self._step_counter
     # The second random seed changes for different unroll time steps.
@@ -661,10 +716,24 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
       c_random_uniform = None
       m_random_uniform = None
 
-    new_c = ZoneOut(state0.c, new_c, inputs.padding, p.zo_prob, p.is_eval,
-                    c_random_uniform)
-    new_m = ZoneOut(state0.m, new_m, inputs.padding, p.zo_prob, p.is_eval,
-                    m_random_uniform)
+    new_c = self._ZoneOut(
+        state0.c,
+        new_c,
+        inputs.padding,
+        p.zo_prob,
+        p.is_eval,
+        c_random_uniform,
+        qt='zero_c',
+        qdomain='c_state')
+    new_m = self._ZoneOut(
+        state0.m,
+        new_m,
+        inputs.padding,
+        p.zo_prob,
+        p.is_eval,
+        m_random_uniform,
+        qt='zero_m',
+        qdomain='m_state')
     # TODO(yonghui): stop the proliferation of tf.stop_gradient
     r = tf.stop_gradient(tf.stack([random_seed1, random_seed2 + 1]))
     new_c.set_shape(state0.c.shape)
@@ -1069,10 +1138,10 @@ class LayerNormalizedLSTMCell(RNNCell):
       c_random_uniform = None
       m_random_uniform = None
 
-    new_c = ZoneOut(state0.c, new_c, inputs.padding, params.zo_prob,
-                    params.is_eval, c_random_uniform)
-    new_m = ZoneOut(state0.m, new_m, inputs.padding, params.zo_prob,
-                    params.is_eval, m_random_uniform)
+    new_c = self._ZoneOut(state0.c, new_c, inputs.padding, params.zo_prob,
+                          params.is_eval, c_random_uniform)
+    new_m = self._ZoneOut(state0.m, new_m, inputs.padding, params.zo_prob,
+                          params.is_eval, m_random_uniform)
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=new_m, c=new_c)
@@ -1439,10 +1508,10 @@ class ConvLSTMCell(RNNCell):
     else:
       c_random_uniform = None
       m_random_uniform = None
-    new_c = ZoneOut(state0.c, new_c, padding, p.zo_prob, p.is_eval,
-                    c_random_uniform)
-    new_m = ZoneOut(state0.m, new_m, padding, p.zo_prob, p.is_eval,
-                    m_random_uniform)
+    new_c = self._ZoneOut(state0.c, new_c, padding, p.zo_prob, p.is_eval,
+                          c_random_uniform)
+    new_m = self._ZoneOut(state0.m, new_m, padding, p.zo_prob, p.is_eval,
+                          m_random_uniform)
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=new_m, c=new_c)
@@ -1551,10 +1620,10 @@ class SRUCell(RNNCell):
     # Clip the cell states to reasonable value.
     c_t = py_utils.clip_by_value(c_t, -p.cell_value_cap, p.cell_value_cap)
 
-    c_t = ZoneOut(state0.c, c_t, inputs.padding, p.zo_prob, p.is_eval,
-                  p.random_seed)
-    h_t = ZoneOut(state0.m, h_t, inputs.padding, p.zo_prob, p.is_eval,
-                  p.random_seed)
+    c_t = self._ZoneOut(state0.c, c_t, inputs.padding, p.zo_prob, p.is_eval,
+                        p.random_seed)
+    h_t = self._ZoneOut(state0.m, h_t, inputs.padding, p.zo_prob, p.is_eval,
+                        p.random_seed)
     c_t.set_shape(state0.c.shape)
     h_t.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=h_t, c=c_t)
@@ -1675,10 +1744,10 @@ class QRNNPoolingCell(RNNCell):
       c_random_uniform = None
       m_random_uniform = None
 
-    new_c = ZoneOut(state0.c, new_c, inputs.padding, p.zo_prob, p.is_eval,
-                    c_random_uniform)
-    new_m = ZoneOut(state0.m, new_m, inputs.padding, p.zo_prob, p.is_eval,
-                    m_random_uniform)
+    new_c = self._ZoneOut(state0.c, new_c, inputs.padding, p.zo_prob, p.is_eval,
+                          c_random_uniform)
+    new_m = self._ZoneOut(state0.m, new_m, inputs.padding, p.zo_prob, p.is_eval,
+                          m_random_uniform)
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=new_m, c=new_c)
