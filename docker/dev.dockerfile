@@ -28,7 +28,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzmq3-dev \
         gcc-4.8 g++-4.8 gcc-4.8-base \
         pkg-config \
-        protobuf-compiler \
         python \
         python-dev \
         python-tk \
@@ -66,7 +65,7 @@ RUN pip --no-cache-dir install \
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws
 
-RUN pip --no-cache-dir install tensorflow$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.12
+RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
 
 ARG bazel_version=0.17.2
 # This is to install bazel, for development purposes.
