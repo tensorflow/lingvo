@@ -205,8 +205,8 @@ def _CuDNNParamsToCanonical(cudnn_params, input_dim, cell_dim, direction):
     ValueError: for invalid `direction`.
   """
   if direction not in (UNI_RNN, BI_RNN):
-    raise ValueError('\'direction\' must be %s or %s, receive %s.',
-                     UNI_RNN, BI_RNN)
+    raise ValueError('\'direction\' must be %s or %s, receive %s.' %
+                     (UNI_RNN, BI_RNN, direction))
   cudnn_initializer = CuDNNLSTMInitializer(input_dim, cell_dim, direction)
   weights, biases = tf.split(cudnn_params,
                              [cudnn_initializer.weight_size,
@@ -236,9 +236,9 @@ def RecoverLSTMCellSimpleWeightsFromCuDNN(cudnn_params, input_dim, cell_dim,
   """
   if direction not in (cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION,
                        cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION):
-    raise ValueError('\'direction\' must be %s or %s, receive %s.',
-                     cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION,
-                     cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION)
+    raise ValueError('\'direction\' must be %s or %s, receive %s.' %
+                     (cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION,
+                      cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION, direction))
   weights, biases = _CuDNNParamsToCanonical(cudnn_params, input_dim, cell_dim,
                                             direction)
   if direction == cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION:
@@ -274,6 +274,25 @@ def RecoverLSTMCellSimpleWeightsFromCuDNN(cudnn_params, input_dim, cell_dim,
     bak_b = _StitchBiases(bak_b_wi, bak_b_wf, bak_b_wc, bak_b_wo,
                           bak_b_ri, bak_b_rf, bak_b_rc, bak_b_ro)
     return (fwd_w, bak_w), (fwd_b, bak_b)
+
+
+class CudNNParamsFormatConverterLSTM(
+    cudnn_rnn_ops.CudnnParamsFormatConverterLSTM):
+  r"""Lingvo CuDNN LSTM params converter.
+
+  Used by Lingvo CuDNNLSTMSaveable to convert between Cudnn and Lingvo LSTM
+  formats.
+  """
+
+  def _cudnn_to_tf_gate_params(self, *cu_gate_order):
+    """Put CuDNN gate params to lingvo RNN cell order."""
+    i_g, f_g, c_g, o_g = cu_gate_order
+    return [c_g, i_g, f_g, o_g]
+
+  def _tf_to_cudnn_gate_params(self, *tf_gate_order):
+    """Put lingvo RNN cell gate params to CuDNN order."""
+    c_g, i_g, f_g, o_g = tf_gate_order
+    return [i_g, f_g, c_g, o_g]
 
 
 class CuDNNLSTMSaveable(tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
@@ -315,8 +334,36 @@ class CuDNNLSTMSaveable(tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
         \             \
          ---------------
          |fwd   |bak   |
-         ---------------
+         ------------
+
+  Conceptually, for each layer, cudnn lstm has the following params and layout:
+
+  .. code-block:: none
+
+      -------------------------------------------------
+      | w_i | w_f | w_c | w_o | r_i | r_f | r_c | r_o |
+      -------------------------------------------------
+      ---------------------------------------------------------
+      | b_wi | b_wf | b_wc | b_wo | b_ri | b_rf | b_rc | b_ro |
+      ---------------------------------------------------------
+
+  While Lingvo LSTM params and layout is the following:
+
+  .. code-block:: none
+
+      -----------------------------
+      | w_c' | w_i' | w_f' | w_o' |
+      | r_c' | r_i' | r_f' | r_o' |
+      -----------------------------
+      ---------------------------------------------------------
+      | b_wc + b_rc | b_wi + b_ri | b_wf + b_rf | b_wo + b_ro |
+      ---------------------------------------------------------
+
+  The shapes of each element before transpose is reflected by
+  `CuDNNLSTMInitializer.{weight_shapes, biase_shapes}`.
   """
+
+  _format_converter_cls = CudNNParamsFormatConverterLSTM
 
   def __init__(self,
                opaque_params,
@@ -348,66 +395,20 @@ class CuDNNLSTMSaveable(tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
         scope=scope,
         name=name)
 
-  def _TransformSingleLayerCanonical(self, cu_wts, cu_bs, prefix, tf_wts,
-                                     tf_wts_names, tf_bs, tf_bs_names):
+  def _tf_canonical_names_single_layer(self, prefix, tf_wts_names, tf_bs_names):
     r"""Transform single layer Cudnn canonicals to tf canonicals.
 
-    The elements of cu_weights, cu_biases are laid out in the following order:
-
-    .. code-block:: none
-
-        -------------------------------------------------
-        | w_i | w_f | w_c | w_o | r_i | r_f | r_c | r_o |
-        -------------------------------------------------
-        ---------------------------------------------------------
-        | b_wi | b_wf | b_wc | b_wo | b_ri | b_rf | b_rc | b_ro |
-        ---------------------------------------------------------
-
-    The transformed canonicals are in the following format and order:
-
-    .. code-block:: none
-
-        -----------------------------
-        | w_c' | w_i' | w_f' | w_o' |
-        | r_c' | r_i' | r_f' | r_o' |
-        -----------------------------
-        ---------------------------------------------------------
-        | b_wc + b_rc | b_wi + b_ri | b_wf + b_rf | b_wo + b_ro |
-        ---------------------------------------------------------
-
-    The shapes of each element before transpose is reflected by
-    `CuDNNLSTMInitializer.{weight_shapes, biase_shapes}`.
-
     Args:
-      cu_wts: a list of tensors, single layer weights.
-      cu_bs: a list of tensors, single layer biases.
       prefix: the shared prefix of all tensor names.
-      tf_wts: a list where transformed weights are stored.
       tf_wts_names: a list where names of transformed weights are stored.
-      tf_bs: a list where transformed biases are stored.
       tf_bs_names: a list where names of transformed biases are stored.
     """
-    (w,) = self._cudnn_to_tf_weights(*cu_wts)
-    (b,) = self._cudnn_to_tf_biases(*cu_bs)
-
-    tf_wts.append(w)
     tf_wts_names.append(prefix + '/wm/var')
-
-    tf_bs.append(b)
     tf_bs_names.append(prefix + '/b/var')
 
-  def _cudnn_to_tf_gate_params(self, *cu_gate_order):
-    """Put CuDNN gate params to lingvo RNN cell order."""
-    i_g, f_g, c_g, o_g = cu_gate_order
-    return [c_g, i_g, f_g, o_g]
-
-  def _tf_to_cudnn_gate_params(self, *tf_gate_order):
-    """Put lingvo RNN cell gate params to CuDNN order."""
-    c_g, i_g, f_g, o_g = tf_gate_order
-    return [i_g, f_g, c_g, o_g]
-
-  def _TFCanonicalNamePrefix(self, layer, unused_is_fwd=True):
+  def _tf_canonical_name_prefix(self, layer, is_fwd=True):
     """The prefix of names under which lingvo canonical params are saved."""
+    del is_fwd
     # Lingvo only uses single layer.
     assert layer == 0
     return self._rnn_cell_name
@@ -449,7 +450,7 @@ class BidiCuDNNLSTMSaveable(CuDNNLSTMSaveable):
         scope=scope,
         name=name)
 
-  def _TFCanonicalNamePrefix(self, layer, is_fwd=True):
+  def _tf_canonical_name_prefix(self, layer, is_fwd=True):
     """The prefix of names under which lingvo canonical params are saved."""
     # Lingvo only uses single layer.
     assert layer == 0

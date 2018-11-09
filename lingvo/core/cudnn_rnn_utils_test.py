@@ -89,11 +89,13 @@ class CuDNNLSTMSaveableTest(tf.test.TestCase):
           'cudnn_params',
           initializer=tf.random_uniform([params_size_t]),
           validate_shape=False)
-      reset_params_op = tf.assign(params, tf.zeros([params_size_t]))
+      reset_params_op = tf.assign(params, tf.zeros_like(params))
       cur_scope_name = tf.get_variable_scope().name
       saveable = self._CreateSaveable(params, input_dim, cell_dim, direction,
                                       cur_scope_name)
-      canonical_wts, canonical_bs = saveable._OpaqueParamsToCanonical()
+      canonical_wts, canonical_bs = (
+          saveable.format_converter._opaque_to_cu_canonical(
+              saveable._variables))
       saver = saver_lib.Saver()
     with self.session(use_gpu=True) as sess:
       sess.run(tf.global_variables_initializer())
@@ -102,6 +104,7 @@ class CuDNNLSTMSaveableTest(tf.test.TestCase):
       canonical_wts_v, canonical_bs_v = sess.run([canonical_wts, canonical_bs])
 
     with self.session(use_gpu=False) as sess:
+      sess.run(tf.global_variables_initializer())
       sess.run(reset_params_op)
       saver.restore(sess, save_path)
       canonical_wts_v_restored, canonical_bs_v_restored = sess.run(
