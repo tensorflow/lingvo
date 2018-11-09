@@ -174,6 +174,7 @@ class TransformerModelTest(tf.test.TestCase):
     p.input = self._InputParams()
     p.encoder = self._EncoderParams()
     p.decoder = self._DecoderParams()
+    p.train.learning_rate = 2e-4
     return p
 
   def testConstruction(self):
@@ -246,9 +247,9 @@ class TransformerModelTest(tf.test.TestCase):
       for _ in range(5):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
       print('BProp actual vals = ', vals)
-      expected_vals = [(189.22296, 10.368382), (282.57202, 10.369616),
-                       (142.55638, 10.367737), (139.9939, 10.369918),
-                       (293.08011, 10.374517)]
+      expected_vals = [(189.22296, 10.368382), (282.54092, 10.368474),
+                       (142.48544, 10.362577), (139.91856, 10.364338),
+                       (292.86707, 10.366976)]
       self.assertAllClose(vals, expected_vals)
 
   def testBPropWithAccumComparison(self):
