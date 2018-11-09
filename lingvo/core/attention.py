@@ -712,11 +712,7 @@ class DotProductAttention(BaseAttentionLayer):
           dtype=p.dtype,
           collections=['DotProductAttention_vars'])
 
-      def ScaleFn(x):
-        return tf.nn.softplus(x) / tf.nn.softplus(
-            tf.constant(0.0, dtype=x.dtype))
-
-      self.CreateVariable('per_dim_scale', pc, ScaleFn)
+      self.CreateVariable('per_dim_scale', pc)
 
     @function.Defun(
         *[py_utils.FPropDtype(p)] * 7, noinline=not py_utils.use_tpu())
@@ -968,8 +964,11 @@ class DotProductAttention(BaseAttentionLayer):
       query_segment_id = tf.zeros(
           tf.shape(query_vec)[0], dtype=source_padding.dtype)
 
+    def ScaleFn(x):
+      return tf.nn.softplus(x) / tf.nn.softplus(tf.constant(0.0, dtype=x.dtype))
+
     ctx_vec, prob = self._ctx_vec(
-        theta.per_dim_scale, source_padding, source_segment_id,
+        ScaleFn(theta.per_dim_scale), source_padding, source_segment_id,
         concated_source_vecs, concated_source_contexts, query_vec,
         query_segment_id, per_step_source_padding, step_state)
     return ctx_vec, prob, attention_state
