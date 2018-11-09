@@ -5,8 +5,8 @@ package(
 licenses(["notice"])  # Apache 2.0
 
 py_binary(
-    name = "download_lm1b",
-    srcs = ["download_lm1b.py"],
+    name = "download_brown_corpus",
+    srcs = ["download_brown_corpus.py"],
     deps = [
         # Implicit tensorflow dependency.
     ],

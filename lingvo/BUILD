@@ -169,5 +169,6 @@ lingvo_py_binary(
     deps = [
         ":model_imports",  # build_cleaner: keep
         ":trainer_lib",  # build_cleaner: keep
+        "//lingvo/tasks/punctuator/tools:download_brown_corpus",  # build_cleaner: keep
     ],
 )
