@@ -168,6 +168,7 @@ py_library(
 py_test(
     name = "model_test",
     srcs = ["model_test.py"],
+    shard_count = 15,
     deps = [
         ":decoder",
         ":model",

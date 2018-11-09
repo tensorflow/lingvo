@@ -39,16 +39,20 @@ py_test(
 
 py_test(
     name = "model_test",
-    size = "enormous",
     srcs = ["model_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
-        "//lingvo/tasks/mt:model",
         "//lingvo/tasks/punctuator/testdata:test_vocab",
     ],
+    shard_count = 4,
     deps = [
         ":input_generator",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
-        "//lingvo/tasks/mt:model_test",
+        "//lingvo/tasks/mt:decoder",
+        "//lingvo/tasks/mt:encoder",
+        "//lingvo/tasks/mt:model",
     ],
 )
