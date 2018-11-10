@@ -36,6 +36,7 @@ _TASK_DIRS = [
     'image',
     'lm',
     'mt',
+    'punctuator',
 ]
 # LINT.ThenChange(tasks/BUILD:task_dirs)
 

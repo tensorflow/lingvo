@@ -12,6 +12,7 @@ py_library(
         "//lingvo/tasks/image/params",
         "//lingvo/tasks/lm/params",
         "//lingvo/tasks/mt/params",
+        "//lingvo/tasks/punctuator/params",
     ],
     # LINT.ThenChange(../model_imports.py:task_dirs)
 )
