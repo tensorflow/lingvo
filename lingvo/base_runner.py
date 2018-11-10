@@ -294,7 +294,7 @@ class BaseRunner(object):
       text_filename: If not None, writes the summary to the text file.
     """
     status_metrics = []
-    for name, summary in summaries.items():
+    for name, summary in sorted(summaries.items()):
       if not isinstance(summary, summary_pb2.Summary):
         tf.logging.warning(
             'Non tf.Summary args passed to _WriteSummaries, skipping: %s @%s',
@@ -312,7 +312,6 @@ class BaseRunner(object):
         tf.logging.info('%s summary on checkpoint@%d %s', job_name, global_step,
                         name)
     summary_writer.flush()
-    status_metrics = sorted(status_metrics)
     self._SetStatusMessage(
         '%s: step:%6d, %s' % (job_name, global_step, ', '.join(status_metrics)))
     if text_filename is not None:
