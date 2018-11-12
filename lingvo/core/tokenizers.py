@@ -225,6 +225,11 @@ class WpmTokenizer(BaseTokenizer):
         'Specifies a filepath to the WPM vocab. The vocab is sorted by '
         'descending merge score.')
     p.Define('lowercase', False, 'Lowercase all text as a preprocessing step.')
+    p.Define(
+        'merge_prob', 1.,
+        'Probability of merging WPMs. If less than 1, then decomposition '
+        'of words into wordpieces will no longer be deterministic, and '
+        'result in longer ID sequences. At 0, it will be graphemes.')
     return p
 
   BOW_STR = b'\xe2\x96\x81'.decode('utf-8')
@@ -232,8 +237,8 @@ class WpmTokenizer(BaseTokenizer):
   @base_layer.initializer
   def __init__(self, params):
     super(WpmTokenizer, self).__init__(params)
-    self._wpm_encoder = wpm_encoder.WpmEncoder(params.vocab_filepath)
     p = self.params
+    self._wpm_encoder = wpm_encoder.WpmEncoder(p.vocab_filepath, p.merge_prob)
     assert p.target_unk_id == self._wpm_encoder.unk_id
     assert p.target_sos_id == self._wpm_encoder.sentence_start_id
     assert p.target_eos_id == self._wpm_encoder.sentence_end_id
@@ -294,15 +299,19 @@ class WpmTokenizer(BaseTokenizer):
     return [token_ids, target_ids, paddings]
 
   def _WpmEncode(self, batch_strs, max_length, append_eos):
-    """Takes a batch of python strings and returns id/padding numpy matrices."""
+    """By word so that merge_prob is applied correctly."""
     token_ids = []
     for sentence in batch_strs:
       if sentence:
         if self.params.lowercase:
           sentence = sentence.lower()
-        text = self.BOW_STR + sentence.replace(' ', self.BOW_STR)
-        encoded_ids = zip(*self._wpm_encoder.EncodeToStringAndIds(text))[1]
-        token_ids += [encoded_ids]
+        words = sentence.split(' ')
+        sent_ids = []
+        for w in words:
+          w = self.BOW_STR + w
+          _, encoded_ids = zip(*self._wpm_encoder.EncodeToStringAndIds(w))
+          sent_ids += encoded_ids
+        token_ids += [sent_ids]
       else:
         token_ids += [[]]
     return self._PostProcessIds(token_ids, max_length, append_eos)

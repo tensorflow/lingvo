@@ -65,6 +65,11 @@ class WpmEncoderTest(tf.test.TestCase):
     encoded = self._enc.Encode('Ditto')
     self.assertEqual('D itt o', encoded)
 
+  def testMergeProb(self):
+    voc = self._CreateVocab()
+    enc = wpm_encoder.WpmEncoder(voc, merge_prob=0.)
+    self.assertEqual('D i t t o', enc.Encode('Ditto'))
+
   def testWithBackslash(self):
     encoded = self._enc.Encode('▁\\')
     self.assertEqual('▁\\'.decode('utf-8'), encoded)

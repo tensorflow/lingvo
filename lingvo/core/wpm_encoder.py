@@ -44,7 +44,13 @@ SENTENCE_END_STRING = '</s>'
 
 class WpmEncoder(object):
 
-  def __init__(self, wpm_filepath):
+  def __init__(self, wpm_filepath, merge_prob=1.):
+    """Create a WPM encoder.
+
+    Args:
+      wpm_filepath: a path to the file containing the vocabulary.
+      merge_prob: the probability of merging tokens while encoding.
+    """
     # Load vocabulary file.
     self._piece2id = {}
     self._pieces = []
@@ -58,6 +64,7 @@ class WpmEncoder(object):
         pid += 1
         self._pieces += [piece]
     assert self._StringToToken(NO_TOKEN_STRING) != NO_TOKEN
+    self._merge_prob = merge_prob
 
   def _TokenToString(self, token, safe=False):
     if token == NO_TOKEN:
@@ -81,6 +88,9 @@ class WpmEncoder(object):
 
   def _IsAllNull(self, candidates):
     return len(candidates) == candidates.count(NO_TOKEN)
+
+  def _ShouldMerge(self):
+    return np.random.uniform() < self._merge_prob
 
   def _EncodeToIds(self, word):
     if not isinstance(word, unicode):
@@ -107,8 +117,9 @@ class WpmEncoder(object):
     for i in range(len(tokens) - 1):
       merged = self._MergeTokens(tokens[i], tokens[i + 1])
       candidates += [merged]
-    # Merge in the reverse binary tree until no more merges are possible.
-    while not self._IsAllNull(candidates):
+    # Merge in the reverse binary tree until no more merges are possible, or
+    # we decide to abort the process early, according to merge_prob.
+    while not self._IsAllNull(candidates) and self._ShouldMerge():
       best_id = np.argmin(candidates)
       # Perform the merge at position best_id.
       tokens = tokens[:best_id] + [candidates[best_id]] + tokens[best_id + 2:]
