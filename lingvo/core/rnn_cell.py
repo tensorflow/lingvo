@@ -1547,6 +1547,10 @@ class SRUCell(RNNCell):
   def Params(cls):
     p = super(SRUCell, cls).Params()
     p.Define(
+        'num_hidden_nodes', 0, 'Number of projection hidden nodes '
+        '(see https://arxiv.org/abs/1603.08042). '
+        'Set to 0 to disable projection.')
+    p.Define(
         'cell_value_cap', 10.0, 'SRU cell values are capped to be within '
         ' [-cell_value_cap, +cell_value_cap]. This can be a'
         ' scalar or a scalar tensor.')
@@ -1567,18 +1571,26 @@ class SRUCell(RNNCell):
     with tf.variable_scope(p.name) as scope:
       # Define weights.
       wm_pc = py_utils.WeightParams(
-          shape=[p.num_input_nodes, 4 * p.num_output_nodes],
+          shape=[p.num_input_nodes, 4 * self.hidden_size],
           init=p.params_init,
           dtype=p.dtype,
           collections=self._VariableCollections())
       self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
 
       bias_pc = py_utils.WeightParams(
-          shape=[4 * p.num_output_nodes],
+          shape=[4 * self.hidden_size],
           init=py_utils.WeightInit.Constant(0.0),
           dtype=p.dtype,
           collections=self._VariableCollections())
       self.CreateVariable('b', bias_pc, self.AddGlobalVN)
+
+      if p.num_hidden_nodes:
+        w_proj = py_utils.WeightParams(
+            shape=[self.hidden_size, self.output_size],
+            init=p.params_init,
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
 
       # Collect some stats
       x_t2, resized, f_t, r_t = tf.split(
@@ -1590,13 +1602,23 @@ class SRUCell(RNNCell):
 
       self._timestep = -1
 
+  @property
+  def output_size(self):
+    return self.params.num_output_nodes
+
+  @property
+  def hidden_size(self):
+    return self.params.num_hidden_nodes or self.params.num_output_nodes
+
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
   def zero_state(self, batch_size):
     p = self.params
-    zero_m = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
-    zero_c = tf.zeros((batch_size, p.num_output_nodes), dtype=p.dtype)
+    zero_m = tf.zeros((batch_size, self.output_size),
+                      dtype=py_utils.FPropDtype(p))
+    zero_c = tf.zeros((batch_size, self.hidden_size),
+                      dtype=py_utils.FPropDtype(p))
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def GetOutput(self, state):
@@ -1620,13 +1642,30 @@ class SRUCell(RNNCell):
     # Clip the cell states to reasonable value.
     c_t = py_utils.clip_by_value(c_t, -p.cell_value_cap, p.cell_value_cap)
 
-    c_t = self._ZoneOut(state0.c, c_t, inputs.padding, p.zo_prob, p.is_eval,
-                        p.random_seed)
-    h_t = self._ZoneOut(state0.m, h_t, inputs.padding, p.zo_prob, p.is_eval,
-                        p.random_seed)
-    c_t.set_shape(state0.c.shape)
-    h_t.set_shape(state0.m.shape)
-    return py_utils.NestedMap(m=h_t, c=c_t)
+    if p.num_hidden_nodes:
+      h_t = tf.matmul(h_t, theta.w_proj)
+
+    return self._ApplyZoneOut(state0, inputs, c_t, h_t)
+
+  def _ApplyZoneOut(self, state0, inputs, new_c, new_m):
+    """Apply ZoneOut and returns updated states."""
+    p = self.params
+    if p.zo_prob > 0.0:
+      assert not py_utils.use_tpu(), (
+          'SRUCell does not support zoneout on TPU yet.')
+      c_random_uniform = tf.random_uniform(tf.shape(new_c), seed=p.random_seed)
+      m_random_uniform = tf.random_uniform(tf.shape(new_m), seed=p.random_seed)
+    else:
+      c_random_uniform = None
+      m_random_uniform = None
+
+    new_c = self._ZoneOut(state0.c, new_c, inputs.padding, p.zo_prob, p.is_eval,
+                          c_random_uniform)
+    new_m = self._ZoneOut(state0.m, new_m, inputs.padding, p.zo_prob, p.is_eval,
+                          m_random_uniform)
+    new_c.set_shape(state0.c.shape)
+    new_m.set_shape(state0.m.shape)
+    return py_utils.NestedMap(m=new_m, c=new_c)
 
 
 class QRNNPoolingCell(RNNCell):
