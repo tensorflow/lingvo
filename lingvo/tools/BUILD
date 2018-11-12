@@ -4,6 +4,11 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+load(
+    "//lingvo:lingvo.bzl",
+    "lingvo_cc_binary",
+)
+
 py_binary(
     name = "keras2ckpt",
     srcs = ["keras2ckpt.py"],
@@ -74,4 +79,18 @@ py_binary(
         # Implicit tensorflow dependency.
         "//lingvo/core:asr_frontend",
     ],
+)
+
+lingvo_cc_binary(
+    name = "generate_proto_def",
+    srcs = ["generate_proto_def.cc"],
+    deps = [
+        # Implicit tensorflow proto dependency.
+    ],
+)
+
+sh_binary(
+    name = "generate_tf_dot_protos",
+    srcs = ["generate_tf_dot_protos.sh"],
+    data = [":generate_proto_def"],
 )

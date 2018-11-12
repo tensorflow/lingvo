@@ -172,3 +172,17 @@ lingvo_py_binary(
         "//lingvo/tasks/punctuator/tools:download_brown_corpus",  # build_cleaner: keep
     ],
 )
+
+genrule(
+    name = "tf_dot_protos",
+    srcs = [],
+    outs = ["tf_protos.tar"],
+    cmd =
+        "$(location //lingvo/tools:" +
+        "generate_tf_dot_protos) $(location " +
+        "//lingvo/tools:generate_proto_def) $(@D)",
+    tools = [
+        "//lingvo/tools:generate_proto_def",
+        "//lingvo/tools:generate_tf_dot_protos",
+    ],
+)
