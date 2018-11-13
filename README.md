@@ -114,9 +114,10 @@ It was used for the following research papers.
         Anjuli Kannan, Kai Chen, Diana Jaunzeikare, and Alvin Rajkomar.
         Interspeech 2018.
 
-    *   CaLcs: Continuously Approximating Longest Common Subsequence for
-        Sequence Level Optimization. Semih Yavuz, Chung-Cheng Chiu, Patrick
-        Nguyen, and Yonghui Wu. EMNLP 2018.
+    *   [CaLcs: Continuously Approximating Longest Common Subsequence for
+        Sequence Level Optimization] (http://aclweb.org/anthology/D18-1406).
+        Semih Yavuz, Chung-Cheng Chiu, Patrick Nguyen, and Yonghui Wu.
+        EMNLP 2018.
 
 *   Speech synthesis
 
