@@ -1272,7 +1272,7 @@ class LayerNormalizedLSTMCellLean(RNNCell):
 
   @base_layer.initializer
   def __init__(self, params):
-    """Initializes LayerNormalizedLSTMCellLean"""
+    """Initializes LayerNormalizedLSTMCellLean."""
     super(LayerNormalizedLSTMCellLean, self).__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
@@ -1280,7 +1280,7 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     assert p.output_nonlinearity
     assert p.zo_prob == 0.0
 
-    with tf.variable_scope(p.name) as scope:
+    with tf.variable_scope(p.name):
       # Define weights.
       wm_pc = py_utils.WeightParams(
           shape=[p.num_input_nodes + self.output_size, 4 * self.hidden_size],
@@ -1344,6 +1344,8 @@ class LayerNormalizedLSTMCellLean(RNNCell):
 
     Args:
       x: activation tensor, where the last dimension represents channels.
+      scale: multiples to the noramlized results
+      bias: additions to the noramlized results for biasing
 
     Returns:
       Layer normalized 'x', with the same shape as the input.
@@ -1790,3 +1792,224 @@ class QRNNPoolingCell(RNNCell):
     new_c.set_shape(state0.c.shape)
     new_m.set_shape(state0.m.shape)
     return py_utils.NestedMap(m=new_m, c=new_c)
+
+
+class GRUCell(RNNCell):
+  """ Gated Recurrent Unit cell.
+
+  implemented: layer normalization, gru_biasing, gru_cell cap,
+  not yet implemented: pruning, quantization, zone-out (enforced to 0.0 now)
+  reference: https://arxiv.org/pdf/1412.3555.pdf
+
+  theta:
+  - w_n: the parameter weight matrix for the input block.
+  - w_u: the parameter weight matrix for the update gate
+  - w_r: the parameter weight matrix for the reset gate
+  - b_n: the bias vector for the input block
+  - b_u: the bias vector for the update gate
+  - b_r: the bias vector for the reset gate
+
+  state:
+  - m: the GRU output. [batch, output_cell_nodes]
+  - c: the GRU cell state. [batch, hidden_cell_nodes]
+
+  inputs:
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  - reset_mask: optional 0/1 float input to support packed input training.
+    Shape [batch, 1]
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(GRUCell, cls).Params()
+    p.Define(
+        'num_hidden_nodes', 0, 'Number of projection hidden nodes '
+        '(see https://arxiv.org/abs/1603.08042). '
+        'Set to 0 to disable projection.')
+    p.Define(
+        'cell_value_cap', 10.0, 'GRU cell values are capped to be within '
+        ' [-cell_value_cap, +cell_value_cap] if the value is not None. '
+        'It can be a scalar, a scalar tensor or None. When set to None, '
+        'no capping is applied.')
+    p.Define('enable_gru_bias', False, 'Enable the GRU Cell bias.')
+    p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
+             'Initialization parameters for GRU Cell bias')
+    p.Define('zo_prob', 0.0,
+             'If > 0, applies ZoneOut regularization with the given prob.')
+    p.Define('apply_layer_norm', True, 'Apply layer norm to the variables')
+    p.Define(
+        'layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.'
+        'value is necessary only if apply_layer_norm is True')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    """Initializes GRUCell."""
+    super(GRUCell, self).__init__(params)
+    assert isinstance(params, hyperparams.Params)
+    p = self.params
+    assert isinstance(p.cell_value_cap,
+                      (int, float)) or p.cell_value_cap is None
+    assert p.zo_prob == 0.0
+
+    def CreateVarHelper(variable_name, shape_to_init, params_to_init):
+      """Utility function to initialize variables.
+
+      Args:
+        variable_name: the name of the variable
+        shape_to_init: shape of the variables to be initialized.
+        params_to_init: p.params_init, p.bias_init, or otherwise specified
+      returns: initialized variable with name "$variable_name"
+      """
+      return self.CreateVariable(
+          variable_name,
+          py_utils.WeightParams(
+              shape=shape_to_init,
+              init=params_to_init,
+              dtype=p.dtype,
+              collections=self._VariableCollections()), self.AddGlobalVN)
+
+    with tf.variable_scope(p.name):
+      # Define weights.
+      # Weight for block input
+      CreateVarHelper('w_n',
+                      [p.num_input_nodes + self.output_size, self.hidden_size],
+                      p.params_init)
+      # Weight for update gate
+      CreateVarHelper('w_u',
+                      [p.num_input_nodes + self.output_size, self.hidden_size],
+                      p.params_init)
+      # Weight for reset gate
+      CreateVarHelper('w_r',
+                      [p.num_input_nodes + self.output_size, self.output_size],
+                      p.params_init)
+
+      if p.num_hidden_nodes:
+        # Set up projection matrix
+        CreateVarHelper('w_proj', [self.hidden_size, self.output_size],
+                        p.params_init)
+        CreateVarHelper('b_proj', [self.output_size], p.bias_init)
+
+      if p.enable_gru_bias:
+        # Bias for the block input
+        CreateVarHelper('b_n', [self.hidden_size], p.bias_init)
+        # Bias for update gate
+        CreateVarHelper('b_u', [self.hidden_size], p.bias_init)
+        # Bias for the reset gate
+        CreateVarHelper('b_r', [self.output_size], p.bias_init)
+
+      if p.apply_layer_norm:
+        assert p.layer_norm_epsilon is not None
+        ln_unit = py_utils.WeightInit.Constant(0.0)
+        CreateVarHelper('bn_ln_scale', [self.hidden_size], ln_unit)
+        CreateVarHelper('bu_ln_scale', [self.hidden_size], ln_unit)
+        CreateVarHelper('br_ln_scale', [self.output_size], ln_unit)
+
+      self._timestep = -1
+
+  @property
+  def output_size(self):
+    return self.params.num_output_nodes
+
+  @property
+  def hidden_size(self):
+    return self.params.num_hidden_nodes or self.params.num_output_nodes
+
+  def batch_size(self, inputs):
+    return tf.shape(inputs.act[0])[0]
+
+  def zero_state(self, batch_size):
+    p = self.params
+    zero_m = tf.zeros((batch_size, self.output_size),
+                      dtype=py_utils.FPropDtype(p))
+    zero_c = tf.zeros((batch_size, self.hidden_size),
+                      dtype=py_utils.FPropDtype(p))
+    return py_utils.NestedMap(m=zero_m, c=zero_c)
+
+  def _ResetState(self, state, inputs):
+    state.m = inputs.reset_mask * state.m
+    state.c = inputs.reset_mask * state.c
+    return state
+
+  def GetOutput(self, state):
+    return state.m
+
+  def LayerNorm(self, x, scale):
+    """Applies layer normalization on the last dimension of 'x'.
+
+    Args:
+      x: activation tensor, where the last dimension represents channels.
+      scale: the scale tensor of the layer normalization
+
+    Returns:
+      Layer normalized 'x', with the same shape as the input.
+    """
+    p = self.params
+    mean = tf.reduce_mean(x, axis=[1], keepdims=True)
+    centered = x - mean
+    variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
+    normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+    return normed * scale
+
+  def FProp(self, theta, state0, inputs):
+    """Forward function.
+
+    GRU has coupled reset gate in the candidate actiavation function for output.
+    See equation 5 and above in https://arxiv.org/pdf/1412.3555.pdf.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      state0: The previous recurrent state. A `.NestedMap`.
+      inputs: The inputs to the cell. A `.NestedMap`.
+
+    Returns:
+      A tuple (state1, extras).
+      - state1: The next recurrent state. A `.NestedMap`.
+      - extras: Intermediate results to faciliate backprop. A `.NestedMap`.
+    """
+
+    p = self.params
+    assert isinstance(inputs.act, list)
+
+    # Update all gates
+    # Compute r_g. r_g has size [batch, output]
+    r_g = tf.matmul(tf.concat(inputs.act + [state0.m], 1), theta.w_r)
+    if p.apply_layer_norm:
+      r_g = self.LayerNorm(r_g, theta.br_ln_scale + 1.0)
+    if p.enable_gru_bias:
+      r_g = r_g + theta.b_r
+    r_g = tf.sigmoid(r_g)
+
+    # Compute u_g and n_g. Both have size [batch, hidden].
+    # u_g has size [batch, hidden]
+    u_g = tf.matmul(tf.concat(inputs.act + [state0.m], 1), theta.w_u)
+    # size of n_g is [batch, hidden]
+    n_g = tf.matmul(
+        tf.concat(inputs.act + [tf.multiply(r_g, state0.m)], 1), theta.w_n)
+    if p.apply_layer_norm:
+      u_g = self.LayerNorm(u_g, theta.bu_ln_scale + 1.0)
+      n_g = self.LayerNorm(n_g, theta.bn_ln_scale + 1.0)
+    if p.enable_gru_bias:  # Add biases to u_g and n_g if needed
+      u_g = u_g + theta.b_u
+      n_g = n_g + theta.b_n
+
+    u_g = tf.sigmoid(u_g)
+    n_g = tf.tanh(n_g)
+
+    new_c = (1.0 - u_g) * (state0.c) + u_g * n_g
+
+    # Clip the cell states to reasonable value.
+    if p.cell_value_cap is not None:
+      new_c = py_utils.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
+
+    # Apply non-linear output is necessary
+    new_m = new_c
+    # Apply projection matrix if necessary
+    if p.num_hidden_nodes:
+      new_m = tf.matmul(new_m, theta.w_proj) + theta.b_proj
+    # Apply padding.
+    new_m = py_utils.ApplyPadding(inputs.padding, new_m, state0.m)
+    new_c = py_utils.ApplyPadding(inputs.padding, new_c, state0.c)
+    return py_utils.NestedMap(m=new_m, c=new_c), py_utils.NestedMap()

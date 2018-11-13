@@ -38,6 +38,100 @@ _RANDOM_SEED = 98274
 
 class RNNCellTest(tf.test.TestCase):
 
+  def testGRUCell(self, inline=False, enable_gru_bias=True):
+    with self.session(
+        use_gpu=False, config=py_utils.SessionConfig(inline=inline)):
+      params = rnn_cell.GRUCell.Params()
+      params.name = 'gru_rnn'
+      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      params.bias_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      params.vn.global_vn = False  # do not set variational noise
+      params.vn.per_step_vn = False  # do not set step wise noise
+      params.num_input_nodes = 2
+      params.num_output_nodes = 2
+      params.num_hidden_nodes = 2
+      params.enable_gru_bias = enable_gru_bias
+      params.zo_prob = 0.0
+
+      gru = rnn_cell.GRUCell(params)
+
+      print('gru vars = ', gru.vars)
+      self.assertTrue('w_r' in gru.vars.w_r.name)
+      self.assertTrue('w_u' in gru.vars.w_u.name)
+      self.assertTrue('w_n' in gru.vars.w_n.name)
+
+      if enable_gru_bias:
+        self.assertTrue('b_n' in gru.vars.b_n.name)
+        self.assertTrue('b_r' in gru.vars.b_r.name)
+        self.assertTrue('b_u' in gru.vars.b_u.name)
+
+      self.assertEqual(
+          gru.theta.w_n.get_shape(),
+          tf.TensorShape([
+              params.num_input_nodes + params.num_output_nodes,
+              params.num_hidden_nodes
+          ]))
+      self.assertEqual(
+          gru.theta.w_u.get_shape(),
+          tf.TensorShape([
+              params.num_input_nodes + params.num_output_nodes,
+              params.num_hidden_nodes
+          ]))
+      self.assertEqual(
+          gru.theta.w_r.get_shape(),
+          tf.TensorShape([
+              params.num_input_nodes + params.num_output_nodes,
+              params.num_output_nodes
+          ]))
+
+      if enable_gru_bias:
+        self.assertEqual(gru.theta.b_n.get_shape(),
+                         tf.TensorShape([params.num_hidden_nodes]))
+        self.assertEqual(gru.theta.b_u.get_shape(),
+                         tf.TensorShape([params.num_hidden_nodes]))
+        self.assertEqual(gru.theta.b_r.get_shape(),
+                         tf.TensorShape([params.num_output_nodes]))
+
+      # Start feeding in inputs.
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      inputs = py_utils.NestedMap(
+          act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],
+          padding=tf.zeros([3, 1]))
+      c_values = tf.constant(np.random.uniform(size=(3, 2)), tf.float32)
+      m_values = tf.constant(np.random.uniform(size=(3, 2)), tf.float32)
+      state0 = py_utils.NestedMap(c=c_values, m=m_values)
+      state1, _ = gru.FPropDefaultTheta(state0, inputs)
+
+      # Initialize all the variables, and then run one step.
+      tf.global_variables_initializer().run()
+
+      variable_count = 11 if enable_gru_bias else 8
+      wts = tf.get_collection('GRUCell_vars')
+      self.assertEqual(variable_count, len(wts))
+
+      # pyformat: disable
+      if enable_gru_bias:
+        m_expected = [
+            [-1.206088, 2.558667],
+            [-1.024555, 2.359131],
+            [-1.006608, 2.385566]]
+        c_expected = [
+            [0.726844, 0.932083],
+            [0.537847, 0.932127],
+            [0.536803, 0.967041]]
+      else:
+        m_expected = [
+            [-1.085402, 2.161964],
+            [-0.933972, 1.995606],
+            [-0.892969, 2.059967]]
+        c_expected = [
+            [0.500292, 0.732436],
+            [0.34267, 0.732542],
+            [0.341799, 0.815305]]
+
+      self.assertAllClose(m_expected, state1.m.eval())
+      self.assertAllClose(c_expected, state1.c.eval())
+
   def _testLSTMSimpleHelper(self,
                             inline=False,
                             couple_input_forget_gates=False,
@@ -95,13 +189,13 @@ class RNNCellTest(tf.test.TestCase):
       if couple_input_forget_gates:
         if enable_lstm_bias:
           m_expected = [
-              [ 0.342635,  0.182102],
-              [ 0.140832,  0.210234],
-              [ 0.224034,  0.155077]]
+              [0.342635, 0.182102],
+              [0.140832, 0.210234],
+              [0.224034, 0.155077]]
           c_expected = [
-              [ 0.499417,  0.701774],
-              [ 0.278458,  0.697437],
-              [ 0.51618 ,  0.964456]]
+              [0.499417, 0.701774],
+              [0.278458, 0.697437],
+              [0.51618, 0.964456]]
         else:
           m_expected = [
               [0.22088, 0.244225],
@@ -114,13 +208,13 @@ class RNNCellTest(tf.test.TestCase):
       else:
         if enable_lstm_bias:
           m_expected = [
-              [ 0.007753,  0.66843 ],
-              [-0.029904,  0.485617],
-              [-0.026663,  0.654127]]
+              [0.007753, 0.66843],
+              [-0.029904, 0.485617],
+              [-0.026663, 0.654127]]
           c_expected = [
-              [ 0.033096,  1.013467],
-              [-0.086807,  0.748031],
-              [-0.08087 ,  1.04254 ]]
+              [0.033096, 1.013467],
+              [-0.086807, 0.748031],
+              [-0.08087, 1.04254]]
         else:
           m_expected = [
               [0.095727, 0.476658],
@@ -237,22 +331,22 @@ class RNNCellTest(tf.test.TestCase):
       # pyformat: disable
       if enable_lstm_bias:
         m_expected = [
-            [ 0.039524,  0.477746],
-            [ 0.006711,  0.447337],
-            [ 0.013737,  0.550308]]
+            [0.039524, 0.477746],
+            [0.006711, 0.447337],
+            [0.013737, 0.550308]]
         c_expected = [
-            [ 0.148034,  0.783791],
-            [ 0.019434,  0.714024],
-            [ 0.041597,  0.982957]]
+            [0.148034, 0.783791],
+            [0.019434, 0.714024],
+            [0.041597, 0.982957]]
       else:
         m_expected = [
-            [ 0.092073,  0.459963],
-            [ 0.048523,  0.182147],
-            [ 0.038683,  0.372883]]
+            [0.092073, 0.459963],
+            [0.048523, 0.182147],
+            [0.038683, 0.372883]]
         c_expected = [
-            [ 0.232411,  0.792142],
-            [ 0.090428,  0.354446],
-            [ 0.074322,  0.660205]]
+            [0.232411, 0.792142],
+            [0.090428, 0.354446],
+            [0.074322, 0.660205]]
 
       # pyformat: enable
       self.assertAllClose(m_expected, state1.m.eval())
