@@ -1210,11 +1210,21 @@ class PassiveAsymQDomain(QDomain):
     def Ema(variable, value):
       return (1.0 - p.ema_decay) * (variable - value)
 
+    # Note that small floating point issues can cause ranges that naturally
+    # begin or end at zero to move slightly past, causing hard failures
+    # downstream (checks that all ranges straddle zero). We therefore repeat
+    # the straddling constraint here.
     return [
-        tf.assign_sub(min_var,
-                      tf.where(count > 0.0, Ema(min_var, min_value), 0.0)),
-        tf.assign_sub(max_var,
-                      tf.where(count > 0.0, Ema(max_var, max_value), 0.0))
+        tf.assign(
+            min_var,
+            tf.minimum(
+                0.,
+                min_var - tf.where(count > 0., Ema(min_var, min_value), 0.))),
+        tf.assign(
+            max_var,
+            tf.maximum(
+                0.,
+                max_var - tf.where(count > 0., Ema(max_var, max_value), 0.))),
     ]
 
 
