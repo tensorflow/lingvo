@@ -1267,7 +1267,12 @@ class ProjectionLayerTest(tf.test.TestCase):
                            affine_last=False,
                            input_dim=3,
                            output_dim=2,
-                           quantized=False):
+                           quantized=False,
+                           has_bias=False,
+                           bn_fold_weights=None,
+                           expect_bn_fold_weights=None,
+                           is_eval=False,
+                           layer_callback=None):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
@@ -1277,19 +1282,22 @@ class ProjectionLayerTest(tf.test.TestCase):
       params.name = 'proj'
       params.input_dim = input_dim
       params.output_dim = output_dim
-      # Disable both activation and batch_norm.
+      params.has_bias = has_bias
+      if has_bias:
+        params.bias_init = 5.0
       params.activation = activation
       params.batch_norm = batch_norm
       params.weight_norm = weight_norm
       params.affine_last = affine_last
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.bn_fold_weights = bn_fold_weights
       if quantized:
         cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
             clip_end_step=1, quant_start_step=1)
         qdomain_default = quant_utils.SymetricScheduledClipQDomain.Params().Set(
             cc_schedule=cc_schedule.Copy())
         params.qdomain.default = qdomain_default.Copy()
-      params.is_eval = False
+      params.is_eval = is_eval
 
       in_padding = tf.zeros([2, 4, 1], dtype=tf.float32)
       inputs = tf.constant(
@@ -1299,6 +1307,11 @@ class ProjectionLayerTest(tf.test.TestCase):
         inputs = tf.reshape(inputs, [-1, 3])
 
       proj_layer = layers.ProjectionLayer(params)
+      if layer_callback:
+        layer_callback(proj_layer)
+      if expect_bn_fold_weights is not None:
+        self.assertEqual(expect_bn_fold_weights, proj_layer._is_bn_folded)
+
       output = proj_layer.FPropDefaultTheta(inputs, in_padding)
       tf.global_variables_initializer().run()
       if quantized:
@@ -1321,12 +1334,76 @@ class ProjectionLayerTest(tf.test.TestCase):
     # pyformat: enable
     # pylint: enable=bad-whitespace
     for reshape_to_2d in (False, True):
-      actual = self._evalProjectionLayer(reshape_to_2d=reshape_to_2d)
+      actual = self._evalProjectionLayer(
+          reshape_to_2d=reshape_to_2d, expect_bn_fold_weights=False)
       if reshape_to_2d:
         expected_output = np.reshape(np.array(expected_output), (-1, 2))
       tf.logging.info('expected = %s', expected_output)
       tf.logging.info('actual = %s', np.array_repr(actual))
       self.assertAllClose(expected_output, actual)
+
+  def testProjectionLayerFPropWithBias(self):
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    expected_output = [
+        [[ 4.98987579,  5.03493643],
+         [ 5.01192808,  5.0917592 ],
+         [ 5.01156807,  4.99741936],
+         [ 4.96849394,  5.00982761]],
+        [[ 5.02098131,  4.98014927],
+         [ 5.00650883,  4.87676954],
+         [ 4.98995209,  4.91770315],
+         [ 4.95948696,  5.138731  ]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    # Tested without batch_norm because batch_norm will mostly cancel out the
+    # affect of bias.
+    actual = self._evalProjectionLayer(
+        has_bias=True,
+        batch_norm=False,
+        expect_bn_fold_weights=False,
+        activation='RELU6')
+    tf.logging.info('expected = %s', expected_output)
+    tf.logging.info('actual = %s', np.array_repr(actual))
+    self.assertAllClose(expected_output, actual)
+
+  def testProjectionLayerExplicitFolding(self):
+    unfolded = self._evalProjectionLayer(
+        bn_fold_weights=False, expect_bn_fold_weights=False)
+    folded = self._evalProjectionLayer(
+        bn_fold_weights=True, expect_bn_fold_weights=True)
+    tf.logging.info('unfolded = %s', np.array_repr(unfolded))
+    tf.logging.info('folded = %s', np.array_repr(folded))
+    self.assertAllClose(folded, unfolded)
+
+  def testProjectionLayerExplicitFoldingEval(self):
+    unfolded = self._evalProjectionLayer(
+        bn_fold_weights=False, expect_bn_fold_weights=False, is_eval=True)
+    folded = self._evalProjectionLayer(
+        bn_fold_weights=True, expect_bn_fold_weights=True, is_eval=True)
+    tf.logging.info('unfolded = %s', np.array_repr(unfolded))
+    tf.logging.info('folded = %s', np.array_repr(folded))
+    self.assertAllClose(folded, unfolded)
+
+  def testProjectionLayerExplicitFoldingNoBatchNorm(self):
+    unfolded = self._evalProjectionLayer(
+        batch_norm=False, bn_fold_weights=False, expect_bn_fold_weights=False)
+    # Note that weight folding will report as disabled because batch norm is
+    # disabled.
+    folded = self._evalProjectionLayer(
+        batch_norm=False, bn_fold_weights=True, expect_bn_fold_weights=False)
+    tf.logging.info('unfolded = %s', np.array_repr(unfolded))
+    tf.logging.info('folded = %s', np.array_repr(folded))
+    self.assertAllClose(folded, unfolded)
+
+  def testProjectionLayerExplicitFoldingWithWeightNorm(self):
+    unfolded = self._evalProjectionLayer(
+        weight_norm=True, bn_fold_weights=False, expect_bn_fold_weights=False)
+    folded = self._evalProjectionLayer(
+        weight_norm=True, bn_fold_weights=True, expect_bn_fold_weights=True)
+    tf.logging.info('unfolded = %s', np.array_repr(unfolded))
+    tf.logging.info('folded = %s', np.array_repr(folded))
+    self.assertAllClose(folded, unfolded)
 
   def testProjectionLayerWeightNorm(self):
     # pylint: disable=bad-whitespace
@@ -1411,30 +1488,122 @@ class ProjectionLayerTest(tf.test.TestCase):
       for sg, ng in zip(sym_grads, num_grads):
         self.assertAllClose(sg, ng, rtol=1e-06, atol=1e-06)
 
-  def testProjectionLayerFPropQuantized(self):
+  def testProjectionLayerFPropQuantizedWithUnfusedActivation(self):
     # pylint: disable=bad-whitespace
     # pyformat: disable
     expected_output = [
-        [[-0.0546875,  0.3203125],
-         [ 0.359375 ,  0.7421875],
-         [ 0.359375 , -0.109375 ],
-         [-0.6015625,  0.0703125]],
-        [[ 0.5234375, -0.28125  ],
-         [ 0.359375 , -0.9140625],
-         [-0.0546875, -0.7578125],
-         [-0.71875  ,  0.921875 ]]]
+        [[-0.1328125,  0.3125   ],
+         [ 0.421875 ,  0.734375 ],
+         [ 0.421875 , -0.109375 ],
+         [-0.6015625,  0.0078125]],
+        [[ 0.6015625, -0.3046875],
+         [ 0.3046875, -0.7578125],
+         [-0.125    , -0.7578125],
+         [-0.734375 ,  0.7578125]]]
     # pyformat: enable
     # pylint: enable=bad-whitespace
-    for reshape_to_2d in (False, True):
-      # Note: Generally, quantized projections prefer a TANH activation.
-      # We only test that here.
-      actual = self._evalProjectionLayer(
-          reshape_to_2d=reshape_to_2d, activation='TANH', quantized=True)
-      if reshape_to_2d:
-        expected_output = np.reshape(np.array(expected_output), (-1, 2))
-      tf.logging.info('expected = %s', expected_output)
-      tf.logging.info('actual = %s', np.array_repr(actual))
-      self.assertAllClose(expected_output, actual)
+    def CheckLayer(proj_layer):
+      # Should not error because this qtensor is defined.
+      proj_layer.QTensor('activation', tf.convert_to_tensor(0.))
+      # The intermediate tensor should be defined.
+      proj_layer.QTensor('affine_matmul', tf.convert_to_tensor(0.))
+
+    # When quantization enabled, batchnorm folding should auto enable.
+    # TANH is unfused.
+    actual = self._evalProjectionLayer(
+        activation='TANH',
+        quantized=True,
+        expect_bn_fold_weights=True,
+        layer_callback=CheckLayer)
+    tf.logging.info('expected = %s', expected_output)
+    tf.logging.info('actual = %s', np.array_repr(actual))
+    self.assertAllClose(expected_output, actual)
+
+  def testProjectionLayerFPropQuantizedWithFusedActivation(self):
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    expected_output = [
+        [[ 0.       ,  0.3203125],
+         [ 0.453125 ,  0.9375   ],
+         [ 0.4453125,  0.       ],
+         [ 0.       ,  0.0078125]],
+        [[ 0.6953125,  0.       ],
+         [ 0.3125   ,  0.       ],
+         [ 0.       ,  0.       ],
+         [ 0.       ,  0.9921875]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    def CheckLayer(proj_layer):
+      # Should not error because this qtensor is defined.
+      proj_layer.QTensor('activation', tf.convert_to_tensor(0.))
+      with self.assertRaises(AssertionError):
+        # The intermediate tensor should *not* be quantized.
+        proj_layer.QTensor('affine_matmul', tf.convert_to_tensor(0.))
+
+    # When quantization enabled, batchnorm folding should auto enable.
+    # RELU6 is fused.
+    actual = self._evalProjectionLayer(
+        activation='RELU6',
+        quantized=True,
+        expect_bn_fold_weights=True,
+        layer_callback=CheckLayer)
+    tf.logging.info('expected = %s', expected_output)
+    tf.logging.info('actual = %s', np.array_repr(actual))
+    self.assertAllClose(expected_output, actual)
+
+  def testProjectionLayerFPropQuantizedOnlyMatmul(self):
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    expected_output = [
+        [[-0.0078125,  0.0390625],
+         [ 0.0078125,  0.09375  ],
+         [ 0.0078125,  0.       ],
+         [-0.03125  ,  0.015625 ]],
+        [[ 0.015625 , -0.015625 ],
+         [ 0.0078125, -0.125    ],
+         [-0.0078125, -0.078125 ],
+         [-0.0390625,  0.1484375]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    def CheckLayer(proj_layer):
+      # Should not error because this qtensor is defined.
+      proj_layer.QTensor('affine_matmul', tf.convert_to_tensor(0.))
+
+    actual = self._evalProjectionLayer(
+        activation='NONE',
+        quantized=True,
+        batch_norm=False,
+        expect_bn_fold_weights=False,
+        layer_callback=CheckLayer)
+    tf.logging.info('expected = %s', expected_output)
+    tf.logging.info('actual = %s', np.array_repr(actual))
+    self.assertAllClose(expected_output, actual)
+
+  def testProjectionLayerFPropQuantizedOnlyMatmulBias(self):
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    # Saturated because of the out of range bias.
+    expected_output = [[[0.9921875, 0.9921875], [0.9921875, 0.9921875],
+                        [0.9921875, 0.9921875], [0.9921875, 0.9921875]],
+                       [[0.9921875, 0.9921875], [0.9921875, 0.9921875],
+                        [0.9921875, 0.9921875], [0.9921875, 0.9921875]]]
+
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    def CheckLayer(proj_layer):
+      # Should not error because this qtensor is defined.
+      proj_layer.QTensor('affine_matmul', tf.convert_to_tensor(0.))
+
+    actual = self._evalProjectionLayer(
+        activation='NONE',
+        quantized=True,
+        has_bias=True,
+        batch_norm=False,
+        expect_bn_fold_weights=False,
+        layer_callback=CheckLayer)
+    tf.logging.info('expected = %s', expected_output)
+    tf.logging.info('actual = %s', np.array_repr(actual))
+    self.assertAllClose(expected_output, actual)
 
   def testFCLayerConstruction(self):
     with self.session(use_gpu=True):

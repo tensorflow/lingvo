@@ -50,6 +50,14 @@ _ACTIVATIONS_QUANT = {
     'TANH': 'qtanh'
 }
 
+# A subset of activation functions are supported by TFLite as fused activation
+# functions with a preceding matmul or conv. If this is the case, then they
+# require special treatment for quantization.
+_TFLITE_FUSED_ACTIVATION_NAMES = (
+    'RELU',
+    'RELU6',
+)
+
 LOG_SCALE_CLAMP_BOUND = 20.0
 
 
@@ -936,6 +944,13 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'weight_norm', False,
         'If true, apply weight normalization to weights as proposed by'
         ' Salimans and Kingma, 2016: https://arxiv.org/abs/1602.07868')
+    p.Define(
+        'bn_fold_weights', None,
+        'Fold the batch norm parameters into the convolution weights at '
+        'eval/inference time as per https://arxiv.org/pdf/1712.05877.pdf. '
+        'Defaults to None which means that it will be disabled by default '
+        'and enabled when quantized training is enabled. Not compatible with '
+        'affine_last=True')
     return p
 
   @base_layer.initializer
@@ -946,6 +961,14 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     assert p.input_dim > 0
     assert p.output_dim > 0
     assert p.activation == 'NONE' or p.activation in _ACTIVATIONS
+    if p.batch_norm and p.has_bias:
+      tf.logging.warning(
+          'Projection layer enables both batch_norm and has_bias. '
+          'This is generally redundant/wasteful and may introduce '
+          'accuracy problems in some inference scenarios.')
+    if self._is_bn_folded:
+      assert not p.affine_last, (
+          'Folded batchnorm is not compatible with affine_last')
     w_pc = py_utils.WeightParams(
         shape=[p.input_dim, p.output_dim],
         init=p.params_init,
@@ -969,7 +992,21 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         self.CreateVariable('b', b_pc)
       if p.weight_norm:
         self.CreateVariable('g', g_pc)
-    self.TrackQTensor('activation', 'affine_bias', 'affine_matmul')
+
+    # Determine quantization needs based on whether fusing activation
+    # or not.
+    self._pre_activation_qt_name = None
+    self._output_qt_name = ('activation'
+                            if p.activation != 'NONE' else 'affine_matmul')
+    if (p.activation != 'NONE' and
+        p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES):
+      # Not a fused activation function.
+      # Need a qtensor to track the pre-activation tensor. The name is
+      # compatible with older checkpoints.
+      self._pre_activation_qt_name = 'affine_matmul'
+    self.TrackQTensor(self._output_qt_name)
+    if self._pre_activation_qt_name:
+      self.TrackQTensor(self._pre_activation_qt_name)
 
     if p.batch_norm:
       bn_params = BatchNormLayer.Params().Set(
@@ -993,50 +1030,138 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       Output after applying projection, and optionally batch normalization and
       relu non-linearity.
     """
-    if paddings is None:
-      paddings = tf.zeros(
-          tf.concat([py_utils.GetShape(inputs)[:-1], [1]], axis=0),
-          dtype=inputs.dtype)
     p = self.params
     with tf.name_scope(p.name):
+      if paddings is None:
+        paddings = tf.zeros(
+            tf.concat([py_utils.GetShape(inputs)[:-1], [1]], axis=0),
+            dtype=inputs.dtype)
+      w, b = self._GetWeights(theta, inputs, paddings)
+      w = self.QWeight(w)
+
       if p.affine_last:
+        # Reversed computation. Does not handle folding.
         out = inputs
+        if p.batch_norm:
+          out = self.bn.FProp(theta.bn, out, paddings)
+        if p.activation != 'NONE':
+          if not p.is_inference:
+            out = py_utils.CheckNumerics(out)
+          out = _ACTIVATIONS[p.activation](out)
+        out = self._ApplyProjectionKernel(w, b, out, with_activation=False)
       else:
-        out = self._ApplyAffineTransformation(theta, inputs)
-      if p.batch_norm:
-        out = self.bn.FProp(theta.bn, out, paddings)
-      if p.activation != 'NONE':
-        out = py_utils.CheckNumerics(out)
-        # Note that we learn the quant range by specifying the 'qt' parameter vs
-        # falling back to the activation function's natural range. This is
-        # because, as a potential output, the actual quantization range will
-        # likely be specified to comply with another related range (i.e. for
-        # downstream concat).
-        out = self.fns[_ACTIVATIONS_QUANT[p.activation]](out, qt='activation')
-      if p.affine_last:
-        out = self._ApplyAffineTransformation(theta, out)
-      # lastly, zeroing out padded states.
+        # Normal ordered projection.
+        if self._is_bn_folded or not p.batch_norm:
+          # Everything folded together. This is the only variant that supports
+          # quantization.
+          out = self._ApplyProjectionKernel(w, b, inputs, quant=True)
+        else:
+          # Projection kernel(no activation fn) -> BN -> Activation fn.
+          out = self._ApplyProjectionKernel(w, b, inputs, with_activation=False)
+          if p.batch_norm:
+            out = self.bn.FProp(theta.bn, out, paddings)
+          if p.activation != 'NONE':
+            if not p.is_inference:
+              out = py_utils.CheckNumerics(out)
+            out = _ACTIVATIONS[p.activation](out)
       return py_utils.ApplyPadding(self.QRPadding(paddings), out)
 
-  def _ApplyAffineTransformation(self, theta, inputs):
+  @property
+  def _is_bn_folded(self):
+    """Whether batchnorm folded weights are effectively enabled."""
+    p = self.params
+    if not p.batch_norm:
+      return False
+    return (p.bn_fold_weights or
+            (p.bn_fold_weights is None and p.qdomain.default is not None))
+
+  def _GetWeights(self, theta, inputs, paddings):
+    """Gets the weights for the computation.
+
+    Weights will always have weight_norm applied and may have batch_norm
+    folded if enabled.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: Inputs (needed for batchnorm folding).
+      paddings: Paddings (needed for batchnorm folding).
+
+    Returns:
+      Tuple of (w, b) to use for the forward pass. b may be None if bias is
+      disabled.
+    """
     p = self.params
     w = theta.w
-    fns = self.fns
+    b = theta.b if p.has_bias else None
     if p.weight_norm:
       w = tf.reshape((theta.g + 1.0) * tf.nn.l2_normalize(w, [0]),
                      [p.input_dim, p.output_dim])
-    # Apply quantization after weight_norm. At inference time, weight
-    # normalization reduces to a constant, and therefore, we want to make sure
-    # to apply clipping after.
-    out = fns.qmatmul(
-        tf.reshape(inputs, [-1, p.input_dim]),
-        fns.qweight(w),
-        qt='affine_matmul')
+    if not self._is_bn_folded:
+      return w, b
+
+    # If batch norm is fused with weights, then compute the weights as from
+    # figure C.8 of https://arxiv.org/pdf/1712.05877.pdf for training and
+    # figure C.6 for eval.
+    if p.is_eval:
+      # Gets current moments without updating.
+      mean, variance, beta, gamma = self.bn.GetCurrentMoments(theta.bn)
+    else:
+      # Updates moments based on a trial run of the kernel (without activation
+      # function).
+      raw_output = self._ApplyProjectionKernel(
+          w, b, inputs, with_activation=False)
+      mean, variance, beta, gamma = self.bn.ComputeAndUpdateMoments(
+          theta.bn, raw_output, paddings)
+
+    # Fold weights and bias.
+    sigma_recip = tf.rsqrt(variance + self.bn.epsilon)
+    scale_correction = gamma * sigma_recip
+    w = w * scale_correction
+    b = beta - (gamma * mean * sigma_recip)
+    return w, b
+
+  def _ApplyProjectionKernel(self,
+                             w,
+                             b,
+                             inputs,
+                             with_activation=True,
+                             quant=False,
+                             bn=False):
+    """Applies matmul/bias/activation in one step.
+
+    Note that it is important that these three ops be computed in this way as
+    downstream inference engines (esp. for quantized inference) can recognize
+    and fuse them. For floating point, this is an optimization, but for
+    quantization, it is required.
+
+    Args:
+      w: Weight matrix.
+      b: Bias vector (or None).
+      inputs: FProp inputs.
+      with_activation: Whether to also compute the activation function.
+      quant: Whether to apply quantization.
+      bn: Apply batchnorm.
+
+    Returns:
+      Output tensor reshaped.
+    """
+    p = self.params
+    out = py_utils.Matmul(tf.reshape(inputs, [-1, p.input_dim]), w)
+    if b is not None:
+      out += b  # NOTE: Bias on matmul is never quantized.
+    if with_activation and p.activation != 'NONE':
+      if self._pre_activation_qt_name:
+        # Track quantization for unfused activation function.
+        out = self.QTensor(self._pre_activation_qt_name, out)
+      if not p.is_inference:
+        out = py_utils.CheckNumerics(out)
+      out = _ACTIVATIONS[p.activation](out)
+    if quant:
+      out = self.QTensor(self._output_qt_name, out)
     out = tf.reshape(
         out, tf.concat([py_utils.GetShape(inputs)[:-1], [p.output_dim]],
                        axis=0))
-    if p.has_bias:
-      out = fns.qadd(out, fns.qweight(theta.b), qt='affine_bias')
     return out
 
 
