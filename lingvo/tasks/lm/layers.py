@@ -326,7 +326,8 @@ class RnnLmNoEmbedding(BaseLanguageModel):
       If `labels` is not None, returns (xent_output, state1), where
       `xent_output` is a `.NestedMap` as defined by `SoftmaxLayer`'s return
       value and `state1` is the next recurrent state. Otherwise,
-      `xent_output` only contains the softmax logits.
+      `xent_output` contains the softmax logits, probabilities (.probs) and
+      log-probabilities (.log_probs).
     """
     inputs = py_utils.HasRank(inputs, 3)
     seqlen, batch, _ = tf.unstack(tf.shape(inputs), num=3)
