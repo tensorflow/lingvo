@@ -33,6 +33,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python-tk \
         rsync \
         software-properties-common \
+        sox \
         unzip \
         vim \
         && \
