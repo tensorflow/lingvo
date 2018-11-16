@@ -213,6 +213,7 @@ class BaseTask(base_layer.BaseLayer):
           self.CreateChild('grad_norm_tracker', tp.grad_norm_tracker)
 
       self.CreateChild('lr_schedule', tp.lr_schedule)
+      self.CreateChild('optimizer', tp.optimizer)
     self._UpdateVnConfig()
 
   def ComputePredictions(self, theta, input_batch):
@@ -519,8 +520,7 @@ class BaseTask(base_layer.BaseLayer):
     summary_utils.scalar(p, 'lr_schedule', lrs)
     lr = tp.learning_rate * lrs
 
-    opt = tp.optimizer.cls(tp.optimizer.Copy().Set(add_summary=p.add_summary))
-    var_update_op = opt.Apply(lr, self._var_grads)
+    var_update_op = self.optimizer.Apply(lr, self._var_grads)
 
     increment_global_step_ops = []
     with tf.colocate_with(self._shared_global_step):

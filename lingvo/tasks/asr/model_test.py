@@ -307,6 +307,7 @@ class AsrModelTest(tf.test.TestCase):
       lps = base_layer.RecursiveFindLayerParams(mdl.params)
       l_names = sorted([p.cls.__name__ for p in lps])
       expected_layers = sorted([
+          'Adam',
           'AdditiveAttention',
           'AsciiTokenizer',
           'AsrDecoder',
