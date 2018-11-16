@@ -1177,7 +1177,13 @@ class FCLayer(ProjectionLayer):
 
 
 class PoolingLayer(quant_utils.QuantizableLayer):
-  """Pooling layer, by default performs max-pooling."""
+  """Pooling layer, by default performs max-pooling.
+
+  Quantization notes: Unlike the common pattern, the pooling layer inputs
+  and output must be quantized to the same range, so it tracks both (vs
+  just the output). The preceding layer must have its output quantization
+  disabled.
+  """
 
   @classmethod
   def Params(cls):
@@ -1258,6 +1264,7 @@ class PoolingLayer(quant_utils.QuantizableLayer):
         out_padding = _ComputeOutputPadding(paddings, p.window_stride[0])
       else:
         out_padding = None
+      inputs = self.QTensor('output', inputs)
       out = tf.nn.pool(
           inputs,
           window,
