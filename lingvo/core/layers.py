@@ -1384,7 +1384,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
              'Depth of the input. I.e., the number of classes.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
     p.Define(
-        'use_matmul', True, 'If True, use a matmul to implement '
+        'use_matmul', False, 'If True, use a matmul to implement '
         'the embedding lookup. Depending on vocab_size and #ids, '
         'e.g., when vocab_size is small, use_matmul can be more '
         'efficient. On the other hand, use_matmul creates a 0/1 '
@@ -1396,7 +1396,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         'accomodates them). Can be "loop", "matmul" or "gather". If None, '
         'defaults to "matmul" if use_matmul or "loop" if false.')
     p.Define(
-        'use_3d_weight_tensor', True, 'If True, and use_matmul is False,'
+        'use_3d_weight_tensor', False, 'If True, and use_matmul is False,'
         'in TPU compatibility mode, we reshape the normal 2D weight'
         'tensor to [num_rows, embed_dim] to be '
         '[num_rows, embed_dim // 128, 128].')
@@ -1414,7 +1414,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     valid_fprop_modes = ['loop', 'matmul', 'gather']
     self._fprop_mode = p.fprop_mode
     if not self._fprop_mode:
-      self._fprop_mode = 'matmul' if p.use_matmul else 'loop'
+      self._fprop_mode = 'matmul' if p.use_matmul else 'gather'
     assert self._fprop_mode in valid_fprop_modes, (
         'fprop_mode must be one of %r' % valid_fprop_modes)
 

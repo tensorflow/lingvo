@@ -1795,7 +1795,7 @@ class EmbeddingLayerTest(tf.test.TestCase):
       emb_layer = layers.SimpleEmbeddingLayer(params)
       expected_fprop_mode = fprop_mode
       if expected_fprop_mode is None:
-        expected_fprop_mode = 'matmul' if use_matmul else 'loop'
+        expected_fprop_mode = 'matmul' if use_matmul else 'gather'
       self.assertEqual(emb_layer._fprop_mode, expected_fprop_mode)
 
       emb_matrix = emb_layer.vars.wm
@@ -1899,9 +1899,17 @@ class EmbeddingLayerTest(tf.test.TestCase):
       embs_sum = tf.reduce_sum(embs)
       emb_weight = emb_layer.vars.wm
       emb_grad, = tf.gradients(ys=[embs_sum], xs=[emb_weight])
-    with self.session(use_gpu=True, graph=g):
+    with self.session(use_gpu=True, graph=g) as sess:
       tf.global_variables_initializer().run()
-      emb_grad_val = emb_grad.eval()
+      emb_grad_val = sess.run(emb_grad)
+
+    if not use_matmul:
+      # tf.embedding_lookup's gradient is a sparse representation.
+      # For testing, we convert it to a dense representation.
+      o_grad_matrix = np.zeros((8000, 128))
+      for i in range(emb_grad_val.indices.shape[0]):
+        o_grad_matrix[emb_grad_val.indices[i], :] += emb_grad_val.values[i, :]
+      emb_grad_val = o_grad_matrix
 
     expected_emb_grad = np.zeros(shape=(8000, 128))
     expected_emb_grad[89, :] = 0.8
@@ -1967,14 +1975,7 @@ class EmbeddingLayerTest(tf.test.TestCase):
           [simple_outs, simple_grad, original_outs, original_grad],
           feed_dict={ids: ids_val})
       self.assertAllClose(s_outs, o_outs)
-
-      # tf.embedding_lookup's gradient is a sparse representation.
-      # For testing, we convert it to a dense representation.
-      self.assertAllEqual(ids_val, o_grad.indices)
-      o_grad_matrix = np.zeros((classes, dims))
-      for i in range(o_grad.indices.shape[0]):
-        o_grad_matrix[o_grad.indices[i], :] += o_grad.values[i, :]
-      self.assertAllClose(s_grad, o_grad_matrix)
+      self.assertAllClose(s_grad, o_grad)
 
   def testPositionalEmbeddingLayer(self):
     with self.session(use_gpu=False) as sess:
