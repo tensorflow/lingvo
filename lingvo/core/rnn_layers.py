@@ -77,6 +77,25 @@ def _GeneratePackedInputResetMask(segment_id, is_reverse=False):
   return reset_mask
 
 
+class IdentitySeqLayer(base_layer.BaseLayer):
+  """A no-op sequence layer."""
+
+  @classmethod
+  def Params(cls):
+    p = super(IdentitySeqLayer, cls).Params()
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(IdentitySeqLayer, self).__init__(params)
+
+  def zero_state(self, batch_size):
+    return py_utils.NestedMap()
+
+  def FPropFullSequence(self, theta, inputs, paddings):
+    return inputs
+
+
 class RNN(base_layer.BaseLayer):
   """Statically unrolled RNN."""
 
@@ -198,12 +217,6 @@ class StackedRNNBase(base_layer.BaseLayer):
         cell_tpls.append(last)
     for cell_tpl in cell_tpls:
       cell_tpl.reset_cell_state = p.packed_input
-
-    for i in range(p.num_layers - 1):
-      # Because one layer's output needs to be fed into the next layer's
-      # input, hence, we have this assertion. We can relax it later by
-      # allowing more parameterization of the layers.
-      assert cell_tpls[i].num_output_nodes == cell_tpls[i + 1].num_input_nodes
     return cell_tpls
 
 
@@ -225,8 +238,15 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
         params.cell = cell_tpl.Copy()
         params.cell.name = '%s_%d' % (p.name, i)
         rnn_params.append(params)
-    self.CreateChildren('rnn', rnn_params)
 
+    for i in range(len(rnn_params) - 1):
+      # Because one layer's output needs to be fed into the next layer's
+      # input, hence, we have this assertion. We can relax it later by
+      # allowing more parameterization of the layers.
+      assert (rnn_params[i].cell.num_output_nodes == rnn_params[i + 1].cell
+              .num_input_nodes)
+
+    self.CreateChildren('rnn', rnn_params)
     self.CreateChild('dropout', p.dropout)
     self.TrackQTensor('residual')
 
@@ -267,6 +287,61 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
         ys = self.fns.qadd(ys, xs, qt='residual')
       xs = ys
     return xs, state1
+
+  def FPropFullSequence(self, theta, inputs, paddings):
+    return self.FProp(theta, inputs, paddings)[0]
+
+
+class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
+  """An implemention of StackedRNNBase with bidirection RNN layers."""
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(StackedBiFRNNLayerByLayer, self).__init__(params)
+    p = self.params
+
+    rnn_params = []
+    feature_dim = None
+    with tf.name_scope(p.name):
+      for (i, cell_tpl) in enumerate(self._GetCellTpls()):
+        rnn_p = cell_tpl.Copy()
+        if i > 0:
+          rnn_p.num_input_nodes = feature_dim
+        frnn_param = BidirectionalFRNN.Params()
+        frnn_param.name = 'bidi_rnn_%d' % i
+        frnn_param.fwd = rnn_p.Copy().Set(name='f_rnn_%d' % i)
+        frnn_param.bak = rnn_p.Copy().Set(name='b_rnn_%d' % i)
+        rnn_params.append(frnn_param)
+        feature_dim = 2 * rnn_p.num_output_nodes
+
+    self.CreateChildren('rnn', rnn_params)
+    self.CreateChild('dropout', p.dropout)
+    self.TrackQTensor('residual')
+
+  def FProp(self, theta, inputs, paddings):
+    """Compute the forward pass.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: A single tensor of shape [time, batch, dims].
+      paddings: A single tensor of shape [time, batch, 1].
+
+    Returns:
+      A tensor of [time, batch, dims].
+    """
+    p = self.params
+    xs = inputs
+    for i in range(p.num_layers):
+      ys = self.rnn[i].FProp(theta.rnn[i], xs, paddings)
+      ys = self.dropout.FProp(theta.dropout, ys)
+      if p.skip_start >= 0 and i >= p.skip_start:
+        ys = self.fns.qadd(ys, xs, qt='residual')
+      xs = ys
+    return xs
+
+  def FPropFullSequence(self, theta, inputs, paddings):
+    return self.FProp(theta, inputs, paddings)
 
 
 class FRNN(base_layer.BaseLayer):

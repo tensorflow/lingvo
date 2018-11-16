@@ -64,7 +64,8 @@ class LayersTestBase(tf.test.TestCase):
                              cls,
                              dtype,
                              trailing_pad_len=0,
-                             keep_prob=1.0):
+                             keep_prob=1.0,
+                             bi_directional=False):
     tf.set_random_seed(123456)
     batch = 3
     dims = 16
@@ -82,7 +83,7 @@ class LayersTestBase(tf.test.TestCase):
         params.vn.seed = 2938482
         params.vn.scale = 0.1
         params.num_input_nodes = dims
-        params.num_output_nodes = dims
+        params.num_output_nodes = dims // 2 if bi_directional else dims
 
         sfrnn_params = cls.Params()
         sfrnn_params.name = 'sfrnn'
@@ -103,12 +104,15 @@ class LayersTestBase(tf.test.TestCase):
           paddings[-trailing_pad_len - 3:-trailing_pad_len - 1, :] = 1.0
         paddings = tf.constant(paddings, dtype)
 
-        sfrnn_outputs, sfrnn_final = sfrnn.FPropDefaultTheta(inputs, paddings)
-
         tf.global_variables_initializer().run()
-        return sess.run([sfrnn_outputs, sfrnn_final])
+        if bi_directional:
+          sfrnn_outputs = sfrnn.FPropFullSequence(sfrnn.theta, inputs, paddings)
+          return sess.run(sfrnn_outputs)
+        else:
+          sfrnn_outputs, sfrnn_final = sfrnn.FPropDefaultTheta(inputs, paddings)
+          return sess.run([sfrnn_outputs, sfrnn_final])
 
-  def _testStackedFRNNGradHelper(self, cls):
+  def _testStackedFRNNGradHelper(self, cls, bi_directional=False):
     trailing_pad_len = 2
     dtype = tf.float64
     batch = 3
@@ -126,7 +130,7 @@ class LayersTestBase(tf.test.TestCase):
       params.vn.seed = 2938482
       params.vn.scale = 0.1
       params.num_input_nodes = dims
-      params.num_output_nodes = dims
+      params.num_output_nodes = dims // 2 if bi_directional else dims
 
       sfrnn_params = cls.Params()
       sfrnn_params.name = 'sfrnn'
@@ -144,11 +148,14 @@ class LayersTestBase(tf.test.TestCase):
       paddings[-trailing_pad_len - 3:-trailing_pad_len - 1, :] = 1.0
       paddings = tf.constant(paddings, dtype)
 
-      sfrnn_outputs, sfrnn_final = sfrnn.FPropDefaultTheta(inputs, paddings)
-
-      loss = tf.reduce_sum(sfrnn_outputs)
-      for fin in sfrnn_final.rnn:
-        loss += tf.reduce_sum(fin.m) + tf.reduce_sum(fin.c)
+      if bi_directional:
+        sfrnn_outputs = sfrnn.FPropDefaultTheta(inputs, paddings)
+        loss = tf.reduce_sum(sfrnn_outputs)
+      else:
+        sfrnn_outputs, sfrnn_final = sfrnn.FPropDefaultTheta(inputs, paddings)
+        loss = tf.reduce_sum(sfrnn_outputs)
+        for fin in sfrnn_final.rnn:
+          loss += tf.reduce_sum(fin.m) + tf.reduce_sum(fin.c)
       xs = sfrnn.theta.Flatten() + [inputs]
       dxs = tf.gradients(loss, xs)
 
@@ -171,6 +178,32 @@ class LayersTestBase(tf.test.TestCase):
 
 
 class LayersTest(LayersTestBase):
+
+  def testIdentitySeqLayer(self):
+    with self.session(use_gpu=False) as sess:
+      rnn_params = rnn_layers.IdentitySeqLayer.Params()
+      rnn_params.name = 'no_op'
+      rnn = rnn_params.cls(rnn_params)
+
+      np.random.seed(12345)
+      inputs_sequence = []
+      paddings_sequence = []
+      for _ in range(5):
+        inputs_sequence.append(
+            tf.constant(np.random.uniform(size=(3, 2)), tf.float32))
+        paddings_sequence.append(tf.zeros([3, 1]))
+
+      paddings_sequence[-1] = tf.constant([[1.0], [1.0], [1.0]])
+      paddings_sequence[-2] = tf.constant([[1.0], [1.0], [1.0]])
+
+      inputs, paddings = tf.stack(inputs_sequence), tf.stack(paddings_sequence)
+      outputs = rnn.FPropFullSequence(rnn.theta, inputs, paddings)
+
+      # Initialize all the variables, and then run one step.
+      tf.global_variables_initializer().run()
+
+      inputs_v, outputs_v = sess.run([inputs, outputs])
+      self.assertAllEqual(inputs_v, outputs_v)
 
   def testRNN(self):
     with self.session(use_gpu=False) as sess:
@@ -859,7 +892,7 @@ class LayersTest(LayersTestBase):
     self._testFRNNGradHelper(py_utils.SessionConfig(inline=True))
 
   def testStackedFRNNDropout(self):
-    v1_out, unused_v1_fin = self._testStackedFRNNHelper(
+    v1_out, _ = self._testStackedFRNNHelper(
         rnn_layers.StackedFRNNLayerByLayer,
         tf.float32,
         trailing_pad_len=0,
@@ -872,6 +905,23 @@ class LayersTest(LayersTestBase):
 
   def testStackedFRNNLayerByLayerGrad(self):
     self._testStackedFRNNGradHelper(rnn_layers.StackedFRNNLayerByLayer)
+
+  def testStackedBiFRNNDropout(self):
+    v1_out = self._testStackedFRNNHelper(
+        rnn_layers.StackedBiFRNNLayerByLayer,
+        tf.float32,
+        trailing_pad_len=0,
+        keep_prob=0.5,
+        bi_directional=True)
+    if tf.test.is_gpu_available():
+      rtol = 1e-5
+    else:
+      rtol = 1e-6
+    self.assertAllClose([305.774384], [np.sum(v1_out * v1_out)], rtol=rtol)
+
+  def testStackedBiFRNNLayerByLayerGrad(self):
+    self._testStackedFRNNGradHelper(
+        rnn_layers.StackedBiFRNNLayerByLayer, bi_directional=True)
 
   def _testBidirectionalFRNNHelper(self,
                                    trailing_pad_len=0,
