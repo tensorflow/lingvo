@@ -104,7 +104,6 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       const int32 k, const int32 m, const int32 eos_id,
                       const int32 eoc_id, const int32 num_beams,
                       const float valid_eos_max_logit_delta,
-                      const float lm_weight, const Tensor& lm_log_probs,
                       bool is_first_step, const Tensor& is_last_chunk,
                       bool merge_paths, bool allow_empty_terminated_hyp,
                       std::vector<bool>* eos_in_topk, std::vector<Hyp>* top_k,
@@ -164,19 +163,13 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
             if (!all_less_than(&scores_matrix(hyp_id, id),
                                bottom_of_topk - current_global_score)) {
               for (int i = 0; i < STRIDE; ++i) {
-                float lm_score = 0;
-                if (lm_weight != 0) {
-                  auto lm_local_score = lm_log_probs.matrix<float>();
-                  lm_score = lm_weight * lm_local_score(hyp_id, id + i);
-                }
                 const float score = scores_matrix(hyp_id, id + i);
                 const float global_score =
-                    current_global_score + score + lm_score;
+                    current_global_score + score;
                 if (global_score >= bottom_of_topk) {
                   bottom_of_topk =
                       topk.Add({hyps[hyp_id].beam_id, hyp_id, id + i, score,
-                                global_score, hyps[hyp_id].prev_ids,
-                                lm_score});
+                                global_score, hyps[hyp_id].prev_ids});
                 }
               }
             }
@@ -184,17 +177,12 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
       // Non-AVX code below handles the remaining elements.
 #endif
           for (; id != num_ids; ++id) {
-            float lm_score = 0;
-            if (lm_weight != 0) {
-              auto lm_local_score = lm_log_probs.matrix<float>();
-              lm_score = lm_weight * lm_local_score(hyp_id, id);
-            }
             const float score = scores_matrix(hyp_id, id);
-            const float global_score = current_global_score + score + lm_score;
+            const float global_score = current_global_score + score;
             if (global_score >= bottom_of_topk)
               bottom_of_topk =
                   topk.Add({hyps[hyp_id].beam_id, hyp_id, id, score,
-                            global_score, hyps[hyp_id].prev_ids, lm_score});
+                            global_score, hyps[hyp_id].prev_ids});
           }
 
           auto entries = topk.Get();
@@ -267,7 +255,6 @@ class BeamSearchStepOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("num_hyps_per_beam", &num_hyps_per_beam_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("valid_eos_max_logit_delta",
                                      &valid_eos_max_logit_delta_));
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("lm_weight", &lm_weight_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("merge_paths", &merge_paths_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("allow_empty_terminated_hyp",
                                      &allow_empty_terminated_hyp_));
@@ -361,7 +348,6 @@ class BeamSearchStepOp : public OpKernel {
     const Tensor& in_atten_probs = ctx->input(8);
     const Tensor& is_last_chunk = ctx->input(9);
     const Tensor& cur_step = ctx->input(10);
-    const Tensor& lm_log_probs = ctx->input(11);
 
     OP_REQUIRES(
         ctx, scores.dims() == 2,
@@ -497,25 +483,6 @@ class BeamSearchStepOp : public OpKernel {
             "atten_probs.dim_size(1) == in_atten_probs.dim_size(2). Got ",
             atten_probs.dim_size(1), " and ", in_atten_probs.dim_size(2)));
 
-    if (lm_weight_ != 0) {
-      OP_REQUIRES(
-          ctx, lm_log_probs.dims() == 2,
-          errors::InvalidArgument("LM probs failed tensor shape sanity "
-                                  "check. lm_log_probs.dims() == 2. Got ",
-                                  lm_log_probs.dims()));
-      OP_REQUIRES(ctx, lm_log_probs.dim_size(0) == scores.dim_size(0),
-                  errors::InvalidArgument("LM probs failed tensor shape sanity "
-                                          "check. lm_log_probs.dim_size(0) == "
-                                          "scores.dim_size(0). Got ",
-                                          lm_log_probs.dim_size(0), " and ",
-                                          scores.dim_size(0)));
-      OP_REQUIRES(ctx, lm_log_probs.dim_size(1) == scores.dim_size(1),
-                  errors::InvalidArgument("LM probs failed tensor shape sanity "
-                                          "check. lm_log_probs.dim_size(1) == "
-                                          "scores.dim_size(1). Got ",
-                                          lm_log_probs.dim_size(1), " and ",
-                                          scores.dim_size(1)));
-    }
     if (merge_paths_) {
       OP_REQUIRES(
           ctx, eoc_id_ >= 0,
@@ -559,10 +526,10 @@ class BeamSearchStepOp : public OpKernel {
     std::vector<bool> eos_in_topk;
     std::vector<int32> terminal_syms;
     ComputeTopKPlusM(hyps, scores, num_hyps_per_beam_, 0, eos_id_, eoc_id_,
-                     num_beams, valid_eos_max_logit_delta_, lm_weight_,
-                     lm_log_probs, t == 0, is_last_chunk, merge_paths_,
-                     allow_empty_terminated_hyp_, &eos_in_topk, &top_k_hyps,
-                     &extra_m_hyps, &eos_hyps, &terminal_syms);
+                     num_beams, valid_eos_max_logit_delta_, t == 0,
+                     is_last_chunk, merge_paths_, allow_empty_terminated_hyp_,
+                     &eos_in_topk, &top_k_hyps, &extra_m_hyps, &eos_hyps,
+                     &terminal_syms);
 
     Tensor* out_best_scores = NULL;
     Tensor* out_cumulative_scores = NULL;
@@ -663,7 +630,6 @@ class BeamSearchStepOp : public OpKernel {
   float beam_size_ = 0.0;
   int num_hyps_per_beam_ = 0;
   float valid_eos_max_logit_delta_ = 0.0;
-  float lm_weight_ = 0.0;
   bool merge_paths_ = false;
   bool allow_empty_terminated_hyp_ = true;
   bool ensure_full_beam_ = false;

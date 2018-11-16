@@ -125,15 +125,12 @@ class BeamSearchHelper(base_layer.BaseLayer):
         Returns:
           results: A `.NestedMap` of beam search results. It should contain
               the 'atten_probs' and 'log_probs' tensors at the minimal.
-              Optionally it may contain 'lm_log_probs' if a LM is used during
-              decoding and 'is_last_chunk' if it is decoding a neural transducer
-              model.
+              Optionally it may contain 'is_last_chunk' if it is decoding a
+              neural transducer model.
           atten_probs: The updated attention probs, of shape [tgt_batch,
               src_len].
           log_probs: Log prob for each of the tokens in the target vocab. This
               is of shape [tgt_batch, vocab_size].
-          lm_log_probs: Language model prob for each of the tokens in the target
-              vocab.  If not empty, this is of shape [tgt_batch, vocab_size].
           is_last_chunk: Whether or not each of the hyp is at the end of a
               chunk. If non-empty, it is of shape [tgt_batch, 1]
           out_states: A `.NestedMap`. The updated states. This 'out_states'
@@ -185,12 +182,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'The maximum difference between best hyp and the worst in a beam.'
         ' This allows to prune our search when none of the active hyp is'
         ' close enough to the current best.')
-    p.Define(
-        'lm_log_probs_weight', 0.0,
-        'How much weight to put on lm log probs when re-scoring the top k '
-        'hyps. Must be within -1 to 1. If less than 0, lm log probs are'
-        'used to reduce the scores given by the model. If 0, lm log probs'
-        'are unused.')
+    p.Define('lm_log_probs_weight', 0.0, 'deprecated, will be removed.')
     p.Define('target_sos_id', 1, 'Id of the start of sentence token.')
     p.Define('target_eos_id', 2, 'Id of the end of sentence token.')
     p.Define(
@@ -229,7 +221,6 @@ class BeamSearchHelper(base_layer.BaseLayer):
     super(BeamSearchHelper, self).__init__(params)
     p = self.params
     self._is_neural_transducer = p.target_eoc_id >= 0
-    self._has_lm = p.lm_log_probs_weight != 0.0
 
   def _BeamSearchStep(self, theta, source_encs, source_paddings, cur_step,
                       step_ids, core_bs_states, other_states, num_hyps_per_beam,
@@ -292,15 +283,12 @@ class BeamSearchHelper(base_layer.BaseLayer):
          in_done_hyps,
          in_atten_probs,
          bs_results.is_last_chunk if self._is_neural_transducer else [],
-         cur_step,
-         bs_results.lm_log_probs
-         if self._has_lm else tf.zeros_like(bs_results.log_probs),
+         cur_step, [],
          eoc_id=p.target_eoc_id,
          eos_id=p.target_eos_id,
          beam_size=p.beam_size,
          num_hyps_per_beam=num_hyps_per_beam,
          valid_eos_max_logit_delta=p.valid_eos_max_logit_delta,
-         lm_weight=p.lm_log_probs_weight,
          merge_paths=p.merge_paths,
          allow_empty_terminated_hyp=p.allow_empty_terminated_hyp,
          ensure_full_beam=p.ensure_full_beam)

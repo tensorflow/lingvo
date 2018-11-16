@@ -40,7 +40,6 @@ class BeamSearchOpTest(tf.test.TestCase):
                              b_size,
                              num_beams,
                              seq_len,
-                             lm_weight,
                              init_best_score,
                              probs,
                              init_atten_probs,
@@ -48,7 +47,6 @@ class BeamSearchOpTest(tf.test.TestCase):
                              beam_size=3.0,
                              ensure_full_beam=False):
     eos_id = 2
-    num_classes = 5
     num_hyps_per_beam = b_size / num_beams
 
     best_scores = tf.zeros([num_beams])
@@ -57,7 +55,6 @@ class BeamSearchOpTest(tf.test.TestCase):
     hyps = tf.zeros([seq_len, b_size], dtype=tf.int32)
     prev_hyps = tf.zeros([seq_len, b_size], dtype=tf.int32)
     done_hyps = tf.as_string(tf.zeros([seq_len, b_size], dtype=tf.int32))
-    lm_log_probs = tf.random_uniform([b_size, num_classes])
     best_scores += init_best_score
 
     for i, prob in enumerate(probs):
@@ -72,35 +69,32 @@ class BeamSearchOpTest(tf.test.TestCase):
            prev_hyps,
            done_hyps,
            atten_probs, [],
-           i,
-           lm_log_probs,
+           i, [],
            eos_id=eos_id,
            beam_size=beam_size,
            ensure_full_beam=ensure_full_beam,
            num_hyps_per_beam=num_hyps_per_beam,
-           valid_eos_max_logit_delta=0.1,
-           lm_weight=lm_weight)
+           valid_eos_max_logit_delta=0.1)
 
     with self.session(use_gpu=False) as sess:
       (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-       atten_probs, done, scores, atten_probs, lm_log_probs) = sess.run([
+       atten_probs, done, scores, atten_probs) = sess.run([
            best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-           atten_probs, done, scores, atten_probs, lm_log_probs
+           atten_probs, done, scores, atten_probs
        ])
 
     return (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-            atten_probs, done, scores, atten_probs, lm_log_probs)
+            atten_probs, done, scores, atten_probs)
 
   def _testBeamSearchOpHelper(
-      self, b_size, num_beams, seq_len, lm_weight, init_best_score, probs,
+      self, b_size, num_beams, seq_len, init_best_score, probs,
       init_atten_probs, atten_probs, best_scores_expected, cum_scores_expected,
       scores_expected, hyps_expected, prev_hyps_expected, atten_probs_expected):
 
     (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-     atten_probs, done, scores,
-     atten_probs, lm_log_probs) = self._runBeamSearchOpHelper(
-         b_size, num_beams, seq_len, lm_weight, init_best_score, probs,
-         init_atten_probs, atten_probs)
+     atten_probs, done, scores, atten_probs) = self._runBeamSearchOpHelper(
+         b_size, num_beams, seq_len, init_best_score, probs, init_atten_probs,
+         atten_probs)
 
     tf.logging.info(np.array_repr(best_scores))
     tf.logging.info(np.array_repr(cumulative_scores))
@@ -112,7 +106,6 @@ class BeamSearchOpTest(tf.test.TestCase):
     tf.logging.info(np.array_repr(done))
     tf.logging.info(np.array_repr(scores))
     tf.logging.info(np.array_repr(atten_probs))
-    tf.logging.info(np.array_repr(lm_log_probs))
 
     self.assertAllClose(best_scores_expected, best_scores)
     self.assertAllClose(cum_scores_expected, cumulative_scores)
@@ -219,123 +212,11 @@ class BeamSearchOpTest(tf.test.TestCase):
     init_atten_probs = tf.random_uniform([b_size, 3])
     atten_probs = tf.zeros([seq_len, b_size, 3])
     done_hyps = self._testBeamSearchOpHelper(
-        b_size, num_beams, seq_len, 0., 0, scores, init_atten_probs,
-        atten_probs, best_scores_expected, cum_scores_expected, scores_expected,
+        b_size, num_beams, seq_len, 0., scores, init_atten_probs, atten_probs,
+        best_scores_expected, cum_scores_expected, scores_expected,
         hyps_expected, prev_hyps_expected, atten_probs_expected)
 
     self._SameHyp(hyp_str_expected, done_hyps[1, 5])
-
-  def testBeamSearchOpLMWeight(self):
-    b_size = 8
-    num_beams = 2
-    seq_len = 6
-    num_classes = 5
-
-    best_scores_expected = [3.421918, 3.013411]
-    cum_scores_expected = [
-        3.110763, 2.753090, 3.000604, 2.466151, 2.808191, 2.384985, 2.642948,
-        2.358385
-    ]
-    scores_expected = [[
-        0.89790189, 0.97963047, 0.7637589, 0.75326848, 0.67413247, 0.18659079,
-        0.32619762, 0.0323503
-    ], [
-        0.89790189, 0.97963047, 0.7637589, 0.75326848, 0.96454573, 0.46483493,
-        0.67413247, 0.82324922
-    ], [0., 0., 0., 0., 0., 0., 0., 0.], [0., 0., 0., 0., 0., 0., 0.,
-                                          0.], [0., 0., 0., 0., 0., 0., 0., 0.],
-                       [0., 0., 0., 0., 0., 0., 0., 0.]]
-
-    # hyps and prev_hyps are same as with no LM weight, except
-    # for prev_hyps[1, 7], which is 7 instead of 3.  This is because for this
-    # hyp, the weighted global score of the prefix is 0.42 and the unweighted
-    # scores for element [7, 0] has a high prob, 0.85.  This doesn't happen
-    # without LM weighting because the global score of the prefix would have
-    # been only 0.03.  Once the local score is reweighted with the LM,
-    # 0.85 gets replaced by 0.54, so the total score is only 0.96.
-    hyps_expected = [[3, 4, 0, 0, 1, 1, 4, 3], [3, 4, 0, 0, 1, 3, 1, 1],
-                     [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
-    prev_hyps_expected = [[0, 1, 0, 1, 0, 1, 0, 1], [0, 1, 0, 1, 4, 3, 0, 3],
-                          [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0],
-                          [0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0]]
-
-    hyp_str_expected = """
-    beam_id: 1
-    ids: 0
-    ids: 2
-    scores: 0.75326848
-    scores: 0.78975141
-    atten_vecs {
-      prob: 0.689820885658
-      prob: 0.216090679169
-      prob: 0.40637075901
-    }
-    atten_vecs {
-      prob: 0.45252705
-      prob: 0.37489808
-      prob: 0.12745726
-    }
-    """
-
-    # atten_probs are also the same except for [1, 7, :], due to the change
-    # in hyps described above.
-    atten_probs_expected = [
-        [[0.85785675, 0.60858226,
-          0.72539818], [0.68982089, 0.21609068,
-                        0.40637076], [0.85785675, 0.60858226, 0.72539818],
-         [0.68982089, 0.21609068,
-          0.40637076], [0.85785675, 0.60858226,
-                        0.72539818], [0.68982089, 0.21609068, 0.40637076],
-         [0.85785675, 0.60858226,
-          0.72539818], [0.68982089, 0.21609068, 0.40637076]],
-        [[0.85785675, 0.60858226,
-          0.72539818], [0.68982089, 0.21609068, 0.40637076],
-         [0.85785675, 0.60858226,
-          0.72539818], [0.68982089, 0.21609068,
-                        0.40637076], [0.51121557, 0.80525708, 0.73596036], [
-                            0.45252705, 0.37489808, 0.12745726
-                        ], [0.85785675, 0.60858226, 0.72539818],
-         [0.45252705, 0.37489808, 0.12745726]], [
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-         ], [
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-         ], [
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-             [0., 0., 0.],
-         ], [[0., 0., 0.], [0., 0., 0.], [0., 0., 0.], [0., 0., 0.],
-             [0., 0., 0.], [0., 0., 0.], [0., 0., 0.], [0., 0., 0.]]
-    ]
-
-    scores = [tf.random_uniform([b_size, num_classes])] * 2
-    init_atten_probs = tf.random_uniform([b_size, 3])
-    atten_probs = tf.zeros([seq_len, b_size, 3])
-    done_hyps = self._testBeamSearchOpHelper(
-        b_size, num_beams, seq_len, 1.0, 0, scores, init_atten_probs,
-        atten_probs, best_scores_expected, cum_scores_expected, scores_expected,
-        hyps_expected, prev_hyps_expected, atten_probs_expected)
-
-    self._SameHyp(hyp_str_expected, done_hyps[1, 3])
 
   # The following 3 tests, test each step of this decoding tree.
   # Test that beam search finds the most probable sequence.
@@ -364,14 +245,12 @@ class BeamSearchOpTest(tf.test.TestCase):
     b_size = 2
     num_beams = 1
     seq_len = 3
-    lm_weight = 0.
 
     probs = [np.log([[0.6, 0.4, 0.0000001], [0.6, 0.4, 0.0000001]])]
     done_hyps = self._testBeamSearchOpHelper(
         b_size,
         num_beams,
         seq_len,
-        lm_weight,
         _MIN_SCORE,
         probs,
         init_atten_probs=tf.zeros([b_size, 0]),
@@ -390,7 +269,6 @@ class BeamSearchOpTest(tf.test.TestCase):
     b_size = 2
     num_beams = 1
     seq_len = 3
-    lm_weight = 0.
 
     probs = [
         np.log([[0.6, 0.4, 0.0000001], [0.6, 0.4, 0.0000001]]),
@@ -400,7 +278,6 @@ class BeamSearchOpTest(tf.test.TestCase):
         b_size,
         num_beams,
         seq_len,
-        lm_weight,
         _MIN_SCORE,
         probs,
         init_atten_probs=tf.zeros([b_size, 0]),
@@ -421,7 +298,6 @@ class BeamSearchOpTest(tf.test.TestCase):
     b_size = 2
     num_beams = 1
     seq_len = 3
-    lm_weight = 0.
 
     probs = [
         np.log([[0.6, 0.4, 0.0000001], [0.6, 0.4, 0.0000001]]),
@@ -434,7 +310,6 @@ class BeamSearchOpTest(tf.test.TestCase):
         b_size,
         num_beams,
         seq_len,
-        lm_weight,
         _MIN_SCORE,
         probs,
         init_atten_probs=tf.zeros([b_size, 0]),
@@ -485,12 +360,10 @@ class BeamSearchOpTest(tf.test.TestCase):
     self._SameHyp(expected_for_beam_0, done_hyps[2, 0])
     self._SameHyp(expected_for_beam_1, done_hyps[2, 1])
 
-
   def _testBeamSearchStoppingHelper(self, beam_size, ensure_full_beam):
     b_size = 2
     num_beams = 1
     seq_len = 3
-    lm_weight = 0.
     probs = [
         # Only finish one beam with EOS.
         np.log([[0.05, 0.05, 0.9], [0.05, 0.9, 0.05]]),
@@ -500,7 +373,6 @@ class BeamSearchOpTest(tf.test.TestCase):
         b_size,
         num_beams,
         seq_len,
-        lm_weight,
         _MIN_SCORE,
         probs,
         init_atten_probs=tf.zeros([b_size, 0]),

@@ -35,11 +35,10 @@ struct Hyp {
   float local_score;            // Local score from the current step.
   float global_score;           // Cumulative score till the current step.
   std::vector<int32> prev_ids;  // The (non-epsilon) token ids up to this step.
-  float lm_local_score;         // Local LM score;
 
   string DebugString() const {
     return strings::StrCat(beam_id, " ", hyp_id, " ", word_id, " ", local_score,
-                           " ", global_score, " ", lm_local_score);
+                           " ", global_score);
   }
 };
 
@@ -196,7 +195,6 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       const int32 k, const int32 m, const int32 eos_id,
                       const int32 eoc_id, const int32 num_beams,
                       const float valid_eos_max_logit_delta,
-                      const float lm_weight, const Tensor& lm_log_probs,
                       bool is_first_step, const Tensor& is_last_chunk,
                       bool merge_paths, bool allow_empty_terminated_hyp,
                       std::vector<bool>* eos_in_topk, std::vector<Hyp>* top_k,
