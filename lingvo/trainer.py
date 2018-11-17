@@ -804,7 +804,9 @@ class Decoder(base_runner.BaseRunner):
         # tasks, which may result in different node names being chosen.
         # Obviously, variable names has to be stay the same between train and
         # decode.
-        self._dec_output = self._model_task.Decode()
+        input_batch = (
+            self._model_task.input_generator.GetPreprocessedInputBatch())
+        self._dec_output = self._model_task.Decode(input_batch)
         self._saver = self._GetSaver()
         self._summary_op = tf.summary.merge_all()
       self.initialize_tables = tf.tables_initializer()

@@ -142,22 +142,22 @@ class AsrModel(base_model.BaseTask):
     # provide their own implementation.
     return {}
 
-  def Decode(self):
+  def Decode(self, input_batch):
     """Constructs the inference graph."""
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
-      batch = self.input_generator.GetPreprocessedInputBatch()
-      src_enc, src_enc_padding, _ = self.encoder.FPropDefaultTheta(batch.src)
+      src_enc, src_enc_padding, _ = (
+          self.encoder.FPropDefaultTheta(input_batch.src))
 
       if hasattr(self.decoder, 'contextualizer'):
-        self.decoder.contextualizer.SetContextMap(batch.tgt)
+        self.decoder.contextualizer.SetContextMap(input_batch.tgt)
       decoder_outs = self.decoder.BeamSearchDecode(src_enc, src_enc_padding)
       topk = self._GetTopK(decoder_outs)
 
-      utt_ids = batch.sample_ids
-      tgt = batch.tgt
+      utt_ids = input_batch.sample_ids
+      tgt = input_batch.tgt
       if p.target_key:
-        tgt = batch.additional_tgts[p.target_key]
+        tgt = input_batch.additional_tgts[p.target_key]
       transcripts = self.input_generator.IdsToStrings(
           tgt.labels,
           tf.cast(tf.reduce_sum(1.0 - tgt.paddings, 1) - 1.0, tf.int32))

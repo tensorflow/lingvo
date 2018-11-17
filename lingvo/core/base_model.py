@@ -264,8 +264,8 @@ class BaseTask(base_layer.BaseLayer):
     """Forward propagation through one tower of the model.
 
     Args:
-      theta: A `.NestedMap` object containing variable values of this
-        task copied to this tower's devices.
+      theta: A `.NestedMap` object containing variable values of this task
+        copied to this tower's devices.
       input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
@@ -274,7 +274,7 @@ class BaseTask(base_layer.BaseLayer):
     predicted = self.ComputePredictions(theta, input_batch)
     return self.ComputeLoss(theta, input_batch, predicted)
 
-  def FProp(self, theta):
+  def FProp(self, theta, input_batch):
     """Forward propagation.
 
     This default `FProp` implementation here supports batch splitting in
@@ -282,73 +282,96 @@ class BaseTask(base_layer.BaseLayer):
     `FPropTower`.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch
+        spiltting is used, a list of `NestedMap`, one for each split.
 
     Returns:
       A dict containing metrics pairs. One of the keys should be 'loss' and its
       value should be a (loss, num_predictions) pair.
     """
     p = self.params
-    cluster = cluster_factory.Current()
-
     with tf.name_scope('fprop'), tf.name_scope(p.name):
-      all_fprop_metrics = []
-
       if py_utils.use_tpu():
-        batch = self.input_generator.CreateTpuFeeds()
-        with tf.name_scope('tower_0_0'):
-          dec_metrics = self.FPropTower(theta, batch)
-        all_fprop_metrics.append(dec_metrics)
+        metrics = self._FPropTpu(theta, input_batch)
       else:
-        # Splits the input batch on the input device.
-        num_splits = cluster.num_splits_per_client
-        with tf.device(cluster.input_device):
-          batches = self.input_generator.SplitInputBatch(num_splits)
-          assert num_splits == len(batches)
+        metrics = self._FPropSplitInputBatch(theta, input_batch)
+      self._FPropMetrics(metrics)
+    return metrics
 
-        # dev_list_per_replica[i][j] is the i-th worker's j-th device.
-        dev_list_per_replica = cluster.available_devices.tolist()
+  def _FPropTpu(self, theta, input_batch):
+    p = self.params
+    with tf.name_scope('fprop'), tf.name_scope(p.name):
+      with tf.name_scope('tower_0_0'):
+        metrics = self.FPropTower(theta, input_batch)
+        metrics = py_utils.WeightedAvgOfMetrics([metrics])
+    return metrics
 
-        # Asserts invariant of the total number of splits w.r.t.,
-        # splits per worker.
-        splits_per_replica = cluster.num_splits_per_replica
-        assert num_splits == splits_per_replica * len(dev_list_per_replica)
+  def _FPropSplitInputBatch(self, theta, input_batch):
+    """Splits the input batch on the input device."""
+    cluster = cluster_factory.Current()
+    num_splits = cluster.num_splits_per_client
 
-        for w_id, w_devs in enumerate(dev_list_per_replica):
-          # Make local copy of the vars, shard on devices for this worker.
-          theta_local = py_utils.CreateLocalTheta(
-              theta, w_devs, label='worker %d' % w_id)
+    if not isinstance(input_batch, list):
+      input_batch = [input_batch]
 
-          for s_id in range(splits_per_replica):
-            # s_id-th split for the w_id-th worker.
-            split_id = splits_per_replica * w_id + s_id
-            with py_utils.ModelSplit(split_id):
-              with tf.device(cluster.WorkerDeviceInModelSplit(0)):
-                with tf.name_scope('tower_%d_%d' % (w_id, s_id)):
-                  batch = self.input_generator.PreprocessInputBatch(
-                      batches[split_id])
-                  dec_metrics = self.FPropTower(theta_local, batch)
-            all_fprop_metrics.append(dec_metrics)
+    assert len(input_batch) == num_splits, (len(input_batch), num_splits)
 
-      metrics = py_utils.WeightedAvgOfMetrics(all_fprop_metrics)
+    # dev_list_per_replica[i][j] is the i-th worker's j-th device.
+    dev_list_per_replica = cluster.available_devices.tolist()
 
+    # Asserts invariant of the total number of splits w.r.t.,
+    # splits per worker.
+    splits_per_replica = cluster.num_splits_per_replica
+    assert num_splits == splits_per_replica * len(dev_list_per_replica), (
+        num_splits, splits_per_replica, len(dev_list_per_replica))
+
+    all_fprop_metrics = []
+    for w_id, w_devs in enumerate(dev_list_per_replica):
+      # Make local copy of the vars, shard on devices for this worker.
+      theta_local = py_utils.CreateLocalTheta(
+          theta, w_devs, label='worker %d' % w_id)
+
+      for s_id in range(splits_per_replica):
+        # s_id-th split for the w_id-th worker.
+        split_id = splits_per_replica * w_id + s_id
+        with py_utils.ModelSplit(split_id):
+          with tf.device(cluster.WorkerDeviceInModelSplit(0)):
+            with tf.name_scope('tower_%d_%d' % (w_id, s_id)):
+              batch = self.input_generator.PreprocessInputBatch(
+                  input_batch[split_id])
+              dec_metrics = self.FPropTower(theta_local, batch)
+        all_fprop_metrics.append(dec_metrics)
+
+    return py_utils.WeightedAvgOfMetrics(all_fprop_metrics)
+
+  def _FPropMetrics(self, metrics):
     # Adds stats about the input batch.
     metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
         self.input_generator.InputBatchSize()), tf.constant(1.0))
     # Generates summaries.
     for name, (value, weight) in six.iteritems(metrics):
       self.AddEvalMetric(name, value, weight)
-
     # Loss.
     self._loss, self._num_predicts = metrics['loss']
     self._loss = py_utils.CheckNumerics(self._loss)
 
-    return metrics
+  def GetInputBatch(self):
+    """Returns input batch from input_generator."""
+    if py_utils.use_tpu():
+      return self.input_generator.CreateTpuFeeds()
+    else:
+      cluster = cluster_factory.Current()
+      num_splits = cluster.num_splits_per_client
+      with tf.device(cluster.input_device):
+        return self.input_generator.SplitInputBatch(num_splits)
 
-  def FPropDefaultTheta(self):
+  def FPropDefaultTheta(self, input_batch=None):
     """Calls `FProp` with this layer's parameters."""
-    return self.FProp(self.theta)
+    if input_batch is None:
+      input_batch = self.GetInputBatch()
+    return self.FProp(self.theta, input_batch)
 
   def GetVarGrads(self):
     return self._var_grads
@@ -432,7 +455,8 @@ class BaseTask(base_layer.BaseLayer):
         or Inf in input gradients.
       - grad_scale: the gradient scale. 0 if gradient updates should be skipped
         for the step.
-      - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs, where
+      - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs,
+      where
         gradients have already been scaled.
     """
     p = self.params
@@ -574,12 +598,17 @@ class BaseTask(base_layer.BaseLayer):
         [self._train_op]), tf.name_scope('moving_average'):
       self._train_op = ema.apply(all_vars)
 
-  def Decode(self):
+  def Decode(self, input_batch):
     """Constructs the inference graph for eval decoding.
 
-    Returns a dict of Tensors as decoder output.
+    Args:
+      input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch
+        spiltting is used, a list of `NestedMap`, one for each split.
+
+    Returns:
+      a dict of Tensors as decoder output.
     """
-    pass
+    return {}
 
   def Inference(self):
     """Constructs the inference graph.
@@ -855,8 +884,8 @@ class DistillationTask(BaseTask):
     # Only bprop on student variables.
     self._BPropForVariables(self.student.vars)
 
-  def Decode(self):
-    return self.student.Decode()
+  def Decode(self, input_batch):
+    return self.student.Decode(input_batch)
 
   def Inference(self):
     return self.student.Inference()
@@ -950,6 +979,7 @@ class BaseModel(base_layer.BaseLayer):
 
     Args:
       task_name: string, the name of the model task to be returned.
+
     Returns:
       An instance of `BaseTask`.
     """

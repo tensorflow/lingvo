@@ -198,7 +198,8 @@ class TransformerModelTest(tf.test.TestCase):
         p.fprop_dtype = fprop_dtype
         p.input.dtype = fprop_dtype
       mdl = p.cls(p)
-      mdl.FProp(mdl.theta)
+      input_batch = mdl.GetInputBatch()
+      mdl.FProp(mdl.theta, input_batch)
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
       tf.global_variables_initializer().run()
@@ -354,7 +355,8 @@ class TransformerModelTest(tf.test.TestCase):
       tf.set_random_seed(93820985)
       p = self._testParams()
       mdl = p.cls(p)
-      dec_out_dict = mdl.Decode()
+      input_batch = mdl.input_generator.GetPreprocessedInputBatch()
+      dec_out_dict = mdl.Decode(input_batch)
       tf.global_variables_initializer().run()
       dec_out = sess.run(dec_out_dict)
       metrics_dict = mdl.CreateDecoderMetrics()

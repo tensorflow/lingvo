@@ -112,7 +112,7 @@ class PunctuatorModelTest(tf.test.TestCase):
       p = self._testParams()
       p.dtype = dtype
       mdl = p.cls(p)
-      mdl.FProp(mdl.theta)
+      mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
       tf.global_variables_initializer().run()

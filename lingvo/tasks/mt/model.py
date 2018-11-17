@@ -79,11 +79,10 @@ class MTBaseModel(base_model.BaseTask):
       return key
     return None
 
-  def _BeamSearchDecode(self):
+  def _BeamSearchDecode(self, input_batch):
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
-      batch = self.input_generator.GetPreprocessedInputBatch()
-      src_enc, src_enc_paddings, _ = self.enc.FPropDefaultTheta(batch.src)
+      src_enc, src_enc_paddings, _ = self.enc.FPropDefaultTheta(input_batch.src)
       decoder_outs = self.dec.BeamSearchDecode(src_enc, src_enc_paddings)
 
       topk_hyps = decoder_outs.topk_hyps
@@ -91,24 +90,24 @@ class MTBaseModel(base_model.BaseTask):
       topk_lens = decoder_outs.topk_lens
       topk_scores = decoder_outs.topk_scores
 
-      slen = tf.to_int32(tf.reduce_sum(1 - batch.src.paddings, 1) - 1)
+      slen = tf.to_int32(tf.reduce_sum(1 - input_batch.src.paddings, 1) - 1)
       srcs = self.input_generator.IdsToStrings(
-          batch.src.ids, slen, self._GetTokenizerKeyToUse('src'))
+          input_batch.src.ids, slen, self._GetTokenizerKeyToUse('src'))
       topk_decoded = self.input_generator.IdsToStrings(
           topk_ids, topk_lens - 1, self._GetTokenizerKeyToUse('tgt'))
       topk_decoded = tf.reshape(topk_decoded, tf.shape(topk_hyps))
       topk_scores = tf.reshape(topk_scores, tf.shape(topk_hyps))
 
       refs = self.input_generator.IdsToStrings(
-          batch.tgt.labels,
-          tf.to_int32(tf.reduce_sum(1.0 - batch.tgt.paddings, 1) - 1.0),
+          input_batch.tgt.labels,
+          tf.to_int32(tf.reduce_sum(1.0 - input_batch.tgt.paddings, 1) - 1.0),
           self._GetTokenizerKeyToUse('tgt'))
 
       ret_dict = {
-          'target_ids': batch.tgt.ids,
-          'target_labels': batch.tgt.labels,
-          'target_weights': batch.tgt.weights,
-          'target_paddings': batch.tgt.paddings,
+          'target_ids': input_batch.tgt.ids,
+          'target_labels': input_batch.tgt.labels,
+          'target_weights': input_batch.tgt.weights,
+          'target_paddings': input_batch.tgt.paddings,
           'sources': srcs,
           'targets': refs,
           'topk_decoded': topk_decoded,
@@ -199,10 +198,10 @@ class TransformerModel(MTBaseModel):
                                  [vg.enc.transformer_stack.trans, vg.dec.trans])
     summary_utils.AddNormSummary(p, 'softmax', vg.dec.softmax)
 
-  def Decode(self):
+  def Decode(self, input_batch):
     """Constructs the inference graph."""
-    super(TransformerModel, self).Decode()
-    return self._BeamSearchDecode()
+    super(TransformerModel, self).Decode(input_batch)
+    return self._BeamSearchDecode(input_batch)
 
   def PostProcessDecodeOut(self, dec_out, dec_metrics):
     return self._PostProcessBeamSearchDecodeOut(dec_out, dec_metrics)
