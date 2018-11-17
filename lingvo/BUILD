@@ -26,7 +26,6 @@ py_library(
     srcs = ["base_runner.py"],
     deps = [
         ":base_trial",
-        ":model_registry",
         # Implicit tensorflow dependency.
         # Implicit tensorflow py proto dependency.
         "//lingvo/core:cluster_factory",
@@ -113,6 +112,7 @@ py_library(
     deps = [
         ":base_trial",
         ":model_imports_no_params",
+        ":model_registry",
         # Implicit network file system dependency.
         "//lingvo:base_runner",
         # Implicit IPython dependency.

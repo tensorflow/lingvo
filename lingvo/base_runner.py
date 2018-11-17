@@ -28,7 +28,6 @@ from tensorflow.core.framework import summary_pb2
 from tensorflow.core.protobuf import saver_pb2
 
 from lingvo import base_trial
-from lingvo import model_registry
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import py_utils
@@ -43,13 +42,6 @@ tf.flags.DEFINE_integer('saver_max_to_keep', 100,
                         'Maximum number of recent checkpoints to keep.')
 
 FLAGS = tf.flags.FLAGS
-
-# pyformat: disable
-# pylint: disable=invalid-name
-GetParams = model_registry.GetParams
-GetClass = model_registry.GetClass
-# pylint: enable=invalid-name
-# pyformat: enable
 
 
 class BaseRunner(object):

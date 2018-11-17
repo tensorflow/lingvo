@@ -117,7 +117,9 @@ class TrainerTest(BaseTrainerTest):
     FLAGS.logdir = logdir
     cfg = self._GetTestConfig()
 
-    trainer.RunnerManager.StartRunners(
+    runner_manager = trainer.RunnerManager(cfg.name)
+
+    runner_manager.StartRunners(
         [self._CreateController(cfg),
          self._CreateTrainer(cfg)])
 
@@ -133,7 +135,7 @@ class TrainerTest(BaseTrainerTest):
     # EvalerDev may not run concurrently with Controller in a single process
     # because EvalerDev loads checkpoints and overwrites states like global
     # steps.
-    trainer.RunnerManager.StartRunners([self._CreateEvalerDev(cfg)])
+    runner_manager.StartRunners([self._CreateEvalerDev(cfg)])
 
     dev_files = tf.gfile.Glob(logdir + '/eval_dev/*')
     self.assertTrue(self._HasFile(dev_files, 'params.txt'))
@@ -149,10 +151,12 @@ class TrainerTest(BaseTrainerTest):
     FLAGS.logdir = logdir
     cfg = self._GetTestConfig()
 
-    trainer.RunnerManager.StartRunners(
+    runner_manager = trainer.RunnerManager(cfg.name)
+
+    runner_manager.StartRunners(
         [self._CreateController(cfg),
          self._CreateTrainer(cfg)])
-    trainer.RunnerManager.StartRunners([self._CreateDecoderDev(cfg)])
+    runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
 
     dec_files = tf.gfile.Glob(logdir + '/decoder_dev/*')
     self.assertTrue(self._HasFile(dec_files, 'params.txt'))
@@ -197,7 +201,8 @@ class TrainerWithTrialTest(TrainerTest):
                                                           (5, 5, 10, 50)])
       self.assertEqual(runner.params.task.train.lr_schedule.decay_start, 100)
 
-    trainer.RunnerManager.StartRunners(runners)
+    runner_manager = trainer.RunnerManager(cfg.name)
+    runner_manager.StartRunners(runners)
     # Controller and trainer check whether the trial is stopped.
     self.assertGreater(trial.OverrideModelParams.call_count, 0)
     self.assertGreater(trial.ShouldStop.call_count, 0)
