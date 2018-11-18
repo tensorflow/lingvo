@@ -2167,6 +2167,11 @@ class FeedForwardNet(base_layer.BaseLayer):
       assert len(batch_norm) == num_layers
     else:
       batch_norm = [batch_norm] * num_layers
+    activation = p.activation
+    if isinstance(activation, six.string_types):
+      activation = [activation] * num_layers
+    else:
+      assert len(activation) == num_layers
     params_dropout_layers = p.dropout
     if isinstance(params_dropout_layers, (list, tuple)):
       assert len(params_dropout_layers) == num_layers
@@ -2177,45 +2182,27 @@ class FeedForwardNet(base_layer.BaseLayer):
       # Residual connections work better in the form of:
       #   y = x + Affine(Activation(BatchNorm(x)))
       params_fc_layers = []
-      params_bn_layers = []
       in_dim = p.input_dim
       for i in range(num_layers):
         out_dim = p.hidden_layer_dims[i]
         proj_out_dim = out_dim
         name = '%s_%d' % (p.name, i)
-        # We explicitly disable activation and batch_norm for ProjectLayer and
-        # apply them explicitly for backwards-compatibility.
-        #
-        # TODO(rpang): confirm that batch_norm is not set to True for any
-        # existing model and fold it into ProjectionLayer.
         params_i = ProjectionLayer.Params().Set(
-            batch_norm=False,
-            has_bias=True,
-            activation='NONE',
+            batch_norm=batch_norm[i],
+            has_bias=(not batch_norm[i]),
+            activation=activation[i],
             input_dim=in_dim,
             output_dim=proj_out_dim,
             name=name)
         params_fc_layers.append(params_i)
-        if batch_norm[i]:
-          bn_params_i = BatchNormLayer.Params().Set(name=name, dim=proj_out_dim)
-          params_bn_layers.append(bn_params_i)
-        else:
-          ident_params_i = IdentityLayer.Params().Set(name=name)
-          params_bn_layers.append(ident_params_i)
         in_dim = out_dim
 
       self.CreateChildren('fc', params_fc_layers)
-      self.CreateChildren('bn', params_bn_layers)
       self.CreateChildren('dropout', params_dropout_layers)
 
   def FProp(self, theta, inputs, paddings=None):
     p = self.params
     num_layers = len(self.fc)
-    activation = p.activation
-    if isinstance(activation, six.string_types):
-      activation = [activation] * num_layers
-    else:
-      assert len(activation) == num_layers
 
     in_dim, layer_in = p.input_dim, inputs
     for i in range(num_layers):
@@ -2224,9 +2211,6 @@ class FeedForwardNet(base_layer.BaseLayer):
           layer_in)
       out_dim = p.hidden_layer_dims[i]
       layer_out = self.fc[i].FProp(theta.fc[i], layer_in, paddings)
-      layer_out = self.bn[i].FProp(theta.bn[i], layer_out, paddings)
-      if activation[i] != 'NONE':
-        layer_out = _ACTIVATIONS[activation[i]](layer_out)
       layer_out = self.dropout[i].FProp(theta.dropout[i], layer_out)
       layer_in = layer_out
       in_dim = out_dim

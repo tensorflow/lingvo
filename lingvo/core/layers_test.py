@@ -2583,7 +2583,6 @@ class FeedForwardNetTest(tf.test.TestCase):
           name='ffn',
           input_dim=10,
           hidden_layer_dims=[20, 30],
-          batch_norm=True,
           activation=['RELU', 'NONE'])
       params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
       p.params_init = params_init
@@ -2594,9 +2593,9 @@ class FeedForwardNetTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
       # pyformat: disable
-      test_utils.CompareToGoldenSingleFloat(self, -0.000002, out.eval(), atol=1e-5)  # pylint: disable=line-too-long
+      test_utils.CompareToGoldenSingleFloat(self, 8.190775, out.eval(), atol=1e-5)  # pylint: disable=line-too-long
       # pyformat: enable
-      test_utils.CompareToGoldenSingleFloat(self, 126.990379, out_abs.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 36.773586, out_abs.eval())
 
   def testDropoutLayerTrain(self):
     with self.session(use_gpu=True) as sess:
