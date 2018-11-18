@@ -162,7 +162,7 @@ class BaseTask(base_layer.BaseLayer):
       # generator stops after one epoch.
       if p.is_eval and p.eval:
         seq_inp = issubclass(p.input.cls,
-                             base_input_generator.BaseSequenceInputGenerator)
+                             base_input_generator.BaseInputGeneratorFromFiles)
         if p.input.num_samples == 0:
           # Dataset size is unknown. Computes eval summary based on num_samples.
           assert p.eval.samples_per_summary > 0
