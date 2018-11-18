@@ -2151,17 +2151,8 @@ class FeedForwardNet(base_layer.BaseLayer):
         'The activation function to use. Can be a single string, or a'
         ' tuple/list of strings having the same length as the number'
         ' of layers.')
-    p.Define(
-        'skip_connections', None,
-        'This can be a single string or a tuple/list of strings, one per '
-        'layer. '
-        'If "ResNet", add a ResNet-style skip connections between input '
-        'and output of the layer, requiring them to have the same depth. '
-        'If "DenseNet", add a DenseNet-style skip connection between '
-        'input and output of the layer.')
+    p.Define('skip_connections', None, 'Must be None.')
     return p
-
-  _SKIP_CONNECTION_TYPES = ('ResNet', 'DenseNet')
 
   @base_layer.initializer
   def __init__(self, params):
@@ -2169,17 +2160,13 @@ class FeedForwardNet(base_layer.BaseLayer):
     p = self.params
     assert p.name
 
+    assert p.skip_connections is None
     batch_norm = p.batch_norm
     num_layers = len(p.hidden_layer_dims)
     if isinstance(batch_norm, (list, tuple)):
       assert len(batch_norm) == num_layers
     else:
       batch_norm = [batch_norm] * num_layers
-    self._skip_connections = p.skip_connections
-    if isinstance(self._skip_connections, (list, tuple)):
-      assert len(self._skip_connections) == num_layers
-    else:
-      self._skip_connections = [p.skip_connections] * num_layers
     params_dropout_layers = p.dropout
     if isinstance(params_dropout_layers, (list, tuple)):
       assert len(params_dropout_layers) == num_layers
@@ -2195,19 +2182,12 @@ class FeedForwardNet(base_layer.BaseLayer):
       for i in range(num_layers):
         out_dim = p.hidden_layer_dims[i]
         proj_out_dim = out_dim
-        if self._skip_connections[i] == 'ResNet':
-          if out_dim != in_dim:
-            # Disable ResNet.
-            self._skip_connections[i] = 'NONE'
-        elif self._skip_connections[i] == 'DenseNet':
-          if out_dim > in_dim:
-            proj_out_dim = out_dim - in_dim
-          else:
-            # Disable DenseNet.
-            self._skip_connections[i] = 'NONE'
         name = '%s_%d' % (p.name, i)
         # We explicitly disable activation and batch_norm for ProjectLayer and
-        # apply them separately to support skip connections in between.
+        # apply them explicitly for backwards-compatibility.
+        #
+        # TODO(rpang): confirm that batch_norm is not set to True for any
+        # existing model and fold it into ProjectionLayer.
         params_i = ProjectionLayer.Params().Set(
             batch_norm=False,
             has_bias=True,
@@ -2238,25 +2218,17 @@ class FeedForwardNet(base_layer.BaseLayer):
       assert len(activation) == num_layers
 
     in_dim, layer_in = p.input_dim, inputs
-    prev_proj_out = None
     for i in range(num_layers):
       layer_in = py_utils.with_dependencies(
           [py_utils.assert_shape_match([tf.shape(layer_in)[-1]], [in_dim])],
           layer_in)
       out_dim = p.hidden_layer_dims[i]
       layer_out = self.fc[i].FProp(theta.fc[i], layer_in, paddings)
-      skip_connection = self._skip_connections[i]
-      if skip_connection == 'ResNet' and prev_proj_out is not None:
-        layer_out = tf.add(prev_proj_out, layer_out)
-      prev_proj_out = layer_out
       layer_out = self.bn[i].FProp(theta.bn[i], layer_out, paddings)
       if activation[i] != 'NONE':
         layer_out = _ACTIVATIONS[activation[i]](layer_out)
       layer_out = self.dropout[i].FProp(theta.dropout[i], layer_out)
-      if skip_connection == 'DenseNet':
-        layer_in = tf.concat([layer_in, layer_out], axis=-1)
-      else:
-        layer_in = layer_out
+      layer_in = layer_out
       in_dim = out_dim
     return layer_in
 
