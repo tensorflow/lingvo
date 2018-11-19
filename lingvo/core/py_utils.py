@@ -68,12 +68,6 @@ ENQUEUE_OPS = '__lingvo_enqueue_ops'
 CLOSE_QUEUE_OPS = '__lingvo_close_queue_ops'
 
 
-# TODO(syzhang): merge this with summary_utils.scalar().
-def _scalar(params, *args, **kwargs):  # pylint: disable=invalid-name
-  if params.add_summary:
-    tf.summary.scalar(*args, **kwargs)
-
-
 def Assert(condition, data, *args, **kwargs):
   if FLAGS.enable_asserts:
     return tf.Assert(condition, data, *args, **kwargs)
@@ -1044,19 +1038,6 @@ def GetOrCreateGlobalStep():
     return tf.train.get_or_create_global_step()
 
 
-def CreateTaskGlobalStep(params, task_name):
-  """Create if needed and return the global_step."""
-  with tf.name_scope(None), tf.variable_scope(global_variable_scope):
-    graph_collections = [tf.GraphKeys.GLOBAL_VARIABLES, 'TASK_GLOBAL_STEP']
-    _, v = CreateVariable(
-        name=task_name + '_global_step',
-        params=WeightParams([], WeightInit.Constant(0), tf.int64),
-        trainable=False,
-        collections=graph_collections)
-    _scalar(params, v.name, v)
-    return v
-
-
 def _LogPlacement(label, theta, copy):
   """Logs theta and its copy's device placement."""
 
@@ -1656,31 +1637,6 @@ def CombineMetrics(loss_metric_weight_pairs):
 
     result[k] = (total_val / total_target_weight, total_target_weight)
   return result
-
-
-class StatsCounter(object):
-  """A single counter in TF."""
-
-  def __init__(self, name):
-    self._name = name
-    _, self._var = CreateVariable(
-        name=name,
-        params=WeightParams([], WeightInit.Constant(0), tf.int64),
-        trainable=False)
-    self._value = self._var.value() + 0  # Makes a copy.
-
-  def Value(self):
-    """Returns the current counter value."""
-    return self._value
-
-  def IncBy(self, params, delta):
-    """Increment the counter by delta and return the new value."""
-    # NOTE: We must ensure _value is computed (_var + 0) before
-    # updating _var with delta.
-    delta = tf.to_int64(delta)
-    with tf.control_dependencies([self._value]):
-      _scalar(params, self._name, self._value)
-      return tf.identity(tf.assign_add(self._var, delta))
 
 
 def _AddVN(p, x, step=None):

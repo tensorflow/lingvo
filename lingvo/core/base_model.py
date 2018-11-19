@@ -36,6 +36,46 @@ from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 
 
+def CreateTaskGlobalStep(params, task_name):
+  """Create if needed and return the global_step."""
+  with tf.name_scope(None), tf.variable_scope(py_utils.global_variable_scope):
+    graph_collections = [tf.GraphKeys.GLOBAL_VARIABLES, 'TASK_GLOBAL_STEP']
+    _, v = py_utils.CreateVariable(
+        name=task_name + '_global_step',
+        params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
+                                     tf.int64),
+        trainable=False,
+        collections=graph_collections)
+    summary_utils.scalar(params, v.name, v)
+    return v
+
+
+class StatsCounter(object):
+  """A single counter in TF."""
+
+  def __init__(self, name):
+    self._name = name
+    _, self._var = py_utils.CreateVariable(
+        name=name,
+        params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
+                                     tf.int64),
+        trainable=False)
+    self._value = self._var.value() + 0  # Makes a copy.
+
+  def Value(self):
+    """Returns the current counter value."""
+    return self._value
+
+  def IncBy(self, params, delta):
+    """Increment the counter by delta and return the new value."""
+    # NOTE: We must ensure _value is computed (_var + 0) before
+    # updating _var with delta.
+    delta = tf.to_int64(delta)
+    with tf.control_dependencies([self._value]):
+      summary_utils.scalar(params, self._name, self._value)
+      return tf.identity(tf.assign_add(self._var, delta))
+
+
 class BaseTask(base_layer.BaseLayer):
   """A single encoder/decoder task.
 
@@ -203,7 +243,7 @@ class BaseTask(base_layer.BaseLayer):
     tp = p.train
     if tp:
       if tp.task_global_step:
-        self._task_global_step = py_utils.CreateTaskGlobalStep(p, p.name)
+        self._task_global_step = CreateTaskGlobalStep(p, p.name)
         self._global_step = self._task_global_step
       else:
         self._task_global_step = None
@@ -724,7 +764,7 @@ class BaseTask(base_layer.BaseLayer):
     p = self.params
     if self._total_examples is None:
       with tf.variable_scope(p.name):
-        self._total_examples = py_utils.StatsCounter('total_samples')
+        self._total_examples = StatsCounter('total_samples')
     if value is None:
       assert self.input_generator is not None, ('No input generator defined')
       value = self.input_generator.InputBatchSize()
@@ -735,7 +775,7 @@ class BaseTask(base_layer.BaseLayer):
     if self._total_nans_and_infs is None:
       with tf.variable_scope(
           py_utils.global_variable_scope, reuse=tf.AUTO_REUSE):
-        self._total_nans_and_infs = py_utils.StatsCounter('total_nan_gradients')
+        self._total_nans_and_infs = StatsCounter('total_nan_gradients')
     return self._total_nans_and_infs.IncBy(self.params, value)
 
   def _UpdateVnConfig(self):

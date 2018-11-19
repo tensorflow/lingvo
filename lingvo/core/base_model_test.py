@@ -42,6 +42,20 @@ _NUMPY_RANDOM_SEED = 9885784
 
 class BaseTaskTest(tf.test.TestCase):
 
+  def testStatsCounter(self):
+    with self.session() as sess:
+      foo = base_model.StatsCounter('foo')
+      val = foo.Value()
+      params = base_layer.BaseLayer.Params()
+      inc = foo.IncBy(params, 100)
+
+      tf.global_variables_initializer().run()
+      self.assertAllEqual(0, val.eval())
+      self.assertAllEqual(100, sess.run(inc))
+      self.assertAllEqual(100, val.eval())
+      self.assertAllEqual([100, 200], sess.run([val, inc]))
+      self.assertAllEqual([200, 300], sess.run([val, inc]))
+
   @classmethod
   def TestParams(cls):
     p = base_model.BaseTask.Params()

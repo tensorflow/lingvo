@@ -647,20 +647,6 @@ class PyUtilsTest(tf.test.TestCase):
     self.assertTrue(set([p1, p2, p3]) == z2_needed)
     self.assertTrue(set([p1, p2, p3, p4]) == z2_p4_needed)
 
-  def testStatsCounter(self):
-    with self.session() as sess:
-      foo = py_utils.StatsCounter('foo')
-      val = foo.Value()
-      params = base_layer.BaseLayer.Params()
-      inc = foo.IncBy(params, 100)
-
-      tf.global_variables_initializer().run()
-      self.assertAllEqual(0, val.eval())
-      self.assertAllEqual(100, sess.run(inc))
-      self.assertAllEqual(100, val.eval())
-      self.assertAllEqual([100, 200], sess.run([val, inc]))
-      self.assertAllEqual([200, 300], sess.run([val, inc]))
-
   def testModelSplit(self):
     with py_utils.ModelSplit(2):
       assert py_utils.GetModelSplit() == 2
