@@ -42,7 +42,7 @@ void GenerateProtoDef(const google::protobuf::FileDescriptor* dot_proto,
   if (printed_files->find(dot_proto->name()) != printed_files->end()) {
     return;
   }
-  std::cout << "File: " << dot_proto->name() << std::endl;
+  printed_files->insert(dot_proto->name());
   WriteDotProto(dot_proto, output_dirpath);
   for (int k = 0; k < dot_proto->dependency_count(); ++k)
     GenerateProtoDef(dot_proto->dependency(k), output_dirpath, printed_files);

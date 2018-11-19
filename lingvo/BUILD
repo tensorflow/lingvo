@@ -124,6 +124,7 @@ py_library(
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
         "//lingvo/core:cluster_factory",
+        "//lingvo/core:inference_graph_exporter",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
     ],
@@ -169,6 +170,8 @@ lingvo_py_binary(
     deps = [
         ":model_imports",  # build_cleaner: keep
         ":trainer_lib",  # build_cleaner: keep
+        "//lingvo/core:predictor",  # build_cleaner: keep
+        "//lingvo/core/ops:hyps_py_pb2",  # build_cleaner: keep
         "//lingvo/tasks/punctuator/tools:download_brown_corpus",  # build_cleaner: keep
     ],
 )

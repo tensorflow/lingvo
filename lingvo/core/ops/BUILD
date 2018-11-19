@@ -280,12 +280,13 @@ py_test(
     ],
 )
 
-lingvo_proto_py(
-    name = "hyps_py_pb2",
-    src = "hyps.proto",
-)
-
 lingvo_proto_cc(
     name = "hyps_proto",
     src = "hyps.proto",
+)
+
+lingvo_proto_py(
+    name = "hyps_py_pb2",
+    src = "hyps.proto",
+    deps = [":hyps_proto"],
 )

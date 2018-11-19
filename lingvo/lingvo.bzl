@@ -101,7 +101,6 @@ def lingvo_cuda_py_test(name, tags = [], deps = [], **kwargs):
 def _proto_gen_cc_src(name, basename):
     native.genrule(
         name = name,
-        # TODO(drpng): only works with proto with no deps within lingvo.
         srcs = [basename + ".proto"],
         outs = [basename + ".pb.cc", basename + ".pb.h"],
         tools = [
@@ -120,7 +119,6 @@ def _proto_gen_cc_src(name, basename):
 def _proto_gen_py_src(name, basename):
     native.genrule(
         name = name,
-        # TODO(drpng): only works with proto with no deps within lingvo.
         srcs = [basename + ".proto"],
         outs = [basename + "_pb2.py"],
         tools = [
@@ -136,7 +134,9 @@ def _proto_gen_py_src(name, basename):
         """,
     )
 
-def lingvo_proto_cc(name, src):
+def lingvo_proto_cc(name, src, deps = []):
+    # TODO(drpng): only works with proto with no deps within lingvo.
+    _unused = [deps]
     basename = src.replace(".proto", "")
     _proto_gen_cc_src(name + "_gencc", basename)
     lingvo_cc_library(
@@ -145,7 +145,9 @@ def lingvo_proto_cc(name, src):
         hdrs = [basename + ".pb.h"],
     )
 
-def lingvo_proto_py(name, src):
+def lingvo_proto_py(name, src, deps = []):
+    # TODO(drpng): only works with proto with no deps within lingvo.
+    _unused = [deps]
     basename = src.replace(".proto", "")
     _proto_gen_py_src(name + "_genpy", basename)
     native.py_library(

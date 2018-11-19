@@ -7,6 +7,9 @@ licenses(["notice"])  # Apache 2.0
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_cuda_py_test",
+    "lingvo_proto_cc",
+    "lingvo_proto_py",
+    "lingvo_py_binary",
 )
 
 py_library(
@@ -96,6 +99,23 @@ py_test(
         ":beam_search_helper",
         ":py_utils",
         # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "bfloat16_variables",
+    srcs = ["bfloat16_variables.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "bfloat16_variables_test",
+    srcs = ["bfloat16_variables_test.py"],
+    deps = [
+        ":bfloat16_variables",
         # Implicit tensorflow dependency.
     ],
 )
@@ -323,6 +343,46 @@ py_test(
     ],
 )
 
+lingvo_proto_cc(
+    name = "inference_graph_proto",
+    src = "inference_graph.proto",
+)
+
+lingvo_proto_py(
+    name = "inference_graph_py_pb2",
+    src = "inference_graph.proto",
+    deps = [":inference_graph_proto"],
+)
+
+py_library(
+    name = "inference_graph_exporter",
+    srcs = ["inference_graph_exporter.py"],
+    deps = [
+        ":base_model",
+        ":bfloat16_variables",
+        ":inference_graph_py_pb2",
+        ":py_utils",
+        # Implicit python proto dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "inference_graph_exporter_test",
+    srcs = ["inference_graph_exporter_test.py"],
+    deps = [
+        ":base_input_generator",
+        ":base_model",
+        ":base_model_params",
+        ":inference_graph_exporter",
+        ":inference_graph_py_pb2",
+        ":py_utils",
+        # Implicit tensorflow dependency.
+        "//lingvo:model_registry",
+    ],
+)
+
 py_library(
     name = "input_generator_helper",
     srcs = ["input_generator_helper.py"],
@@ -493,6 +553,29 @@ py_test(
         ":plot",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "predictor_lib",
+    srcs = ["predictor.py"],
+    deps = [
+        ":inference_graph_py_pb2",
+        ":py_utils",
+        # Implicit python proto dependency.
+        # Implicit IPython dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.
+    ],
+)
+
+lingvo_py_binary(
+    name = "predictor",
+    srcs = ["predictor.py"],
+    deps = [
+        ":predictor_lib",
+        "//lingvo:model_imports",
     ],
 )
 

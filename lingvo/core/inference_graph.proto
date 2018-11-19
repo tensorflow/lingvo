@@ -1,0 +1,123 @@
+/* Copyright 2018 The TensorFlow Authors. All Rights Reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+
+syntax = "proto2";
+
+// TODO(jonathanasdf): Change to package tensorflow.lingvo.
+package _lingvo;
+
+import "google/protobuf/any.proto";
+import "tensorflow/core/framework/graph.proto";
+import "tensorflow/core/framework/types.proto";
+import "tensorflow/core/protobuf/saver.proto";
+
+// Represents a frozen graph constructed at training time which can be used with
+// the Predictor class in predictor.py to perform inference.
+message InferenceGraph {
+  // The graph definition, which can be imported using tf.import_graph_def.
+  // Note that in some situations, the actual graph def is saved separately
+  // and may be absent here.
+  optional tensorflow.GraphDef graph_def = 1;
+
+  // The saver definition, which is used to load checkpoints correctly. Can be
+  // imported using tf.Saver(saver_def=_).
+  // Note that if the graph is frozen (all vars converted to constants) and
+  // can no longer import a checkpoint, this may be absent.
+  optional tensorflow.SaverDef saver_def = 2;
+
+  // Defines discrete subgraphs of the overall inference graph.
+  // This is populated if the overall inference graph is generated for piecewise
+  // evaluation within a larger pipeline.
+  message Subgraph {
+    // Subgraph level meta data.
+    optional SubgraphMeta meta = 1;
+
+    // Maps logical feed/fetch name to tensor name with the GraphDef.
+    //
+    // RNN states should be named the same in both the feed and fetch lists.
+    // Optionally if multiple related RNN states are present they can be of the
+    // form some_state_name:0, some_state_name:1, ... to indicate to tooling and
+    // readers that the states are grouped.
+    map<string, string> feeds = 2;
+    map<string, string> fetches = 3;
+
+    // Separate feed/fetch metadata.
+    map<string, FeedFetchMeta> feeds_meta = 4;
+    map<string, FeedFetchMeta> fetches_meta = 5;
+  }
+  map<string, Subgraph> subgraphs = 5;
+
+  // Serialized dump of the model hyperparameters used to generate this
+  // instance.
+  optional string hyperparameters = 7;
+
+  // Optional metadata about a subgraph.
+  message SubgraphMeta {
+    // Private extension data between producer and driver code.
+    repeated google.protobuf.Any extensions = 1;
+  }
+
+  // Optional metadata about a feed or fetch.
+  // Some of this is redundant with data that can be derived from the GraphDef
+  // but is useful to have explicitly.
+  //
+  // NEXT TAG: 14
+  message FeedFetchMeta {
+    // Private extension data between producer and driver code.
+    repeated google.protobuf.Any extensions = 1;
+
+    // Datatype of the feed/fetch.
+    optional tensorflow.DataType data_type = 2;
+
+    // Shape of the feed/fetch. If a dimension is not fixed, it is -1.
+    // Omitted/empty if shape not specified.
+    repeated int32 shape = 3 [packed = true];
+
+    // Char-per-dimension layout of a feed/fetch.
+    // This is by convention between the producer and driver or just for
+    // documentation. It is not intended for driving behavior but can be used
+    // for checks.
+    // In general, the following is recommended:
+    //   t=time, b=batch, d=depth, f=feature, c=channel, 1=single
+    // Examples:
+    //   'tbd': time-batch-depth
+    //   'btd': batch-depth-time
+    //   'btfc': batch-time-feature-channel
+    optional string layout = 4;
+
+    // Axis along which the feed/fetch can be coalesced at runtime.
+    // For example, a feed having the shape [time, batch, depth] will have a
+    // dispatch_stride_axis of 0.
+    optional int32 dispatch_stride_axis = 13;
+
+    // If the feed/fetch is quantized, this is the number of bits in the
+    // quantized representation. If the ranges are non-const, then the
+    // *_tensor variants will be populated with the tensor name (which
+    // will be guaranteed to be a reference within the overall subgraph).
+    optional int32 quantized_num_bits = 8;
+    oneof quantized_min_oneof {
+      double quantized_min_const = 9;
+      string quantized_min_tensor = 10;
+    }
+    oneof quantized_max_oneof {
+      double quantized_max_const = 11;
+      string quantized_max_tensor = 12;
+    }
+
+    reserved 5, 6, 7;  // deprecated fields.
+  }
+
+  reserved 3, 4, 6;  // deprecated fields.
+}
