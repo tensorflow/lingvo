@@ -152,8 +152,8 @@ class MatplotlibFigureSummary(object):
         dimensions in inches.
       max_outputs: The maximum number of images to generate.
       subplot_grid_shape: A 2D tuple containing the height and width dimensions
-        of the subplot grid.  height * width must be <= len(tensor_list).
-        Defaults to (len(tensor_list), 1), i.e. a vertical stack of plots.
+        of the subplot grid.  height * width must be >= the number of subplots.
+        Defaults to (num_subplots, 1), i.e. a vertical stack of plots.
       gridspec_kwargs: A dict of extra keyword args to use when initializing the
         figure's gridspec, as supported by matplotlib.gridspec.GridSpec.
       plot_func: A function shared across all subplots used to populate a single
@@ -322,6 +322,7 @@ def Matrix(name, figsize, matrix, setter=None, **kwargs):
     matrix: A 2D numpy array.
     setter: A callable taking (fig, axes). Useful to fine-control
       layout of the figure, xlabel, xticks, etc.
+    **kwargs: Additional arguments to AddImage.
 
   Returns:
     A `tf.Summary` proto contains one image visualizing 'matrix.
