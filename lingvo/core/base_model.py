@@ -220,8 +220,8 @@ class BaseTask(base_layer.BaseLayer):
                              'The input generator may not iterate over exactly '
                              'one epoch per run')
 
-      cluster = cluster_factory.Current()
-      with tf.device(cluster.input_device), py_utils.outside_all_rewrites():
+      with tf.device(
+          self.cluster.input_device), py_utils.outside_all_rewrites():
         self.CreateChild('input', p.input)
 
     self._var_grads = None
@@ -350,7 +350,7 @@ class BaseTask(base_layer.BaseLayer):
 
   def _FPropSplitInputBatch(self, theta, input_batch):
     """Splits the input batch on the input device."""
-    cluster = cluster_factory.Current()
+    cluster = self.cluster
     num_splits = cluster.num_splits_per_client
 
     if not isinstance(input_batch, list):
@@ -402,7 +402,7 @@ class BaseTask(base_layer.BaseLayer):
     if py_utils.use_tpu():
       return self.input_generator.CreateTpuFeeds()
     else:
-      cluster = cluster_factory.Current()
+      cluster = self.cluster
       num_splits = cluster.num_splits_per_client
       with tf.device(cluster.input_device):
         return self.input_generator.SplitInputBatch(num_splits)

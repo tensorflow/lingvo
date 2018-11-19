@@ -329,7 +329,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         self.CreateChild('cc_schedule', p.cc_schedule)
 
       if py_utils.use_tpu():
-        emb_device = cluster_factory.Current().WorkerDeviceInModelSplit(0)
+        emb_device = self.cluster.WorkerDeviceInModelSplit(0)
       else:
         emb_device = ''
       with tf.device(emb_device):
@@ -436,7 +436,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         target_segment_id = tf.zeros_like(target_paddings)
 
       if py_utils.use_tpu():
-        emb_device = cluster_factory.Current().WorkerDeviceInModelSplit(0)
+        emb_device = self.cluster.WorkerDeviceInModelSplit(0)
       else:
         emb_device = ''
       with tf.device(emb_device):

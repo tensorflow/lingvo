@@ -679,7 +679,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     raise NotImplementedError('_PostBeamSearchStepCallback')
 
   def FProp(self, theta, source_encs, source_paddings, targets, src_segment_id):
-    with tf.device(cluster_factory.Current().WorkerDeviceInModelSplit(0)):
+    with tf.device(self.cluster.WorkerDeviceInModelSplit(0)):
       predictions = self.ComputePredictions(theta, source_encs, source_paddings,
                                             targets, src_segment_id)
       return self.ComputeLoss(theta, predictions, targets)

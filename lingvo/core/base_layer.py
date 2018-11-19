@@ -23,6 +23,7 @@ import threading
 import six
 import tensorflow as tf
 
+from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 
@@ -327,6 +328,11 @@ class BaseLayer(object):
   def params(self):
     """Returns the params upon which this layer is built."""
     return self._params
+
+  @property
+  def cluster(self):
+    """Returns the current cluster configuration."""
+    return cluster_factory.Current()
 
   @property
   def children(self):

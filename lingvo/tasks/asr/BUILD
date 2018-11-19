@@ -110,7 +110,6 @@ py_library(
         "//lingvo/core:attention",
         "//lingvo/core:base_decoder",
         "//lingvo/core:base_layer",
-        "//lingvo/core:cluster_factory",
         "//lingvo/core:layers",
         "//lingvo/core:plot",
         "//lingvo/core:py_utils",

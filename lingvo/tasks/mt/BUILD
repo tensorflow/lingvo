@@ -69,7 +69,6 @@ py_library(
         "//lingvo/core:attention",
         "//lingvo/core:base_decoder",
         "//lingvo/core:base_layer",
-        "//lingvo/core:cluster_factory",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
         "//lingvo/core:model_helper",
@@ -139,7 +138,6 @@ py_library(
         # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
-        "//lingvo/core:cluster_factory",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         "//lingvo/core:summary_utils",

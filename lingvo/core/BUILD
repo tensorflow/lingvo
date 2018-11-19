@@ -129,7 +129,6 @@ py_library(
     srcs = ["base_input_generator.py"],
     deps = [
         ":base_layer",
-        ":cluster_factory",
         ":input_generator_helper",
         ":py_utils",
         ":tokenizers",
@@ -143,6 +142,7 @@ py_library(
     name = "base_layer",
     srcs = ["base_layer.py"],
     deps = [
+        ":cluster_factory",
         ":hyperparams",
         ":py_utils",
         # Implicit six dependency.
@@ -167,7 +167,6 @@ py_library(
         ":base_input_generator",
         ":base_layer",
         ":build_data",
-        ":cluster_factory",
         ":early_stop",
         ":hyperparams",
         ":lr_schedule",
@@ -380,7 +379,6 @@ py_library(
     srcs = ["lr_schedule.py"],
     deps = [
         ":base_layer",
-        ":cluster_factory",
         ":early_stop",
         ":py_utils",
         # Implicit tensorflow dependency.
@@ -766,7 +764,6 @@ py_library(
     deps = [
         ":attention",
         ":base_layer",
-        ":cluster_factory",
         ":cudnn_rnn_utils",
         ":hyperparams",
         ":layers",

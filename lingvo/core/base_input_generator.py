@@ -26,7 +26,6 @@ from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.python.framework import function
 from tensorflow.python.ops import io_ops
 from lingvo.core import base_layer
-from lingvo.core import cluster_factory
 from lingvo.core import input_generator_helper as ig_helper
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
@@ -80,7 +79,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
   def InputBatchSize(self):
     """Returns the batch size for the current step."""
     p = self.params
-    cluster = cluster_factory.Current()
+    cluster = self.cluster
 
     # If use_per_host_infeed, each input op is only responsible
     # for generating a subset of the whole batch.
@@ -114,7 +113,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
   def CreateTpuFeeds(self):
     """Creates the TPU infeed queue from preprocessed batch."""
     p = self.params
-    cluster = cluster_factory.Current()
+    cluster = self.cluster
     num_tpu_hosts = cluster.num_tpu_hosts
     assert num_tpu_hosts > 0, ('num_tpu_hosts: %d' % num_tpu_hosts)
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
@@ -381,7 +380,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
   def scaled_bucket_batch_limit(self):
     p = self.params
     if not hasattr(self, '_scaled_bucket_batch_limit'):
-      cluster = cluster_factory.Current()
+      cluster = self.cluster
       self._scaled_bucket_batch_limit = [
           b * cluster.num_splits_per_client for b in p.bucket_batch_limit
       ]

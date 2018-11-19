@@ -457,7 +457,7 @@ class BidirectionalFRNN(base_layer.BaseLayer):
   def __init__(self, params):
     super(BidirectionalFRNN, self).__init__(params)
     p = params
-    cluster = cluster_factory.Current()
+    cluster = self.cluster
     if py_utils.use_tpu():
       fwd_device = cluster.WorkerDeviceInModelSplit(0)
       bwd_device = cluster.WorkerDeviceInModelSplit(1)
@@ -531,7 +531,7 @@ class BidirectionalFRNN(base_layer.BaseLayer):
 
       # On TPU, we run both direction's RNNs on one device to reduce memory
       # usage.
-      cluster = cluster_factory.Current()
+      cluster = self.cluster
       fwd_device = cluster.WorkerDeviceInModelSplit(0)
       bwd_device = cluster.WorkerDeviceInModelSplit(1)
       with tf.device(fwd_device):
@@ -1496,7 +1496,7 @@ class BidirectionalFRNNQuasi(base_layer.BaseLayer):
     """
     p = self.params
     with tf.name_scope(p.name):
-      cluster = cluster_factory.Current()
+      cluster = self.cluster
       fwd_device = cluster.WorkerDeviceInModelSplit(0)
       bwd_device = cluster.WorkerDeviceInModelSplit(1)
       with tf.device(fwd_device):

@@ -24,7 +24,6 @@ import tensorflow as tf
 
 from tensorflow.python.framework import function
 from lingvo.core import base_layer
-from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import py_utils
 from lingvo.core.ops import py_x_ops
@@ -336,7 +335,7 @@ class LinearRampupExponentialDecayScaledByNumSplitSchedule(
       splits = p.num_splits
     else:
       # Infer num_splits from cluster.
-      cluster_params = cluster_factory.Current().params.Copy()
+      cluster_params = self.cluster.params.Copy()
       cluster_params.task = 0
       assert cluster_params.mode == 'sync'
       cluster_params.job = 'trainer_client'
@@ -400,7 +399,7 @@ class LinearRampupPiecewiseConstantSchedule(BaseLearningRateSchedule):
       splits = p.num_splits
     else:
       # Infer num_splits from cluster.
-      cluster_params = cluster_factory.Current().params.Copy()
+      cluster_params = self.cluster.params.Copy()
       cluster_params.task = 0
       assert cluster_params.mode == 'sync'
       cluster_params.job = 'trainer_client'

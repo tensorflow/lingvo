@@ -37,16 +37,14 @@ class MTBaseModel(base_model.BaseTask):
   def _EncoderDevice(self):
     """Returns the device to run the encoder computation."""
     if py_utils.use_tpu():
-      cluster = cluster_factory.Current()
-      return tf.device(cluster.WorkerDeviceInModelSplit(0))
+      return tf.device(self.cluster.WorkerDeviceInModelSplit(0))
     else:
       return tf.device('')
 
   def _DecoderDevice(self):
     """Returns the device to run the decoder computation."""
     if py_utils.use_tpu():
-      cluster = cluster_factory.Current()
-      return tf.device(cluster.WorkerDeviceInModelSplit(1))
+      return tf.device(self.cluster.WorkerDeviceInModelSplit(1))
     else:
       return tf.device('')
 

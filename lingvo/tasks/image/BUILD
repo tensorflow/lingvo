@@ -14,7 +14,6 @@ py_library(
         # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
-        "//lingvo/core:cluster_factory",
         "//lingvo/core:layers",
         "//lingvo/core:lr_schedule",
         "//lingvo/core:metrics",
@@ -44,7 +43,6 @@ py_library(
     deps = [
         # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
-        "//lingvo/core:cluster_factory",
         "//lingvo/core:py_utils",
         "//lingvo/core/ops:py_x_ops",
     ],
