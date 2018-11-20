@@ -1,4 +1,4 @@
-package(default_visibility = ["//lingvo/tasks:__subpackages__"])
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])  # Apache 2.0
 
@@ -7,4 +7,10 @@ licenses(["notice"])  # Apache 2.0
 filegroup(
     name = "lm1b_100",
     data = ["lm1b_100.txt"],
+)
+
+# Small word-level vocab file (taken from a list of stopwords).
+filegroup(
+    name = "small_word_vocab",
+    data = ["small_word_vocab.txt"],
 )

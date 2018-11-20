@@ -1,11 +1,6 @@
-package(default_visibility = ["//lingvo/core/ops:__pkg__"])
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])  # Apache 2.0
-
-package_group(
-    name = "friends",
-    packages = ["//lingvo/core/..."],
-)
 
 filegroup(
     name = "best_step_testdata",
@@ -14,7 +9,6 @@ filegroup(
         "history.txt",
         "history_bleu.txt",
     ],
-    visibility = [":friends"],
 )
 
 filegroup(
@@ -42,5 +36,4 @@ filegroup(
 filegroup(
     name = "wmt",
     data = glob(["wmt/*"]),
-    visibility = [":friends"],
 )

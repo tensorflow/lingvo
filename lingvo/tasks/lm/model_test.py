@@ -25,6 +25,7 @@ from six.moves import range
 import tensorflow as tf
 from lingvo.core import test_helper
 from lingvo.core import test_utils
+from lingvo.core import tokenizers
 from lingvo.tasks.lm import input_generator
 from lingvo.tasks.lm import model
 
@@ -47,13 +48,13 @@ class ModelTest(tf.test.TestCase):
       p.bucket_upper_bound = [20]
       p.bucket_batch_limit = [2]
       p.target_max_length = 20
-    p.tokenizer.vocab_size = 76
+    p.tokenizer.vocab_size = 64
     return p
 
   def _Params(self):
     p = model.LanguageModel.Params()
     p.name = 'lm_test'
-    vocab, dims = 76, 64
+    vocab, dims = 64, 64
     p.lm.vocab_size = vocab
     p.lm.emb.vocab_size = vocab
     p.lm.emb.embedding_dim = dims
@@ -80,10 +81,10 @@ class ModelTest(tf.test.TestCase):
 
       loss, logp, logp_per_word, accuracy = sess.run(
           [loss, logp, logp_per_word, accuracy])
-      test_utils.CompareToGoldenSingleFloat(self, 4.329850, loss)
-      test_utils.CompareToGoldenSingleFloat(self, 4.329850, logp)
-      test_utils.CompareToGoldenSingleFloat(self, 6.185500, logp_per_word)
-      test_utils.CompareToGoldenSingleFloat(self, 0.025000, accuracy)
+      test_utils.CompareToGoldenSingleFloat(self, 4.160992, loss)
+      test_utils.CompareToGoldenSingleFloat(self, 4.160992, logp)
+      test_utils.CompareToGoldenSingleFloat(self, 5.944274, logp_per_word)
+      test_utils.CompareToGoldenSingleFloat(self, 0.000000, accuracy)
 
   def testLmTrain(self):
     p = self._Params()
@@ -105,6 +106,70 @@ class ModelTest(tf.test.TestCase):
         loss_val, _ = sess.run([loss, mdl.train_op])
         tf.logging.info('%d loss = %f', i, loss_val)
       self.assertLess(loss_val, 3.8)
+
+  def testLmInference(self):
+    tf.set_random_seed(93820986)
+    p = self._Params()
+    p.input = self._InputParams(for_training=False)
+    tf.logging.info('Params: %s', p.ToText())
+
+    with self.session(use_gpu=False) as sess:
+      mdl = p.cls(p)
+      subgraphs = mdl.Inference()
+      self.assertTrue('default' in subgraphs)
+      fetches, feeds = subgraphs['default']
+      tf.global_variables_initializer().run()
+      vals = sess.run(
+          fetches=fetches,
+          feed_dict={feeds['text']: ['pray for world peace', 'happy birthday']})
+      print('actual vals = ', vals)
+      self.assertEqual(vals['log_pplx_per_sample'].shape, (2,))
+      self.assertEqual(vals['log_pplx_per_token'].shape, (2, 20))
+      self.assertEqual(vals['paddings'].shape, (2, 20))
+
+  def testLmInferenceWordLevel(self):
+    tf.set_random_seed(93820986)
+    p = self._Params()
+    p.input = self._InputParams(for_training=False)
+    p.input.tokenizer = tokenizers.VocabFileTokenizer.Params()
+    p.input.tokenizer.vocab_size = 64
+    p.input.target_max_length = 5
+    p.input.pad_to_max_seq_length = True
+    # target_{sos,eos,unk}_id must be consistent with token_vocab_filepath.
+    p.input.tokenizer.target_sos_id = 1
+    p.input.tokenizer.target_eos_id = 2
+    p.input.tokenizer.target_unk_id = 3
+    p.input.tokenizer.token_vocab_filepath = test_helper.test_src_dir_path(
+        'tasks/lm/testdata/small_word_vocab.txt')
+    tf.logging.info('Params: %s', p.ToText())
+
+    with self.session(use_gpu=False) as sess:
+      mdl = p.cls(p)
+      subgraphs = mdl.Inference()
+      self.assertTrue('default' in subgraphs)
+      fetches, feeds = subgraphs['default']
+      tf.global_variables_initializer().run()
+      vals = sess.run(
+          fetches=fetches,
+          feed_dict={
+              feeds['text']: [
+                  'pray for more peace', 'happy about', 'one flambergastic will'
+              ]
+          })
+      print('actual vals = ', vals)
+      self.assertEqual(vals['log_pplx_per_sample'].shape, (3,))
+      self.assertEqual(vals['log_pplx_per_token'].shape, (3, 5))
+      self.assertEqual(vals['paddings'].shape, (3, 5))
+      expected_tokens_from_labels = [
+          '<UNK> for more <UNK> </S>', '<UNK> about </S>', 'one <UNK> will </S>'
+      ]
+      self.assertListEqual(vals['tokens_from_labels'].tolist(),
+                           expected_tokens_from_labels)
+      expected_num_oovs_per_sample = [2, 1, 1]
+      self.assertListEqual(vals['num_oovs_per_sample'].tolist(),
+                           expected_num_oovs_per_sample)
+      expected_ids = [[1, 1, 1], [3, 3, 41], [21, 8, 3], [35, 2, 61], [3, 2, 2]]
+      self.assertListEqual(vals['ids'].tolist(), expected_ids)
 
 
 if __name__ == '__main__':

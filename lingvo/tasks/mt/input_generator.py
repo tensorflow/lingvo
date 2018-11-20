@@ -78,6 +78,8 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
     super(NmtInput, self).__init__(params)
     p = self.params
 
+    self.natural_order_model = p.natural_order_model
+
     (self._src_ids, self._src_paddings, self._tgt_ids, self._tgt_paddings,
      self._tgt_labels, self._tgt_weights) = self._BuildDataSource()
 

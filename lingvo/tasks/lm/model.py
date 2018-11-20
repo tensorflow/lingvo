@@ -140,3 +140,75 @@ class LanguageModel(base_model.BaseTask):
           list(zip(lstm_vars, clipped_lstm_grads)))
 
     return var_grad
+
+  def Inference(self):
+    """Constructs the inference subgraphs.
+
+    Returns:
+      {'subgraph_name': (fetches, feeds)}
+    """
+    subgraphs = {}
+    with tf.name_scope('inference'):
+      subgraphs['default'] = self._InferenceSubgraph_Default()
+    return subgraphs
+
+  def _InferenceSubgraph_Default(self):
+    """Default inference subgraph.
+
+    Returns:
+      fetches: A dictionary of fetches, containing:
+        log_pplx_per_token: A matrix of shape [batch, time]. [i, j]
+          is i-th input text's j-th token's log prob.
+        paddings: A matrix of shape [batch, time]. The padding mask.
+        log_pplx_per_sample: A vector of shape [batch]. [i]
+          is i-th input text's log prob.
+        num_oovs_per_sample: A vector of shape [batch] counting the total number
+          of out-of-vocabulary tokens in each input.
+        tokens_from_labels: A vector of shape [batch] returning the predicted
+          tokens as a sequence after mapping them back to strings from ids using
+          the vocabulary.
+        ids: A matrix of shape [batch, time]. [i, j]
+          is i-th input text's j-th token's id.
+      feeds: A dictionary of feeds, containing:
+        text: A placeholder for a vector of strings.
+    """
+    text = tf.placeholder(tf.string, shape=[None])
+    # [batch, time]
+    ids, labels, paddings = self.input_generator.StringsToIds(text)
+    lengths = tf.reduce_sum(tf.to_int32(1 - paddings), axis=1)
+    tokens_from_labels = self.input_generator.IdsToStrings(labels, lengths)
+    oovs = tf.equal(labels, self.input_generator.tokenizer.unk_id)
+    num_oovs_per_sample = tf.to_int32(
+        tf.reduce_sum(tf.to_float(oovs) * (1 - paddings), axis=1))
+    # [time, batch]
+    ids, paddings, labels, weights = self._TrimIfPossibleThenTranspose(
+        ids, paddings, labels, 1.0 - paddings)
+    batch_size = tf.shape(ids)[1]
+    xent_output, _ = self.lm.FPropDefaultTheta(
+        inputs=ids,
+        paddings=paddings,
+        state0=self.lm.zero_state(batch_size),
+        labels=py_utils.NestedMap(class_ids=labels, class_weights=weights))
+
+    per_example_xent = py_utils.HasShape(xent_output.per_example_xent,
+                                         tf.shape(ids))
+    log_pplx_per_sample = tf.reduce_sum(
+        per_example_xent * (1 - paddings), axis=0)
+    fetches = {
+        'log_pplx_per_token':  # [batch, time]
+            tf.transpose(per_example_xent),
+        'paddings':  # [batch, time]
+            tf.transpose(paddings),
+        'lengths':  # [batch]
+            lengths,
+        'log_pplx_per_sample':  # [batch]
+            log_pplx_per_sample,
+        'num_oovs_per_sample':  # [batch], int32
+            num_oovs_per_sample,
+        'tokens_from_labels':  # [batch], string
+            tokens_from_labels,
+        'ids':  # [batch, time], int32
+            ids
+    }
+    feeds = {'text': text}
+    return fetches, feeds

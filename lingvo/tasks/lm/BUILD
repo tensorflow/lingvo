@@ -84,6 +84,7 @@ py_test(
     srcs = ["model_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
+        "//lingvo/tasks/lm/testdata:small_word_vocab",
     ],
     deps = [
         ":input_generator",
@@ -92,5 +93,6 @@ py_test(
         # Implicit tensorflow dependency.
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
+        "//lingvo/core:tokenizers",
     ],
 )
