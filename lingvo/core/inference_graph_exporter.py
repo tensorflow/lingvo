@@ -338,7 +338,6 @@ class InferenceGraphExporter(object):
     # Configure the model.
     model_cfg.is_eval = True
     model_cfg.is_inference = True
-    model_cfg.add_summary = False
 
     if issubclass(model_cfg.cls, base_model.MultiTaskModel):
       for _, task_param in model_cfg.task_params.IterParams():

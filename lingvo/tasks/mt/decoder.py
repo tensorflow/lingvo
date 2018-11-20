@@ -218,6 +218,9 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       atten_probs: a list of attention probs, each element is of shape
           [tgt_len, tgt_batch, src_len].
     """
+    if not self.cluster.add_summary:
+      return
+
     num_rows = len(atten_probs)
     fig = plot.MatplotlibFigureSummary(
         'decoder_example',
@@ -455,8 +458,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
             target_paddings,
             src_segment_id=src_segment_id,
             segment_id=target_segment_id)
-        if p.add_summary:
-          self._AddAttenProbsSummary(source_paddings, targets, [atten_probs])
+        self._AddAttenProbsSummary(source_paddings, targets, [atten_probs])
 
         atten_ctxs = self.ApplyClipping(theta, atten_ctxs)
         summary_utils.histogram(p, 'atten_ctxs', atten_ctxs)
@@ -916,8 +918,7 @@ class TransformerDecoder(MTBaseDecoder):
         layer_in = layer_out
         atten_probs.append(probs)
 
-      if p.add_summary:
-        self._AddAttenProbsSummary(source_paddings, targets, atten_probs)
+      self._AddAttenProbsSummary(source_paddings, targets, atten_probs)
 
       return layer_out
 

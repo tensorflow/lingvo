@@ -402,7 +402,7 @@ class AsrEncoder(base_encoder.BaseEncoder):
         rnn_in = rnn_out
       final_out = rnn_in
 
-      if p.add_summary:
+      if self.cluster.add_summary:
         fig = plot.MatplotlibFigureSummary(
             'encoder_example', figsize=(8, len(plots) * 3.5))
 

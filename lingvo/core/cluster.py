@@ -51,14 +51,17 @@ class _Cluster(object):
     p.Define('name', '/job:localhost',
              'TensorFlow job spec, e.g., /job:trainer, /job:ps')
     p.Define('replicas', replicas, 'The number of tasks of a job.')
-    p.Define('gpus_per_replica', 0, 'The number of GPU devices to use per '
-             'replica. If 0, we assume each replica has 1 CPU device.')
-    p.Define('devices_per_split', 1, 'Devices of a replica are grouped into '
-             'splits. Each split contains these many devices. One split is a '
-             'group of devices on which the computation nodes of a graph is '
-             'placed upon.E.g., one can place the forward lstm on device 0 of '
-             'a split and place the backward lstm on device 1. etc.')
-    p.Define('tpus_per_replica', 0, 'The number of tpu cores to use per replica.')
+    p.Define(
+        'gpus_per_replica', 0, 'The number of GPU devices to use per '
+        'replica. If 0, we assume each replica has 1 CPU device.')
+    p.Define(
+        'devices_per_split', 1, 'Devices of a replica are grouped into '
+        'splits. Each split contains these many devices. One split is a '
+        'group of devices on which the computation nodes of a graph is '
+        'placed upon.E.g., one can place the forward lstm on device 0 of '
+        'a split and place the backward lstm on device 1. etc.')
+    p.Define('tpus_per_replica', 0,
+             'The number of tpu cores to use per replica.')
     p.Define('num_tpu_hosts', 0, 'The number of tpu hosts.')
     return p
 
@@ -67,10 +70,12 @@ class _Cluster(object):
     """Defaults parameters for a cluster."""
     p = hyperparams.Params()
     p.Define('cls', cls, 'The class that this param is associated with.')
-    p.Define('mode', 'async', 'A string noting the overall training method. '
-             'Valid values: sync, async.')
-    p.Define('job', 'trainer', 'The role of this job in the training cluster. '
-             'E.g., trainer_client, trainer, controller,  etc.')
+    p.Define(
+        'mode', 'async', 'A string noting the overall training method. '
+        'Valid values: sync, async.')
+    p.Define(
+        'job', 'trainer', 'The role of this job in the training cluster. '
+        'E.g., trainer_client, trainer, controller,  etc.')
     p.Define('task', 0, 'This process is the task-th task in the job.')
 
     # How the cluster is composed.
@@ -98,6 +103,11 @@ class _Cluster(object):
     p.Define('input', cls._JobSpec(0), 'The input job.')
     p.Define('evaler', cls._JobSpec(0), 'The evaler job.')
     p.Define('decoder', cls._JobSpec(0), 'The decoder job.')
+
+    # A few 'global' knobs.
+    p.Define(
+        'add_summary', None, 'Whether to add summaries. If None, '
+        'decides based on the job type.')
     return p
 
   @classmethod
@@ -317,18 +327,18 @@ class _Cluster(object):
       return ''
     else:
       model_split = py_utils.GetModelSplit()
-      assert model_split < self.num_splits_per_client, ('%d %d' % (
-          model_split, self.num_splits_per_client))
+      assert model_split < self.num_splits_per_client, (
+          '%d %d' % (model_split, self.num_splits_per_client))
       devices_per_split = self.num_devices_per_split
-      return devices[devices_per_split * model_split
-                     + device_index % devices_per_split]
+      return devices[devices_per_split * model_split +
+                     device_index % devices_per_split]
 
   def GetPlacer(self, strategy=None):
     """Returns a device function for placing ops within the cluster.
 
     Args:
-      strategy: A string. Identifier for a placement strategy. By default,
-        we use a least loaded policy to place variables.
+      strategy: A string. Identifier for a placement strategy. By default, we
+        use a least loaded policy to place variables.
 
     Returns:
       Returns a device function can be used in tf.device().
@@ -342,6 +352,14 @@ class _Cluster(object):
     elif strategy is None:
       return _LeastLoadedPlacer(self).DeviceFunction
     raise ValueError('Unsupported placement policy: ', strategy)
+
+  @property
+  def add_summary(self):
+    p = self.params
+    if p.add_summary is None:
+      return self.job in ['controller', 'evaler', 'decoder']
+    else:
+      return p.add_summary
 
 
 # Ops that must be placed on the 'ps' devices.

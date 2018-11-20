@@ -32,6 +32,7 @@ class ClusterTest(tf.test.TestCase):
   def testDefaultParams(self):
     p = cluster_factory.Cluster.Params()
     c = cluster_factory.Cluster(p)
+    self.assertFalse(c.add_summary)
     g = tf.Graph()
     vs = []
     with g.as_default():

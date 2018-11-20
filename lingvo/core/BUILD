@@ -684,6 +684,7 @@ py_library(
     name = "summary_utils",
     srcs = ["summary_utils.py"],
     deps = [
+        ":cluster_factory",
         ":plot",
         ":py_utils",
         # Implicit numpy dependency.

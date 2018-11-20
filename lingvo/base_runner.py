@@ -32,8 +32,6 @@ from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import py_utils
 
-tf.flags.DEFINE_bool('add_summary', True, 'If True, adds summaries.')
-
 tf.flags.DEFINE_integer(
     'enqueue_max_steps', -1, 'Max enqueue steps. -1 meaning no limit.'
     ' This flag should be set for unit-test only.')
@@ -64,7 +62,6 @@ class BaseRunner(object):
       trial:   An optional hyperparameter trial. Used by Vizier studies.
     """
     p = params.Copy()
-    p.add_summary = FLAGS.add_summary
 
     self._params = trial.OverrideModelParams(p)
     tf.logging.info('=' * 60)

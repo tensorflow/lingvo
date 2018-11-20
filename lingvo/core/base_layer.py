@@ -182,7 +182,6 @@ class BaseLayer(object):
     # In addition to is_eval/is_inference, indicate that the inference graph is
     # for a single step.
     p.Define('per_step_infer', False, 'True if in per-step inference mode.')
-    p.Define('add_summary', True, 'Generates summaries if and only if True.')
     p.Define(
         'allow_implicit_capture', None,
         'When using Defuns, code often asserts that the Defun does not '
@@ -190,6 +189,9 @@ class BaseLayer(object):
         'at the expense of making some kinds of models or utilities '
         'hard/impossible to use. Setting this to True/False (versus None) '
         'causes the setting to apply to this layer and its children.')
+
+    # DEPRECATED params
+    p.Define('add_summary', True, 'DEPRECATED. Moved to Cluster.')
     return p
 
   @staticmethod
@@ -208,8 +210,6 @@ class BaseLayer(object):
       to_params.is_eval = from_params.is_eval
     if to_params.is_inference is None:
       to_params.is_inference = from_params.is_inference
-    if to_params.add_summary:
-      to_params.add_summary = from_params.add_summary
     if to_params.allow_implicit_capture is None:
       to_params.allow_implicit_capture = from_params.allow_implicit_capture
 

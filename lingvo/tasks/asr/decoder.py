@@ -471,7 +471,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     Returns:
       A finalized figure.
     """
-    if not self.params.add_summary:
+    if not self.cluster.add_summary:
       return tf.summary.scalar('disabled_decoder_example', 0)
 
     def _ToTensor(t):
@@ -1294,7 +1294,7 @@ class AsrDecoder(AsrDecoderBase):
       seq_out_tas: a SequenceOutTensorArrays.
       softmax_input: a tensor of shape [batch, time, vocab_size].
     """
-    if self.params.add_summary:
+    if cluster_factory.Current().add_summary:
       self.fusion.AddAdditionalDecoderSummaries(
           source_encs, source_paddings, targets, seq_out_tas, softmax_input)
 

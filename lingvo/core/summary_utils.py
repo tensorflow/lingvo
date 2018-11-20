@@ -22,17 +22,24 @@ import numpy as np
 
 import tensorflow as tf
 
+from lingvo.core import cluster_factory
 from lingvo.core import plot
 from lingvo.core import py_utils
 
 
+def _ShouldAddSummary():
+  return cluster_factory.Current().add_summary
+
+
 def scalar(params, *args, **kwargs):  # pylint: disable=invalid-name
-  if params.add_summary:
+  del params
+  if _ShouldAddSummary():
     tf.summary.scalar(*args, **kwargs)
 
 
 def histogram(params, *args, **kwargs):  # pylint: disable=invalid-name
-  if params.add_summary:
+  del params
+  if _ShouldAddSummary():
     tf.summary.histogram(*args, **kwargs)
 
 
@@ -121,7 +128,7 @@ def AddAttentionSummary(params,
     The added image summary.
   """
   name = attention_tensors[0].name + '/Attention'
-  if not params.add_summary:
+  if not _ShouldAddSummary():
     return tf.summary.scalar('disabled_%s' % name, 0)
   fig = plot.MatplotlibFigureSummary(name, max_outputs=max_outputs)
   src_lens = SequenceLength(tf.transpose(src_paddings))
