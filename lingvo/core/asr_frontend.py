@@ -115,7 +115,7 @@ class MelFrontend(base_layer.BaseLayer):
     elif p.window_fn == 'HANNING':
 
       def _HanningWindow(frame_size, dtype):
-        return tf.contrib.signal.hann_window(frame_size, dtype=dtype)
+        return tf.signal.hann_window(frame_size, dtype=dtype)
 
       self._window_fn = _HanningWindow
     else:
@@ -168,8 +168,8 @@ class MelFrontend(base_layer.BaseLayer):
   def _FPropChunk(self, theta, pcm_audio_chunk):
     p = self.params
     pcm_audio_chunk = tf.cast(pcm_audio_chunk, tf.float32)
-    framed_signal = tf.contrib.signal.frame(pcm_audio_chunk, self._frame_size,
-                                            self._frame_step, p.pad_end)
+    framed_signal = tf.signal.frame(pcm_audio_chunk, self._frame_size,
+                                    self._frame_step, p.pad_end)
     # Pre-emphasis.
     if p.preemph != 1.0:
       preemphasized = self._ApplyPreemphasis(framed_signal)
@@ -212,12 +212,12 @@ class MelFrontend(base_layer.BaseLayer):
     """
     p = self.params
     # FFT.
-    real_frequency_spectrogram = tf.spectral.rfft(signal, [self._fft_size])
+    real_frequency_spectrogram = tf.signal.rfft(signal, [self._fft_size])
     magnitude_spectrogram = tf.abs(real_frequency_spectrogram)
 
     # Shape of magnitude_spectrogram is num_frames x (fft_size/2+1)
     # Mel_weight is [num_spectrogram_bins, num_mel_bins]
-    mel_weight_matrix = tf.contrib.signal.linear_to_mel_weight_matrix(
+    mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
         num_mel_bins=p.num_bins,
         num_spectrogram_bins=self._fft_size // 2 + 1,
         sample_rate=p.sample_rate,
