@@ -29,6 +29,20 @@ from lingvo.core import py_utils
 from lingvo.core import quant_utils
 
 
+# Currently, quantization statistics cannot be accumulated across arbitrary
+# defuns, so we allow them to be disabled. A potentially more robust fix is
+# to save and merge the attention state across the defun boundary as is
+# done in recurrent.py.
+def _ConditionalDefun(cond, *args, **kwargs):
+
+  def Decorator(f):
+    if not cond:
+      return f
+    return function.Defun(*args, **kwargs)(f)
+
+  return Decorator
+
+
 def _ApplyAttentionDropout(params, x, step_state=None, prng_seed=None):
   """Apply attention dropout according to the given parameters.
 
@@ -67,7 +81,7 @@ def _ApplyAttentionDropout(params, x, step_state=None, prng_seed=None):
     return tf.nn.dropout(x, 1.0 - params.atten_dropout_prob, seed=seed)
 
 
-class BaseAttentionLayer(base_layer.BaseLayer):
+class BaseAttentionLayer(quant_utils.QuantizableLayer):
   """A base class for all attention layers."""
 
   @classmethod
@@ -95,6 +109,7 @@ class BaseAttentionLayer(base_layer.BaseLayer):
     self._prng_seed = py_utils.GenerateSeedFromName(p.name)
     if p.random_seed:
       self._prng_seed += p.random_seed
+    self.TrackQTensor('logits')
 
   def InitForSourcePacked(self,
                           theta,
@@ -274,6 +289,9 @@ class BaseAttentionLayer(base_layer.BaseLayer):
     Returns:
       Result of the softmax.
     """
+    p = self.params
+    fns = self.fns
+
     if logits.dtype.is_complex:
       logits = tf.abs(logits)
     assert logits.dtype.is_floating
@@ -281,8 +299,10 @@ class BaseAttentionLayer(base_layer.BaseLayer):
     very_negative_logits = (
         tf.ones_like(logits) * logits.dtype.max * tf.constant(
             -0.7, dtype=logits.dtype))
+    if p.is_eval:
+      very_negative_logits = self.QTensor('logits', very_negative_logits)
     padded_logits = tf.where(padding > 0.0, very_negative_logits, logits)
-    return tf.nn.softmax(padded_logits)
+    return fns.qsoftmax(padded_logits)
 
   def _UpdatePaddingWithPackedInputMask(self, padding, source_segment_ids,
                                         query_segment_ids):
@@ -1518,6 +1538,13 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         'List signals to run the convolutions on. Possible options are: '
         'PREV_PROBS, CUMULATIVE_PROBS.')
 
+    # Often the attention context output needs to be concated
+    # with tensors from another layer. This allows them to share
+    # quantization parameters. By convention, all attention layers
+    # need to include their context output vectors in this domain.
+    p.qdomain.Define('atten_context', None,
+                     'Quantization domain for attention context.')
+
     # Fill in reasonable default for params init
     p.params_init = py_utils.WeightInit.GaussianSqrtDim()
     return p
@@ -1528,11 +1555,17 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     super(LocationSensitiveAttention, self).__init__(params)
     p = self.params
     name = p.name
+    self._is_quantized = p.qdomain.default is not None
     assert p.packed_input is False, ('Packed input is not supported yet for '
                                      'LocationsensitiveAttention.')
 
     if p.atten_dropout_prob != 0:
       raise NotImplementedError('dropout is not supported')
+
+    self.TrackQTensor('logits_add', 'logits_fc', 'logits_matmul')
+    self.TrackQTensor('atten_conv', 'atten_matmul')
+    self.TrackQTensor('encode_matmul')
+    self.TrackQTensor('atten_context', qdomain='atten_context')
 
     with tf.variable_scope(name):
       pc = py_utils.WeightParams(
@@ -1579,10 +1612,12 @@ class LocationSensitiveAttention(BaseAttentionLayer):
           collections=['LocationSensitiveAttention_vars'])
       self.CreateVariable('location_var', location_pc, self.AddGlobalVN)
 
-    @function.Defun(*[p.dtype] * 5, noinline=not py_utils.use_tpu())
+    @_ConditionalDefun(
+        self._is_quantized, *[p.dtype] * 5, noinline=not py_utils.use_tpu())
     def AttenLogits(concated_source_vecs, query_vec_reshaped, hidden_v,
                     location_feats, location_var):
       """Generates logits."""
+      fns = self.fns
 
       def CollapseOutDim(x):
         return tf.reshape(x, [-1, tf.shape(x)[-1]])
@@ -1599,18 +1634,22 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       location_hidden = tf.reshape(location_hidden, [sl, bs_mult, sb, hd])
 
       # Shape of summed is [sl, tb/sb, sb, hidden_dim].
-      summed = tf.tanh(concated_source_vecs + query_vec_reshaped +
-                       location_hidden)
+      summed = fns.qadd(
+          concated_source_vecs, query_vec_reshaped, qt='logits_add')
+      summed = fns.qadd(summed, location_hidden, qt='logits_fc')
+      summed = fns.qtanh(summed)
       # logits is of shape [sl * tb/sb * sb, 1]. Computes dot product
       # between v with every rows in 'summed'. Then we reshape the
       # result to be of shape [sl, tb/sb, sb].
-      logits = py_utils.Matmul(
+      logits = fns.qmatmul(
           tf.reshape(summed, [-1, p.hidden_dim]),
-          tf.reshape(hidden_v, [p.hidden_dim, 1]))
+          tf.reshape(hidden_v, [p.hidden_dim, 1]),
+          qt='logits_matmul')
       logits = tf.reshape(logits, tf.shape(summed)[:3])
       return logits
 
-    @function.Defun(*[p.dtype] * 5, noinline=not py_utils.use_tpu())
+    @_ConditionalDefun(
+        not self._is_quantized, *[p.dtype] * 5, noinline=not py_utils.use_tpu())
     def AttenLogitsSameBatchSize(concated_source_vecs, query_vec_transformed,
                                  hidden_v, location_feats, location_var):
       """Generates logits.
@@ -1632,6 +1671,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       def CollapseOutDim(x):
         return tf.reshape(x, [-1, tf.shape(x)[-1]])
 
+      fns = self.fns
       # => [sl, batch, hd]
       location_feats = tf.transpose(location_feats, [1, 0, 2])
       location_hidden = py_utils.Matmul(
@@ -1642,15 +1682,21 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       location_hidden = tf.reshape(location_hidden, [sl, tb, hd])
 
       # Shape of summed is [sl, sb, hidden_dim].
-      summed = tf.tanh(concated_source_vecs +
-                       tf.expand_dims(query_vec_transformed, 0) +
-                       location_hidden)
+      summed = fns.qadd(
+          concated_source_vecs,
+          tf.expand_dims(query_vec_transformed, 0),
+          qt='logits_add')
+
+      summed = fns.qadd(summed, location_hidden, qt='logits_fc')
+      summed = fns.qtanh(summed)
+
       # logits is of shape [sl * sb, 1]. Computes dot product
       # between v with every rows in 'summed'. Then we reshape the
       # result to be of shape [sl, tb].
-      logits = py_utils.Matmul(
+      logits = fns.qmatmul(
           tf.reshape(summed, [-1, p.hidden_dim]),
-          tf.reshape(hidden_v, [p.hidden_dim, 1]))
+          tf.reshape(hidden_v, [p.hidden_dim, 1]),
+          qt='logits_matmul')
       logits = tf.reshape(logits, tf.shape(summed)[:2])
       # ==> of shape [sl, tb]
       return logits
@@ -1665,17 +1711,24 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       attention_state = py_utils.HasShape(
           attention_state, [-1, -1, len(p.location_features)])
 
+      fns = self.fns
       if p.dtype != tf.float32:
-        location_feats = tf.nn.conv1d(
+        location_feats = fns.qconv1d(
             tf.cast(attention_state, tf.float32),
             tf.cast(location_filter_var, tf.float32),
             1,
             'SAME',
-            data_format='NHWC')
+            data_format='NHWC',
+            qt='atten_conv')
         location_feats = tf.cast(location_feats, p.dtype)
       else:
-        location_feats = tf.nn.conv1d(
-            attention_state, location_filter_var, 1, 'SAME', data_format='NHWC')
+        location_feats = fns.qconv1d(
+            attention_state,
+            location_filter_var,
+            1,
+            'SAME',
+            data_format='NHWC',
+            qt='atten_conv')
       # concated_source_vecs is of shape [sl, sb, dims]
       # concated_source_contexts is of shape [sb, sl, context_dim]
       # query_vec is of shape [tb, dims]
@@ -1684,7 +1737,8 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       multiplier = tb // sb
       # concated_source_vecs is reshaped to [sl, 1, sb, hidden_dims]
       concated_source_vecs = tf.expand_dims(concated_source_vecs, 1)
-      query_vec_transformed = py_utils.Matmul(query_vec, query_var)
+      query_vec_transformed = fns.qmatmul(
+          query_vec, query_var, qt='atten_matmul')
       # query_vec is reshaped to [1, tb/sb, sb, hidden_dims].
       query_vec_reshaped = tf.reshape(query_vec_transformed,
                                       [1, multiplier, sb, p.hidden_dim])
@@ -1697,7 +1751,10 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       source_padding = tf.expand_dims(source_padding, 1)
       per_step_source_padding = tf.reshape(
           tf.transpose(per_step_source_padding), [-1, multiplier, sb])
-      source_padding += per_step_source_padding
+
+      source_padding = self.QRPadding(
+          tf.add(source_padding, per_step_source_padding))
+
       # Reshape logits to a matrix of shape [tb, sl] and takes the
       # softmax to compute the probabilities.
       logits = tf.transpose(tf.reshape(logits, [-1, tb]))
@@ -1708,9 +1765,10 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # Transpose probs to be of shape [sb, tb/sb, sl]
       probs_reshaped = tf.transpose(probs_reshaped, [1, 0, 2])
       # [sb, tb/sb, sl] * [sb, sl, context_dim] = [sb, tb/sb, context_dim]
-      summed = tf.matmul(
+      summed = fns.qbatchmatmul(
           tf.cast(probs_reshaped, concated_source_contexts.dtype),
-          concated_source_contexts)
+          concated_source_contexts,
+          qt='atten_context')
       # summed is of shape [tb/sb, sb, context_dim]
       summed = tf.transpose(summed, [1, 0, 2])
       return tf.reshape(summed, [tb, -1]), probs
@@ -1730,18 +1788,26 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       attention_state = py_utils.HasShape(
           attention_state, [-1, -1, len(p.location_features)])
 
+      fns = self.fns
       if p.dtype != tf.float32:
-        location_feats = tf.nn.conv1d(
+        location_feats = fns.qconv1d(
             tf.cast(attention_state, tf.float32),
             tf.cast(location_filter_var, tf.float32),
             1,
             'SAME',
-            data_format='NHWC')
+            data_format='NHWC',
+            qt='atten_conv')
         location_feats = tf.cast(location_feats, p.dtype)
       else:
-        location_feats = tf.nn.conv1d(
-            attention_state, location_filter_var, 1, 'SAME', data_format='NHWC')
-      query_vec_transformed = py_utils.Matmul(query_vec, query_var)
+        location_feats = fns.qconv1d(
+            attention_state,
+            location_filter_var,
+            1,
+            'SAME',
+            data_format='NHWC',
+            qt='atten_conv')
+      query_vec_transformed = fns.qmatmul(
+          query_vec, query_var, qt='atten_matmul')
       # logits is of shape [sl, sb]
       logits = AttenLogitsSameBatchSize(concated_source_vecs,
                                         query_vec_transformed, hidden_var,
@@ -1753,9 +1819,10 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       logits = tf.transpose(logits)
       source_padding = tf.transpose(source_padding)
       probs = self._PaddedSoftmax(logits, source_padding)
-      summed = tf.matmul(
+      summed = fns.qbatchmatmul(
           tf.cast(tf.expand_dims(probs, 1), concated_source_contexts.dtype),
-          concated_source_contexts)
+          concated_source_contexts,
+          qt='atten_context')
       return tf.squeeze(summed, 1), probs
 
     if p.same_batch_size:
@@ -1764,10 +1831,12 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       self._ctx_vec = Atten
 
     def EncodeSource(src_w, vecs, ctxs):
+      fns = self.fns
       time, batch = py_utils.GetShape(vecs, 2)
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
       transformed_vecs = tf.reshape(
-          py_utils.Matmul(tf.reshape(vecs, [-1, p.source_dim]), src_w),
+          fns.qmatmul(
+              tf.reshape(vecs, [-1, p.source_dim]), src_w, qt='encode_matmul'),
           [time, batch, -1])
       transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
       return transformed_vecs, transposed_ctxs
@@ -1784,7 +1853,8 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
       (concated_source_vecs, concated_source_contexts) = (
-          self._encode_source(theta.source_var, source_vecs, source_contexts))
+          self._encode_source(
+              self.QWeight(theta.source_var), source_vecs, source_contexts))
     return py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=concated_source_vecs,
@@ -1809,6 +1879,8 @@ class LocationSensitiveAttention(BaseAttentionLayer):
               [decoder_batch_size, source_seq_length - 1, num_features],
               dtype=dtype)
       ], 1)
+
+      state = self.QRSoftmax(state)
       # Having the last dim being 1 or 2 is very inefficient on tpu, and hence
       # we reshape to combine the last two dims.
       state = tf.reshape(state, [decoder_batch_size, -1])
@@ -1862,6 +1934,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     """
     del query_segment_id
     p = self.params
+    fns = self.fns
     concated_source_vecs = packed_src.source_vecs
     concated_source_contexts = packed_src.source_contexts
     source_padding = packed_src.source_padding
@@ -1893,9 +1966,13 @@ class LocationSensitiveAttention(BaseAttentionLayer):
 
     new_feats = {'PREV_PROBS': prob}
     if 'CUMULATIVE_PROBS' in p.location_features:
-      new_feats['CUMULATIVE_PROBS'] = (
-          prob + attention_state[:, :,
-                                 p.location_features.index('CUMULATIVE_PROBS')])
+      # Quantization must match the _PaddedSoftmax method.
+      new_feats['CUMULATIVE_PROBS'] = fns.qadd(
+          prob,
+          attention_state[:, :,
+                          p.location_features.index('CUMULATIVE_PROBS')],
+          qmin=0.0,
+          qmax=1.0)
     new_attention_state = tf.stack(
         [new_feats[f] for f in p.location_features], axis=2)
     new_attention_state = tf.reshape(new_attention_state, [bs, -1])

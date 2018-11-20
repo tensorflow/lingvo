@@ -342,6 +342,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     WrapOp('qmultiply', tf.multiply)
     WrapOp('qmatmul', py_utils.Matmul)
     WrapOp('qbatchmatmul', tf.matmul)
+    WrapOp('qconv1d', tf.nn.conv1d)
     WrapOp('qtanh', tf.tanh, default_qmin=-1.0, default_qmax=1.0)
     WrapOp('qsigmoid', tf.sigmoid, default_qmin=0.0, default_qmax=1.0)
     WrapOp('qsoftmax', tf.nn.softmax, default_qmin=0.0, default_qmax=1.0)

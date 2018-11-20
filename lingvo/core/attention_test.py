@@ -27,6 +27,7 @@ import tensorflow as tf
 
 from lingvo.core import attention
 from lingvo.core import py_utils
+from lingvo.core import quant_utils
 from lingvo.core import test_utils
 
 
@@ -1173,24 +1174,24 @@ class AttentionTest(tf.test.TestCase):
 
       self.assertEqual(atten_init_state_out.shape, atten_state_out.shape)
 
-  def _testLocationSensitiveAttentionSameBatchSizeHelper(self, same_batch_size):
+  def _testLocationSensitiveAttentionSameBatchSizeHelper(
+      self, same_batch_size, quantized=False):
     with self.session(tf.Graph(), use_gpu=True) as sess:
       np.random.seed(12345)
-      source_vecs = tf.stack([
-          tf.constant(np.random.rand(3, 4), dtype=tf.float64) for _ in range(6)
-      ])
-      source_contexts = tf.stack([
-          tf.constant(np.random.rand(3, 5), dtype=tf.float64) for _ in range(6)
-      ])
+      dtype = tf.float32 if quantized else tf.float64
+      source_vecs = tf.stack(
+          [tf.constant(np.random.rand(3, 4), dtype=dtype) for _ in range(6)])
+      source_contexts = tf.stack(
+          [tf.constant(np.random.rand(3, 5), dtype=dtype) for _ in range(6)])
       source_padding = tf.transpose(
           tf.constant(
               [[0, 0, 1, 1, 0, 0], [1, 0, 0, 0, 1, 0], [0, 0, 1, 0, 1, 0]],
-              dtype=tf.float64))
+              dtype=dtype))
 
-      query_vec = tf.constant(np.random.rand(3, 7), dtype=tf.float64)
+      query_vec = tf.constant(np.random.rand(3, 7), dtype=dtype)
 
       params = attention.LocationSensitiveAttention.Params()
-      params.dtype = tf.float64
+      params.dtype = dtype
       params.name = 'loc_atten'
       params.params_init = py_utils.WeightInit.Gaussian(0.1, 12345)
       params.source_dim = 4
@@ -1202,12 +1203,24 @@ class AttentionTest(tf.test.TestCase):
       params.location_num_filters = 4
       params.same_batch_size = same_batch_size
 
+      if quantized:
+        cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
+            clip_start_step=0,
+            clip_end_step=13000,
+            quant_start_step=14000,
+            start_cap=8.0,
+            end_cap=1.0)
+        qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+            cc_schedule=cc_schedule.Copy())
+        params.qdomain.default = qdomain.Copy()
+        params.qdomain.atten_context = qdomain.Copy()
+
       atten = attention.LocationSensitiveAttention(params)
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
 
       atten_init_state = tf.nn.softmax(
-          tf.constant(np.random.rand(3, 6), dtype=tf.float64))
+          tf.constant(np.random.rand(3, 6), dtype=dtype))
 
       atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
           atten.theta, query_vec, atten_init_state)
@@ -1223,7 +1236,7 @@ class AttentionTest(tf.test.TestCase):
       self.assertEqual(atten_init_state_out.shape, atten_state_out.shape)
       return atten_vec_out, prob_out, atten_init_state_out, atten_state_out
 
-  def testLocationSensitiveAttentionSameBatchSize(self, same_batch_size=True):
+  def testLocationSensitiveAttentionSameBatchSize(self):
     (atten_vec_out1, prob_out1, atten_init_state_out1, atten_state_out1) = (
         self._testLocationSensitiveAttentionSameBatchSizeHelper(True))
     (atten_vec_out2, prob_out2, atten_init_state_out2, atten_state_out2) = (
@@ -1234,6 +1247,30 @@ class AttentionTest(tf.test.TestCase):
         atten_init_state_out1, atten_init_state_out2, rtol=1e-04, atol=1e-04)
     self.assertAllClose(
         atten_state_out1, atten_state_out2, rtol=1e-04, atol=1e-04)
+
+  def testLocationSensitiveAttentionQuantized(self):
+    (atten_vec_out1, prob_out1, atten_init_state_out1, atten_state_out1) = (
+        self._testLocationSensitiveAttentionSameBatchSizeHelper(False, False))
+    (atten_vec_out2, prob_out2, atten_init_state_out2, atten_state_out2) = (
+        self._testLocationSensitiveAttentionSameBatchSizeHelper(False, True))
+    self.assertAllClose(atten_vec_out1, atten_vec_out2, rtol=1e-02, atol=1e-02)
+    self.assertAllClose(prob_out1, prob_out2, rtol=1e-02, atol=1e-02)
+    self.assertAllClose(
+        atten_init_state_out1, atten_init_state_out2, rtol=1e-02, atol=1e-02)
+    self.assertAllClose(
+        atten_state_out1, atten_state_out2, rtol=1e-02, atol=1e-02)
+
+  def testLocationSensitiveAttentionQuantizedSameBatch(self):
+    (atten_vec_out1, prob_out1, atten_init_state_out1, atten_state_out1) = (
+        self._testLocationSensitiveAttentionSameBatchSizeHelper(True, False))
+    (atten_vec_out2, prob_out2, atten_init_state_out2, atten_state_out2) = (
+        self._testLocationSensitiveAttentionSameBatchSizeHelper(True, True))
+    self.assertAllClose(atten_vec_out1, atten_vec_out2, rtol=1e-02, atol=1e-02)
+    self.assertAllClose(prob_out1, prob_out2, rtol=1e-02, atol=1e-02)
+    self.assertAllClose(
+        atten_init_state_out1, atten_init_state_out2, rtol=1e-02, atol=1e-02)
+    self.assertAllClose(
+        atten_state_out1, atten_state_out2, rtol=1e-02, atol=1e-02)
 
   def _attentionStateWithRandomEmitProbabilities(self,
                                                  atten,

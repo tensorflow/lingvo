@@ -53,6 +53,7 @@ py_library(
 lingvo_cuda_py_test(
     name = "attention_test",
     srcs = ["attention_test.py"],
+    shard_count = 5,
     deps = [
         ":attention",
         ":py_utils",
