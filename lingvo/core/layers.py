@@ -41,15 +41,6 @@ _ACTIVATIONS = {
     'TANH': tf.tanh
 }
 
-# For QuantizableLayers, the self.fns['activation'] to use for the named
-# activation.
-_ACTIVATIONS_QUANT = {
-    'RELU': 'qrelu',
-    'RELU6': 'qrelu6',
-    'SIGMOID': 'qsigmoid',
-    'TANH': 'qtanh'
-}
-
 # A subset of activation functions are supported by TFLite as fused activation
 # functions with a preceding matmul or conv. If this is the case, then they
 # require special treatment for quantization.
@@ -1015,6 +1006,17 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           name=p.name)
       self.CreateChild('bn', bn_params)
     # TODO(yonghui): implement the variational noise logic.
+
+  @property
+  def output_qt_name(self):
+    """Name of QTensor used for the output value.
+
+    Useful for grabbing the quantization of the output.
+
+    Returns:
+      String name of output qtensor.
+    """
+    return self._output_qt_name
 
   def FProp(self, theta, inputs, paddings=None):
     """Apply projection to inputs.
@@ -2123,7 +2125,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
         avg_xent=total_xent / total_weights)
 
 
-class FeedForwardNet(base_layer.BaseLayer):
+class FeedForwardNet(quant_utils.QuantizableLayer):
   """A simple multiple layer feedforward network.
 
   This class represents a stack of fully connected feedforward network. Each
@@ -2152,6 +2154,7 @@ class FeedForwardNet(base_layer.BaseLayer):
         ' tuple/list of strings having the same length as the number'
         ' of layers.')
     p.Define('skip_connections', None, 'Must be None.')
+    p.Define('bn_fold_weights', False, 'Fold the batch normalization weights.')
     return p
 
   @base_layer.initializer
@@ -2193,7 +2196,11 @@ class FeedForwardNet(base_layer.BaseLayer):
             activation=activation[i],
             input_dim=in_dim,
             output_dim=proj_out_dim,
+            bn_fold_weights=p.bn_fold_weights,
             name=name)
+
+        if p.qdomain.default is not None:
+          params_i.qdomain.default = p.qdomain.default.Copy()
         params_fc_layers.append(params_i)
         in_dim = out_dim
 
@@ -2210,6 +2217,8 @@ class FeedForwardNet(base_layer.BaseLayer):
           [py_utils.assert_shape_match([tf.shape(layer_in)[-1]], [in_dim])],
           layer_in)
       out_dim = p.hidden_layer_dims[i]
+
+      # Execute the fully connected layer.
       layer_out = self.fc[i].FProp(theta.fc[i], layer_in, paddings)
       layer_out = self.dropout[i].FProp(theta.dropout[i], layer_out)
       layer_in = layer_out
@@ -2217,7 +2226,7 @@ class FeedForwardNet(base_layer.BaseLayer):
     return layer_in
 
 
-class DropoutLayer(base_layer.BaseLayer):
+class DropoutLayer(quant_utils.QuantizableLayer):
   """Apply dropout during trainig."""
 
   @classmethod
@@ -2234,6 +2243,46 @@ class DropoutLayer(base_layer.BaseLayer):
              'Whether or not to also perform dropout at eval time.')
     return p
 
+  @base_layer.initializer
+  def __init__(self, params):
+    super(DropoutLayer, self).__init__(params)
+    self.TrackQTensor('dropout_div')
+
+  def _NoiseShape(self, inputs):
+    p = self.params
+    noise_shape = p.noise_shape
+    if noise_shape is None:
+      noise_shape = tf.shape(inputs)
+    return noise_shape
+
+  def _DropOut(self, inputs, random_uniform):
+    """Apply dropout using the random_uniform distribution.
+
+    http://jmlr.org/papers/volume15/srivastava14a/srivastava14a.pdf
+
+    Args:
+      inputs: A tensor, values from the previous layer.
+      random_uniform: a tensor of random uniform numbers. This can be None if
+        zo_prob=0.0
+
+    Returns:
+      'inputs' after dropout is applied.
+    """
+    p = self.params
+    if p.keep_prob >= 1.0 or (p.is_eval and not p.dropout_at_eval):
+      return inputs
+
+    assert random_uniform is not None
+    inputs = tf.convert_to_tensor(inputs)
+    random_uniform = py_utils.HasShape(random_uniform, tf.shape(inputs))
+    keep_prob_inv = self.QWeight(
+        tf.fill(tf.shape(inputs), tf.div(1.0, p.keep_prob)))
+    # The (1.0 - p.keep_prob) is designed to maintain identical beahvior with
+    # the standard tensorflow implementation.
+    outputs = tf.where(random_uniform < 1.0 - p.keep_prob,
+                       tf.zeros_like(inputs), inputs)
+    return self.fns.qmultiply(outputs, keep_prob_inv, qt='dropout_div')
+
   def FProp(self, theta, inputs):
     """Apply dropout to inputs.
 
@@ -2246,14 +2295,13 @@ class DropoutLayer(base_layer.BaseLayer):
       inputs with dropout applied at training time.
     """
     p = self.params
-    if p.keep_prob < 1.0 and (not p.is_eval or p.dropout_at_eval):
-      return tf.nn.dropout(
-          inputs,
-          keep_prob=p.keep_prob,
-          noise_shape=p.noise_shape,
-          seed=p.random_seed)
-    else:
-      return inputs
+    with tf.name_scope(p.name):
+      if p.keep_prob >= 1.0 or (p.is_eval and not p.dropout_at_eval):
+        return inputs
+
+      noise_shape = self._NoiseShape(inputs)
+      random_uniform = tf.random_uniform(noise_shape, seed=p.random_seed)
+      return self._DropOut(inputs, random_uniform)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -2263,19 +2311,8 @@ class DropoutLayer(base_layer.BaseLayer):
         flops=inputs.num_elements() * flops_per_element, out_shapes=(inputs,))
 
 
-class DeterministicDropoutLayer(base_layer.BaseLayer):
+class DeterministicDropoutLayer(DropoutLayer):
   """Apply dropout during trainig."""
-
-  @classmethod
-  def Params(cls):
-    p = super(DeterministicDropoutLayer, cls).Params()
-    p.Define('keep_prob', 1.0, 'Keep probability.')
-    # We typically want to replace dropout by expectation during eval.
-    # However, in certain cases E(f(x)) != f(E(x)), and replacing dropout by its
-    # expectation during eval leads to worse quality.
-    p.Define('dropout_at_eval', False,
-             'Whether or not to also perform dropout at eval time.')
-    return p
 
   def FProp(self, theta, inputs):
     """Apply dropout to inputs.
@@ -2289,11 +2326,19 @@ class DeterministicDropoutLayer(base_layer.BaseLayer):
       inputs with dropout applied at training time.
     """
     p = self.params
-    if p.keep_prob < 1.0 and (not p.is_eval or p.dropout_at_eval):
-      return py_utils.DeterministicDropout(
-          inputs, p.keep_prob, py_utils.GetOpSeedPair(op_seed=p.random_seed))
-    else:
-      return inputs
+    with tf.name_scope(p.name):
+      if p.keep_prob >= 1.0 or (p.is_eval and not p.dropout_at_eval):
+        return inputs
+
+      noise_shape = self._NoiseShape(inputs)
+      seeds = py_utils.GetOpSeedPair(op_seed=p.random_seed)
+      if py_utils.use_tpu():
+        seeds = tf.cast(seeds, tf.int32)
+
+      random_uniform = tf.contrib.stateless.stateless_random_uniform(
+          noise_shape, seed=seeds, dtype=tf.float32)
+
+      return self._DropOut(inputs, random_uniform)
 
 
 class LayerNorm(base_layer.BaseLayer):

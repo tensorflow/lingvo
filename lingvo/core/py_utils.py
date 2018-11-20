@@ -1758,14 +1758,13 @@ def DeterministicDropout(x, keep_prob, seeds, name=None):
     # uniform in [keep_prob, 1.0 + keep_prob)
     # StatelessRandomUniform op does not support non-float (e.g. bfloat16) dtype
     # and non-int32 seed types.
-    random_tensor = keep_prob + tf.contrib.stateless.stateless_random_uniform(
-        GetShape(x), seed=seeds, dtype=tf.float32)
-    # 0. if [keep_prob, 1.0) and 1. if [1.0, 1.0 + keep_prob)
-    binary_tensor = tf.floor(random_tensor)
+    x = tf.where(
+        tf.contrib.stateless.stateless_random_uniform(
+            GetShape(x), seed=seeds, dtype=tf.float32) > 1.0 - keep_prob, x,
+        tf.zeros_like(x))
     if x.dtype != tf.float32:
-      binary_tensor = tf.cast(binary_tensor, x.dtype)
       keep_prob = tf.cast(keep_prob, dtype=x.dtype)
-    result = tf.div(x, keep_prob) * binary_tensor
+    result = tf.div(x, keep_prob)
     result.set_shape(x.get_shape())
     return result
 
