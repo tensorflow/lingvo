@@ -35,6 +35,8 @@ from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import test_utils
 
+FLAGS = tf.flags.FLAGS
+
 
 class TimestepAccumulator(base_layer.Accumulator):
   """Simple accumulator for counting timesteps."""
@@ -747,7 +749,10 @@ class LayersTest(LayersTestBase):
       frnn_params.dtype = tf.float64
       frnn_params.name = 'rnn'
       frnn_params.cell = params
+      old_enable_asserts = FLAGS.enable_asserts
+      FLAGS.enable_asserts = False
       frnn = rnn_layers.FRNN(frnn_params)
+      FLAGS.enable_asserts = old_enable_asserts
 
       np.random.seed(12345)
       inputs_sequence = tf.constant(

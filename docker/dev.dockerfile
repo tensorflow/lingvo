@@ -21,12 +21,13 @@ ARG base_image=$cpu_base_image
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         curl \
+        gcc-4.8 g++-4.8 gcc-4.8-base \
         less \
         libfreetype6-dev \
         libhdf5-serial-dev \
         libpng12-dev \
         libzmq3-dev \
-        gcc-4.8 g++-4.8 gcc-4.8-base \
+        lsof \
         pkg-config \
         python \
         python-dev \
@@ -66,7 +67,7 @@ RUN pip --no-cache-dir install \
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws
 
-RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.13.0.dev20181114
+RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
 
 ARG bazel_version=0.17.2
 # This is to install bazel, for development purposes.
