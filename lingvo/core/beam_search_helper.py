@@ -220,7 +220,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
   def __init__(self, params):
     super(BeamSearchHelper, self).__init__(params)
     p = self.params
-    self._is_neural_transducer = p.target_eoc_id >= 0
+    self._model_uses_eoc_id = p.target_eoc_id >= 0
 
   def _BeamSearchStep(self, theta, source_encs, source_paddings, cur_step,
                       step_ids, core_bs_states, other_states, num_hyps_per_beam,
@@ -282,7 +282,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
          in_prev_hyps,
          in_done_hyps,
          in_atten_probs,
-         bs_results.is_last_chunk if self._is_neural_transducer else [],
+         bs_results.is_last_chunk if self._model_uses_eoc_id else [],
          cur_step, [],
          eoc_id=p.target_eoc_id,
          eos_id=p.target_eos_id,
