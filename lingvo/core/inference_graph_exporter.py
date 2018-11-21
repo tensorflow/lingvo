@@ -395,8 +395,7 @@ class InferenceGraphExporter(object):
           subgraphs_proto = ConvertSubgraphDictToProto(subgraphs_proto)
         for name, subgraph in subgraphs_proto.subgraphs.items():
           if not subgraph_filter or name in subgraph_filter:
-            inference_graph_proto.subgraphs[name].ParseFromString(
-                subgraph.SerializeToString())
+            inference_graph_proto.subgraphs[name].CopyFrom(subgraph)
 
         # Add a table init op and global variable init op to the graph.
         # Tables can be declared anywhere in the graph, so this op has to be
@@ -421,8 +420,7 @@ class InferenceGraphExporter(object):
         tf.logging.info('Default initializing graph and freezing.')
         graph_def = _FreezeDefaults(graph, output_op_names)
     else:
-      inference_graph_proto.saver_def.ParseFromString(
-          saver.as_saver_def().SerializeToString())
+      inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
       # Prune the graph to just the parts we need.
       # To support restoring, we have to not prune out the restore node.
       output_op_names.append('init_all_tables')
@@ -445,8 +443,7 @@ class InferenceGraphExporter(object):
         for node_def in function.node_def:
           node_def.ClearField('device')
 
-    inference_graph_proto.graph_def.ParseFromString(
-        graph_def.SerializeToString())
+    inference_graph_proto.graph_def.CopyFrom(graph_def)
 
     if export_path:
       with tf.gfile.Open(export_path, 'w') as f:
