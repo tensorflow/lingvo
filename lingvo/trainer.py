@@ -654,7 +654,6 @@ class Evaler(base_runner.BaseRunner):
         self._model.ConstructFPropGraph()
         self._model_task = self._model.GetTask(self._model_task_name)
         self._saver = self._GetSaver()
-        self._summary_op = tf.summary.merge_all()
       self.initialize_tables = tf.tables_initializer()
       # No queues are allowed for eval models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
@@ -718,13 +717,11 @@ class Evaler(base_runner.BaseRunner):
     num_samples_metric = metrics_dict['num_samples_in_batch']
     while (num_samples_metric.total_value <
            self._model_task.params.eval.samples_per_summary):
-      if self._summary_op is None:
-        # No summaries were collected.
-        ans = sess.run(self._model_task.eval_metrics)
-      else:
-        ans, summary = sess.run(
-            [self._model_task.eval_metrics, self._summary_op])
-        self._summary_writer.add_summary(summary, global_step)
+      # NOTE: We intentionally do not let FProp generate summaries by default,
+      # because evaler calls FProp multiple times for each checkpoint. Multiple
+      # summaries at the same step is often confusing. Instead, models should
+      # update eval_metrics and generate aggregate summaries.
+      ans = sess.run(self._model_task.eval_metrics)
       for name, (value, weight) in six.iteritems(ans):
         metrics_dict[name].Update(value, weight)
       tf.logging.info('Total examples done: %d/%d',
