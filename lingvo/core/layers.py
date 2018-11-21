@@ -1393,7 +1393,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
              'Depth of the input. I.e., the number of classes.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
     p.Define(
-        'use_matmul', False, 'If True, use a matmul to implement '
+        'use_matmul', True, 'If True, use a matmul to implement '
         'the embedding lookup. Depending on vocab_size and #ids, '
         'e.g., when vocab_size is small, use_matmul can be more '
         'efficient. On the other hand, use_matmul creates a 0/1 '
