@@ -34,6 +34,7 @@ from tensorflow.contrib.model_pruning.python.layers import core_layers as prunin
 from tensorflow.contrib.tpu.python.tpu import tpu
 from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.core.protobuf import rewriter_config_pb2
+from tensorflow.python.util import deprecation
 from lingvo.core import hyperparams
 from lingvo.core import retry
 from lingvo.core.ops import py_x_ops
@@ -66,6 +67,11 @@ FLAGS = tf.flags.FLAGS
 
 ENQUEUE_OPS = '__lingvo_enqueue_ops'
 CLOSE_QUEUE_OPS = '__lingvo_close_queue_ops'
+
+# pylint: disable=protected-access
+deprecation._PRINT_DEPRECATION_WARNINGS = False
+
+# pylint: enable=protected-access
 
 
 def Assert(condition, data, *args, **kwargs):
