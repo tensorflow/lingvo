@@ -301,7 +301,7 @@ class LSTMCellSimple(RNNCell):
         'c_output_gate',
         'c_zoneout',
         domain='c_state')
-    self.TrackQTensor('fc', 'add_bias', domain='fullyconnected')
+    self.TrackQTensor('add_bias', domain='fullyconnected')
 
     with tf.variable_scope(p.name) as scope:
       # Define weights.
@@ -400,33 +400,61 @@ class LSTMCellSimple(RNNCell):
   def GetOutput(self, state):
     return state.m
 
+  def _GetBias(self, theta):
+    """Gets the bias vector to add.
+
+    Includes adjustments like forget_gate_bias. Use this instead of the 'b'
+    variable directly as including adjustments in this way allows const-prop
+    to eliminate the adjustments at inference time.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+
+    Returns:
+      The bias vector.
+    """
+    p = self.params
+    if p.enable_lstm_bias:
+      b = theta.b
+    else:
+      b = tf.zeros([self.num_gates * self.hidden_size], dtype=p.dtype)
+    if p.forget_gate_bias != 0.0:
+      # Apply the forget gate bias directly to the bias vector.
+      if not p.couple_input_forget_gates:
+        # Normal 4 gate bias (i_i, i_g, f_g, o_g).
+        adjustment = (
+            tf.ones([4, self.hidden_size], dtype=p.dtype) * tf.expand_dims(
+                tf.constant([0., 0., p.forget_gate_bias, 0.], dtype=p.dtype),
+                axis=1))
+      else:
+        # 3 gates with coupled input/forget (i_i, f_g, o_g).
+        adjustment = (
+            tf.ones([3, self.hidden_size], dtype=p.dtype) * tf.expand_dims(
+                tf.constant([0., p.forget_gate_bias, 0.], dtype=p.dtype),
+                axis=1))
+      adjustment = tf.reshape(adjustment, [self.num_gates * self.hidden_size])
+      b += adjustment
+
+    return b
+
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
-    p = self.params
-    fns = self.fns
     wm = self.QWeight(theta.wm)
     concat = tf.concat(inputs.act + [state0.m], 1)
-
-    if p.enable_lstm_bias:
-      # Defer quantization until after adding in the bias to support fusing
-      # matmul and bias add during inference.
-      return tf.matmul(concat, wm)
-    else:
-      # Possibly any necessary quantization quantization here.
-      return fns.qmatmul(concat, wm, qt='fc')
+    # Defer quantization until after adding in the bias to support fusing
+    # matmul and bias add during inference.
+    return tf.matmul(concat, wm)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
     p = self.params
     fns = self.fns
-    if p.enable_lstm_bias:
-      b = self.QWeight(tf.expand_dims(theta.b, 0), domain='fc')
-      xmw = fns.qadd(xmw, b, qt='add_bias')
+    b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
+    xmw = fns.qadd(xmw, b, qt='add_bias')
 
     if not p.couple_input_forget_gates:
       i_i, i_g, f_g, o_g = tf.split(value=xmw, num_or_size_splits=4, axis=1)
-      if p.forget_gate_bias != 0.0:
-        f_g += p.forget_gate_bias
       forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
       # Sigmoid / tanh calls are not quantized under the assumption they share
       # the range with c_input_gate and c_forget_gate.
@@ -435,8 +463,6 @@ class LSTMCellSimple(RNNCell):
       new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
     else:
       i_i, f_g, o_g = tf.split(value=xmw, num_or_size_splits=3, axis=1)
-      if p.forget_gate_bias != 0.0:
-        f_g += p.forget_gate_bias
       # Sigmoid / tanh calls are not quantized under the assumption they share
       # the range with c_input_gate and c_forget_gate.
       forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')

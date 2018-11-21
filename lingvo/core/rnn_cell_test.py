@@ -956,6 +956,61 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
+  def testLSTMSimpleWithForgetGateInitBias(self):
+    with self.session(use_gpu=False):
+      params = rnn_cell.LSTMCellSimple.Params()
+      params.name = 'lstm'
+      params.params_init = py_utils.WeightInit.Constant(0.1)
+      params.num_input_nodes = 2
+      params.num_output_nodes = 3
+      params.forget_gate_bias = 2.0
+      params.bias_init = py_utils.WeightInit.Constant(0.1)
+      params.dtype = tf.float64
+
+      lstm = rnn_cell.LSTMCellSimple(params)
+
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      # Initialize all the variables, and then inspect.
+      tf.global_variables_initializer().run()
+      b_value = lstm._GetBias(lstm.theta).eval()
+      tf.logging.info('testLSTMSimpleWithForgetGateInitBias b = %s',
+                      np.array_repr(b_value))
+      # pyformat: disable
+      # pylint: disable=bad-whitespace
+      expected_b_value = [ 0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  2.1,  2.1,  2.1,
+                           0.1, 0.1, 0.1]
+      # pylint: enable=bad-whitespace
+      # pyformat: enable
+      self.assertAllClose(b_value, expected_b_value)
+
+  def testLSTMSimpleWithForgetGateInitBiasCoupledInputForget(self):
+    with self.session(use_gpu=False):
+      params = rnn_cell.LSTMCellSimple.Params()
+      params.name = 'lstm'
+      params.params_init = py_utils.WeightInit.Constant(0.1)
+      params.couple_input_forget_gates = True
+      params.num_input_nodes = 2
+      params.num_output_nodes = 3
+      params.forget_gate_bias = 2.0
+      params.bias_init = py_utils.WeightInit.Constant(0.1)
+      params.dtype = tf.float64
+
+      lstm = rnn_cell.LSTMCellSimple(params)
+
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      # Initialize all the variables, and then inspect.
+      tf.global_variables_initializer().run()
+      b_value = lstm._GetBias(lstm.theta).eval()
+      tf.logging.info(
+          'testLSTMSimpleWithForgetGateInitBiasCoupledInputForget b = %s',
+          np.array_repr(b_value))
+      # pyformat: disable
+      # pylint: disable=bad-whitespace
+      expected_b_value = [ 0.1,  0.1,  0.1,  2.1,  2.1,  2.1,  0.1,  0.1,  0.1]
+      # pylint: enable=bad-whitespace
+      # pyformat: enable
+      self.assertAllClose(b_value, expected_b_value)
+
   def testZoneOut_Disabled(self):
     with self.session(use_gpu=False):
       prev_v = [[0.2, 0.0], [0.1, 0.4], [0.1, 0.5]]
