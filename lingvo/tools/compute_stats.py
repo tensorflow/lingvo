@@ -103,7 +103,7 @@ def main(_):
                      'For instance, source_id for MT or frames for ASR.')
   stats = StatsCollector()
   for filepath in tf.gfile.Glob(FLAGS.input_filepattern):
-    records = tf.python_io.tf_record_iterator(filepath)
+    records = tf.compat.v1.io.tf_record_iterator(filepath)
     for serialized in records:
       ex = tf.train.Example()
       ex.ParseFromString(serialized)
