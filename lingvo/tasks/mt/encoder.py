@@ -302,7 +302,7 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
       paddings = tf.expand_dims(tf.transpose(input_batch.paddings), 2)
       xs = self.emb.EmbLookup(theta.emb, inputs)
       xs = self.ApplyClipping(theta, xs)
-      summary_utils.histogram(p, 'input_emb', xs)
+      summary_utils.histogram('input_emb', xs)
       xs = self.dropout.FProp(theta.dropout, xs)
       ps = paddings
       # Now the rnn layers.
@@ -317,7 +317,7 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
         else:
           xs = ys
         outputs_list.append(xs)
-        summary_utils.histogram(p, 'layer_out_%s' % i, xs)
+        summary_utils.histogram('layer_out_%s' % i, xs)
 
       if p.is_transparent:
         xs = self.transparent_merger.FProp(theta.transparent_merger,
@@ -460,7 +460,7 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
         src_segment_id = None
       xs = self.emb.EmbLookup(theta.emb, inputs)
       xs = self.ApplyClipping(theta, xs)
-      summary_utils.histogram(p, 'input_emb', xs)
+      summary_utils.histogram('input_emb', xs)
       xs = self.dropout.FProp(theta.dropout, xs)
       ps = paddings
       # Now the rnn layers.
@@ -475,7 +475,7 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
         else:
           xs = ys
         outputs_list.append(xs)
-        summary_utils.histogram(p, 'layer_out_%s' % i, xs)
+        summary_utils.histogram('layer_out_%s' % i, xs)
 
       if p.is_transparent:
         xs = self.transparent_merger.FProp(theta.transparent_merger,
@@ -484,7 +484,7 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
       if p.lstm_cell_size * 2 != p.encoder_out_dim:
         # Project to the right depth.
         xs = self.final_proj.FProp(theta.final_proj, xs, ps)
-        summary_utils.histogram(p, 'final_proj_out', xs)
+        summary_utils.histogram('final_proj_out', xs)
 
       if src_segment_id is not None:
         src_segment_id = tf.squeeze(src_segment_id, [2])

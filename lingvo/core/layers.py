@@ -223,18 +223,17 @@ class BatchNormLayer(base_layer.BaseLayer):
         py_utils.UpdateBatchNormVars(self._moving_variance, variance,
                                      self._decay)
         # Add some summaries for visualization.
-        summary_utils.histogram(p, '%s_mean' % p.name, tf.cast(
-            mean, tf.float32))
-        summary_utils.histogram(p, '%s_variance' % p.name,
+        summary_utils.histogram('%s_mean' % p.name, tf.cast(mean, tf.float32))
+        summary_utils.histogram('%s_variance' % p.name,
                                 tf.cast(variance, tf.float32))
-        summary_utils.histogram(p, '%s_moving_mean' % p.name,
+        summary_utils.histogram('%s_moving_mean' % p.name,
                                 tf.cast(self._moving_mean, tf.float32))
-        summary_utils.histogram(p, '%s_moving_variance' % p.name,
+        summary_utils.histogram('%s_moving_variance' % p.name,
                                 tf.cast(self._moving_variance, tf.float32))
-        summary_utils.histogram(p, '%s_mean_diff' % p.name,
+        summary_utils.histogram('%s_mean_diff' % p.name,
                                 tf.cast(mean - self._moving_mean, tf.float32))
         summary_utils.histogram(
-            p, '%s_variance_diff' % p.name,
+            '%s_variance_diff' % p.name,
             tf.cast(variance - self._moving_variance, tf.float32))
         if p.use_moving_avg_in_training:
           # Use the global statistics for normalization.
@@ -2814,13 +2813,13 @@ class GradNormTracker(base_layer.BaseLayer):
       var = (log_mean_squared / tf.maximum(total_weight, 1e-6)) - mean * mean
       std = tf.sqrt(tf.maximum(var, 1e-6))
 
-      summary_utils.scalar(p, 'log_grad_norm_mean', mean)
-      summary_utils.scalar(p, 'log_grad_norm_std', std)
-      summary_utils.scalar(p, 'clip_ratio_threshold',
+      summary_utils.scalar('log_grad_norm_mean', mean)
+      summary_utils.scalar('log_grad_norm_std', std)
+      summary_utils.scalar('clip_ratio_threshold',
                            tf.exp(std * p.clip_threshold))
-      summary_utils.scalar(p, 'clip_threshold',
+      summary_utils.scalar('clip_threshold',
                            tf.exp(mean + std * p.clip_threshold) - 1.0)
-      summary_utils.scalar(p, 'total_rejections', self._total_rejections)
+      summary_utils.scalar('total_rejections', self._total_rejections)
 
       log_grad_norm = tf.log(grad_norm + 1.0)
       log_grad_norm_cap = mean + std * p.clip_threshold
@@ -2930,7 +2929,7 @@ class WeightedSumLayer(base_layer.BaseLayer):
 
     if p.add_weight_summaries:
       for i in range(p.num_sources):
-        summary_utils.scalar(p, p.name + 'weight_%d' % i, w[i])
+        summary_utils.scalar(p.name + 'weight_%d' % i, w[i])
     w = tf.reshape(w, [p.num_sources, 1, 1, 1])
     output = tf.reduce_sum(inputs * w, axis=0)
 

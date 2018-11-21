@@ -188,7 +188,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     target_paddings = targets.paddings
     max_seq_length = tf.to_int32(
         tf.reduce_max(tf.reduce_sum(1.0 - target_paddings, 1)))
-    summary_utils.scalar(p, 'max_seq_length', max_seq_length)
+    summary_utils.scalar('max_seq_length', max_seq_length)
     # Assert to make sure after max_seq_length, all are padded steps for all
     # sequences.
     target_paddings = py_utils.with_dependencies([
@@ -445,7 +445,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       with tf.device(emb_device):
         inputs = self.emb.EmbLookup(theta.emb, target_ids)
         inputs = self.ApplyClipping(theta, inputs)
-        summary_utils.histogram(p, 'input_emb', inputs)
+        summary_utils.histogram('input_emb', inputs)
         inputs = self.ApplyDropout(inputs)
         self._emb_out = inputs
 
@@ -461,7 +461,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         self._AddAttenProbsSummary(source_paddings, targets, [atten_probs])
 
         atten_ctxs = self.ApplyClipping(theta, atten_ctxs)
-        summary_utils.histogram(p, 'atten_ctxs', atten_ctxs)
+        summary_utils.histogram('atten_ctxs', atten_ctxs)
 
         for i, (layer, layer_theta) in enumerate(zip(self.frnn, theta.frnn)):
           # Forward through Layer-(i + 1) because Layer-0 handled before.
@@ -476,7 +476,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
             xs = self.ApplyClipping(theta, xs)
           else:
             xs = ys
-          summary_utils.histogram(p, 'layer_out_%s' % i, xs)
+          summary_utils.histogram('layer_out_%s' % i, xs)
 
         if p.feed_attention_context_vec_to_softmax:
           xs = tf.concat([xs, atten_ctxs], 2)

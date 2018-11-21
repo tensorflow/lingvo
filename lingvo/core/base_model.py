@@ -46,7 +46,7 @@ def CreateTaskGlobalStep(params, task_name):
                                      tf.int64),
         trainable=False,
         collections=graph_collections)
-    summary_utils.scalar(params, v.name, v)
+    summary_utils.scalar(v.name, v)
     return v
 
 
@@ -72,7 +72,7 @@ class StatsCounter(object):
     # updating _var with delta.
     delta = tf.to_int64(delta)
     with tf.control_dependencies([self._value]):
-      summary_utils.scalar(params, self._name, self._value)
+      summary_utils.scalar(self._name, self._value)
       return tf.identity(tf.assign_add(self._var, delta))
 
 
@@ -505,8 +505,8 @@ class BaseTask(base_layer.BaseLayer):
     # Computes gradients' norm and adds their summaries. Note that all_grad_norm
     # may be nan, which may cause grad_scale to be nan.
     for name, vg in var_grads.FlattenItems():
-      summary_utils.AddNormSummary(p, name, py_utils.NestedMap(s=vg))
-    _, all_grad_norm = summary_utils.AddNormSummary(p, 'all', var_grads)
+      summary_utils.AddNormSummary(name, py_utils.NestedMap(s=vg))
+    _, all_grad_norm = summary_utils.AddNormSummary('all', var_grads)
     grad_norm_is_nan_or_inf = tf.logical_or(
         tf.is_nan(all_grad_norm), tf.is_inf(all_grad_norm))
 
@@ -540,7 +540,7 @@ class BaseTask(base_layer.BaseLayer):
     # Force grad_scale to be 0 if there is any NaN or Inf in gradients.
     grad_scale = tf.where(has_nan_or_inf, 0.0, grad_scale)
 
-    summary_utils.scalar(p, 'grad_scale_all', grad_scale)
+    summary_utils.scalar('grad_scale_all', grad_scale)
     final_var_grads = py_utils.ApplyGradMultiplier(var_grads, grad_scale)
     return has_nan_or_inf, grad_scale, final_var_grads
 
@@ -560,13 +560,13 @@ class BaseTask(base_layer.BaseLayer):
     if tp.l2_regularizer_weight is not None:
       l2_loss, self._var_grads = py_utils.AdjustGradientsWithLpLoss(
           self._var_grads, tp.l2_regularizer_weight, p=2.0)
-      summary_utils.scalar(p, 'l2_loss', l2_loss)
+      summary_utils.scalar('l2_loss', l2_loss)
 
     # L1 regularizer.
     if tp.l1_regularizer_weight is not None:
       l1_loss, self._var_grads = py_utils.AdjustGradientsWithLpLoss(
           self._var_grads, tp.l1_regularizer_weight, p=1.0)
-      summary_utils.scalar(p, 'l1_loss', l1_loss)
+      summary_utils.scalar('l1_loss', l1_loss)
 
     # Mask gradients only if the mask is set.
     if self._per_input_gradient_mask:
@@ -578,10 +578,10 @@ class BaseTask(base_layer.BaseLayer):
     has_nan_or_inf, _, self._var_grads = self.ScaleGradients(self._var_grads)
 
     # Histogram summary.
-    summary_utils.CollectVarHistogram(p, self._var_grads)
+    summary_utils.CollectVarHistogram(self._var_grads)
 
     lrs = self.lr_schedule.Value(self._global_step)
-    summary_utils.scalar(p, 'lr_schedule', lrs)
+    summary_utils.scalar('lr_schedule', lrs)
     lr = tp.learning_rate * lrs
 
     var_update_op = self.optimizer.Apply(lr, self._var_grads)

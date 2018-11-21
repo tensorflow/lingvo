@@ -347,7 +347,7 @@ class AsrModelTest(tf.test.TestCase):
       mdl = p.cls(p)
       mdl.FPropDefaultTheta()
       var_grads = py_utils.ComputeGradients(mdl.loss, mdl.vars)
-      summary_utils.CollectVarHistogram(p, var_grads)
+      summary_utils.CollectVarHistogram(var_grads)
 
   def testGradientMult(self):
     with self.session(use_gpu=False, graph=tf.Graph()):

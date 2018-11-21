@@ -561,7 +561,7 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
     """Update the cap value."""
     p = self.params
     cap = self.Value(global_step)
-    summary_utils.scalar(p, 'cap', cap)
+    summary_utils.scalar('cap', cap)
     return self.vars.cap.assign(cap)
 
 
@@ -792,8 +792,8 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
     # Currently fq is either on (1.0) or off (-1.0). Progressive quantization
     # may later occupy 0..1.0.
     new_fq_ratio = tf.where(global_step < quant_start_step, -1.0, 1.0)
-    summary_utils.scalar(p, 'clip_ratio', new_clip_ratio)
-    summary_utils.scalar(p, 'fq_ratio', new_fq_ratio)
+    summary_utils.scalar('clip_ratio', new_clip_ratio)
+    summary_utils.scalar('fq_ratio', new_fq_ratio)
     return tf.group(
         self.vars.clip_ratio.assign(new_clip_ratio),
         self.vars.fq_ratio.assign(new_fq_ratio))
@@ -1141,7 +1141,7 @@ class PassiveAsymQDomain(QDomain):
           quant_t = tf.where(quant_t_has_nans, t, quant_t)
         ts_out.append(quant_t)
         summary_utils.histogram(
-            self.params, '%s/%s_%d' % (self._qvars_scope.name, t_name, i), t)
+            '%s/%s_%d' % (self._qvars_scope.name, t_name, i), t)
       return ts_out
 
   def GetTensorRange(self, t_name, ts):
@@ -1188,8 +1188,8 @@ class PassiveAsymQDomain(QDomain):
     # foo/q/somet_min:0 -> foo/q/somet_min
     summary_name_min = min_var.name.split(':')[0]
     summary_name_max = max_var.name.split(':')[0]
-    summary_utils.scalar(self.params, summary_name_min, min_var)
-    summary_utils.scalar(self.params, summary_name_max, max_var)
+    summary_utils.scalar(summary_name_min, min_var)
+    summary_utils.scalar(summary_name_max, max_var)
 
   def _RecordTensor(self, t_name):
     p = self.params

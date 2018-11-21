@@ -1190,8 +1190,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       groundtruth_p = 1 - (self._max_label_prob * sampling_p)
       groundtruth_p = tf.maximum(groundtruth_p, p.min_ground_truth_prob)
       groundtruth_p = tf.minimum(groundtruth_p, 1.0)
-      summary_utils.scalar(p, 'ground_truth_sampling_probability',
-                           groundtruth_p)
+      summary_utils.scalar('ground_truth_sampling_probability', groundtruth_p)
       misc_zero_state.groundtruth_p = groundtruth_p
     return misc_zero_state
 

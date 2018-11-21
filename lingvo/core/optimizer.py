@@ -80,7 +80,7 @@ class SGD(Base):
     return tf.train.GradientDescentOptimizer(lr)
 
   def AddSummary(self, lr, optimizer, var_grad):
-    summary_utils.scalar(self.params, 'sgd_lr', lr)
+    summary_utils.scalar('sgd_lr', lr)
 
 
 class Momentum(Base):
@@ -102,7 +102,7 @@ class Momentum(Base):
         learning_rate=lr, momentum=p.alpha, use_nesterov=p.use_nesterov)
 
   def AddSummary(self, lr, optimizer, var_grad):
-    summary_utils.scalar(self.params, 'momentum_lr', lr)
+    summary_utils.scalar('momentum_lr', lr)
 
 
 class RMSProp(Base):
@@ -124,7 +124,7 @@ class RMSProp(Base):
         lr, p.decay, momentum=p.momentum, epsilon=p.epsilon)
 
   def AddSummary(self, lr, optimizer, var_grad):
-    summary_utils.scalar(self.params, 'rmsprop_lr', lr)
+    summary_utils.scalar('rmsprop_lr', lr)
 
 
 class Adagrad(Base):
@@ -144,11 +144,11 @@ class Adagrad(Base):
 
   def AddSummary(self, lr, optimizer, var_grad):
     p = self.params
-    summary_utils.scalar(p, 'adagrad_lr', lr)
+    summary_utils.scalar('adagrad_lr', lr)
     for v, _ in var_grad.Flatten():
       slot = optimizer.get_slot(v, 'accumulator')
       assert slot is not None
-      summary_utils.scalar(p, 'optimizer/adagrad_accum_%s' % v.name,
+      summary_utils.scalar('optimizer/adagrad_accum_%s' % v.name,
                            tf.reduce_mean(slot))
 
 
@@ -184,7 +184,7 @@ class Adam(Base):
         name=p.name)
 
   def AddSummary(self, lr, optimizer, var_grad):
-    summary_utils.scalar(self.params, 'adam_lr', lr)
+    summary_utils.scalar('adam_lr', lr)
 
 
 class Accumulator(Base):

@@ -34,7 +34,7 @@ from lingvo.core import summary_utils
 
 def _HistogramSummary(p, name, v):
   """Adds a histogram summary for 'v' into the default tf graph."""
-  summary_utils.histogram(p, name, tf.cast(v, tf.float32))
+  summary_utils.histogram(name, tf.cast(v, tf.float32))
 
 
 RNN_CELL_WT = 'rnn_cell_weight_variable'
@@ -771,7 +771,7 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
     """Update the global_step value."""
     p = self.params
     with tf.name_scope(p.name):
-      summary_utils.scalar(p, 'step_counter', self._step_counter)
+      summary_utils.scalar('step_counter', self._step_counter)
     return self._step_counter.assign(tf.cast(global_step, tf.int64))
 
 

@@ -31,14 +31,12 @@ def _ShouldAddSummary():
   return cluster_factory.Current().add_summary
 
 
-def scalar(params, *args, **kwargs):  # pylint: disable=invalid-name
-  del params
+def scalar(*args, **kwargs):  # pylint: disable=invalid-name
   if _ShouldAddSummary():
     tf.summary.scalar(*args, **kwargs)
 
 
-def histogram(params, *args, **kwargs):  # pylint: disable=invalid-name
-  del params
+def histogram(*args, **kwargs):  # pylint: disable=invalid-name
   if _ShouldAddSummary():
     tf.summary.histogram(*args, **kwargs)
 
@@ -103,8 +101,7 @@ def TrimPaddingAndPlotAttention(fig,
     axes.set_xlabel(plot.ToUnicode(transcript), size='x-small', wrap=True)
 
 
-def AddAttentionSummary(params,
-                        attention_tensors,
+def AddAttentionSummary(attention_tensors,
                         src_paddings,
                         tgt_paddings,
                         transcripts=None,
@@ -112,7 +109,6 @@ def AddAttentionSummary(params,
   """Adds an image summary showing the attention probability matrix and state.
 
   Args:
-    params: A param object.
     attention_tensors: A list of 3D tensors shaped [target_len, batch_size,
        source_len] where attention[i, j, k] is the probability for the i-th
        output attending to the k-th input for element j in the batch.
@@ -138,7 +134,7 @@ def AddAttentionSummary(params,
     max_entropy = tf.log(tf.cast(src_lens, tf.float32))
     max_entropy = tf.expand_dims(tf.expand_dims(max_entropy, 0), -1)
     atten_normalized_entropy = -atten * tf.log(atten + 1e-10) / max_entropy
-    scalar(params, 'Attention/average_normalized_entropy/%d' % n,
+    scalar('Attention/average_normalized_entropy/%d' % n,
            tf.reduce_mean(atten_normalized_entropy))
     args = [tf.transpose(atten, [1, 0, 2]), src_lens, tgt_lens]
     if transcripts is not None and n == 0:
@@ -152,11 +148,10 @@ def AddAttentionSummary(params,
   return fig.Finalize()
 
 
-def AddNormSummary(params, name, vs_gs):
+def AddNormSummary(name, vs_gs):
   """"Returns and creates summary for norms of vs and their gradients gs.
 
   Args:
-    params: A layer hyperparams.
     name: A name string for summary.
     vs_gs: A `.NestedMap` or a list of `.NestedMap` of (variable, gradient).
 
@@ -165,13 +160,14 @@ def AddNormSummary(params, name, vs_gs):
   """
   flatten = py_utils.NestedMap(child=vs_gs).Flatten()
   v_norm = tf.sqrt(py_utils.SumSquared([v for (v, _) in flatten]))
-  scalar(params, 'var_norm/%s' % name, v_norm)
+  scalar('var_norm/%s' % name, v_norm)
   g_norm = tf.sqrt(py_utils.SumSquared([g for (_, g) in flatten]))
-  scalar(params, 'grad_norm/%s' % name, g_norm)
+  scalar('grad_norm/%s' % name, g_norm)
   return v_norm, g_norm
 
 
-def CollectVarHistogram(params, vs_gs):
+def CollectVarHistogram(vs_gs):
+  """Adds histogram summaries for variables and gradients."""
 
   def SummaryNamePrefix(n):
     return n.split(':')[0].replace('/', '.') + '/'
@@ -186,5 +182,5 @@ def CollectVarHistogram(params, vs_gs):
       if var.dtype.is_complex:
         var = tf.abs(var)
         grad = tf.abs(grad)
-      histogram(params, name_prefix + 'var_hist', var)
-      histogram(params, name_prefix + 'grad_hist', grad)
+      histogram(name_prefix + 'var_hist', var)
+      histogram(name_prefix + 'grad_hist', grad)

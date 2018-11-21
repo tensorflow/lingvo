@@ -191,10 +191,10 @@ class TransformerModel(MTBaseModel):
       emb_vg.child += [vg.enc.position_emb]
     if 'position_emb' in vg.dec:
       emb_vg.child += [vg.dec.position_emb]
-    summary_utils.AddNormSummary(p, 'emb', emb_vg)
-    summary_utils.AddNormSummary(p, 'atten',
+    summary_utils.AddNormSummary('emb', emb_vg)
+    summary_utils.AddNormSummary('atten',
                                  [vg.enc.transformer_stack.trans, vg.dec.trans])
-    summary_utils.AddNormSummary(p, 'softmax', vg.dec.softmax)
+    summary_utils.AddNormSummary('softmax', vg.dec.softmax)
 
   def Decode(self, input_batch):
     """Constructs the inference graph."""
