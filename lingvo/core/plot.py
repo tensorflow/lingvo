@@ -74,11 +74,12 @@ def AddImage(fig,
              xlabel=u'',
              ylabel=u'',
              fontsize='small',
+             origin='lower',
              suppress_xticks=False,
              suppress_yticks=False):
   """Convenience function to plot data as an image on the given axes."""
   image = axes.imshow(
-      data, cmap=cmap, origin='lower', aspect='auto', interpolation='nearest')
+      data, cmap=cmap, origin=origin, aspect='auto', interpolation='nearest')
   if show_colorbar:
     fig.colorbar(image)
   if clim is not None:
@@ -312,27 +313,31 @@ def _FigureToSummary(name, fig):
   ])
 
 
-def Matrix(name, figsize, matrix, setter=None, **kwargs):
-  """Plot a numpy matrix and generates tf.Summary proto for it.
+def Image(name, figsize, image, setter=None, **kwargs):
+  """Plot an image in numpy and generates tf.Summary proto for it.
 
   Args:
     name: Image summary name.
-    figsize: A 2D tuple containing the overall figure (width, height)
-      dimensions in inches.
-    matrix: A 2D numpy array.
-    setter: A callable taking (fig, axes). Useful to fine-control
-      layout of the figure, xlabel, xticks, etc.
+    figsize: A 2D tuple containing the overall figure (width, height) dimensions
+      in inches.
+    image: A 2D/3D numpy array in the format accepted by pyplot.imshow.
+    setter: A callable taking (fig, axes). Useful to fine-tune layout of the
+      figure, xlabel, xticks, etc.
     **kwargs: Additional arguments to AddImage.
 
   Returns:
-    A `tf.Summary` proto contains one image visualizing 'matrix.
+    A `tf.Summary` proto contains one image visualizing 'image.
   """
+  assert image.ndim in (2, 3), '%s' % image.shape
   fig = plt.Figure(figsize=figsize, dpi=100, facecolor='white')
   axes = fig.add_subplot(1, 1, 1)
-  AddImage(fig, axes, matrix, **kwargs)
+  AddImage(fig, axes, image, origin='upper', show_colorbar=False, **kwargs)
   if setter:
     setter(fig, axes)
   return _FigureToSummary(name, fig)
+
+
+Matrix = Image  # pylint: disable=invalid-name
 
 
 def Curve(name, figsize, xs, ys, setter=None, **kwargs):
