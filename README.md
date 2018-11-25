@@ -24,10 +24,6 @@ It was used for the following research papers.
         Attention](https://arxiv.org/abs/1808.07561). Ankur Bapna, Mia X. Chen,
         Orhan Firat, Yuan Cao and Yonghui Wu. EMNLP 2018.
 
-    *   [Sequence-to-Sequence Models Can Directly Translate Foreign Speech](https://arxiv.org/abs/1703.08581).
-        Ron J. Weiss, Jan Chorowski, Navdeep Jaitly, Yonghui Wu, and Zhifeng
-        Chen. Interspeech 2017.
-
     *   [Google's Neural Machine Translation System: Bridging the Gap between
         Human and Machine Translation](https://arxiv.org/abs/1609.08144).
         Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc V. Le, Mohammad Norouzi,
@@ -141,6 +137,17 @@ It was used for the following research papers.
     *   [On Using Backpropagation for Speech Texture Generation and Voice
         Conversion](https://arxiv.org/abs/1712.08363). Jan Chorowski, Ron J.
         Weiss, Rif A. Saurous, Samy Bengio. ICASSP 2018.
+
+*   Speech-to-text translation
+
+    *   [Leveraging weakly supervised data to improve end-to-end speech-to-text translation](https://arxiv.org/abs/1811.02050).
+        Ye Jia, Melvin Johnson, Wolfgang Macherey, Ron J. Weiss, Yuan Cao,
+        Chung-Cheng Chiu, Naveen Ari, Stella Laurenzo, Yonghui Wu. Submitted
+        to ICASSP 2019.
+
+    *   [Sequence-to-Sequence Models Can Directly Translate Foreign Speech](https://arxiv.org/abs/1703.08581).
+        Ron J. Weiss, Jan Chorowski, Navdeep Jaitly, Yonghui Wu, and Zhifeng
+        Chen. Interspeech 2017.
 
 ## Quick start
 
