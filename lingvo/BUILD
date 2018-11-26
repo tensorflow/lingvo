@@ -161,6 +161,7 @@ py_test(
         "//lingvo/core:py_utils",
         "//lingvo/tasks/image:input_generator",
         "//lingvo/tasks/image/params:mnist",
+        "//lingvo/tasks/lm/params:one_billion_wds",
     ],
 )
 

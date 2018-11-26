@@ -49,6 +49,7 @@ from lingvo import model_registry
 from lingvo.core import base_model
 from lingvo.core import base_model_params
 from lingvo.core import cluster_factory
+from lingvo.core import inference_graph_exporter
 from lingvo.core import metrics
 from lingvo.core import py_utils
 
@@ -81,8 +82,9 @@ tf.flags.DEFINE_string(
     'sync: used in a sync training setup; '
     'shell: an interactive shell for development; '
     'inspect_evaler: print evaler dataset names; '
-    'inspect_decoder: print decoder dataset names.')
-tf.flags.DEFINE_string('job', None, 'trainer/controller/eval, etc.')
+    'inspect_decoder: print decoder dataset names; '
+    'write_inference_graph: write inference graphs to logdir.')
+tf.flags.DEFINE_string('job', '', 'trainer/controller/eval, etc.')
 tf.flags.DEFINE_integer('task', 0, 'Task id within the job.')
 
 tf.flags.DEFINE_string('controller_job', '/job:controller', 'Job name.')
@@ -903,6 +905,7 @@ class RunnerManager(object):
 
   # This is a hack so these classes can be overridded with internal
   # non-public implementations.
+  inference_graph_exporter = inference_graph_exporter
   model_registry = model_registry
   Controller = Controller
   Trainer = Trainer
@@ -1239,6 +1242,43 @@ class RunnerManager(object):
     else:
       print('')
 
+  def WriteInferenceGraph(self):
+    """Generates the inference graphs for a given model."""
+    inference_graph_dir = os.path.join(FLAGS.logdir, 'inference_graphs')
+    tf.gfile.MakeDirs(inference_graph_dir)
+    tf.logging.info('Writing inference graphs to dir: %s', inference_graph_dir)
+
+    cfg = self.model_registry.GetParams(self._model_name, 'Test')
+    if (issubclass(cfg.cls, base_model.MultiTaskModel) and
+        not FLAGS.model_task_name):
+      tf.logging.info('Cannot write inference graphs for multi-task model '
+                      'when model_task_name is not specified.')
+      return
+    try:
+      filename_prefix = 'inference'
+      if FLAGS.model_task_name:
+        filename_prefix = '%s_inference' % FLAGS.model_task_name
+      filename_prefix = os.path.join(inference_graph_dir, filename_prefix)
+      # Standard inference graph.
+      self.inference_graph_exporter.InferenceGraphExporter.Export(
+          model_cfg=cfg,
+          model_task_name=FLAGS.model_task_name,
+          export_path=filename_prefix + '.pbtxt')
+      # TPU inference graph.
+      self.inference_graph_exporter.InferenceGraphExporter.Export(
+          model_cfg=cfg,
+          model_task_name=FLAGS.model_task_name,
+          device_options=self.inference_graph_exporter.InferenceDeviceOptions(
+              device='tpu',
+              retain_device_placement=False,
+              var_options='ON_DEVICE',
+              gen_init_op=True,
+              dtype_override=None),
+          export_path=filename_prefix + '_tpu.pbtxt')
+    except NotImplementedError:
+      tf.logging.info('Cannot write inference graph since the \"Inference()\"'
+                      ' method has not been implemented.')
+
   def Start(self):
     """Start the process."""
     tf.logging.set_verbosity(tf.logging.INFO)
@@ -1256,6 +1296,10 @@ class RunnerManager(object):
 
     if FLAGS.mode == 'inspect_decoder':
       self.InspectDecoder()
+      return
+
+    if FLAGS.mode == 'write_inference_graph':
+      self.WriteInferenceGraph()
       return
 
     assert FLAGS.mode in ['sync', 'async']

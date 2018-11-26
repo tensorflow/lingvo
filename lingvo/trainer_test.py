@@ -34,7 +34,8 @@ from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
 from lingvo.tasks.image.input_generator import FakeMnistData
-from lingvo.tasks.image.params import mnist  # pylint: disable=unused-import
+import lingvo.tasks.image.params.mnist  # pylint: disable=unused-import
+import lingvo.tasks.lm.params.one_billion_wds  # pylint: disable=unused-import
 
 FLAGS = tf.flags.FLAGS
 
@@ -166,6 +167,17 @@ class TrainerTest(BaseTrainerTest):
     self.assertTrue(
         self._HasLine(
             self._GetMatchedFileName(dec_files, 'score'), 'examples/sec'))
+
+  def testWriteInferenceGraph(self):
+    random.seed()
+    logdir = os.path.join(tf.test.get_temp_dir(),
+                          'inference_graphs' + str(random.random()))
+    FLAGS.logdir = logdir
+    cfg = 'lm.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax'
+    trainer.RunnerManager(cfg).WriteInferenceGraph()
+    inference_files = tf.gfile.Glob(logdir + '/inference_graphs/*')
+    self.assertTrue(self._HasFile(inference_files, 'inference.pbtxt'))
+    self.assertTrue(self._HasFile(inference_files, 'inference_tpu.pbtxt'))
 
 
 class TrainerWithTrialTest(TrainerTest):
