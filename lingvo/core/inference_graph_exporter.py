@@ -371,7 +371,11 @@ class InferenceGraphExporter(object):
           py_utils.UpdateDtype(model_cfg, tf.bfloat16)
           py_utils.UpdateFpropDtype(model_cfg, tf.bfloat16)
 
+        old_enable_asserts = FLAGS.enable_asserts
+        if IsTpu(device_options):
+          FLAGS.enable_asserts = False
         mdl = model_cfg.cls(model_cfg)
+        FLAGS.enable_asserts = old_enable_asserts
         variables_to_load = (
             tf.global_variables()
             if not mdl.ema else mdl.ema.variables_to_restore())
@@ -469,8 +473,6 @@ class InferenceGraphExporter(object):
 
     cluster_params.mode = 'sync'
     cluster_params.job = 'decoder'
-    if IsTpu(device_options):
-      FLAGS.enable_asserts = False
     Update(cluster_params.controller)
     Update(cluster_params.worker)
     Update(cluster_params.ps)
