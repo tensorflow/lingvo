@@ -2,7 +2,7 @@
 
 ## What is it?
 
-Lingvo is a toolkit which is suited to build neural networks, particulary
+Lingvo is a toolkit which is suited to build neural networks, particularly
 sequence models.
 
 It was used for the following research papers.
