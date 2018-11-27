@@ -37,6 +37,16 @@ py_test(
     ],
 )
 
+py_library(
+    name = "model",
+    srcs = ["model.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+        "//lingvo/core:py_utils",
+        "//lingvo/tasks/mt:model",
+    ],
+)
+
 py_test(
     name = "model_test",
     srcs = ["model_test.py"],
@@ -47,12 +57,12 @@ py_test(
     shard_count = 4,
     deps = [
         ":input_generator",
+        ":model",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
         "//lingvo/tasks/mt:decoder",
         "//lingvo/tasks/mt:encoder",
-        "//lingvo/tasks/mt:model",
     ],
 )

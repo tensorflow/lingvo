@@ -12,9 +12,9 @@ py_library(
         "//lingvo/core:base_model_params",
         "//lingvo/core:lr_schedule",
         "//lingvo/core:optimizer",
-        "//lingvo/tasks/mt:model",
         "//lingvo/tasks/mt/params",
         "//lingvo/tasks/punctuator:input_generator",
+        "//lingvo/tasks/punctuator:model",
     ],
 )
 

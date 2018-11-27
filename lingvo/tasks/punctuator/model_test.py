@@ -24,7 +24,7 @@ from lingvo.core import py_utils
 from lingvo.core import test_helper
 from lingvo.tasks.mt import decoder
 from lingvo.tasks.mt import encoder
-from lingvo.tasks.mt import model
+from lingvo.tasks.punctuator import model
 from lingvo.tasks.punctuator import input_generator
 
 _TF_RANDOM_SEED = 93820986
@@ -161,6 +161,19 @@ class PunctuatorModelTest(tf.test.TestCase):
       expected_vals = [[371.16153, 10.382141], [415.236511, 10.380913],
                        [415.484863, 10.387121]]
       self.assertAllClose(vals, expected_vals)
+
+  def testInference(self):
+    with self.session(use_gpu=False) as sess:
+      tf.set_random_seed(93820985)
+      p = self._testParams()
+      p.is_eval = True
+      mdl = p.cls(p)
+      fetches, feeds = mdl.Inference()['default']
+
+      tf.global_variables_initializer().run()
+      src_strings = ['the cat sat on the mat', 'the dog sat on the mat']
+      dec_out = sess.run(fetches, {feeds['src_strings']: src_strings})
+      print('dec_out', dec_out)
 
 
 if __name__ == '__main__':

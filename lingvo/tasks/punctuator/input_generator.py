@@ -29,14 +29,14 @@ from lingvo.core.ops import py_x_ops
 
 
 class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
-  """Reads tokenized plain text input such as from lm1b."""
+  """Reads text line by line and processes them for the punctuator task."""
 
   @classmethod
   def Params(cls):
     """Defaults params for PunctuatorInput."""
     p = super(PunctuatorInput, cls).Params()
     p.tokenizer = tokenizers.VocabFileTokenizer.Params()
-    p.tokenizer.tokens_delimiter = ''
+    p.tokenizer.tokens_delimiter = ''  # Split each character to a token.
     p.source_max_length = 300
     return p
 
@@ -54,30 +54,46 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
     Returns:
       A list of tensors, in the expected order by __init__.
     """
-
+    # Tokenize the input into integer ids.
     tgt_ids, tgt_labels, tgt_paddings = self.StringsToIds([line])
 
+    # Lowercase and remove punctuation, and tokenize that too.
     normalized_line = tf.py_func(
         lambda x: x.lower().translate(None, string.punctuation), [line],
         tf.string,
         stateful=False)
     src_ids, _, src_paddings = self.StringsToIds([normalized_line],
                                                  is_source=True)
-    tgt_weights = 1.0 - tgt_paddings
+
+    # Compute the length for bucketing.
     bucket_key = tf.to_int32(
         tf.maximum(
             tf.reduce_sum(1.0 - src_paddings),
             tf.reduce_sum(1.0 - tgt_paddings)))
+    tgt_weights = 1.0 - tgt_paddings
+
+    # Return tensors in an order consistent with __init__.
     out_tensors = [
         src_ids, src_paddings, tgt_ids, tgt_paddings, tgt_labels, tgt_weights
     ]
     return [tf.squeeze(t, axis=0) for t in out_tensors] + [bucket_key]
 
   def _DataSourceFromFilePattern(self, file_pattern):
+    """Create the input processing op.
+
+    Args:
+      file_pattern: The file pattern to use as input.
+
+    Returns:
+      an operation that when executed, calls `_ProcessLine` on a line read
+    from `file_pattern`.
+    """
     return py_x_ops.generic_input(
         file_pattern=file_pattern,
         processor=self._ProcessLine,
+        # Pad dimension 0 to the same length.
         dynamic_padding_dimensions=[0] * 6,
+        # The constant values to use for padding each of the outputs.
         dynamic_padding_constants=[0, 1, 0, 1, 0, 0],
         **self.CommonInputOpArgs())
 
@@ -85,6 +101,7 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
   def __init__(self, params):
     super(PunctuatorInput, self).__init__(params)
 
+    # Build the input processing graph.
     (self._src_ids, self._src_paddings, self._tgt_ids, self._tgt_paddings,
      self._tgt_labels, self._tgt_weights) = self._BuildDataSource()
 
@@ -92,6 +109,7 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
     self._sample_ids = tf.range(0, self._input_batch_size, 1)
 
   def InputBatch(self):
+    """Returns a single batch as a `.NestedMap` to be passed to the model."""
     ret = py_utils.NestedMap()
 
     ret.src = py_utils.NestedMap()

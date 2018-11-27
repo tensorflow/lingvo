@@ -24,9 +24,9 @@ from lingvo import model_registry
 from lingvo.core import base_model_params
 from lingvo.core import lr_schedule
 from lingvo.core import optimizer
-from lingvo.tasks.mt import model
 from lingvo.tasks.mt.params import base_config
 from lingvo.tasks.punctuator import input_generator
+from lingvo.tasks.punctuator import model
 
 
 # This decorator registers the model in the Lingvo model registry.
