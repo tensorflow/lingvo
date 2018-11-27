@@ -30,6 +30,8 @@ from lingvo.tasks.punctuator import model
 
 
 # This decorator registers the model in the Lingvo model registry.
+# This file is lingvo/tasks/punctuator/params/codelab.py,
+# so the model will be registered as punctuator.codelab.TransformerModel.
 @model_registry.RegisterSingleTaskModel
 class TransformerModel(base_model_params.SingleTaskModelParams):
   """A transformer model for the punctuator task."""
@@ -40,8 +42,6 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
   # with 16 shards.
   _VOCAB_SIZE = 96
 
-  # Input data definitions are class methods; the class Seq2Seq will not be
-  # instantiated.
   @classmethod
   def Train(cls):
     p = input_generator.PunctuatorInput.Params()
@@ -105,10 +105,9 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
     hidden_dim = 128
     residual_dropout_prob = 0.1
     input_dropout_prob = 0.1
-    learning_rate = 3.0
-    warmup_steps = 40000
 
-    # Transformer encoder and decoder setup.
+    # Transformer encoder and decoder setup, delegated to
+    # lingvo/tasks/mt/params/base_config.py.
     p.encoder = base_config.SetupTransformerEncoder(
         model_dim, vocab_size, num_layers, num_heads, hidden_dim,
         residual_dropout_prob, input_dropout_prob)
@@ -116,11 +115,11 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
         model_dim, vocab_size, num_layers, num_heads, hidden_dim,
         residual_dropout_prob, input_dropout_prob)
 
-    p.train.Set(
-        learning_rate=learning_rate,
-        optimizer=optimizer.Adam.ParamsB(),
-        clip_gradient_norm_to_value=0.0,
-        grad_norm_to_clip_to_zero=0.0,
-        lr_schedule=lr_schedule.TransformerLearningRateSchedule.Params().Set(
-            warmup_steps=warmup_steps, worker_replicas=1, model_dim=model_dim))
+    tp = p.train
+    tp.learning_rate = 3.0
+    tp.optimizer = optimizer.Adam.ParamsB()
+    tp.clip_gradient_norm_to_value = 0.0
+    tp.grad_norm_to_clip_to_zero = 0.0
+    tp.lr_schedule = lr_schedule.TransformerLearningRateSchedule.Params().Set(
+        warmup_steps=40000, worker_replicas=1, model_dim=model_dim)
     return p
