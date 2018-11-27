@@ -42,14 +42,14 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
   const int N = 10;
   const int M = 1000;
   GeneratePlainTextTestData("basic", N, M);
-  RecordYielder::Options opts;
+  BasicRecordYielder::Options opts;
   opts.file_pattern =
       strings::StrCat("text:", io::JoinPath("/tmp", "basic.*"));
   opts.seed = 301;
   opts.bufsize = 2000;
   opts.parallelism = 1;
 
-  RecordYielder* yielder = RecordYielder::New(opts);
+  RecordYielder* yielder = BasicRecordYielder::New(opts);
   std::vector<string> vals;
   Rope v;
   for (int i = 0; i < N * M; ++i) {
@@ -95,14 +95,14 @@ TEST(RecordYielderTest, TfRecordYielderBasicTest) {
   const int N = 10;
   const int M = 1000;
   GenerateTfRecordTestData("basic", N, M);
-  RecordYielder::Options opts;
+  BasicRecordYielder::Options opts;
   opts.file_pattern =
       strings::StrCat("tfrecord:", io::JoinPath("/tmp", "basic.*"));
   opts.seed = 301;
   opts.bufsize = 2000;
   opts.parallelism = 1;
 
-  RecordYielder* yielder = RecordYielder::New(opts);
+  RecordYielder* yielder = BasicRecordYielder::New(opts);
   std::vector<string> vals;
   Rope v;
   for (int i = 0; i < N * M; ++i) {
@@ -145,7 +145,7 @@ TEST(RecordYielderTest, ShufflesShard) {
   const int M = 32;
   GenerateTfRecordTestData("oneshard", 1 /* num_shards */, M);
 
-  RecordYielder::Options opts;
+  BasicRecordYielder::Options opts;
   opts.file_pattern = strings::StrCat(
       "tfrecord:", io::JoinPath("/tmp", "oneshard.0"));
   opts.bufsize = M;
@@ -155,7 +155,7 @@ TEST(RecordYielderTest, ShufflesShard) {
   std::vector<Rope> epoch1, epoch2;
   {
     opts.seed = 301;
-    auto yielder = RecordYielder::New(opts);
+    auto yielder = BasicRecordYielder::New(opts);
     for (int i = 0; i < M; ++i) {
       Rope v;
       TF_CHECK_OK(yielder->Yield(&v));
@@ -174,7 +174,7 @@ TEST(RecordYielderTest, ShufflesShard) {
   std::vector<Rope> epoch1_different_seed;
   {
     opts.seed = 103;
-    auto yielder = RecordYielder::New(opts);
+    auto yielder = BasicRecordYielder::New(opts);
     for (int i = 0; i < M; ++i) {
       Rope v;
       TF_CHECK_OK(yielder->Yield(&v));
@@ -186,10 +186,10 @@ TEST(RecordYielderTest, ShufflesShard) {
 }
 
 TEST(RecordYielder, Error) {
-  RecordYielder::Options opts;
+  BasicRecordYielder::Options opts;
   opts.file_pattern = strings::StrCat(
       "tfrecord:", io::JoinPath("/tmp", "nothing.*"));
-  auto yielder = RecordYielder::New(opts);
+  auto yielder = BasicRecordYielder::New(opts);
   Rope v;
   EXPECT_TRUE(errors::IsNotFound(yielder->Yield(&v)));
   yielder->Close();
@@ -200,14 +200,14 @@ TEST(RecordYielder, MatchFilesFromMultiplePatterns) {
   const int M = 32;
   GenerateTfRecordTestData("twoshard", N /* num_shards */,
                            M /* record per shard */);
-  RecordYielder::Options opts;
+  BasicRecordYielder::Options opts;
   const string path0 = io::JoinPath("/tmp", "twoshard.0");
   const string path1 = io::JoinPath("/tmp", "twoshard.1");
   opts.file_pattern = strings::StrCat("tfrecord:", path0, ",", path1);
   opts.bufsize = M;
   opts.parallelism = 1;
   std::vector<Rope> epoch;
-  auto yielder = RecordYielder::New(opts);
+  auto yielder = BasicRecordYielder::New(opts);
   Rope v;
   for (int i = 0; i < N * M; ++i) {
     TF_CHECK_OK(yielder->Yield(&v));

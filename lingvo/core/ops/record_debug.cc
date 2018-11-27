@@ -21,7 +21,7 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-void RecordYielder::WaitForBufEnough() {
+void BasicRecordYielder::WaitForBufEnough() {
   if (!BufEnough()) {
     auto start = Env::Default()->NowMicros();
     mu_.Await(buf_enough_);

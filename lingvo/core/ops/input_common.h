@@ -55,12 +55,12 @@ class InputOp : public OpKernel {
     processor_ = new RecordProcessorClass(ctx);
 
     LOG(INFO) << "Create yielder";
-    RecordYielder::Options yopts;
+    BasicRecordYielder::Options yopts;
     yopts.file_pattern = file_pattern;
     yopts.seed = file_random_seed;
     yopts.bufsize = file_buffer_size;
     yopts.parallelism = file_parallelism;
-    auto yielder = RecordYielder::New(yopts);
+    auto yielder = BasicRecordYielder::New(yopts);
 
     LOG(INFO) << "Create batcher";
     RecordBatcher::Options bopts;

@@ -35,22 +35,21 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-// RecordYielder produces value records from files in a random order.
+// RecordYielder defines an interface that should be used for producing value
+// records from files in a random order. Most users should use
+// BasicRecordYielder and BasicRecordYielder::New (see example below).
 //
-// It guarantees that:
+// RecordYielder guarantees that:
 //   1) all records are yielded within every epoch;
-//   2) each record is yielded only once within every epoch;
-//   3) the order in which records are yielded are highly randomized.
-//   4) the peak memory usage is roughly avg record size *
-//      (opts.bufsize + opts.parellelism * 16).
+//   2) the order in which records are yielded are highly randomized.
 //
 // Usage example:
-//   RecordYielder::Options opts;
+//   BasicRecordYielder::Options opts;
 //   opts.file_pattern = <file_pattern>;
 //   opts.seed = 301;
 //   opts.bufsize = 1000000;    // A randomized buffer with 1M records.
 //   opts.parallelism = 8;      // Use 8 iterators to iterate through all files.
-//   RecordYielder* yielder = RecordYielder::New(opts);
+//   RecordYielder* yielder = BasicRecordYielder::New(opts);
 //   Rope val;
 //   while (true) {
 //     yielder->Yield(&val);
@@ -60,6 +59,30 @@ namespace lingvo {
 //
 // RecordYielder can be accessed by multiple threads concurrently.
 class RecordYielder {
+ public:
+  virtual ~RecordYielder();
+
+  // Yields one 'value'.
+  virtual Status Yield(Rope* value) = 0;
+
+  // Stop this yielder and then delete it.
+  virtual void Close() = 0;
+
+  // Returns the current epoch number.
+  virtual int64 current_epoch() const = 0;
+};
+
+// BasicRecordYielder is a RecordYielder that implements a main loop and makes
+// it possible to write a custom RecordYielder by only defining a shard loop.
+// Most of the record yielders should inherit from this class.
+//
+// BasicRecordYielder guarantees that:
+//   1) all records are yielded within every epoch;
+//   2) each record is yielded only once within every epoch;
+//   3) the order in which records are yielded are highly randomized.
+//   4) the peak memory usage is roughly avg record size *
+//      (opts.bufsize + opts.parellelism * 16).
+class BasicRecordYielder : public RecordYielder {
  public:
   struct Options {
     // The set of files to yield records from.  file_pattern follows:
@@ -78,33 +101,35 @@ class RecordYielder {
   };
 
   // Register a method to create a RecordYielder for the 'type_name'.
-  typedef std::function<RecordYielder*(const RecordYielder::Options&)>
+  typedef std::function<BasicRecordYielder*(const BasicRecordYielder::Options&)>
       FactoryMethod;
   static bool Register(const string& type_name, FactoryMethod method);
 
-  // Returns a record yielder according to 'opts'.
+  // Returns a record yielder according to 'opts'. A caller is responsible for
+  // calling Close when this yielder is no longer required. A caller shouldn't
+  // delete the yielder.
   static RecordYielder* New(Options opts);
 
   // Yields one 'value'.
-  Status Yield(Rope* value);
+  Status Yield(Rope* value) override;
 
   // Stop this yielder and then delete it.
-  void Close();
+  void Close() override;
 
   // Returns the current epoch number.
-  int64 current_epoch() const { return epoch_; }
+  int64 current_epoch() const override { return epoch_; }
 
  protected:
-  explicit RecordYielder(const Options& opts);
+  explicit BasicRecordYielder(const Options& opts);
 
-  virtual ~RecordYielder();
+  ~BasicRecordYielder() override;
 
   // Subclass should implement ShardLoop which processes all records
   // in the 'shard'.
   struct Shard {
     int index;                      // Shard index.
     std::vector<string> filenames;  // File names given to this shard.
-    Notification done;        // Notified when this shard is done.
+    Notification done;              // Notified when this shard is done.
     Status status;                  // Shard status.
   };
   virtual void ShardLoop(Shard* shard) = 0;
@@ -118,7 +143,7 @@ class RecordYielder {
   bool Add(std::vector<Rope>* values);
 
  private:
-  typedef RecordYielder ME;
+  typedef BasicRecordYielder ME;
 
   Options opts_;
 
@@ -188,7 +213,7 @@ class RecordYielder {
   // For performance debugging.
   void WaitForBufEnough() EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
-  TF_DISALLOW_COPY_AND_ASSIGN(RecordYielder);
+  TF_DISALLOW_COPY_AND_ASSIGN(BasicRecordYielder);
 };
 
 }  // namespace lingvo

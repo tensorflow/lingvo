@@ -33,7 +33,7 @@ namespace {
 
 struct Factory {
   Mutex mu;
-  std::unordered_map<string, RecordYielder::FactoryMethod> methods;
+  std::unordered_map<string, BasicRecordYielder::FactoryMethod> methods;
 };
 
 Factory* GetFactory() {
@@ -58,7 +58,8 @@ string GetFilePatternPrefix(const string& file_pattern) {
 
 }  // end namespace
 
-bool RecordYielder::Register(const string& type_name, FactoryMethod method) {
+bool BasicRecordYielder::Register(const string& type_name,
+                                  FactoryMethod method) {
   Factory* factory = GetFactory();
   MutexLock l(&factory->mu);
   bool ret = factory->methods.insert({type_name, std::move(method)}).second;
@@ -66,7 +67,7 @@ bool RecordYielder::Register(const string& type_name, FactoryMethod method) {
   return ret;
 }
 
-RecordYielder* RecordYielder::New(Options opts) {
+RecordYielder* BasicRecordYielder::New(Options opts) {
   string prefix = GetFilePatternPrefix(opts.file_pattern);
   if (!prefix.empty()) {
     opts.file_pattern.erase(0, prefix.size() + 1);
@@ -79,13 +80,15 @@ RecordYielder* RecordYielder::New(Options opts) {
     LOG(FATAL) << "Unable to create RecordYielder for format \""
                << prefix << "\"";
   }
-  const RecordYielder::FactoryMethod& method = iter->second;
-  RecordYielder* yielder = method(opts);
+  const BasicRecordYielder::FactoryMethod& method = iter->second;
+  BasicRecordYielder* yielder = method(opts);
   yielder->Start();
   return yielder;
 }
 
-RecordYielder::RecordYielder(const Options& opts)
+RecordYielder::~RecordYielder() {}
+
+BasicRecordYielder::BasicRecordYielder(const Options& opts)
     : opts_(opts),
       thread_(new thread::ThreadPool(Env::Default(), ThreadOptions(),
                                      "record_yielder", 1 + opts.parallelism,
@@ -102,13 +105,13 @@ RecordYielder::RecordYielder(const Options& opts)
   }
 }
 
-RecordYielder::~RecordYielder() {}
+BasicRecordYielder::~BasicRecordYielder() {}
 
-void RecordYielder::Start() {
+void BasicRecordYielder::Start() {
   thread_->Schedule([this]() { MainLoop(); });
 }
 
-void RecordYielder::Close() {
+void BasicRecordYielder::Close() {
   {
     MutexLock l(&mu_);
     stop_ = true;
@@ -116,11 +119,11 @@ void RecordYielder::Close() {
   main_loop_done_.WaitForNotification();
   delete thread_;
   thread_ = nullptr;
-  LOG(INFO) << this << " Record yielder exit";
+  LOG(INFO) << this << "Basic record yielder exit";
   delete this;
 }
 
-Status RecordYielder::Yield(Rope* value) {
+Status BasicRecordYielder::Yield(Rope* value) {
   MutexLock l(&mu_);
   WaitForBufEnough();
   if (status_.ok()) {
@@ -131,14 +134,13 @@ Status RecordYielder::Yield(Rope* value) {
   return status_;
 }
 
-bool RecordYielder::ShouldFinish(const Status& s) {
+bool BasicRecordYielder::ShouldFinish(const Status& s) {
   MutexLock l(&mu_);
   status_.Update(s);
   return stop_ || !status_.ok();
 }
 
-
-void RecordYielder::MainLoop() {
+void BasicRecordYielder::MainLoop() {
   while (true) {
     ++epoch_;
     num_records_yielded_in_epoch_ = 0;
@@ -195,7 +197,7 @@ void RecordYielder::MainLoop() {
   main_loop_done_.Notify();
 }
 
-bool RecordYielder::Add(std::vector<Rope>* values) {
+bool BasicRecordYielder::Add(std::vector<Rope>* values) {
   MutexLock l(&mu_);
   mu_.Await(buf_not_full_);
   while (BufNotFull() && !values->empty()) {
@@ -213,8 +215,8 @@ bool RecordYielder::Add(std::vector<Rope>* values) {
   return stop_;
 }
 
-Status RecordYielder::MatchFiles(const string& patterns,
-                                 std::vector<string>* filenames) {
+Status BasicRecordYielder::MatchFiles(const string& patterns,
+                                      std::vector<string>* filenames) {
   for (const auto& file_pattern : str_util::Split(patterns, ',')) {
     std::vector<string> files_per_glob;
     TF_RETURN_IF_ERROR(
@@ -226,9 +228,9 @@ Status RecordYielder::MatchFiles(const string& patterns,
 }
 
 // Record yielder for plain text files.
-class PlainTextYielder : public RecordYielder {
+class PlainTextYielder : public BasicRecordYielder {
  public:
-  explicit PlainTextYielder(const Options& opts) : RecordYielder(opts) {}
+  explicit PlainTextYielder(const Options& opts) : BasicRecordYielder(opts) {}
 
  protected:
   void ShardLoop(Shard* shard) override {
@@ -269,9 +271,9 @@ class PlainTextYielder : public RecordYielder {
 };
 
 // Record yielder for tfrecord files.
-class TFRecordYielder : public RecordYielder {
+class TFRecordYielder : public BasicRecordYielder {
  public:
-  explicit TFRecordYielder(const Options& opts) : RecordYielder(opts) {}
+  explicit TFRecordYielder(const Options& opts) : BasicRecordYielder(opts) {}
 
  protected:
   void ShardLoop(Shard* shard) override {
@@ -312,13 +314,13 @@ class TFRecordYielder : public RecordYielder {
 
 namespace {
 
-bool register_text_yielder =
-    RecordYielder::Register("text", [](const RecordYielder::Options& opts) {
+bool register_text_yielder = BasicRecordYielder::Register(
+    "text", [](const BasicRecordYielder::Options& opts) {
       return new PlainTextYielder(opts);
     });
 
-bool register_tf_record_yielder =
-    RecordYielder::Register("tfrecord", [](const RecordYielder::Options& opts) {
+bool register_tf_record_yielder = BasicRecordYielder::Register(
+    "tfrecord", [](const BasicRecordYielder::Options& opts) {
       return new TFRecordYielder(opts);
     });
 

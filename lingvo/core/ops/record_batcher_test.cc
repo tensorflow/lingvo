@@ -73,7 +73,7 @@ TEST(RecordBatcher, Basic) {
   const string filename = io::JoinPath("/tmp", "basic");
   GenerateTestData(filename, 1000, true /* random_value */);
 
-  RecordYielder::Options yopts;
+  BasicRecordYielder::Options yopts;
   yopts.file_pattern = strings::StrCat("tfrecord:", filename);
   yopts.seed = 301;
   yopts.bufsize = 10;
@@ -83,7 +83,7 @@ TEST(RecordBatcher, Basic) {
   bopts.bucket_upper_bound = {20, 50, 90, 95};
   bopts.bucket_batch_limit = {8, 4, 2, 1};
 
-  RecordBatcher batcher(bopts, RecordYielder::New(yopts), new TestRP());
+  RecordBatcher batcher(bopts, BasicRecordYielder::New(yopts), new TestRP());
   int64 bucket_id;
   TensorVec batch;
   for (int i = 0; i < 1000; ++i) {
@@ -110,7 +110,7 @@ TEST(RecordBatcher, BasicMultiThread) {
   const string filename = io::JoinPath("/tmp", "basic");
   GenerateTestData(filename, 1000, true /* random_value */);
 
-  RecordYielder::Options yopts;
+  BasicRecordYielder::Options yopts;
   yopts.file_pattern = strings::StrCat("tfrecord:", filename);
   yopts.seed = 301;
   yopts.bufsize = 10;
@@ -121,7 +121,7 @@ TEST(RecordBatcher, BasicMultiThread) {
   bopts.bucket_batch_limit = {8, 4, 2, 1};
   bopts.num_threads = 4;
 
-  RecordBatcher batcher(bopts, RecordYielder::New(yopts), new TestRP());
+  RecordBatcher batcher(bopts, BasicRecordYielder::New(yopts), new TestRP());
   int64 bucket_id;
   TensorVec batch;
   for (int i = 0; i < 1000; ++i) {
@@ -150,7 +150,7 @@ TEST(RecordBatcher, FullEpoch) {
       io::JoinPath("/tmp", "full_epoch");
   GenerateTestData(filename, N, false /* random_value */);
 
-  RecordYielder::Options yopts;
+  BasicRecordYielder::Options yopts;
   yopts.file_pattern = strings::StrCat("tfrecord:", filename);
   yopts.seed = 301;
   yopts.bufsize = 10;
@@ -161,7 +161,7 @@ TEST(RecordBatcher, FullEpoch) {
   bopts.bucket_batch_limit = {8, 4, 2, 1};
   bopts.flush_every_n = N;  // Same number of records in the data file.
 
-  RecordBatcher batcher(bopts, RecordYielder::New(yopts), new TestRP());
+  RecordBatcher batcher(bopts, BasicRecordYielder::New(yopts), new TestRP());
   int64 bucket_id;
   TensorVec batch;
   std::vector<string> records;
