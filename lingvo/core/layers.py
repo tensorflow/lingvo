@@ -2275,7 +2275,9 @@ class DropoutLayer(quant_utils.QuantizableLayer):
     inputs = tf.convert_to_tensor(inputs)
     random_uniform = py_utils.HasShape(random_uniform, tf.shape(inputs))
     keep_prob_inv = self.QWeight(
-        tf.fill(tf.shape(inputs), tf.div(1.0, p.keep_prob)))
+        tf.fill(
+            tf.shape(inputs),
+            tf.div(tf.convert_to_tensor(1.0, inputs.dtype), p.keep_prob)))
     # The (1.0 - p.keep_prob) is designed to maintain identical beahvior with
     # the standard tensorflow implementation.
     outputs = tf.where(random_uniform < 1.0 - p.keep_prob,
