@@ -300,7 +300,7 @@ class InferenceGraphExporter(object):
 
     Args:
       model_cfg: a Params instance as returned by
-        model_registry.GetClass(modelname) or model_params.Model().
+        model_registry.GetParams(modelname, 'Test') or model_params.Model().
       model_task_name: The task to generate an inference graph for. Should be
         None for single-task models.
       per_step_inference: Whether the exported graph will be driven step-by-step
