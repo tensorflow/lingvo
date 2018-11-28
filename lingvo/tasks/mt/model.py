@@ -156,6 +156,13 @@ class MTBaseModel(base_model.BaseTask):
     }
     return decoder_metrics
 
+  def Decode(self, input_batch):
+    """Constructs the decoding graph."""
+    return self._BeamSearchDecode(input_batch)
+
+  def PostProcessDecodeOut(self, dec_out, dec_metrics):
+    return self._PostProcessBeamSearchDecodeOut(dec_out, dec_metrics)
+
 
 class TransformerModel(MTBaseModel):
   """Transformer Model.
@@ -195,11 +202,3 @@ class TransformerModel(MTBaseModel):
     summary_utils.AddNormSummary('atten',
                                  [vg.enc.transformer_stack.trans, vg.dec.trans])
     summary_utils.AddNormSummary('softmax', vg.dec.softmax)
-
-  def Decode(self, input_batch):
-    """Constructs the inference graph."""
-    super(TransformerModel, self).Decode(input_batch)
-    return self._BeamSearchDecode(input_batch)
-
-  def PostProcessDecodeOut(self, dec_out, dec_metrics):
-    return self._PostProcessBeamSearchDecodeOut(dec_out, dec_metrics)
