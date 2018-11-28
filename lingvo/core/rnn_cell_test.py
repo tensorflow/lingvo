@@ -1559,6 +1559,42 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(m_expected, m_v)
       self.assertAllClose(c_expected, c_v)
 
+  def testSRUCellWithInputGate(self):
+    with self.session(use_gpu=False):
+      params = rnn_cell.SRUCell.Params()
+      params.couple_input_forget_gates = False
+      params.name = 'sru'
+      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      params.num_input_nodes = 2
+      params.num_output_nodes = 2
+      params.zo_prob = 0.0
+      params.random_seed = _RANDOM_SEED
+
+      sru = rnn_cell.SRUCell(params)
+
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      inputs = py_utils.NestedMap(
+          act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],
+          padding=tf.zeros([3, 1]))
+      state0 = py_utils.NestedMap(
+          c=tf.constant(np.random.uniform(size=(3, 2)), tf.float32),
+          m=tf.constant(np.random.uniform(size=(3, 2)), tf.float32))
+      state1, _ = sru.FPropDefaultTheta(state0, inputs)
+
+      # Initialize all the variables, and then run one step.
+      tf.global_variables_initializer().run()
+
+      m_expected = [[0.18558595, 0.81267989], [0.30404502, 0.35851872],
+                    [0.51972485, 0.77677751]]
+      c_expected = [[-0.19633068, 0.78370988], [0.29389063, 0.39952573],
+                    [0.1221304, 0.67298377]]
+      m_v = state1.m.eval()
+      c_v = state1.c.eval()
+      print('m_v', np.array_repr(m_v))
+      print('c_v', np.array_repr(c_v))
+      self.assertAllClose(m_expected, m_v)
+      self.assertAllClose(c_expected, c_v)
+
   def testSRUCellWithProjection(self):
     with self.session(use_gpu=False):
       params = rnn_cell.SRUCell.Params()

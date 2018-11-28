@@ -1584,6 +1584,8 @@ class SRUCell(RNNCell):
         ' scalar or a scalar tensor.')
     p.Define('zo_prob', 0.0,
              'If > 0, applies ZoneOut regularization with the given prob.')
+    p.Define('couple_input_forget_gates', True,
+             'Whether to couple the input and forget gates.')
     return p
 
   @base_layer.initializer
@@ -1599,14 +1601,14 @@ class SRUCell(RNNCell):
     with tf.variable_scope(p.name) as scope:
       # Define weights.
       wm_pc = py_utils.WeightParams(
-          shape=[p.num_input_nodes, 4 * self.hidden_size],
+          shape=[p.num_input_nodes, self.num_gates * self.hidden_size],
           init=p.params_init,
           dtype=p.dtype,
           collections=self._VariableCollections())
       self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
 
       bias_pc = py_utils.WeightParams(
-          shape=[4 * self.hidden_size],
+          shape=[self.num_gates * self.hidden_size],
           init=py_utils.WeightInit.Constant(0.0),
           dtype=p.dtype,
           collections=self._VariableCollections())
@@ -1621,8 +1623,13 @@ class SRUCell(RNNCell):
         self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
 
       # Collect some stats
-      x_t2, resized, f_t, r_t = tf.split(
-          value=self.vars.wm, num_or_size_splits=4, axis=1)
+      if p.couple_input_forget_gates:
+        x_t2, resized, f_t, r_t = tf.split(
+            value=self.vars.wm, num_or_size_splits=self.num_gates, axis=1)
+      else:
+        x_t2, resized, i_t, f_t, r_t = tf.split(
+            value=self.vars.wm, num_or_size_splits=self.num_gates, axis=1)
+        _HistogramSummary(p, scope.name + '/wm_i_t', i_t)
       _HistogramSummary(p, scope.name + '/wm_x_t2', x_t2)
       _HistogramSummary(p, scope.name + '/wm_resized', resized)
       _HistogramSummary(p, scope.name + '/wm_f_t', f_t)
@@ -1637,6 +1644,10 @@ class SRUCell(RNNCell):
   @property
   def hidden_size(self):
     return self.params.num_hidden_nodes or self.params.num_output_nodes
+
+  @property
+  def num_gates(self):
+    return 4 if self.params.couple_input_forget_gates else 5
 
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
@@ -1659,11 +1670,18 @@ class SRUCell(RNNCell):
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
     p = self.params
-    x_t2, resized, f_t, r_t = tf.split(
-        value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
-    f_t = tf.nn.sigmoid(f_t)
+    if p.couple_input_forget_gates:
+      x_t2, resized, f_t, r_t = tf.split(
+          value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
+      f_t = tf.nn.sigmoid(f_t)
+      i_t = 1.0 - f_t
+    else:
+      x_t2, resized, i_t, f_t, r_t = tf.split(
+          value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=5, axis=1)
+      f_t = tf.nn.sigmoid(f_t)
+      i_t = tf.nn.sigmoid(i_t)
     r_t = tf.nn.sigmoid(r_t)
-    c_t = f_t * state0.c + (1.0 - f_t) * x_t2
+    c_t = f_t * state0.c + i_t * x_t2
     g_c_t = tf.nn.tanh(c_t)
     h_t = r_t * g_c_t + (1.0 - r_t) * resized
 
