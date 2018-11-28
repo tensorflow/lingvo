@@ -55,6 +55,7 @@ def ForTestingWorker(mode=None,
     p.worker.gpus_per_replica = gpus
   if tpus:
     p.worker.tpus_per_replica = tpus
+    p.worker.num_tpu_hosts = 1
   if split_size:
     p.worker.devices_per_split = split_size
   if add_summary:
