@@ -20,12 +20,20 @@ from __future__ import print_function
 
 import tensorflow as tf
 
+from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.tasks.mt import model as mt_model
 
 
 class TransformerModel(mt_model.TransformerModel):
   """Transformer model."""
+
+  def CreateDecoderMetrics(self):
+    decoder_metrics = {
+        'num_samples_in_batch': metrics.AverageMetric(),
+        'corpus_bleu': metrics.CorpusBleuMetric(separator_type=None),
+    }
+    return decoder_metrics
 
   def Inference(self):
     """Constructs the inference subgraphs.

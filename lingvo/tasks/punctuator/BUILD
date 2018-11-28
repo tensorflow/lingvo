@@ -42,6 +42,7 @@ py_library(
     srcs = ["model.py"],
     deps = [
         # Implicit tensorflow dependency.
+        "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         "//lingvo/tasks/mt:model",
     ],
