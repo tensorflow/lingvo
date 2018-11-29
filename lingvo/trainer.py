@@ -406,7 +406,22 @@ class Trainer(base_runner.BaseRunner):
   def StartEnqueueOp(self, op):
     self._RunLoop('trainer/enqueue_op/%s' % op.name, self._LoopEnqueue, op)
 
+  def _LoopEnqueue(self, op):
+    # Evaler/Controller jobs may find that the trial is infeasible and report
+    # done earlier. This is an important check since the trainer may retry
+    # indefinitely without it.
+    if self._trial.ShouldStop():
+      tf.logging.info('Training skipped (trial requested to stop).')
+      return
+    return super(Trainer, self)._LoopEnqueue(op)
+
   def _Loop(self):
+    # Evaler/Controller jobs may find that the trial is infeasible and report
+    # done earlier. This is an important check since the trainer may retry
+    # indefinitely without it.
+    if self._trial.ShouldStop():
+      tf.logging.info('Training skipped (trial requested to stop).')
+      return
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
       sess.run(self.initialize_tables)
@@ -603,7 +618,22 @@ class TrainerTpu(base_runner.BaseRunner):
     self._summary_writer.add_summary(
         metrics.CreateScalarSummary(tag, value), steps)
 
+  def _LoopEnqueue(self, op):
+    # Evaler/Controller jobs may find that the trial is infeasible and report
+    # done earlier. This is an important check since the trainer may retry
+    # indefinitely without it.
+    if self._trial.ShouldStop():
+      tf.logging.info('Training skipped (trial requested to stop).')
+      return
+    return super(TrainerTpu, self)._LoopEnqueue(op)
+
   def _Loop(self):
+    # Evaler/Controller jobs may find that the trial is infeasible and report
+    # done earlier. This is an important check since the trainer may retry
+    # indefinitely without it.
+    if self._trial.ShouldStop():
+      tf.logging.info('Training skipped (trial requested to stop).')
+      return
     with tf.container(self._container_id), self._GetSession() as sess:
       sess.run(self.initialize_tables)
       sess.run(

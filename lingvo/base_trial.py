@@ -74,7 +74,7 @@ class Trial(object):
     """Returns whether the trial should stop."""
     raise NotImplementedError('Abstract method')
 
-  def ReportDone(self):
+  def ReportDone(self, infeasible=False, infeasible_reason=''):
     """Report that the trial is completed."""
     raise NotImplementedError('Abstract method')
 
@@ -117,7 +117,7 @@ class NoOpTrial(Trial):
   def ShouldStop(self):
     return False
 
-  def ReportDone(self):
+  def ReportDone(self, infeasible=False, infeasible_reason=''):
     return False
 
   def ShouldStopAndMaybeReport(self, global_step, metrics_dict):

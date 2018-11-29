@@ -97,6 +97,9 @@ class BaseRunner(object):
   def params(self):
     return self._params
 
+  def _InVizierStudy(self):
+    return not isinstance(self._trial, base_trial.NoOpTrial)
+
   def _SetStatusMessage(self, message, retrying=False):
     """Update the status message for this task."""
     if self._trial.Name():
@@ -162,24 +165,56 @@ class BaseRunner(object):
       loop_func(*args)
       tf.logging.info('%s done.', job_name)
       return
-    except py_utils.transient_tf_errors + (tf.errors.OutOfRangeError,) as e:
+    except py_utils.transient_tf_errors + (tf.errors.OutOfRangeError,
+                                           tf.errors.DataLossError) as e:
       # Retry on these three errors.
       #   FailedPreconditionError: variables are not initialized.
       #   AbortedError: processes restarts.
       #   OutOfRangeError: Test/dev datasets are exhausted.
+      #   DataLossError: Race condition between evaler and trainer when saving
+      #       or removing checkpoints.
       self._SetStatusMessage(
           '%s exception: %r\n' % (job_name, e), retrying=True)
+
       for msg in traceback.format_exc().split('\n'):
         tf.logging.error(msg)
+
+      # With Vizier studies, we want to avoid retrying under some error
+      # conditions, these are captured here.
+      if self._InVizierStudy():
+        # Do not retry (via raise/retry) if AbortedError with RecvTensor
+        # message. This can happen if there are memory issues.
+        if (isinstance(e, tf.errors.AbortedError) and
+            'The same RecvTensor (WorkerServiceImpl) request was received twice'
+            in str(e)):
+          self._trial.ReportDone(
+              infeasible=True,
+              infeasible_reason='Infeasible error encountered.')
+          tf.logging.info('%s done (infeasible error).', job_name)
+          return
+
+      # Retry indefinitely (error should be transient).
       raise
     except Exception as e:  # pylint: disable=broad-except
-      # Allow the job to die on errors that are unlikely to be transient,
+      # Allow the job to complete on errors that are unlikely to be transient,
       # e.g. caused by a mis-configured model.
-      self._SetStatusMessage('%s exception: %r\n' % (job_name, e))
+      self._trial.ReportDone(
+          infeasible=True, infeasible_reason='Fatal error encountered.')
+      tf.logging.info('%s done (fatal error).', job_name)
+
+      self._SetStatusMessage('%s exception: %s\n' % (job_name, e))
+
       # Prints the error message line by line to avoid message cropping.
       msgv = traceback.format_exc().split('\n')
       for msg in msgv:
         tf.logging.error(msg)
+
+      # Check if we are potentially running within an experiment. If so,
+      # the worker should continue to the next trial instead of terminating the
+      # process.
+      if self._InVizierStudy():
+        return
+
       # tf.logging.fatal prints out stack traces. Typically, that's not
       # useful at all here. Here we want to exit the program
       # definitively. Because LOG(QFATAL) is not easily available via
