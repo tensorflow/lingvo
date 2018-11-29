@@ -1061,7 +1061,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
               theta.atten,
               packed_src,
               tf.zeros([batch_size, p.cell.num_output_nodes],
-                       dtype=packed_src.source_vecs.dtype),
+                       dtype=self.cell.params.dtype),
               zero_atten_state,
               step_state=state0.step_state))
     return state0
@@ -1072,21 +1072,21 @@ class FRNNWithAttention(base_layer.BaseLayer):
     state.atten_probs = inputs.reset_mask * state.atten_probs
     return state
 
-  def FProp(self,
-            theta,
-            src_encs,
-            src_paddings,
-            inputs,
-            paddings,
-            src_contexts=None,
-            state0=None,
-            src_segment_id=None,
-            segment_id=None):
-    """Forward propagate through a rnn layer with attention.
+  def AccumulateStates(self,
+                       theta,
+                       src_encs,
+                       src_paddings,
+                       inputs,
+                       paddings,
+                       src_contexts=None,
+                       state0=None,
+                       src_segment_id=None,
+                       segment_id=None):
+    """Sets up and runs the recurrence, returning the raw accumulated states.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       src_encs: A tensor of shape [source_seq_length, batch_size, source_dim].
       src_paddings: A tensor of shape [source_seq_length, batch_size].
       inputs: A tensor of [time, batch, dims].
@@ -1095,21 +1095,18 @@ class FRNNWithAttention(base_layer.BaseLayer):
         [source_seq_length, batch_size, some_dim]. When specified, this tensor
         will be used as the source context vectors when computing attention
         context, and src_ends will be only used to compute the attention score
-        for each context. If set to None, the 'src_encs' will be used as
-        source context.
+        for each context. If set to None, the 'src_encs' will be used as source
+        context.
       state0: [Optional] If not None, the initial rnn state and attention
         context in a `.NestedMap`. Defaults to the cell's zero-state.
       src_segment_id: A tensor of shape [source_seq_length, batch_size] to
-          support masking with packed inputs.
+        support masking with packed inputs.
       segment_id: A tensor of [time, batch, 1].
 
     Returns:
-      A tuple (atten_context, rnn_output, atten_probs, final_state).
-
-      - atten_context: a tensor of [time, batch, attention.hidden_dim].
-      - rnn_output: a tensor of [time, batch, rcell.num_output_nodes].
-      - atten_probs: a tensor of [time, batch, source_seq_length].
-      - final_state: The final recurrent state.
+      accumulated_state: a NestedMap of accumulated states from the recurrence.
+      final_state: final_state: The final recurrent state.
+      side_info: Nested map of intermediate results needed for post-processing
     """
     p = self.params
     dtype = p.dtype
@@ -1181,6 +1178,28 @@ class FRNNWithAttention(base_layer.BaseLayer):
         accumulator_layer=self,
         allow_implicit_capture=p.allow_implicit_capture)
 
+    side_info = py_utils.NestedMap(state0=state0, reset_mask=reset_mask)
+    return acc_state, final_state, side_info
+
+  def PostProcessStates(self, acc_state, side_info):
+    """Post-process accumulated states to fulfill FProp's interface.
+
+    Args:
+      acc_state: a NestedMap of the raw accumulated states from the recurrence.
+      side_info: side-information collected by AccumulateStates.
+
+    Returns:
+      A tuple (atten_context, rnn_output, atten_probs).
+
+      - atten_context: a tensor of [time, batch, attention.hidden_dim].
+      - rnn_output: a tensor of [time, batch, rcell.num_output_nodes].
+      - atten_probs: a tensor of [time, batch, source_seq_length].
+    """
+
+    p = self.params
+    rcell = self.cell
+    state0 = side_info.state0
+    reset_mask = side_info.reset_mask
     if p.output_prev_atten_ctx:
       # Add the initial attention context in and drop the attention context
       # in the last position so that the output atten_ctx is previous
@@ -1199,7 +1218,55 @@ class FRNNWithAttention(base_layer.BaseLayer):
       atten_ctx = acc_state.atten
       atten_probs = acc_state.atten_probs
 
-    return atten_ctx, rcell.GetOutput(acc_state.rnn), atten_probs, final_state
+    return atten_ctx, rcell.GetOutput(acc_state.rnn), atten_probs
+
+  def FProp(self,
+            theta,
+            src_encs,
+            src_paddings,
+            inputs,
+            paddings,
+            src_contexts=None,
+            state0=None,
+            src_segment_id=None,
+            segment_id=None):
+    """Forward propagate through a rnn layer with attention.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      src_encs: A tensor of shape [source_seq_length, batch_size, source_dim].
+      src_paddings: A tensor of shape [source_seq_length, batch_size].
+      inputs: A tensor of [time, batch, dims].
+      paddings: A tensor of [time, batch, 1].
+      src_contexts: [Optional] If specified, must be a tensor of shape
+        [source_seq_length, batch_size, some_dim]. When specified, this tensor
+        will be used as the source context vectors when computing attention
+        context, and src_ends will be only used to compute the attention score
+        for each context. If set to None, the 'src_encs' will be used as source
+        context.
+      state0: [Optional] If not None, the initial rnn state and attention
+        context in a `.NestedMap`. Defaults to the cell's zero-state.
+      src_segment_id: A tensor of shape [source_seq_length, batch_size] to
+        support masking with packed inputs.
+      segment_id: A tensor of [time, batch, 1].
+
+    Returns:
+      A tuple (atten_context, rnn_output, atten_probs, final_state).
+
+      - atten_context: a tensor of [time, batch, attention.hidden_dim].
+      - rnn_output: a tensor of [time, batch, rcell.num_output_nodes].
+      - atten_probs: a tensor of [time, batch, source_seq_length].
+      - final_state: The final recurrent state.
+    """
+
+    acc_state, final_state, side_info = self.AccumulateStates(
+        theta, src_encs, src_paddings, inputs, paddings, src_contexts, state0,
+        src_segment_id, segment_id)
+
+    atten_context, rnn_output, atten_probs = self.PostProcessStates(
+        acc_state, side_info)
+    return atten_context, rnn_output, atten_probs, final_state
 
 
 class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
