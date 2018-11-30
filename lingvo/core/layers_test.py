@@ -1975,14 +1975,7 @@ class EmbeddingLayerTest(tf.test.TestCase):
           [simple_outs, simple_grad, original_outs, original_grad],
           feed_dict={ids: ids_val})
       self.assertAllClose(s_outs, o_outs)
-
-      # tf.embedding_lookup's gradient is a sparse representation.
-      # For testing, we convert it to a dense representation.
-      self.assertAllEqual(ids_val, o_grad.indices)
-      o_grad_matrix = np.zeros((classes, dims))
-      for i in range(o_grad.indices.shape[0]):
-        o_grad_matrix[o_grad.indices[i], :] += o_grad.values[i, :]
-      self.assertAllClose(s_grad, o_grad_matrix)
+      self.assertAllClose(s_grad, o_grad)
 
   def testPositionalEmbeddingLayer(self):
     with self.session(use_gpu=False) as sess:
