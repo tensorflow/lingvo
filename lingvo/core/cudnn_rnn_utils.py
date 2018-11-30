@@ -305,7 +305,7 @@ class CuDNNLSTMSaveable(tf.contrib.cudnn_rnn.CudnnLSTMSaveable):
 
       | i_t = σ(w_i * x_t + r_i * h_(t-1) + b_wi + b_ri)
       | f_t = σ(w_f * x_t + r_f * h_(t-1) + b_wf + b_rf)
-      | o_t = σ(w_o * x_t + r_o h_(t-1) + b_wo + b_ro)
+      | o_t = σ(w_o * x_t + r_o * h_(t-1) + b_wo + b_ro)
       | c'_t = tanh(w_c * x_t + r_c * h_(t-1) + b_wc + b_rc)
       | c_t = f_t ◦ c_(t-1) + i_t ◦ c'_t
       | h_t = o_t ◦ tanh(c_t)
