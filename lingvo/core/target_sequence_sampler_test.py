@@ -91,6 +91,85 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 
+  def testTargetSequenceSamplerWithEOC(self):
+    with self.session(use_gpu=False) as sess:
+      np.random.seed(9384758)
+      tf.set_random_seed(8274758)
+      vocab_size = 4
+      src_len = 5
+      tgt_len = 20
+      batch_size = 2
+      p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
+          name='bsh', target_seq_len=tgt_len, target_eoc_id=0)
+      seq_sampler = p.cls(p)
+
+      def InitBeamSearchCallBack(unused_theta,
+                                 unused_source_encs,
+                                 unused_source_padding,
+                                 num_hyps_per_beam,
+                                 unused_additional_source_info=None):
+        self.assertEqual(1, num_hyps_per_beam)
+        logits = tf.zeros((batch_size, vocab_size), dtype=tf.float32)
+        is_last_chunk = tf.constant(False, shape=[batch_size])
+        result = py_utils.NestedMap(
+            log_probs=logits, is_last_chunk=is_last_chunk)
+        states = py_utils.NestedMap(
+            step=tf.constant(0),
+            src_step=tf.zeros([batch_size], dtype=tf.int32))
+        return result, states
+
+      def PreBeamSearchStepCallback(unused_theta,
+                                    unused_source_encs,
+                                    unused_source_paddings,
+                                    unused_step_ids,
+                                    states,
+                                    num_hyps_per_beam,
+                                    unused_additional_source_info=None):
+        self.assertEqual(1, num_hyps_per_beam)
+        logits = tf.random_normal([batch_size, vocab_size], seed=8273747)
+        # Make it never predict <eos>.
+        logits -= tf.one_hot([p.target_eos_id], vocab_size, 1e30)
+        is_last_chunk = tf.equal(states.src_step, src_len - 1)
+        result = py_utils.NestedMap(
+            log_probs=logits, is_last_chunk=is_last_chunk)
+        return result, states
+
+      def PostBeamSearchStepCallback(unused_theta,
+                                     unused_source_encs,
+                                     unused_source_paddings,
+                                     new_step_ids,
+                                     states,
+                                     unused_additional_source_info=None):
+        return py_utils.NestedMap(
+            step=states.step + 1,
+            src_step=states.src_step + tf.cast(
+                tf.equal(new_step_ids, p.target_eoc_id), dtype=tf.int32))
+
+      src_enc = tf.random_normal([src_len, batch_size, 8], seed=982774838)
+      src_enc_padding = tf.constant(
+          [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+          dtype=tf.float32)
+
+      theta = py_utils.NestedMap()
+      random_seed = tf.constant(123)
+      decoder_output = seq_sampler.Sample(
+          theta, src_enc, src_enc_padding, random_seed, InitBeamSearchCallBack,
+          PreBeamSearchStepCallback, PostBeamSearchStepCallback)
+
+      ids, lens = sess.run([
+          decoder_output.ids,
+          tf.reduce_sum(1 - decoder_output.paddings, 1),
+      ])
+      print(np.array_repr(ids))
+      print(np.array_repr(lens))
+      expected_ids = [
+          [1, 0, 1, 0, 3, 1, 3, 3, 1, 3, 1, 0, 1, 3, 3, 0, 3, 2, 2, 2],
+          [0, 0, 1, 3, 1, 0, 1, 0, 1, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      ]
+      expected_lens = [18, 11]
+      self.assertAllEqual(expected_ids, ids)
+      self.assertAllEqual(expected_lens, lens)
+
 
 if __name__ == '__main__':
   tf.test.main()

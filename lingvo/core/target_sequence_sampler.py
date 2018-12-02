@@ -45,6 +45,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     p = super(TargetSequenceSampler, cls).Params()
     p.Define('target_sos_id', 1, 'Id of the start of sentence token.')
     p.Define('target_eos_id', 2, 'Id of the end of sentence token.')
+    p.Define('target_eoc_id', -1, 'Id of the end of chunk token.')
     p.Define('target_seq_len', 0, 'Maximum allowed target seq length.')
     p.name = 'target_sequence_sampler'
     return p
@@ -72,7 +73,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         distribution from which target sequences are sampled.
       - 'ids': [batch, max_target_length] of int32, representing the target
         sequence ids, not including target_sos_id, but maybe ending with
-        target_eos_id if target_eos_id is sampled.
+        target_eos_id if end-of-sequence is reached before target_seq_len.
       - 'paddings': [batch, max_target_length] of 0/1, where 1 represents
         a padded timestep.
     """
@@ -108,16 +109,22 @@ class TargetSequenceSampler(base_layer.BaseLayer):
             tf.expand_dims(state0.ids, 1),  # [batch, 1].
             state0.bs_state,
             num_hyps_per_beam=1)
+        batch = tf.shape(bs_result.log_probs)[0]
         state1 = py_utils.NestedMap(timestep=state0.timestep + 1)
         state1.logits = bs_result.log_probs
         # Sample ids from logits. [batch].
-        state1.ids = tf.squeeze(
+        state1.ids = tf.reshape(
             tf.contrib.stateless.stateless_multinomial(
                 state1.logits,
                 num_samples=1,
                 seed=tf.stack([recurrent_theta.random_seed, state0.timestep]),
                 output_dtype=state0.ids.dtype,
-                name='sample_next_id'))
+                name='sample_next_id'), [batch])
+        if 'is_last_chunk' in bs_result and p.target_eoc_id >= 0:
+          state1.ids = tf.where(
+              tf.logical_and(bs_result.is_last_chunk,
+                             tf.equal(state1.ids, p.target_eoc_id)),
+              tf.fill(tf.shape(state1.ids), p.target_eos_id), state1.ids)
         state1.bs_state = post_step_callback(
             recurrent_theta.theta, recurrent_theta.source_encs,
             recurrent_theta.source_paddings, state1.ids, bs_state1)
