@@ -63,6 +63,19 @@ tf.flags.DEFINE_bool(
     'with variables or a checkpoint that will be produced '
     'or consumed by TPU')
 
+tf.flags.DEFINE_bool(
+    'pin_vars_to_cpu', False,
+    'Pin variables to cpu:0.  This is useful for weight-sharing / multi-core '
+    'inference on TPUs in which TPU core variables are managed via '
+    'TPUPartitionedCallOp.')
+
+tf.flags.DEFINE_bool(
+    'no_identity_on_vars', False,
+    'Do not add tf.identity() on vars. This allows TPUPartionedCallOp to use'
+    'variable handles directly for weight-sharing / multi-core '
+    'inference on TPUs.')
+
+
 FLAGS = tf.flags.FLAGS
 
 ENQUEUE_OPS = '__lingvo_enqueue_ops'
@@ -890,7 +903,8 @@ def CreateVariable(name,
 
   Returns:
     tf.identity(var), var pair. The tf.identity() node is colocated
-    with var.
+    with var. In the case of FLAGS.no_identity_on_vars, simply returns
+    a var, var pair.
   """
   p = params.Copy()
   assert isinstance(p, hyperparams.Params)
@@ -999,14 +1013,25 @@ def CreateVariable(name,
           use_resource=scope.use_resource or use_resource_variables())
     with tf.variable_scope(var_scope), \
         tf.variable_scope(var_name, reuse=reuse) as scope:
-      return tf.get_variable(
-          'var',
-          shape,
-          dtype,
-          v_init,
-          collections=collections,
-          trainable=trainable,
-          validate_shape=True if shape is not None else False)
+      if FLAGS.pin_vars_to_cpu:
+        with tf.device('/cpu:0'):
+          return tf.get_variable(
+              'var',
+              shape,
+              dtype,
+              v_init,
+              collections=collections,
+              trainable=trainable,
+              validate_shape=True if shape is not None else False)
+      else:
+        return tf.get_variable(
+            'var',
+            shape,
+            dtype,
+            v_init,
+            collections=collections,
+            trainable=trainable,
+            validate_shape=True if shape is not None else False)
 
   if _get_opportunistic_variable_reuse()[0]:
     try:
@@ -1029,9 +1054,13 @@ def CreateVariable(name,
     for col in p.collections:
       tf.add_to_collection(col, var)
 
-  # This tf.identity colocated with var.
-  with tf.device(var.device):
-    return tf.identity(var), var
+  if FLAGS.no_identity_on_vars:
+    with tf.device(var.device):
+      return var, var
+  else:
+    # This tf.identity colocated with var.
+    with tf.device(var.device):
+      return tf.identity(var), var
 
 
 global_variable_scope = tf.get_variable_scope()
