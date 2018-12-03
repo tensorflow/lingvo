@@ -82,10 +82,12 @@ lingvo_cc_library(
         "record_batcher.cc",
         "record_debug.cc",
         "record_yielder.cc",
+        "weighted_mix_record_yielder.cc",
     ],
     hdrs = [
         "record_batcher.h",
         "record_yielder.h",
+        "weighted_mix_record_yielder.h",
     ],
     deps = [
         ":mutex",
@@ -96,6 +98,15 @@ lingvo_cc_library(
 lingvo_cc_test(
     name = "record_yielder_test",
     srcs = ["record_yielder_test.cc"],
+    deps = [
+        ":input_common",
+        ":record",
+    ],
+)
+
+lingvo_cc_test(
+    name = "weighted_mix_record_yielder_test",
+    srcs = ["weighted_mix_record_yielder_test.cc"],
     deps = [
         ":input_common",
         ":record",
