@@ -1305,9 +1305,8 @@ class RunnerManager(object):
               gen_init_op=True,
               dtype_override=None),
           export_path=filename_prefix + '_tpu.pbtxt')
-    except NotImplementedError:
-      tf.logging.info('Cannot write inference graph since the \"Inference()\"'
-                      ' method has not been implemented.')
+    except NotImplementedError as e:
+      tf.logging.error('Cannot write inference graph: %s', e)
 
   def Start(self):
     """Start the process."""
