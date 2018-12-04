@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import six
 from six.moves import zip
 
 import tensorflow as tf
@@ -166,7 +165,7 @@ class TpuEvalMetrics(object):
 
   def __init__(self):
     self._metrics = None
-    self._max_metrics = 30
+    self._max_metrics = 38
 
     # Loop-carried values alternate value and weight; all values are scalars.
     self._initial_values = (
