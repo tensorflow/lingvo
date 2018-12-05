@@ -19,7 +19,6 @@ from __future__ import print_function
 
 import collections
 
-import six
 from six.moves import range
 from six.moves import zip
 
@@ -29,7 +28,6 @@ from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import lr_schedule
 from lingvo.core import metrics
-from lingvo.core import py_utils
 from lingvo.tasks.asr import decoder
 from lingvo.tasks.asr import decoder_utils
 from lingvo.tasks.asr import encoder
@@ -89,8 +87,7 @@ class AsrModel(base_model.BaseTask):
         self.CreateChild('decoder', p.decoder)
 
   def ComputePredictions(self, theta, input_batch):
-    src_enc, src_enc_padding, src_seg_id = self.encoder.FProp(
-        theta.encoder, input_batch.src)
+    encoder_outputs = self.encoder.FProp(theta.encoder, input_batch.src)
     if self.params.target_key:
       tf.logging.info(
           'Using batch.additional_tgts[%s] to source '
@@ -98,8 +95,7 @@ class AsrModel(base_model.BaseTask):
       tgt = input_batch.additional_tgts[self.params.target_key]
     else:
       tgt = input_batch.tgt
-    return self.decoder.ComputePredictions(theta.decoder, src_enc,
-                                           src_enc_padding, tgt, src_seg_id)
+    return self.decoder.ComputePredictions(theta.decoder, encoder_outputs, tgt)
 
   def ComputeLoss(self, theta, input_batch, predictions):
     tgt = input_batch.tgt
@@ -146,12 +142,11 @@ class AsrModel(base_model.BaseTask):
     """Constructs the inference graph."""
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
-      src_enc, src_enc_padding, _ = (
-          self.encoder.FPropDefaultTheta(input_batch.src))
+      encoder_outputs = self.encoder.FPropDefaultTheta(input_batch.src)
 
       if hasattr(self.decoder, 'contextualizer'):
         self.decoder.contextualizer.SetContextMap(input_batch.tgt)
-      decoder_outs = self.decoder.BeamSearchDecode(src_enc, src_enc_padding)
+      decoder_outs = self.decoder.BeamSearchDecode(encoder_outputs)
       topk = self._GetTopK(decoder_outs)
 
       utt_ids = input_batch.sample_ids

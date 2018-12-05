@@ -277,8 +277,10 @@ class AsrEncoder(base_encoder.BaseEncoder):
       state0: Recurrent input state. Not supported/ignored by this encoder.
 
     Returns:
-      (outputs, out_paddings, state1) tuple. Outputs is of the shape
-      [time, batch, depth], and out_paddings is of the shape [time, batch]
+      A NestedMap containing:
+      - 'encoded': a feature tensor of shape [time, batch, depth]
+      - 'padding': a 0/1 tensor of shape [time, batch]
+      - 'state': the updated recurrent state
     """
     p = self.params
     inputs, paddings = batch.src_inputs, batch.paddings
@@ -417,4 +419,5 @@ class AsrEncoder(base_encoder.BaseEncoder):
         fig.Finalize()
 
       rnn_padding = tf.squeeze(rnn_padding, [2])
-      return final_out, rnn_padding, py_utils.NestedMap()
+      return py_utils.NestedMap(
+          encoded=final_out, padding=rnn_padding, state=py_utils.NestedMap())

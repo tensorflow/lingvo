@@ -86,6 +86,8 @@ class DecoderTest(tf.test.TestCase):
     src_enc_padding = tf.constant(
         [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
         dtype=py_utils.FPropDtype(params))
+    encoder_outputs = py_utils.NestedMap(
+        encoded=src_enc, padding=src_enc_padding)
     # shape=[4, 5]
     target_ids = tf.transpose(
         tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 15], [5, 6, 7, 8],
@@ -112,7 +114,7 @@ class DecoderTest(tf.test.TestCase):
         'transcripts': target_transcripts,
     })
     metrics, per_sequence_loss = dec.FPropWithPerExampleLoss(
-        src_enc, src_enc_padding, targets, None)
+        encoder_outputs, targets)
     loss = metrics['loss']
 
     return loss, per_sequence_loss
@@ -140,6 +142,8 @@ class DecoderTest(tf.test.TestCase):
       src_enc_padding = tf.constant(
           [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
           dtype=tf.float32)
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_enc, padding=src_enc_padding)
       target_ids = tf.transpose(
           tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 15],
                        [5, 6, 7, 8], [10, 5, 2, 5]],
@@ -161,7 +165,7 @@ class DecoderTest(tf.test.TestCase):
           'paddings': target_paddings,
           'transcripts': target_transcripts,
       })
-      metrics = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets, None)
+      metrics = dec.FPropDefaultTheta(encoder_outputs, targets)
       loss = metrics['loss'][0]
       correct_predicts = metrics['fraction_of_correct_next_step_preds'][0]
       summaries = tf.summary.merge(tf.get_collection(tf.GraphKeys.SUMMARIES))
@@ -356,7 +360,9 @@ class DecoderTest(tf.test.TestCase):
           'paddings': target_paddings,
           'transcripts': target_transcripts,
       })
-      metrics = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets, None)
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_enc, padding=src_enc_padding)
+      metrics = dec.FPropDefaultTheta(encoder_outputs, targets)
       loss = metrics['loss'][0]
 
       tf.global_variables_initializer().run()
@@ -384,6 +390,8 @@ class DecoderTest(tf.test.TestCase):
       src_enc_padding = tf.constant(
           [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
           dtype=tf.float64)
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_enc, padding=src_enc_padding)
       target_ids = tf.transpose(
           tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 15],
                        [5, 6, 7, 8], [10, 5, 2, 5]],
@@ -406,7 +414,7 @@ class DecoderTest(tf.test.TestCase):
           'paddings': target_paddings,
           'transcripts': target_transcripts,
       })
-      metrics = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets, None)
+      metrics = dec.FPropDefaultTheta(encoder_outputs, targets)
       loss = metrics['loss'][0]
       all_vars = tf.all_variables()
       grads = tf.gradients(loss, all_vars)
@@ -465,7 +473,9 @@ class DecoderTest(tf.test.TestCase):
             [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
             dtype=tf.float32)
 
-      done_hyps = dec.BeamSearchDecode(src_enc, src_enc_padding).done_hyps
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_enc, padding=src_enc_padding)
+      done_hyps = dec.BeamSearchDecode(encoder_outputs).done_hyps
       tf.global_variables_initializer().run()
 
       softmax_wts = sess.run(dec.vars.softmax)

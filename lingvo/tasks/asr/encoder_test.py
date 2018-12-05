@@ -64,9 +64,9 @@ class EncoderTest(tf.test.TestCase):
     batch = py_utils.NestedMap()
     batch.src_inputs = tf.random_normal([2, 20, 16, 3], seed=92837472)
     batch.paddings = tf.zeros([2, 20])
-    enc_out, _, _ = stt_enc.FPropDefaultTheta(batch)
+    enc_out = stt_enc.FPropDefaultTheta(batch)
 
-    return enc_out
+    return enc_out.encoded
 
   def testEncoderConstruction(self):
     vn_config = py_utils.VariationalNoiseParams(None, True, False)
