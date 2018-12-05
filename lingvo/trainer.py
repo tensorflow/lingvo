@@ -343,7 +343,10 @@ class Controller(base_runner.BaseRunner):
     """Computes the overall step rate and adds a summary."""
     self._time_steps.append((time.time(), current_steps, total_examples))
     # Keeps a relative long history to compute a smooth steps/second.
-    while self._time_steps[-1][1] - self._time_steps[0][1] > 10000:
+    # Removes duplicate stats for step = 0 to get rid of the warm-up period.
+    while (self._time_steps[-1][1] - self._time_steps[0][1] > 10000 or
+           (len(self._time_steps) > 1 and self._time_steps[-1][1] == 0 and
+            self._time_steps[0][1] == 0)):
       del self._time_steps[0]
     (t0, s0, e0), (t1, s1, e1) = self._time_steps[0], self._time_steps[-1]
     rate = 0.0
