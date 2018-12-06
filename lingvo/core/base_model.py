@@ -394,8 +394,9 @@ class BaseTask(base_layer.BaseLayer):
     for name, (value, weight) in six.iteritems(metrics):
       self.AddEvalMetric(name, value, weight)
     # Loss.
-    self._loss, self._num_predicts = metrics['loss']
+    self._loss, self._num_predictions = metrics['loss']
     self._loss = py_utils.CheckNumerics(self._loss)
+    summary_utils.scalar('num_predictions', self._num_predictions)
 
   def GetInputBatch(self):
     """Returns input batch from input_generator."""
