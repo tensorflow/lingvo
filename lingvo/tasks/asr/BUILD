@@ -105,6 +105,7 @@ py_library(
         ":contextualizer_base",
         ":decoder_utils",
         ":fusion",
+        # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
         "//lingvo/core:attention",

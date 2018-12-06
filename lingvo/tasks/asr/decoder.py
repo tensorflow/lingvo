@@ -19,6 +19,7 @@ from __future__ import print_function
 import collections
 import math
 
+from matplotlib import font_manager
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
@@ -198,6 +199,10 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p.Define('atten_context_dim', 0,
              'Depth of the attention context vector output.')
     p.Define(
+        'attention_plot_font_properties', None,
+        'Adds font properties for the given file if set. Required '
+        'for displaying east-Asian character sets on plot axes.')
+    p.Define(
         'first_rnn_input_dim', 0,
         'The input dim to the first RNN layer. If 0, it is '
         'assumed to be p.emb_dim')
@@ -291,6 +296,11 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       self._prng_seed = p.random_seed
     else:
       self._prng_seed = py_utils.GenerateSeedFromName(p.name)
+
+    self._font_properties = None
+    if p.attention_plot_font_properties:
+      self._font_properties = font_manager.FontProperties(
+          fname=p.attention_plot_font_properties)
 
     name = p.name
     with tf.variable_scope(name):
@@ -504,7 +514,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       axes.set_ylabel(
           plot.ToUnicode(transcript + '\nOutput token'),
           size='x-small',
-          wrap=True)
+          wrap=True,
+          fontproperties=self._font_properties)
 
     index = 0
     if 'transcripts' not in targets:
