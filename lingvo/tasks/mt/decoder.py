@@ -1048,10 +1048,9 @@ class TransformerDecoder(MTBaseDecoder):
 
     prefix_states = py_utils.NestedMap({
         'layer_%d' % layer: py_utils.NestedMap({
-            'key': tf.zeros([batch_size, 0, key_channels]),
-            'value': tf.zeros([batch_size, 0, value_channels]),
-        })
-        for layer in range(p.num_trans_layers)
+            'key': tf.zeros([batch_size, 0, key_channels], dtype=p.dtype),
+            'value': tf.zeros([batch_size, 0, value_channels], dtype=p.dtype),
+        }) for layer in range(p.num_trans_layers)
     })
 
     return initial_results, py_utils.NestedMap({

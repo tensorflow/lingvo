@@ -1463,7 +1463,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           [src_seq_len, batch_size * num_heads])
     else:
       packed_src.source_padding = tf.zeros(
-          [src_seq_len, batch_size * num_heads])
+          [src_seq_len, batch_size * num_heads], dtype=p.dtype)
     if source_segment_id is None:
       packed_src.source_segment_id = tf.zeros(
           [src_seq_len, batch_size * num_heads],
