@@ -16,9 +16,11 @@ limitations under the License.
 #ifndef LINGVO_CORE_OPS_INPUT_COMMON_H_
 #define LINGVO_CORE_OPS_INPUT_COMMON_H_
 
+#include <limits>
 #include "tensorflow/core/framework/op_kernel.h"
 #include "lingvo/core/ops/record_batcher.h"
 #include "lingvo/core/ops/record_yielder.h"
+#include "lingvo/core/ops/weighted_mix_record_yielder.h"
 
 namespace tensorflow {
 namespace lingvo {
@@ -38,6 +40,7 @@ class InputOp : public OpKernel {
   OP_REQUIRES_OK(ctx, ctx->GetAttr(#FIELD, &FIELD));
 
     GETATTR(string, file_pattern);
+    GETATTR(std::vector<float>, input_source_weights);
     GETATTR(int64, file_random_seed);
     GETATTR(int64, file_buffer_size);
     GETATTR(int64, file_parallelism);
@@ -50,17 +53,48 @@ class InputOp : public OpKernel {
         ctx,
         std::is_sorted(bucket_upper_bound.begin(), bucket_upper_bound.end()),
         errors::InvalidArgument("Bucket_upper_bound is not sorted"));
-
     LOG(INFO) << "Create RecordProcessor";
     processor_ = new RecordProcessorClass(ctx);
 
-    LOG(INFO) << "Create yielder";
-    BasicRecordYielder::Options yopts;
-    yopts.file_pattern = file_pattern;
-    yopts.seed = file_random_seed;
-    yopts.bufsize = file_buffer_size;
-    yopts.parallelism = file_parallelism;
-    auto yielder = BasicRecordYielder::New(yopts);
+    std::vector<string> file_patterns;
+    if (input_source_weights.empty()) {
+      LOG(INFO) << "Input source weights are empty, fall back to legacy "
+                << "behavior.";
+      file_patterns.push_back(file_pattern);
+    } else {
+      file_patterns  = str_util::Split(file_pattern, ',');
+      OP_REQUIRES(
+        ctx,
+        file_patterns.size() == input_source_weights.size(),
+        errors::InvalidArgument("There should be exactly one "
+                                "input_source_weight per coma-separated value "
+                                "in file_pattern."));
+    }
+    std::vector<RecordYielder*> yielders;
+    for (int i = 0; i < file_patterns.size(); ++i) {
+      BasicRecordYielder::Options yopts;
+      yopts.file_pattern = file_patterns[i];
+      if (file_random_seed == 0) {
+        yopts.seed = 0;  // Let the yielder pick a random seed.
+      } else {
+        yopts.seed =
+            (file_random_seed + i) % (std::numeric_limits<int32>::max() - 1);
+        if (yopts.seed == 0) {
+          // Add 1 to avoid 0.
+          ++yopts.seed;
+        }
+      }
+      yopts.bufsize = file_buffer_size;
+      yopts.parallelism = file_parallelism;
+      yielders.push_back(BasicRecordYielder::New(yopts));
+    }
+    RecordYielder* yielder = nullptr;
+    if (yielders.size() > 1) {
+      yielder = WeightedMixRecordYielder::New(file_random_seed, yielders,
+                                              input_source_weights);
+    } else {
+      yielder = yielders.front();
+    }
 
     LOG(INFO) << "Create batcher";
     RecordBatcher::Options bopts;

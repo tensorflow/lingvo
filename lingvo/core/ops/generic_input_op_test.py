@@ -18,8 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import pickle
+import collections
 import os
+import pickle
 
 import numpy as np
 from six.moves import range
@@ -29,6 +30,15 @@ from lingvo.core.ops import py_x_ops
 
 
 class GenericInputOpTest(tf.test.TestCase):
+
+  def get_test_input(self, path, **kwargs):
+    return py_x_ops.generic_input(
+        file_pattern='tfrecord:' + path,
+        file_random_seed=0,
+        file_buffer_size=32,
+        file_parallelism=4,
+        bucket_batch_limit=[8],
+        **kwargs)
 
   def testBasic(self):
     # Generate a test file w/ 100 records.
@@ -52,14 +62,8 @@ class GenericInputOpTest(tf.test.TestCase):
 
       # Samples random records from the data files and processes them
       # to generate batches.
-      strs, vals = py_x_ops.generic_input(
-          file_pattern='tfrecord:' + tmp,
-          file_random_seed=0,
-          file_buffer_size=32,
-          file_parallelism=4,
-          bucket_upper_bound=[1],
-          bucket_batch_limit=[8],
-          processor=_process)
+      strs, vals = self.get_test_input(
+          tmp, bucket_upper_bound=[1], processor=_process)
 
     with self.session(graph=g) as sess:
       record_seen = set()
@@ -84,25 +88,21 @@ class GenericInputOpTest(tf.test.TestCase):
     with g.as_default():
       # A record processor written in TF graph.
       def _process(record):
-        num = tf.py_func(lambda x: pickle.loads(x), [record], tf.int32)
+        num = tf.py_func(pickle.loads, [record], tf.int32)
         bucket_key = tf.shape(num)[0]
         return num, tf.transpose(num, [1, 0, 2]), bucket_key
 
       # Samples random records from the data files and processes them
       # to generate batches.
-      vals_t, transposed_vals_t = py_x_ops.generic_input(
-          file_pattern='tfrecord:' + tmp,
-          file_random_seed=0,
-          file_buffer_size=32,
-          file_parallelism=4,
+      vals_t, transposed_vals_t = self.get_test_input(
+          tmp,
           bucket_upper_bound=[10],
-          bucket_batch_limit=[8],
           processor=_process,
           dynamic_padding_dimensions=[0, 1],
           dynamic_padding_constants=[0] * 2)
 
     with self.session(graph=g) as sess:
-      for i in range(10):
+      for _ in range(10):
         vals, transposed_vals = sess.run([vals_t, transposed_vals_t])
         print(vals, np.transpose(transposed_vals, [0, 2, 1, 3]))
         self.assertEqual(vals.shape[0], 8)
@@ -116,6 +116,69 @@ class GenericInputOpTest(tf.test.TestCase):
           self.assertTrue(np.all(vals[j, :n] == n))
           self.assertTrue(np.all(vals[j, n:] == 0))
         self.assertAllEqual(vals, np.transpose(transposed_vals, [0, 2, 1, 3]))
+
+
+class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
+  # Runs all GenericInputOp tests plus some more.
+
+  def get_test_input(self, path, **kwargs):
+    return py_x_ops.generic_input(
+        file_pattern=','.join(['tfrecord:' + path, 'tfrecord:' + path]),
+        input_source_weights=[0.3, 0.7],
+        file_random_seed=0,
+        file_buffer_size=32,
+        file_parallelism=4,
+        bucket_batch_limit=[8],
+        **kwargs)
+
+  def testMix(self):
+    # Generate couple files.
+    def generate_test_data(tag, cnt):
+      tmp = os.path.join(tf.test.get_temp_dir(), tag)
+      with tf.python_io.TFRecordWriter(tmp) as w:
+        for i in range(cnt):
+          w.write('%s:%08d' % (tag, i))
+      return tmp
+
+    path1 = generate_test_data('input1', 100)
+    path2 = generate_test_data('input2', 200)
+    path3 = generate_test_data('input3', 10)
+
+    g = tf.Graph()
+    with g.as_default():
+      # A record processor written in TF graph.
+      def _process(record):
+        return record, record, tf.to_int32(1)
+
+      # Samples random records from the data files and processes them
+      # to generate batches.
+      strs, vals = py_x_ops.generic_input(
+          file_pattern=','.join(
+              ['tfrecord:' + path1, 'tfrecord:' + path2, 'tfrecord:' + path3]),
+          input_source_weights=[0.2, 0.3, 0.5],
+          file_random_seed=0,
+          file_buffer_size=32,
+          file_parallelism=4,
+          bucket_batch_limit=[8],
+          bucket_upper_bound=[1],
+          processor=_process)
+
+    with self.session(graph=g) as sess:
+      tags_count = collections.defaultdict(int)
+      total_count = 10000
+      for _ in range(total_count):
+        ans_strs, ans_vals = sess.run([strs, vals])
+        for s in ans_strs:
+          tags_count[s.split(':')[0]] += 1
+        self.assertEqual(ans_strs.shape, (8,))
+        self.assertEqual(ans_vals.shape, (8,))
+      self.assertEqual(sum(tags_count.values()), total_count * 8)
+      mix_ratios = {}
+      for k, v in tags_count.iteritems():
+        mix_ratios[k] = float(v) / total_count / 8
+      self.assertAlmostEqual(mix_ratios['input1'], 0.2, delta=0.01)
+      self.assertAlmostEqual(mix_ratios['input2'], 0.3, delta=0.01)
+      self.assertAlmostEqual(mix_ratios['input3'], 0.5, delta=0.01)
 
 
 if __name__ == '__main__':

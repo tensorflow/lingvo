@@ -16,20 +16,25 @@ limitations under the License.
 #ifndef LINGVO_CORE_OPS_X_OPS_HELPER_H_
 #define LINGVO_CORE_OPS_X_OPS_HELPER_H_
 
-#define INPUT_ATTRS                                \
-  Attr("file_pattern: string")                     \
-      .Attr("file_random_seed: int = 301")         \
-      .Attr("file_buffer_size: int = 10000")       \
-      .Attr("file_parallelism: int = 16")          \
-      .Attr("bucket_upper_bound: list(int)")       \
-      .Attr("bucket_batch_limit: list(int)")       \
-      .Attr("flush_every_n: int = 0")              \
-      .Attr("num_threads: int = 1")                \
+#define INPUT_ATTRS                                   \
+      Attr("file_pattern: string")                    \
+      .Attr("input_source_weights: list(float) = []") \
+      .Attr("file_random_seed: int = 301")            \
+      .Attr("file_buffer_size: int = 10000")          \
+      .Attr("file_parallelism: int = 16")             \
+      .Attr("bucket_upper_bound: list(int)")          \
+      .Attr("bucket_batch_limit: list(int)")          \
+      .Attr("flush_every_n: int = 0")                 \
+      .Attr("num_threads: int = 1")                   \
       .SetIsStateful()
 
 #define INPUT_DOCS \
   R"( \
-file_pattern: Glob pattern for the data files.\
+file_pattern: A comma-separated list of glob patterns for the data files.\
+input_source_weights: A list of input sources weights that control the input\
+  example mix. The records will be sampled from inputs proportionally to these \
+  weights. When empty list is provided, no mix weighting will be done. \
+  Defaults to empty list.\
 file_random_seed: Random seeds used to produce randomized records.\
 file_buffer_size: The randomization shuffling buffer.\
 file_parallelism: How many sstables are opened and concurrently iterated over.\

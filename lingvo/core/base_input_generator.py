@@ -219,7 +219,11 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     """Defaults params for input generators."""
     p = super(BaseInputGeneratorFromFiles, cls).Params()
     p.Define(
-        'file_pattern', '',
+        # TODO(tilarids): Consider renaming this param to make it clear it may
+        # be a set of file patterns with weights and filters and not just a
+        # simple string pattern.
+        'file_pattern',
+        '',
         'A single file pattern string, a list of <file_pattern, weight> pairs'
         'or a list of  <file_pattern, weight, bprop_variable_filter> tuples.'
         'In the later 2 cases, probablistic samples are from the inputs '
@@ -238,6 +242,11 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'so far every these many records are yielded.')
     p.Define('num_batcher_threads', 1, 'Number of threads to use for input '
              'record batcher.')
+    p.Define(
+        'use_within_batch_mixing', False, 'Whether to mix records from '
+        'different input sources within batch or across batches (the '
+        'default option). This option only takes effect when file_pattern'
+        ' is a list of file patterns with weights.')
     return p
 
   @base_layer.initializer
@@ -252,16 +261,11 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     p = self.params
     args = super(BaseInputGeneratorFromFiles, self).CommonInputOpArgs()
     args.update({
-        'file_random_seed':
-            p.file_random_seed,
-        'file_buffer_size':
-            p.file_buffer_size,
-        'file_parallelism':
-            p.file_parallelism,
-        'flush_every_n':
-            p.flush_every_n,
-        'num_threads':
-            p.num_batcher_threads,
+        'file_random_seed': p.file_random_seed,
+        'file_buffer_size': p.file_buffer_size,
+        'file_parallelism': p.file_parallelism,
+        'flush_every_n': p.flush_every_n,
+        'num_threads': p.num_batcher_threads,
     })
     args.update(self._InputOpBucketingArgs())
     return args
@@ -272,22 +276,105 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'bucket_batch_limit': [self.InputBatchSize()],
     }
 
-  def _DataSourceFromFilePattern(self, file_pattern):
+  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
     """Read and return input batch from a string file_pattern.
 
     Args:
       file_pattern: A string file pattern.
+      input_source_weights: A list of float input source weights to control
+        input example mix in the batch. The records will be sampled from inputs
+        proportionally to these weights. Defaults to None which should be
+        treated as an empty list.
 
     Returns:
       A tf.Tensor or `.NestedMap` of tf.Tensor
     """
     raise NotImplementedError()
 
+  def _BuildWithinBatchMixingDataSource(self):
+    """Read and return input batch from a p.file_pattern list.
+
+    `p.file_pattern` should be a list of (file_pattern, weight) pairs. Examples
+    in the batch will be mixed together from different file_pattern source
+    proportionally to the weights.
+
+    Returns:
+      A tf.Tensor or `.NestedMap` of tf.Tensor same as
+      `self._DataSourceFromFilePattern()`.
+
+    Raises:
+      ValueError: If unknown token type.
+    """
+    p = self.params
+    if not isinstance(p.file_pattern, list):
+      raise ValueError('Expected a list, got %s' % (p.file_pattern,))
+    if max(map(len, p.file_pattern)) >= 3:
+      # Within batch mixing doesn't work with backprop filters, i.e. when
+      # file_pattern param contains a list of
+      # <file_pattern, weight, [bprop_variable_filter]> tuples.
+      raise ValueError('Expected a list of pairs, got %s' % (p.file_pattern,))
+
+    file_patterns, weights = zip(*p.file_pattern)
+    self._bprop_variable_filters = [''] * len(file_patterns)
+    for file_pattern in file_patterns:
+      if ',' in file_pattern:
+        raise ValueError('Can not use commas in file_pattern when within-batch '
+                         'mixing is used. file_pattern: %s' % (file_pattern,))
+
+    # Do not set self._bprop_onehot as it shouldn't be used later on.
+    try:
+      return self._DataSourceFromFilePattern(','.join(file_patterns), weights)
+    except TypeError as e:
+      raise NotImplementedError(
+          'The function may not be fully implemented. Have you added ' +
+          'input_source_weights as params? Original exception: %s' % e)
+
+  def _BuildCrossBatchMixingDataSource(self):
+    """Read and return input batch from a p.file_pattern list.
+
+    `p.file_pattern` should be a list of (file_pattern, weight,
+    optional_bprop_filter) tuples. Every batch returned will be filled from one
+    source only and batches will be mixed proportionally to the weights.
+    Additionally some backprop filters may be applied for different input
+    sources.
+
+    Returns:
+      A tf.Tensor or `.NestedMap` of tf.Tensor same as
+      `self._DataSourceFromFilePattern()`.
+
+    Raises:
+      ValueError: If unknown token type.
+    """
+    p = self.params
+    input_file_pattern = p.file_pattern
+
+    def _MakeDataSourceFromFilePatternFunc(file_pattern):
+      # It's important to invoke self._DataSourceFromFilePattern() inside the
+      # lambda to make sure that the record is drawn from data source
+      # only if it will be used.
+      return lambda: self._DataSourceFromFilePattern(file_pattern)
+
+    inputs = []
+    weights = []
+    self._bprop_variable_filters = []
+    for input_entry in input_file_pattern:
+      file_pattern, weight = input_entry[:2]
+      inputs.append(_MakeDataSourceFromFilePatternFunc(file_pattern))
+      weights.append(weight)
+      bprop_variable_filter = input_entry[2] if len(input_entry) > 2 else ''
+      self._bprop_variable_filters.append(bprop_variable_filter)
+    data_source, selected_bprop = py_utils.MixByWeight(inputs, weights)
+    self._bprop_onehot = selected_bprop
+    return data_source
+
   def _BuildDataSource(self):
     """Read and return input batch from `p.file_pattern`.
 
     `p.file_pattern` may be a string file_pattern or a
-    list of (file_pattern, weight) pairs.
+    list of (file_pattern, weight, [bprop_variable_filter]) tuples.
+    bprop_variable_filter is optional. When bprop_variable_filter is used,
+    batches will always contain the examples from the same source. Otherwise,
+    examples from different sources may be mixed together.
 
     Returns:
       A tf.Tensor or `.NestedMap` of tf.Tensor same as
@@ -299,29 +386,15 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     p = self.params
     input_file_pattern = p.file_pattern
     if isinstance(input_file_pattern, six.string_types):
-      data_source = self._DataSourceFromFilePattern(input_file_pattern)
+      return self._DataSourceFromFilePattern(input_file_pattern)
     elif isinstance(input_file_pattern, list):
-      # Handle weighted input file patterns, where input_file_patterns contain
-      # a list of <file_pattern, weight> pairs.
-      def _MakeDataSourceFromFilePatternFunc(file_pattern):
-        # It's important to invoke self._DataSourceFromFilePattern() inside the
-        # lambda to make sure that the record is drawn from data source
-        # only if it will be used.
-        return lambda: self._DataSourceFromFilePattern(file_pattern)
-      inputs = []
-      weights = []
-      self._bprop_variable_filters = []
-      for input_entry in input_file_pattern:
-        file_pattern, weight = input_entry[:2]
-        inputs.append(_MakeDataSourceFromFilePatternFunc(file_pattern))
-        weights.append(weight)
-        bprop_variable_filter = input_entry[2] if len(input_entry) > 2 else ''
-        self._bprop_variable_filters.append(bprop_variable_filter)
-      data_source, selected_bprop = py_utils.MixByWeight(inputs, weights)
-      self._bprop_onehot = selected_bprop
+      if p.use_within_batch_mixing:
+        return self._BuildWithinBatchMixingDataSource()
+      else:
+        # Otherwise fall back to MixByWeight-based approach.
+        return self._BuildCrossBatchMixingDataSource()
     else:
       raise ValueError()
-    return data_source
 
 
 class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
@@ -452,8 +525,8 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
       ids: A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample's
         ids.
       lens: A vector of shape [batch]. lens[i] is the sequence length of the
-        i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
-        tokens for the i-th sequence.
+        i-th sample. Only the first lens[i] tokens in ids[i, :] are valid tokens
+          for the i-th sequence.
       key: A string key in case the model has multiple tokenizers.
 
     Returns:
