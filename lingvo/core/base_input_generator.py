@@ -32,6 +32,44 @@ from lingvo.core import tokenizers
 from lingvo.core.ops import py_x_ops
 
 
+_TFDATA_DATASET_CTORS = {
+    'tfrecord': tf.data.TFRecordDataset,
+    'textline': tf.data.TextLineDataset,
+    'csv': tf.contrib.data.CsvDataset,
+}
+
+
+def _LookupTfDataDatasetCtor(factory_type):
+  """Looks up a tf.data dataset constructor by factory_type.
+
+  Args:
+    factory_type: One of the well-known string type names. It can also be a
+      class, in which case, it will be instantiated and used as the constructor.
+      In this case, the class should implement __call__.
+
+  Returns:
+    A callable that takes a list of filenames (see tf.data.TFRecordDataset
+    for the convention).
+  Raises:
+    ValueError: If an unknown type.
+  """
+  if isinstance(factory_type, type):
+    factory = factory_type()
+    if not callable(factory):
+      raise ValueError('Dataset factory %r is not callable' % factory_type)
+    return factory
+
+  if factory_type == 'tfrecord':
+    return tf.data.TFRecordDataset
+  elif factory_type == 'textline':
+    return tf.data.TextLineDataset
+  elif factory_type == 'csv':
+    return tf.contrib.data.CsvDataset
+
+  raise ValueError('Unsupported tf.data dataset factory %s (known %r)' %
+                   (factory_type, _TFDATA_DATASET_CTORS))
+
+
 class BaseInputGenerator(base_layer.BaseLayer):
   """The base input generator."""
 
@@ -600,3 +638,91 @@ class BaseTinyDatasetInput(BaseInputGenerator):
 
   def _Preprocess(self, raw):
     return raw
+
+
+class BaseExampleInputGenerator(BaseInputGenerator):
+  """Base class for input generators that read Feature protos via tf.data."""
+
+  @classmethod
+  def Params(cls):
+    p = super(BaseExampleInputGenerator, cls).Params()
+    p.Define('input_files', None, 'Delimited glob of input files.')
+    p.Define(
+        'file_type', None,
+        'The file type. Can be one of "tfrecord" or a class that implements '
+        '__call__ and takes a list of filenames (note that other file types '
+        'are not valid for reading examples).')
+    p.Define('randomize_order', True, 'Whether to randomize the order.')
+    p.Define('parallel_readers', 1, 'Number of parallel reader threads.')
+    p.Define('num_examples', -1, 'Number of examples (-1 for unlimited).')
+    p.Define('randomize_shuffle_size', 500,
+             'Size of the random shuffle buffer.')
+    return p
+
+  def __init__(self, params):
+    super(BaseExampleInputGenerator, self).__init__(params)
+    p = params
+    assert p.input_files, (
+        'input_files is required for a tf.data example input generator')
+    assert p.file_type, (
+        'file_type is required for a tf.data example input generator')
+
+  def GetFeatureSpec(self):
+    """Subclasses must implement and return a feature spec.
+
+    Returns:
+      NestedMap of features compatible with tf.parse_example. Default
+      implementation returns an empty dict.
+    """
+    return {}
+
+  def PostProcessBatch(self, input_batch):
+    """Post processes an input batch.
+
+    By default, just returns the batch unchanged. This happens as part of the
+    parallel reader threads and can therefore be more efficient for performing
+    expensive operations vs doing work as the result of InputBatch().
+
+    Args:
+      input_batch: Input batch NestedMap.
+
+    Returns:
+      Altered batch NestedMap.
+    """
+    return input_batch
+
+  def InputBatch(self):
+    p = self.params
+
+    def ParseAndProcess(*cols):
+      """Parses a Tensorflow example into features."""
+      # Assume either one or two column input. If one, then the record is
+      # assumed to be that column. If 2, then it is assumed to be a KV store
+      # and the record is the second column.
+      assert len(cols) in [
+          1, 2
+      ], ('BaseExampleInputGenerator supports one or two column input')
+      record = cols[-1]
+      feature_spec = self.GetFeatureSpec()
+      features = py_utils.NestedMap(tf.parse_example(record, feature_spec))
+      return self.PostProcessBatch(features)
+
+    dataset_factory = _LookupTfDataDatasetCtor(p.file_type)
+    dataset = (
+        tf.data.Dataset.list_files(
+            p.input_files, shuffle=bool(p.randomize_order)).apply(
+                tf.contrib.data.parallel_interleave(
+                    dataset_factory,
+                    cycle_length=p.parallel_readers,
+                    sloppy=p.randomize_order)))
+
+    if p.randomize_order:
+      dataset = dataset.shuffle(p.randomize_shuffle_size)
+    dataset = dataset.take(p.num_examples)
+    dataset = dataset.batch(p.batch_size, drop_remainder=True)
+    dataset = dataset.map(
+        ParseAndProcess, num_parallel_calls=p.parallel_readers)
+    dataset = dataset.repeat()
+    iterator = dataset.make_one_shot_iterator()
+    input_batch = iterator.get_next()
+    return input_batch

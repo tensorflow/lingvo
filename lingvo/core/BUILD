@@ -159,6 +159,17 @@ py_library(
     ],
 )
 
+py_test(
+    name = "base_input_generator_test",
+    srcs = ["base_input_generator_test.py"],
+    deps = [
+        ":base_input_generator",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
 py_library(
     name = "base_layer",
     srcs = ["base_layer.py"],
