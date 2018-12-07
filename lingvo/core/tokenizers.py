@@ -56,7 +56,11 @@ class BaseTokenizer(base_layer.BaseLayer):
     self.eos_id = p.target_eos_id  # </S>
     self.unk_id = p.target_unk_id  # <UNK>
 
-  def StringsToIds(self, strs, max_length, external_append_eos=None):
+  def StringsToIds(self,
+                   strs,
+                   max_length,
+                   external_append_eos=None,
+                   languages=None):
     """Tokenize strs into vocab ids.
 
     Args:
@@ -65,6 +69,7 @@ class BaseTokenizer(base_layer.BaseLayer):
       external_append_eos: Bool or None. If None, will be ignored and
         `params.append_eos` will be used. If bool, will determine if an eos
         symbol will be added to tokens.
+      languages: A vector of strings with the same length as `strs`.
 
     Returns:
       A tuple (ids, labels, paddings) with the same shape [batch, maxlen].
@@ -83,7 +88,8 @@ class BaseTokenizer(base_layer.BaseLayer):
     else:
       append_eos = external_append_eos
 
-    ids, labels, paddings = self._StringsToIdsImpl(strs, max_length, append_eos)
+    ids, labels, paddings = self._StringsToIdsImpl(strs, max_length, append_eos,
+                                                   languages)
     if py_utils.use_tpu():
       batch_size = strs.shape[0]
       ids.set_shape([batch_size, max_length])
@@ -91,10 +97,10 @@ class BaseTokenizer(base_layer.BaseLayer):
       paddings.set_shape([batch_size, max_length])
     return ids, labels, paddings
 
-  def _StringsToIdsImpl(self, strs, max_length, append_eos):
+  def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
     raise NotImplementedError('Abstract method.')
 
-  def IdsToStrings(self, ids, lens):
+  def IdsToStrings(self, ids, lens, languages=None):
     """Converts ids back to strings.
 
     Args:
@@ -103,6 +109,7 @@ class BaseTokenizer(base_layer.BaseLayer):
       lens: A vector of shape [batch]. lens[i] is the sequence length of the
         i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
         tokens for the i-th sequence.
+      languages: A vector of strings of shape [batch].
 
     Returns:
       sequences - A vector of shape [batch]. The converted string sequence.
@@ -120,7 +127,7 @@ class AsciiTokenizer(BaseTokenizer):
   and punctuation symbols.
   """
 
-  def _StringsToIdsImpl(self, strs, max_length, append_eos):
+  def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
     return py_x_ops.ascii_to_token_id(
         strs, maxlen=max_length, append_eos=append_eos)
 
@@ -155,7 +162,7 @@ class VocabFileTokenizer(BaseTokenizer):
     if num_params_specified != 1:
       raise ValueError('Exactly one vocab file should be specified!')
 
-  def _StringsToIdsImpl(self, strs, max_length, append_eos):
+  def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
     self._CheckParams()
     p = self.params
 
@@ -198,7 +205,7 @@ class BpeTokenizer(BaseTokenizer):
              'Specifies a filepath to the word bpe vocab file.')
     return p
 
-  def _StringsToIdsImpl(self, strs, max_length, append_eos):
+  def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
     p = self.params
 
     return py_x_ops.bpe_words_to_ids(
@@ -316,7 +323,7 @@ class WpmTokenizer(BaseTokenizer):
         token_ids += [[]]
     return self._PostProcessIds(token_ids, max_length, append_eos)
 
-  def _StringsToIdsImpl(self, strs, max_length, append_eos):
+  def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
     """Takes a tensor of strings and returns id/padding tensors."""
     ids, labels, paddings = tf.py_func(self._WpmEncode,
                                        [strs, max_length, append_eos],

@@ -520,7 +520,8 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
                    is_source=False,
                    external_max_length=None,
                    external_append_eos=None,
-                   key=None):
+                   key=None,
+                   languages=None):
     """Tokenize strs into vocab ids.
 
     Args:
@@ -532,6 +533,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
         `params.append_eos` will be used. If bool, will determine if an eos
         symbol will be added to tokens.
       key: A string key in case the model has multiple tokenizers.
+      languages: A vector of str with the same length as `strs`.
 
     Returns:
       A tuple (ids, labels, paddings) with the same shape [batch, maxlen].
@@ -553,8 +555,8 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
       maxlen = p.target_max_length
 
     key = key or 'default'
-    return self.tokenizer_dict[key].StringsToIds(strs, maxlen,
-                                                 external_append_eos)
+    return self.tokenizer_dict[key].StringsToIds(
+        strs, maxlen, external_append_eos, languages=languages)
 
   def IdsToStrings(self, ids, lens, key=None):
     """Converts ids back to strings.
