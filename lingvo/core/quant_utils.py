@@ -349,6 +349,11 @@ class QuantizableLayer(base_layer.BaseLayer):
     WrapOp('qlogsoftmax', tf.nn.log_softmax)
     WrapOp('qrelu', tf.nn.relu)
     WrapOp('qrelu6', tf.nn.relu6, default_qmin=0.0, default_qmax=6.0)
+    WrapOp(
+        'qrandom_uniform',
+        tf.random_uniform,
+        default_qmin=0.0,
+        default_qmax=1.0)
 
     # Convenience for quantizing weights.
     self.AddFunction('qweight', self.QWeight)
