@@ -506,8 +506,9 @@ class TransformerLayer(base_layer.BaseLayer):
                                                aux_paddings, aux_vecs)
 
     # Finally, the feedforward layer.
-    h = self.fflayer.FProp(theta.fflayer, atten_vec,
-                           tf.zeros([1, batch_size], dtype=p.dtype))
+    h = self.fflayer.FProp(
+        theta.fflayer, atten_vec,
+        tf.zeros([1, batch_size], dtype=py_utils.FPropDtype(p)))
     h = tf.squeeze(h, 0)
     return h, atten_prob, new_states
 
@@ -770,7 +771,8 @@ class StyleLayer(base_layer.BaseLayer):
     p = self.params
     b_size = tf.shape(inp)[0]
     styles_w = tf.tile(tf.nn.tanh(theta.styles_w), [1, b_size, 1])
-    styles_paddings = tf.zeros([p.num_styles, b_size], dtype=p.dtype)
+    styles_paddings = tf.zeros([p.num_styles, b_size],
+                               dtype=py_utils.FPropDtype(p))
     atten_probs = tf.tile(tf.expand_dims(inp, 1), [1, p.num_heads, 1])
     atten_probs = tf.reshape(atten_probs, [-1, p.num_styles])
     packed_src = self.atten.InitForSourcePacked(theta.atten, styles_w, styles_w,
@@ -785,7 +787,8 @@ class StyleLayer(base_layer.BaseLayer):
     p = self.params
     b_size = tf.shape(inp)[0]
     styles_w = tf.tile(tf.nn.tanh(theta.styles_w), [1, b_size, 1])
-    styles_paddings = tf.zeros([p.num_styles, b_size], dtype=p.dtype)
+    styles_paddings = tf.zeros([p.num_styles, b_size],
+                               dtype=py_utils.FPropDtype(p))
     packed_src = self.atten.InitForSourcePacked(theta.atten, styles_w, styles_w,
                                                 styles_paddings)
     style_emb, probs, _ = self.atten.ComputeContextVectorWithSource(
