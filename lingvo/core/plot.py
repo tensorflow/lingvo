@@ -107,6 +107,12 @@ def AddScatterPlot(unused_fig,
                    suppress_yticks=False,
                    **kwargs):
   """Convenience function to add a scatter plot."""
+  # For 3D axes, check to see whether zlim is specified and apply it.
+  if 'zlim' in kwargs:
+    zlim = kwargs.pop('zlim')
+    if zlim:
+      axes.set_zlim(zlim)
+
   axes.scatter(xs, ys, **kwargs)
   axes.set_title(ToUnicode(title), size=fontsize)
   axes.set_xlabel(ToUnicode(xlabel), size=fontsize)
@@ -332,6 +338,38 @@ def Image(name, figsize, image, setter=None, **kwargs):
   fig = plt.Figure(figsize=figsize, dpi=100, facecolor='white')
   axes = fig.add_subplot(1, 1, 1)
   AddImage(fig, axes, image, origin='upper', show_colorbar=False, **kwargs)
+  if setter:
+    setter(fig, axes)
+  return _FigureToSummary(name, fig)
+
+
+def Scatter(name, figsize, xs, ys, setter=None, **kwargs):
+  """Plot a scatter plot in numpy and generates tf.Summary proto for it.
+
+  Args:
+    name: Scatter plot summary name.
+    figsize: A 2D tuple containing the overall figure (width, height) dimensions
+      in inches.
+    xs: A set of x points to plot.
+    ys: A set of y points to plot.
+    setter: A callable taking (fig, axes). Useful to fine-tune layout of the
+      figure, xlabel, xticks, etc.
+    **kwargs: Additional arguments to AddScatterPlot.
+
+  Returns:
+    A `tf.Summary` proto contains one image visualizing 'image.
+  """
+  fig = plt.Figure(figsize=figsize, dpi=100, facecolor='white')
+
+  # If z data is provided, use 3d projection.
+  #
+  # This requires the mplot3d toolkit (e.g., from mpl_toolkits import mplot3d)
+  # to be registered in the program.
+  if 'zs' in kwargs:
+    axes = fig.add_subplot(111, projection='3d')
+  else:
+    axes = fig.add_subplot(1, 1, 1)
+  AddScatterPlot(fig, axes, xs, ys, **kwargs)
   if setter:
     setter(fig, axes)
   return _FigureToSummary(name, fig)

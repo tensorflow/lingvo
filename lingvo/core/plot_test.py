@@ -226,6 +226,24 @@ class MatplotlibFigureSummaryTest(tf.test.TestCase):
     self.assertGreater(value.image.width, 0)
     self.assertGreater(value.image.height, 0)
 
+  def testScatter(self):
+    summary = plot.Scatter(
+        'summary', (4, 4), xs=np.random.rand(10), ys=np.random.rand(10))
+    self.assertEqual(len(summary.value), 1)
+    value = summary.value[0]
+    self.assertGreater(value.image.width, 0)
+    self.assertGreater(value.image.height, 0)
+
+  def testScatter3D(self):
+    # Passing `zs` means the plot tries to use '3d' projection, which is not
+    # installed by default, so raises a ValueError.
+    with self.assertRaisesRegexp(ValueError, 'Unknown projection'):
+      _ = plot.Scatter(
+          'summary', (4, 4),
+          xs=np.random.rand(10),
+          ys=np.random.rand(10),
+          zs=np.random.rand(10))
+
 
 if __name__ == '__main__':
   tf.test.main()
