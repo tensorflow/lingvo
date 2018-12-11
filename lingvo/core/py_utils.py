@@ -2162,9 +2162,9 @@ def PadOrTrimTo(x, shape):
 def RepeatDim(tensor, multiple, axis):
   """Copies elements in tensor's axis "multiple" times, like np.repeat."""
   # x = [[1, 2, 3], [4, 5, 6]]
-  # RepeatDim(x, 1) gives:
+  # RepeatDim(x, multiple=2, axis=1) gives:
   # [[1, 1, 2, 2, 3, 3]. [4, 4, 5, 5, 6, 6]]
-  # As a comparison tf.tile(x, 1) gives:\
+  # As a comparison tf.tile(x, multiples=[1, 2]) gives:\
   # [[1, 2, 3, 1, 2, 3], [4, 5, 6, 4, 5, 6]]
 
   if multiple == 1:
