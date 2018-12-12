@@ -328,16 +328,6 @@ def outside_all_rewrites():
     yield
 
 
-def _MakeFnPinComputationToHostDevice(func):
-  """Pin func to host device."""
-
-  def _WrapperFn(*args, **kwargs):
-    with tf.device('/replica:0/task:0/device:CPU:*'):
-      return func(*args, **kwargs)
-
-  return _WrapperFn
-
-
 def RunOnTpuHost(func, *args, **kwargs):
   """Runs the given function call on TPU host.
 
@@ -350,8 +340,7 @@ def RunOnTpuHost(func, *args, **kwargs):
     The function return value.
   """
   if use_tpu():
-    return tpu.outside_compilation(
-        _MakeFnPinComputationToHostDevice(func), *args, **kwargs)
+    return tpu.outside_compilation(func, *args, **kwargs)
   else:
     return func(*args, **kwargs)
 
