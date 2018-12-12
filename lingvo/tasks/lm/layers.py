@@ -513,6 +513,91 @@ class RnnLm(RnnLmNoEmbedding):
                                     direct_features)
 
 
+class ConditionalRnnLm(RnnLmNoEmbedding):
+  """RnnLm where looked up embedding is concatenated with a condition vector."""
+
+  @classmethod
+  def Params(cls):
+    p = super(ConditionalRnnLm, cls).Params()
+    p.Define('condition_dim', 128, 'The size of the condition vector.')
+    p.Define('emb', layers.EmbeddingLayer.Params(),
+             'The embedding layer params.')
+    p.Define(
+        'embedding_dropout_keep_prob', 1.0, 'Embedding dropout keep prob.'
+        'Dropout is applied after concatenating with condition vector.')
+    p.Define('embedding_dropout_seed', None, 'Embedding dropout seed.')
+    p.emb.max_num_shards = 1
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(ConditionalRnnLm, self).__init__(params)
+    p = self.params
+
+    assert p.emb.vocab_size == p.vocab_size, ('{} vs. {}'.format(
+        p.emb.vocab_size, p.vocab_size))
+    assert (p.emb.embedding_dim + p.condition_dim ==
+            p.rnns.cell_tpl[0].num_input_nodes), ('{} vs. {}'.format(
+                p.emb.embedding_dim, p.rnns.cell_tpl[0].num_input_nodes))
+
+    with tf.variable_scope(p.name):
+      self.CreateChild('emb', p.emb)
+
+  def FProp(self,
+            theta,
+            inputs,
+            paddings,
+            state0,
+            condition,
+            labels=None,
+            direct_features=None):
+    """Computes xent loss given the language model input and condition.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: input ids. An int32 tensor of shape [time, batch].
+      paddings: a 0/1 tensor of shape [time, batch].
+      state0: A `.NestedMap` containing the initial recurrent state.
+      condition: input condition. A tensor of shape [batch, condition_dim].
+      labels: If not None, a `.NestedMap` containing the following fields:  -
+        class_weights, a tensor with shape [time, batch] containing the weights
+        for each target word. - class_ids, a tensor with shape [time, batch] of
+        int32 dtype containing the target class labels. - class_probabilities, a
+        tensor with shape [time, batch, vocab_size] of float values indicating
+        class-membership probabilities.
+      direct_features: If not None, a tensor of [time, batch,
+        direct_feature_dims] that is concatenated to the output of the last RNN
+        layer.
+
+    Returns:
+      If `labels` is not None, returns (xent_output, state1), where
+      `xent_output` is a `.NestedMap` as defined by `SoftmaxLayer`'s return
+      value and `state1` is the next recurrent state. Otherwise,
+      `xent_output` only contains the softmax logits.
+    """
+    p = self.params
+    # `condition` should have shape (batch_size, dim)
+    condition = py_utils.HasShape(condition,
+                                  [tf.shape(paddings)[1], p.condition_dim])
+    # Expand the time dimension -> (time, batch_size, dim)
+    condition = tf.tile(
+        tf.expand_dims(condition, 0), [tf.shape(inputs)[0], 1, 1])
+
+    ids = py_utils.HasRank(inputs, 2)
+    paddings = py_utils.HasShape(paddings, tf.shape(ids))
+    activation = self.emb.EmbLookup(theta.emb, ids)
+    activation = tf.concat([activation, tf.cast(condition, p.dtype)], -1)
+    # Dropout on embeddings is only applied in training.
+    if p.embedding_dropout_keep_prob < 1.0 and not p.is_eval:
+      activation = tf.nn.dropout(
+          activation,
+          keep_prob=p.embedding_dropout_keep_prob,
+          seed=p.embedding_dropout_seed)
+    return super(ConditionalRnnLm, self).FProp(theta, activation, paddings,
+                                               state0, labels, direct_features)
+
+
 class MoeLm(BaseLanguageModel):
   """Mixture of experts language modeling class."""
 
