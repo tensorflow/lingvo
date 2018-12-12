@@ -2049,7 +2049,7 @@ def PadSequenceDimension(x, length, pad_val, shape=None):
   return x
 
 
-def ApplyPadding(padding, x, padded=None, broadcast=True):
+def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
   """Applies padding to a tensor.
 
   This is preferable to using arithmetic means for masking out padded values
@@ -2076,6 +2076,10 @@ def ApplyPadding(padding, x, padded=None, broadcast=True):
     broadcast: Whether to broadcast the padding shape to the shape of 'x'. You
       almost certainly want this to be true as it matches how padding would be
       expanded if applied arithmetically.
+    use_select: Controls whether padding is applied with a select-mask
+      (True/default) or arithmetically (False). Some platforms have a
+      sensitivity to one or the other and this is used to work around such
+      issues.
 
   Returns:
     A tensor with the same shape as x with padded values masked.
@@ -2086,11 +2090,17 @@ def ApplyPadding(padding, x, padded=None, broadcast=True):
               tf.logical_or(tf.equal(padding, 0.0), tf.equal(padding, 1.0))),
           [padding])
   ], padding)
-  if padded is None:
-    padded = tf.zeros_like(x)
-  if broadcast:
-    padding *= tf.ones_like(x)  # Broadcast padding to the full shape.
-  return tf.where(padding > 0.0, padded, x)
+  if use_select:
+    if padded is None:
+      padded = tf.zeros_like(x)
+    if broadcast:
+      padding *= tf.ones_like(x)  # Broadcast padding to the full shape.
+    return tf.where(padding > 0.0, padded, x)
+  else:
+    if padded is None:
+      return x * (1.0 - padding)
+    else:
+      return x * (1.0 - padding) + padded * padding
 
 
 def ReversePaddedSequence(inputs, paddings):

@@ -1109,6 +1109,22 @@ class ApplyPaddingTest(tf.test.TestCase):
           tf.convert_to_tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]])).eval()
       self.assertAllClose(y, [[1.0, 2.0], [0.0, 4.0], [5.0, 0.0]])
 
+  def testApplyPaddingToZeroWithBroadcastArithmetic(self):
+    with self.session():
+      y = py_utils.ApplyPadding(
+          tf.convert_to_tensor([[0.0], [1.0], [0.0]]),
+          tf.convert_to_tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]),
+          use_select=False).eval()
+      self.assertAllClose(y, [[1.0, 2.0], [0.0, 0.0], [5.0, 6.0]])
+
+  def testApplyPaddingToZeroWithoutBroadcastArithmetic(self):
+    with self.session():
+      y = py_utils.ApplyPadding(
+          tf.convert_to_tensor([[0.0, 0.0], [1.0, 0.0], [0.0, 1.0]]),
+          tf.convert_to_tensor([[1.0, 2.0], [3.0, 4.0], [5.0, 6.0]]),
+          use_select=False).eval()
+      self.assertAllClose(y, [[1.0, 2.0], [0.0, 4.0], [5.0, 0.0]])
+
 
 class ReversePaddedSequenceTest(tf.test.TestCase):
 

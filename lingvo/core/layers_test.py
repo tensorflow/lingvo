@@ -2575,6 +2575,109 @@ class FeedForwardNetTest(tf.test.TestCase):
       out1_v, out2_v = sess.run([out1, out2])
       self.assertAllClose(out1_v, out2_v)
 
+  def testFeedForwardNetQuantized(self):
+    with self.session(use_gpu=False) as sess:
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+
+      cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
+          clip_start_step=1,
+          clip_end_step=2,
+          quant_start_step=2,
+          start_cap=8.0,
+          end_cap=2.0)
+      proj_qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+          cc_schedule=cc_schedule)
+
+      p = layers.FeedForwardNet.Params().Set(
+          name='ffn',
+          input_dim=10,
+          hidden_layer_dims=[20, 30],
+          batch_norm=False,
+          activation=['RELU', 'NONE'])
+      p.qdomain.default = proj_qdomain.Copy()
+      params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
+      p.params_init = params_init
+      feedforward_net = p.cls(p)
+
+      p1 = layers.ProjectionLayer.Params().Set(
+          name='p1',
+          input_dim=10,
+          output_dim=20,
+          activation='RELU',
+          batch_norm=False)
+      p1.qdomain.default = proj_qdomain.Copy()
+      p1.params_init = params_init
+      p1_l = p1.cls(p1)
+
+      p2 = layers.ProjectionLayer.Params().Set(
+          name='p2',
+          input_dim=20,
+          output_dim=30,
+          activation='NONE',
+          batch_norm=False)
+      p2.params_init = params_init
+      p2.qdomain.default = proj_qdomain.Copy()
+      p2_l = p2.cls(p2)
+
+      a = tf.constant(np.random.rand(5, 10), dtype=tf.float32)
+      out1 = feedforward_net.FPropDefaultTheta(a)
+      out2 = p2_l.FPropDefaultTheta(p1_l.FPropDefaultTheta(a))
+
+      tf.global_variables_initializer().run()
+
+      sess.run([
+          feedforward_net.PostTrainingStepUpdate(5),
+          p1_l.PostTrainingStepUpdate(5),
+          p2_l.PostTrainingStepUpdate(5)
+      ])
+      out1_v, out2_v = sess.run([out1, out2])
+      self.assertAllClose(out1_v, out2_v)
+
+  def testFeedForwardNetBnFolded(self):
+    with self.session(use_gpu=False) as sess:
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+      p = layers.FeedForwardNet.Params().Set(
+          name='ffn',
+          input_dim=10,
+          hidden_layer_dims=[20, 30],
+          batch_norm=True,
+          bn_fold_weights=True,
+          activation=['RELU', 'NONE'])
+      params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
+      p.params_init = params_init
+      feedforward_net = p.cls(p)
+
+      p1 = layers.ProjectionLayer.Params().Set(
+          name='p1',
+          input_dim=10,
+          output_dim=20,
+          activation='RELU',
+          batch_norm=True,
+          bn_fold_weights=True)
+      p1.params_init = params_init
+      p1_l = p1.cls(p1)
+
+      p2 = layers.ProjectionLayer.Params().Set(
+          name='p2',
+          input_dim=20,
+          output_dim=30,
+          activation='NONE',
+          batch_norm=True,
+          bn_fold_weights=True)
+      p2.params_init = params_init
+      p2_l = p2.cls(p2)
+
+      a = tf.constant(np.random.rand(5, 10), dtype=tf.float32)
+      out1 = feedforward_net.FPropDefaultTheta(a)
+
+      out2 = p2_l.FPropDefaultTheta(p1_l.FPropDefaultTheta(a))
+
+      tf.global_variables_initializer().run()
+      out1_v, out2_v = sess.run([out1, out2])
+      self.assertAllClose(out1_v, out2_v)
+
   def testFeedForwardNetSmokeTest(self):
     with self.session(use_gpu=False):
       tf.set_random_seed(398847392)

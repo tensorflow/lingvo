@@ -41,15 +41,6 @@ _ACTIVATIONS = {
     'TANH': tf.tanh
 }
 
-# For QuantizableLayers, the self.fns['activation'] to use for the named
-# activation.
-_ACTIVATIONS_QUANT = {
-    'RELU': 'qrelu',
-    'RELU6': 'qrelu6',
-    'SIGMOID': 'qsigmoid',
-    'TANH': 'qtanh'
-}
-
 # A subset of activation functions are supported by TFLite as fused activation
 # functions with a preceding matmul or conv. If this is the case, then they
 # require special treatment for quantization.
@@ -198,7 +189,11 @@ class BatchNormLayer(base_layer.BaseLayer):
     Returns:
       Tuple of (mean, variance, beta, gamma).
     """
-    return self._moving_mean, self._moving_variance, theta.beta, theta.gamma
+    p = self.params
+    if p.use_moving_avg_in_training:
+      return self._moving_mean, self._moving_variance, 0.0, 1.0
+    else:
+      return self._moving_mean, self._moving_variance, theta.beta, theta.gamma
 
   def ComputeAndUpdateMoments(self, theta, inputs, paddings=None):
     """Computes moments and updates state.
@@ -462,7 +457,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
                 collections=[self.__class__.__name__ + '_vars']))
 
     if not p.disable_activation_quantization:
-      self.TrackQTensor('activation')
+      self.TrackQTensor('pre_activation', 'activation')
     if p.batch_norm:
       # batch normalization dimension is number of input channels
       # (filter_shape[2]) if we apply batch_norm on input and convolution
@@ -696,7 +691,15 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
               tf.concat([tf.shape(paddings), [-1, p.filter_shape[2]]], 0))
       ], inputs)
       # Zeroing out padded inputs.
-      inputs *= tf.expand_dims(tf.expand_dims(1.0 - paddings, -1), -1)
+      qpadding = self.QRPadding(
+          tf.expand_dims(tf.expand_dims(paddings, -1), -1))
+      # Select based padding is required for quantized inference but is
+      # causing regressions on other platforms. TODO: Remove use_select
+      # attribute when root-caused/resolved.
+      inputs = py_utils.ApplyPadding(
+          qpadding,
+          inputs,
+          use_select=p.is_inference and p.qdomain.default is not None)
     with tf.name_scope(p.name):
       if paddings is None:
         conv_padding = None
@@ -710,7 +713,15 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
 
       # Lastly zeroing out padded states.
       if conv_padding is not None:
-        out *= tf.expand_dims(tf.expand_dims(1.0 - conv_padding, -1), -1)
+        qpadding = self.QRPadding(
+            tf.expand_dims(tf.expand_dims(conv_padding, -1), -1))
+        # Select based padding is required for quantized inference but is
+        # causing regressions on other platforms. TODO: Remove use_select
+        # attribute when root-caused/resolved.
+        out = py_utils.ApplyPadding(
+            qpadding,
+            out,
+            use_select=p.is_inference and p.qdomain.default is not None)
 
       return out, conv_padding
 
@@ -740,6 +751,8 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
 
     # Apply activation.
     if p.activation != 'NONE':
+      if p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES:
+        out = self.QTensor('pre_activation', out)
       out = _ACTIVATIONS[p.activation](out)
     if not p.disable_activation_quantization:
       out = self.QTensor('activation', out)
@@ -1014,6 +1027,17 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           name=p.name)
       self.CreateChild('bn', bn_params)
     # TODO(yonghui): implement the variational noise logic.
+
+  @property
+  def output_qt_name(self):
+    """Name of QTensor used for the output value.
+
+    Useful for grabbing the quantization of the output.
+
+    Returns:
+      String name of output qtensor.
+    """
+    return self._output_qt_name
 
   def FProp(self, theta, inputs, paddings=None):
     """Apply projection to inputs.
@@ -2122,7 +2146,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
         avg_xent=total_xent / total_weights)
 
 
-class FeedForwardNet(base_layer.BaseLayer):
+class FeedForwardNet(quant_utils.QuantizableLayer):
   """A simple multiple layer feedforward network.
 
   This class represents a stack of fully connected feedforward network. Each
@@ -2151,6 +2175,9 @@ class FeedForwardNet(base_layer.BaseLayer):
         ' tuple/list of strings having the same length as the number'
         ' of layers.')
     p.Define('skip_connections', None, 'Must be None.')
+    p.Define(
+        'bn_fold_weights', None, 'Force folding the batch normalization '
+        'weights in the projection layer.')
     return p
 
   @base_layer.initializer
@@ -2192,9 +2219,13 @@ class FeedForwardNet(base_layer.BaseLayer):
             activation=activation[i],
             input_dim=in_dim,
             output_dim=proj_out_dim,
+            bn_fold_weights=p.bn_fold_weights,
             name=name)
         params_fc_layers.append(params_i)
         in_dim = out_dim
+
+        if p.qdomain.default is not None:
+          params_i.qdomain.default = p.qdomain.default.Copy()
 
       self.CreateChildren('fc', params_fc_layers)
       self.CreateChildren('dropout', params_dropout_layers)
