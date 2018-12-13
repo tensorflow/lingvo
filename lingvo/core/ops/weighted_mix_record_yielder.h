@@ -24,10 +24,6 @@ namespace lingvo {
 // yielders in a random order maintaining the mix ratio specified by
 // input_source_weights.
 //
-// Unlike BasicRecordYielder it doesn't guarantee that all records will be
-// yielded within every epoch exactly once. Some records may be yielded more
-// than once to maintain the proper mix.
-//
 // Usage example:
 //   BasicRecordYielder::Options opts1;
 //   opts1.file_pattern = <file_pattern>;
@@ -57,14 +53,6 @@ class WeightedMixRecordYielder : public RecordYielder {
   ~WeightedMixRecordYielder() override;
   void Close() override;
   Status Yield(Rope* value) override;
-  // WeightedMixRecordYielder guarantees that all records are yielded within an
-  // epoch so current_epoch is not advanced until the "slowest" yielder yields
-  // all its records. In practice it means that current_epoch() is a minimum of
-  // all children current_epoch()'s.
-  // Common reasons why one child yielder may be slower than another:
-  //   * Having more records to yield.
-  //   * Being rarely sampled from because of low input_source_weight.
-  int64 current_epoch() const override LOCKS_EXCLUDED(mu_);
 
   // Creates new WeightedMixRecordYielder and takes ownership over yielders
   // provided. Those yielders should be properly initialized already and will be

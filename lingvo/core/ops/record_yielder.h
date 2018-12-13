@@ -39,9 +39,8 @@ namespace lingvo {
 // records from files in a random order. Most users should use
 // BasicRecordYielder and BasicRecordYielder::New (see example below).
 //
-// RecordYielder guarantees that:
-//   1) all records are yielded within every epoch;
-//   2) the order in which records are yielded are highly randomized.
+// RecordYielder guarantees that the order in which records are yielded are
+// highly randomized.
 //
 // Usage example:
 //   BasicRecordYielder::Options opts;
@@ -67,9 +66,6 @@ class RecordYielder {
 
   // Stop this yielder and then delete it.
   virtual void Close() = 0;
-
-  // Returns the current epoch number.
-  virtual int64 current_epoch() const = 0;
 };
 
 // BasicRecordYielder is a RecordYielder that implements a main loop and makes
@@ -108,7 +104,7 @@ class BasicRecordYielder : public RecordYielder {
   // Returns a record yielder according to 'opts'. A caller is responsible for
   // calling Close when this yielder is no longer required. A caller shouldn't
   // delete the yielder.
-  static RecordYielder* New(Options opts);
+  static BasicRecordYielder* New(Options opts);
 
   // Yields one 'value'.
   Status Yield(Rope* value) override;
@@ -117,7 +113,7 @@ class BasicRecordYielder : public RecordYielder {
   void Close() override;
 
   // Returns the current epoch number.
-  int64 current_epoch() const override { return epoch_; }
+  int64 current_epoch() const { return epoch_; }
 
  protected:
   explicit BasicRecordYielder(const Options& opts);

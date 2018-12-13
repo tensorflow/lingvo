@@ -83,19 +83,5 @@ Status WeightedMixRecordYielder::Yield(Rope* value) {
   }
 }
 
-int64 WeightedMixRecordYielder::current_epoch() const {
-  if (yielders_.empty()) {
-    return -1;
-  }
-  int64 min_epoch = yielders_[0]->current_epoch();
-  for (int i = 1; i < yielders_.size(); ++i) {
-    const int epoch = yielders_[i]->current_epoch();
-    if (epoch < min_epoch) {
-      min_epoch = epoch;
-    }
-  }
-  return min_epoch;
-}
-
 }  // namespace lingvo
 }  // namespace tensorflow

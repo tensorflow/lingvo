@@ -114,7 +114,11 @@ void RecordBatcher::GetNext(int64* bucket, TensorVec* batch) {
 }
 
 void RecordBatcher::ProcessorLoop() {
-  int64 current_epoch = yielder_->current_epoch();
+  std::time_t start_time = std::time(nullptr);
+  std::time_t last_update_time = start_time;
+  // Start with 60 seconds and multiple by 2 every update.
+  int64 next_status_update_duration = 60;
+  const int64 status_update_duration_multiplier = 2;
   while (true) {
     {
       MutexLock l(&mu_);
@@ -193,18 +197,14 @@ void RecordBatcher::ProcessorLoop() {
       ++total_records_yielded_;
     }
 
-    if (current_epoch != yielder_->current_epoch()) {
-      if (current_epoch < 10) {
-        LOG(INFO) << "Past end of epoch " << current_epoch
-                  << ". Total records yielded: " << total_records_yielded_
-                  << ". Total records skipped: " << total_records_skipped_
-                  << ". Only logging first 10 epochs to INFO.";
-      } else {
-        VLOG(1) << "Past end of epoch " << current_epoch
-                << ". Total records yielded: " << total_records_yielded_
-                << ". Total records skipped: " << total_records_skipped_ << ".";
-      }
-      current_epoch = yielder_->current_epoch();
+    std::time_t current_time =  std::time(nullptr);
+    if (current_time - last_update_time > next_status_update_duration) {
+      LOG(INFO) << current_time - start_time
+                << " total seconds passed. Total records yielded: "
+                << total_records_yielded_
+                << ". Total records skipped: " << total_records_skipped_;
+      last_update_time = current_time;
+      next_status_update_duration *= status_update_duration_multiplier;
     }
   }
 }

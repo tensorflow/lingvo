@@ -67,7 +67,7 @@ bool BasicRecordYielder::Register(const string& type_name,
   return ret;
 }
 
-RecordYielder* BasicRecordYielder::New(Options opts) {
+BasicRecordYielder* BasicRecordYielder::New(Options opts) {
   string prefix = GetFilePatternPrefix(opts.file_pattern);
   if (!prefix.empty()) {
     opts.file_pattern.erase(0, prefix.size() + 1);

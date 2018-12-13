@@ -49,7 +49,7 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
   opts.bufsize = 2000;
   opts.parallelism = 1;
 
-  RecordYielder* yielder = BasicRecordYielder::New(opts);
+  BasicRecordYielder* yielder = BasicRecordYielder::New(opts);
   std::vector<string> vals;
   Rope v;
   for (int i = 0; i < N * M; ++i) {
@@ -102,7 +102,7 @@ TEST(RecordYielderTest, TfRecordYielderBasicTest) {
   opts.bufsize = 2000;
   opts.parallelism = 1;
 
-  RecordYielder* yielder = BasicRecordYielder::New(opts);
+  BasicRecordYielder* yielder = BasicRecordYielder::New(opts);
   std::vector<string> vals;
   Rope v;
   for (int i = 0; i < N * M; ++i) {

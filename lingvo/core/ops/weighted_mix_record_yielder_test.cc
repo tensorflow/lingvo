@@ -78,7 +78,7 @@ TEST(RecordYielderTest, WeightedMixerBasicTest) {
   opts1.seed = 301;
   opts1.bufsize = 2000;
   opts1.parallelism = 1;
-  RecordYielder* yielder1 = BasicRecordYielder::New(opts1);
+  BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
   opts2.file_pattern =
@@ -86,7 +86,7 @@ TEST(RecordYielderTest, WeightedMixerBasicTest) {
   opts2.seed = 301;
   opts2.bufsize = 2000;
   opts2.parallelism = 1;
-  RecordYielder* yielder2 = BasicRecordYielder::New(opts2);
+  BasicRecordYielder* yielder2 = BasicRecordYielder::New(opts2);
   WeightedMixRecordYielder* yielder =
       WeightedMixRecordYielder::New(301, {yielder1, yielder2}, {0.5, 0.5});
 
@@ -109,13 +109,6 @@ TEST(RecordYielderTest, WeightedMixerBasicTest) {
   // sized input sources.
   ASSERT_LT(vals.end() - new_end, vals.size() / 100);
 
-  // Iterates another ~two epochs.
-  for (int i = 0; i < 2 * 2 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
-  }
-
-  // End of the 3rd epoch | start of the 4th epoch.
-  EXPECT_TRUE(yielder->current_epoch() == 3 || yielder->current_epoch() == 4);
   yielder->Close();
 }
 
@@ -131,7 +124,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   opts1.seed = 301;
   opts1.bufsize = 2000;
   opts1.parallelism = 1;
-  RecordYielder* yielder1 = BasicRecordYielder::New(opts1);
+  BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
   opts2.file_pattern =
@@ -139,7 +132,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   opts2.seed = 301;
   opts2.bufsize = 2000;
   opts2.parallelism = 1;
-  RecordYielder* yielder2 = BasicRecordYielder::New(opts2);
+  BasicRecordYielder* yielder2 = BasicRecordYielder::New(opts2);
   WeightedMixRecordYielder* yielder =
       WeightedMixRecordYielder::New(301, {yielder1, yielder2}, {0.3, 0.7});
 
@@ -181,7 +174,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
   opts1.seed = 301;
   opts1.bufsize = 2000;
   opts1.parallelism = 1;
-  RecordYielder* yielder1 = BasicRecordYielder::New(opts1);
+  BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
   opts2.file_pattern =
@@ -189,7 +182,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
   opts2.seed = 301;
   opts2.bufsize = 2000;
   opts2.parallelism = 1;
-  RecordYielder* yielder2 = BasicRecordYielder::New(opts2);
+  BasicRecordYielder* yielder2 = BasicRecordYielder::New(opts2);
   WeightedMixRecordYielder* yielder =
       WeightedMixRecordYielder::New(301, {yielder1, yielder2}, {0.5, 0.5});
 
@@ -215,10 +208,6 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
   // should be at the end of the 20th epoch | start of the 21st epoch.
   EXPECT_TRUE(yielder1->current_epoch() == 20 ||
               yielder1->current_epoch() == 21);
-  // The parent yielder will be at the same epoch as the slowest yielder (which
-  // is the second yielder).
-  EXPECT_TRUE(yielder->current_epoch() == 5 || yielder->current_epoch() == 6);
-
   yielder->Close();
 }
 
