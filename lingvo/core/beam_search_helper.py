@@ -328,7 +328,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
                        init_beam_search_state=None,
                        pre_beam_search_step_callback=None,
                        post_beam_search_step_callback=None,
-                       additional_source_info=None):
+                       additional_source_info=None,
+                       max_steps=None):
     """Performs beam-search based decoding.
 
     Args:
@@ -343,15 +344,16 @@ class BeamSearchHelper(base_layer.BaseLayer):
       num_hyps_per_beam_override: If set to a value <= 0, this parameter is
         ignored. If set to a value > 0, then this value will be used to
         override `p.num_hyps_per_beam`.
-      additional_source_info: a `.NestedMap` of tensors containing extra context
-          information about the source that may be useful for decoding.
-
       init_beam_search_state: The `InitBeamSearchState` callback. Please refer
           to the class header comments for more details.
       pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.
           Please refer to the class header comments for more details.
       post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.
           Please refer to the class header comments for more details.
+      additional_source_info: a `.NestedMap` of tensors containing extra context
+          information about the source that may be useful for decoding.
+      max_steps: maximum beam search steps. If None,
+          use self.params.target_seq_len.
 
     Returns:
       A `BeamSearchDecodeOutput`.
@@ -360,6 +362,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
     num_hyps_per_beam = p.num_hyps_per_beam
     if num_hyps_per_beam_override > 0:
       num_hyps_per_beam = num_hyps_per_beam_override
+    if max_steps is None:
+      max_steps = p.target_seq_len
 
     # Branch to multi-source according to type.
     is_multi_source = isinstance(source_encs, py_utils.NestedMap)
@@ -391,12 +395,12 @@ class BeamSearchHelper(base_layer.BaseLayer):
     min_score = -1e36
     best_scores = (tf.zeros(shape=[num_beams], dtype=p.dtype) + min_score)
     cumulative_scores = tf.zeros(shape=[num_hyps], dtype=p.dtype)
-    in_scores = tf.zeros([p.target_seq_len, num_hyps], dtype=p.dtype)
-    in_hyps = tf.zeros([p.target_seq_len, num_hyps], dtype=tf.int32)
-    in_prev_hyps = tf.zeros([p.target_seq_len, num_hyps], dtype=tf.int32)
-    in_done_hyps = tf.zeros([p.target_seq_len, num_hyps], dtype=tf.string)
+    in_scores = tf.zeros([max_steps, num_hyps], dtype=p.dtype)
+    in_hyps = tf.zeros([max_steps, num_hyps], dtype=tf.int32)
+    in_prev_hyps = tf.zeros([max_steps, num_hyps], dtype=tf.int32)
+    in_done_hyps = tf.zeros([max_steps, num_hyps], dtype=tf.string)
     bs_atten_probs = tf.zeros(
-        [p.target_seq_len, num_hyps,
+        [max_steps, num_hyps,
          tf.shape(initial_results.atten_probs)[1]],
         dtype=p.dtype)
     cur_step = tf.constant(0, dtype=tf.int32)
@@ -406,8 +410,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
 
     def LoopContinue(cur_step, all_done, unused_step_ids, unused_core_bs_states,
                      unused_other_states_list):
-      return tf.logical_and(cur_step < p.target_seq_len,
-                            tf.logical_not(all_done))
+      return tf.logical_and(cur_step < max_steps, tf.logical_not(all_done))
 
     def LoopBody(cur_step, unused_all_done, step_ids, core_bs_states,
                  other_states_list):
@@ -451,8 +454,9 @@ class BeamSearchHelper(base_layer.BaseLayer):
         eoc_id=p.target_eoc_id,
         merge_paths=p.merge_paths)
     # [num_beams * num_hyps_per_beam, ...].
+    max_seq_length = 0 if isinstance(max_steps, tf.Tensor) else max_steps
     topk_ids, topk_lens, topk_scores = py_x_ops.unpack_hyp(
-        tf.reshape(topk_hyps, [-1]), max_seq_length=p.target_seq_len)
+        tf.reshape(topk_hyps, [-1]), max_seq_length=max_seq_length)
     # [num_beams, num_hyps_per_beam].
     topk_scores = tf.reshape(topk_scores, tf.shape(topk_hyps))
 

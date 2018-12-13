@@ -208,6 +208,8 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                 }
               } else if (eoc_id >= 0 && is_last_chunk.vec<bool>()(hyp_id) &&
                          e.word_id == eoc_id) {
+                VLOG(3) << "last chunk hyp score=" << e.global_score
+                        << " toks=" << debug::IdsToStr(e.prev_ids);
                 // At the last chunk and output <epsilon>. We terminate the
                 // hypothesis, even though <eos> was not predicted, and
                 // indicate that the final symbol for the hypothesis is
@@ -731,11 +733,8 @@ class TopKTerminatedHypsOp : public OpKernel {
         } else {
           // This can happen e.g. for RNNT model. Here we simply assume
           // atten_prob for those source positions are 0.0
-          VLOG(1) << "Missing atten_prob for source position "
-                  << src_id
-                  << ". Total available positions are "
-                  << hyp_prob_size
-                  << ".";
+          VLOG(5) << "Missing atten_prob for source position " << src_id
+                  << ". Total available positions are " << hyp_prob_size << ".";
           cumulative_atten_prob.flat<float>()(src_id) += 0.0;
         }
       }
@@ -805,16 +804,32 @@ class UnpackHypOp : public OpKernel {
  public:
   explicit UnpackHypOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("max_seq_length", &max_seq_length_));
-    CHECK_GT(max_seq_length_, 0);
+    CHECK_GE(max_seq_length_, 0);
   }
 
   void Compute(OpKernelContext* ctx) override {
     const Tensor& in_hyps = ctx->input(0);
     const auto& t_in_hyps = in_hyps.flat<string>();
     const int batch_size = t_in_hyps.size();
+    std::vector<Hypothesis> hyps(batch_size);
+    for (int i = 0; i < batch_size; ++i) {
+      // TODO(yonghui): parallelize this loop.
+      if (!t_in_hyps(i).empty()) {
+        hyps[i].ParseFromString(t_in_hyps(i));
+      }
+    }
+    int max_seq_length = max_seq_length_;
+    if (max_seq_length <= 0) {
+      // Derive max_seq_length from input hyps.
+      for (int i = 0; i < batch_size; ++i) {
+        if (hyps[i].ids_size() > max_seq_length) {
+          max_seq_length = hyps[i].ids_size();
+        }
+      }
+    }
     Tensor* out_ids;
     OP_REQUIRES_OK(
-        ctx, ctx->allocate_output(0, TensorShape({batch_size, max_seq_length_}),
+        ctx, ctx->allocate_output(0, TensorShape({batch_size, max_seq_length}),
                                   &out_ids));
     Tensor* out_seq_lens;
     OP_REQUIRES_OK(
@@ -829,14 +844,13 @@ class UnpackHypOp : public OpKernel {
     t_out_seq_lens.setZero();
     t_out_scores.setZero();
     for (int i = 0; i < batch_size; ++i) {
+      const Hypothesis& hyp = hyps[i];
       // TODO(yonghui): parallelize this loop.
-      if (t_in_hyps(i) != "") {
-        Hypothesis hyp;
-        hyp.ParseFromString(t_in_hyps(i));
-        for (int j = 0; j < hyp.ids_size() && j < max_seq_length_; ++j) {
+      if (hyp.ids_size() > 0) {
+        for (int j = 0; j < hyp.ids_size() && j < max_seq_length; ++j) {
           t_out_ids(i, j) = hyp.ids(j);
         }
-        t_out_seq_lens(i) = std::min(hyp.ids_size(), max_seq_length_);
+        t_out_seq_lens(i) = std::min(hyp.ids_size(), max_seq_length);
         t_out_scores(i) = hyp.normalized_score();
       }
     }

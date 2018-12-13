@@ -300,7 +300,7 @@ REGISTER_OP("UnpackHyp")
     .Output("out_ids: int32")
     .Output("out_seq_lens: int32")
     .Output("out_scores: float32")
-    .Attr("max_seq_length: int")
+    .Attr("max_seq_length: int = 0")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       auto batch_size = c->NumElements(c->input(0));
       int k;
@@ -320,7 +320,7 @@ Unpacks hyps into tensors of ids, seq_len and scores.
 in_hyps: A vector of serialized `Hypothesis` protos.
 out_ids:
     Output sequences, a matrix of shape (batch_size, max_seq_length).
-    Sequences shorter than max_seq_length are padded with 0s.
+    Sequences shorter than max_seq_length are padded with 0s. If max_seq_length is 0, derive it from the longest sequence in input_hyps.
 out_seq_lens:
     Length of each of the output sequence, a vector of size `batch_size`.
 out_scores:
