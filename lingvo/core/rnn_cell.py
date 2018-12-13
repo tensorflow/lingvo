@@ -271,6 +271,7 @@ class LSTMCellSimple(RNNCell):
              'Initialization parameters for bias')
 
     # Non-default quantization behaviour.
+    p.qdomain.Define('weight', None, 'Quantization for the weights')
     p.qdomain.Define('c_state', None, 'Quantization for the c-state.')
     p.qdomain.Define('m_state', None, 'Quantization for the m-state.')
     p.qdomain.Define('fullyconnected', None,
