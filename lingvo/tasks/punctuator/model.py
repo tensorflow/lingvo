@@ -50,7 +50,7 @@ class TransformerModel(mt_model.TransformerModel):
     with tf.name_scope('inference'):
       src_strings = tf.placeholder(tf.string, shape=[None])
       _, src_ids, src_paddings = self.input_generator.StringsToIds(
-          src_strings, key=self._GetTokenizerKeyToUse('src'))
+          src_strings, is_source=True)
 
       # Truncate paddings at the end.
       max_seq_length = tf.to_int32(
@@ -71,15 +71,15 @@ class TransformerModel(mt_model.TransformerModel):
       topk_ids = decoder_outs.topk_ids
       topk_lens = decoder_outs.topk_lens
 
-      topk_decoded = self.input_generator.IdsToStrings(
-          topk_ids, topk_lens - 1, self._GetTokenizerKeyToUse('tgt'))
+      topk_decoded = self.input_generator.IdsToStrings(topk_ids, topk_lens - 1)
       topk_decoded = tf.reshape(topk_decoded, tf.shape(topk_hyps))
 
       feeds = py_utils.NestedMap({'src_strings': src_strings})
       fetches = py_utils.NestedMap({
-          'topk_decoded': topk_decoded,
-          'topk_hyps': topk_hyps,
           'src_ids': src_ids,
+          'topk_decoded': topk_decoded,
+          'topk_scores': decoder_outs.topk_scores,
+          'topk_hyps': topk_hyps,
       })
 
       return fetches, feeds

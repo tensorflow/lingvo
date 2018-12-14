@@ -2123,8 +2123,8 @@ def ReversePaddedSequence(inputs, paddings):
   return tf.reverse_sequence(inputs, inputs_length, seq_axis=0, batch_axis=1)
 
 
-def Retry(max_retries=None, retry_value=Exception):
-  return retry.Retry(max_retries, retry_value)
+def Retry(*args, **kwargs):
+  return retry.Retry(*args, **kwargs)
 
 
 # FailedPreconditionError: variables are not initialized.
@@ -2134,8 +2134,8 @@ transient_tf_errors = (tf.errors.FailedPreconditionError,
                        tf.errors.AbortedError, tf.errors.UnavailableError)
 
 
-def RetryOnTransientTfError(max_retries=None):
-  return Retry(max_retries=max_retries, retry_value=transient_tf_errors)
+def RetryOnTransientTfError(*args, **kwargs):
+  return Retry(transient_tf_errors, *args, **kwargs)
 
 
 def PadOrTrimTo(x, shape):

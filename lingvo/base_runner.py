@@ -146,7 +146,7 @@ class BaseRunner(object):
     self._saver.restore(sess, checkpoint_path)
     tf.logging.info('Load checkpoint done.')
 
-  @py_utils.Retry()
+  @py_utils.Retry(initial_delay_sec=300, max_delay_sec=300)
   def _FindNewCheckpoint(self, prev_path, sess):
     if self._trial.ShouldStop() or self._ShouldStop(sess, 0):
       return None

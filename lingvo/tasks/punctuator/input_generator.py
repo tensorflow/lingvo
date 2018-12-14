@@ -37,7 +37,8 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
     p = super(PunctuatorInput, cls).Params()
     p.tokenizer = tokenizers.VocabFileTokenizer.Params()
     p.tokenizer.tokens_delimiter = ''  # Split each character to a token.
-    p.source_max_length = 300
+    p.source_max_length = 600
+    p.target_max_length = 600
     return p
 
   def _ProcessLine(self, line):
@@ -55,6 +56,8 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
       A list of tensors, in the expected order by __init__.
     """
     # Tokenize the input into integer ids.
+    # tgt_ids has the start-of-sentence token prepended, and tgt_labels has the
+    # end-of-sentence token appended.
     tgt_ids, tgt_labels, tgt_paddings = self.StringsToIds([line])
 
     # Lowercase and remove punctuation, and tokenize that too.
@@ -62,8 +65,10 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
         lambda x: x.lower().translate(None, string.punctuation), [line],
         tf.string,
         stateful=False)
-    src_ids, _, src_paddings = self.StringsToIds([normalized_line],
-                                                 is_source=True)
+    _, src_labels, src_paddings = self.StringsToIds([normalized_line],
+                                                    is_source=True)
+    # The model expects the source without a start-of-sentence token.
+    src_ids = src_labels
 
     # Compute the length for bucketing.
     bucket_key = tf.to_int32(

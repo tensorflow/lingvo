@@ -1150,7 +1150,7 @@ class ReversePaddedSequenceTest(tf.test.TestCase):
 class RetryTest(tf.test.TestCase):
 
   def testRetry(self):
-    max_retries = 20
+    max_retries = 5
 
     @py_utils.Retry(max_retries=max_retries)
     def Foo(state):

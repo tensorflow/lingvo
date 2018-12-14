@@ -121,8 +121,8 @@ class PunctuatorModelTest(tf.test.TestCase):
         vals += [sess.run((loss, logp))]
 
       print('actual vals = %s' % np.array_repr(np.array(vals)))
-      expected_vals = [[371.16153, 10.382141], [415.236511, 10.380913],
-                       [415.484863, 10.387121]]
+      expected_vals = [[371.16104, 10.382128], [415.23663, 10.380916],
+                       [415.48526, 10.387132]]
       self.assertAllClose(vals, expected_vals)
 
   def testBProp(self):
@@ -140,8 +140,8 @@ class PunctuatorModelTest(tf.test.TestCase):
       for _ in range(3):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
       print('BProp actual vals = ', vals)
-      expected_vals = [[371.16153, 10.382141], [415.046509, 10.376163],
-                       [415.137573, 10.378439]]
+      expected_vals = [[371.16104, 10.382128], [415.04648, 10.376163],
+                       [415.13812, 10.378454]]
       self.assertAllClose(vals, expected_vals)
 
   def testFPropEvalMode(self):
@@ -158,8 +158,8 @@ class PunctuatorModelTest(tf.test.TestCase):
       for _ in range(3):
         vals += [sess.run((loss, logp))]
       print('actual vals = ', vals)
-      expected_vals = [[371.16153, 10.382141], [415.236511, 10.380913],
-                       [415.484863, 10.387121]]
+      expected_vals = [[371.16104, 10.382128], [415.23663, 10.380916],
+                       [415.48526, 10.387132]]
       self.assertAllClose(vals, expected_vals)
 
   def testInference(self):

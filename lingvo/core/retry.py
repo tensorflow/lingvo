@@ -27,10 +27,10 @@ import sys
 import tensorflow as tf
 
 
-def Retry(max_retries=None,
-          retry_value=Exception,
-          initial_delay=0.1,
-          delay_growth_factor=1.1,
+def Retry(retry_value=Exception,
+          max_retries=None,
+          initial_delay_sec=1.0,
+          delay_growth_factor=1.5,
           delay_growth_fuzz=0.1,
           max_delay_sec=60):
   """Returns a retry decorator."""
@@ -44,7 +44,7 @@ def Retry(max_retries=None,
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-      delay = initial_delay
+      delay = initial_delay_sec
       for retries in itertools.count(0):
         try:
           return func(*args, **kwargs)

@@ -59,7 +59,7 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
 
     # The bucket upper bound specifies how to split the input into buckets. We
     # train on sequences up to maximum bucket size and discard longer examples.
-    p.bucket_upper_bound = [51, 91, 130, 200]
+    p.bucket_upper_bound = [51, 91, 130, 200, 600]
 
     # The bucket batch limit determines how many examples are there in each
     # batch during training. We reduce the batch size for the buckets that
@@ -69,7 +69,7 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
     # language. Larger models may warrant smaller batches in order to fit in
     # memory, for example; and ideographical languages like Chinese may benefit
     # from more buckets.
-    p.bucket_batch_limit = [128] * 2 + [64] * 2
+    p.bucket_batch_limit = [128] * 2 + [64] * 2 + [16]
     return p
 
   # There is also a Dev method for dev set params, but we don't have a dev set.
@@ -85,12 +85,8 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
     p.tokenizer.token_vocab_filepath = cls._VOCAB_FILE
     p.tokenizer.vocab_size = cls._VOCAB_SIZE
 
-    # The largest bucket upper bound must be larger than the longest sequence
-    # length in dev/test set. Since we discard sequences longer than the
-    # max(bucket_upper_bound) we may end up having scores based on only shorter
-    # sequences only if we mistakenly set this to be too small.
-    p.bucket_upper_bound = [50, 91, 197, 1014]
-    p.bucket_batch_limit = [128, 128, 64, 8]
+    p.bucket_upper_bound = [50, 91, 197, 600]
+    p.bucket_batch_limit = [128, 128, 64, 16]
     return p
 
   @classmethod
@@ -121,5 +117,5 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
     tp.clip_gradient_norm_to_value = 0.0
     tp.grad_norm_to_clip_to_zero = 0.0
     tp.lr_schedule = lr_schedule.TransformerLearningRateSchedule.Params().Set(
-        warmup_steps=40000, worker_replicas=1, model_dim=model_dim)
+        warmup_steps=2000, worker_replicas=1, model_dim=model_dim)
     return p

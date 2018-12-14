@@ -82,28 +82,59 @@ def main(_):
         elif child.text == "''":
           text += '"'
           prepend_space = True
+        elif child.text == "'":
+          if prepend_space:
+            text += " '"
+            prepend_space = False
+          else:
+            text += "'"
+            prepend_space = True
         elif child.text == "(" or child.text == "[":
           if prepend_space:
             text += " "
           text += child.text
           prepend_space = False
+        elif child.text == "-" or child.text == "--":
+          if prepend_space:
+            text += " "
+          text += child.text
+          prepend_space = True
         else:
           text += child.text
           prepend_space = True
     text = text.replace("!!", "!").replace("??", "?").replace("--", "-")
     text = text.replace("**", "*").replace(";;", ";").replace("::", ":")
     text = text.replace(",,", ",")
+
+    # Filter out bad sentences.
+    if not set(text) & set(string.ascii_letters):
+      # No letters.
+      continue
+    if text.count('"') % 2 != 0:
+      # Uneven number of quotes.
+      continue
+    if text.count("(") != text.count(")") or text.count("[") != text.count("]"):
+      # Unbalanced parenthesis.
+      continue
+    if (text[0] == '"' and text[-1] == '"' or
+        text[0] == "(" and text[-1] == ")" or
+        text[0] == "[" and text[-1] == "]"):
+      text = text[1:-1]
+    if text[0] not in string.ascii_letters and text[0] not in string.digits:
+      # Doesn't start with a letter or number.
+      continue
+    text = text[:1].upper() + text[1:]
     sentences.append(text)
   sentences = sorted(set(sentences))
   random.seed(1234)
   random.shuffle(sentences)
 
   with open(os.path.join(FLAGS.outdir, "train.txt"), "w") as f:
-    for line in sentences[:int(len(sentences) * 0.8)]:
+    for line in sentences[:int(len(sentences) * 0.95)]:
       f.write("%s\n" % line)
 
   with open(os.path.join(FLAGS.outdir, "test.txt"), "w") as f:
-    for line in sentences[int(len(sentences) * 0.8):]:
+    for line in sentences[int(len(sentences) * 0.95):]:
       f.write("%s\n" % line)
 
   with open(os.path.join(FLAGS.outdir, "grapheme.txt"), "w") as f:
