@@ -2,7 +2,7 @@
 
 ## What is it?
 
-Lingvo is a toolkit which is suited to build neural networks, particularly
+Lingvo is a toolkit for building neural networks in Tensorflow, particularly
 sequence models.
 
 It was used for the following research papers.
@@ -111,7 +111,7 @@ It was used for the following research papers.
         Interspeech 2018.
 
     *   [CaLcs: Continuously Approximating Longest Common Subsequence for
-        Sequence Level Optimization] (http://aclweb.org/anthology/D18-1406).
+        Sequence Level Optimization](http://aclweb.org/anthology/D18-1406).
         Semih Yavuz, Chung-Cheng Chiu, Patrick Nguyen, and Yonghui Wu.
         EMNLP 2018.
 
@@ -140,10 +140,10 @@ It was used for the following research papers.
 
 *   Speech-to-text translation
 
-    *   [Leveraging weakly supervised data to improve end-to-end speech-to-text translation](https://arxiv.org/abs/1811.02050).
-        Ye Jia, Melvin Johnson, Wolfgang Macherey, Ron J. Weiss, Yuan Cao,
-        Chung-Cheng Chiu, Naveen Ari, Stella Laurenzo, Yonghui Wu. Submitted
-        to ICASSP 2019.
+    *   [Leveraging weakly supervised data to improve end-to-end speech-to-text
+        translation](https://arxiv.org/abs/1811.02050). Ye Jia, Melvin Johnson,
+        Wolfgang Macherey, Ron J. Weiss, Yuan Cao, Chung-Cheng Chiu, Naveen Ari,
+        Stella Laurenzo, Yonghui Wu. Submitted to ICASSP 2019.
 
     *   [Sequence-to-Sequence Models Can Directly Translate Foreign Speech](https://arxiv.org/abs/1703.08581).
         Ron J. Weiss, Jan Chorowski, Navdeep Jaitly, Yonghui Wu, and Zhifeng
