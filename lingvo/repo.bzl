@@ -1,5 +1,7 @@
 """Setup autoconf repo for tensorflow."""
 
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
 def _find_tf_include_path(repo_ctx):
     exec_result = repo_ctx.execute(
         [
@@ -115,7 +117,7 @@ def cc_tf_configure():
 
 def lingvo_testonly_deps():
     if "com_google_googletest" not in native.existing_rules():
-        native.new_http_archive(
+        http_archive(
             name = "com_google_googletest",
             build_file_content = """
 cc_library(
@@ -157,7 +159,7 @@ cc_library(
         )
 
 def lingvo_protoc_deps():
-    native.new_http_archive(
+    http_archive(
         name = "protobuf_protoc",
         build_file_content = """
 filegroup(

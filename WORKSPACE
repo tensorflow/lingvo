@@ -1,5 +1,6 @@
 """Workspace file for lingvo."""
 
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load(
     "//lingvo:repo.bzl",
     "cc_tf_configure",
