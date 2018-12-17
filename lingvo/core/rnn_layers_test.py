@@ -67,7 +67,9 @@ class LayersTestBase(tf.test.TestCase):
                              dtype,
                              trailing_pad_len=0,
                              keep_prob=1.0,
-                             bi_directional=False):
+                             bi_directional=False,
+                             input_dim=-1,
+                             output_dim=-1):
     tf.set_random_seed(123456)
     batch = 3
     dims = 16
@@ -95,11 +97,16 @@ class LayersTestBase(tf.test.TestCase):
         sfrnn_params.num_layers = num_layers
         sfrnn_params.skip_start = 2
         sfrnn_params.dropout.keep_prob = keep_prob
+        sfrnn_params.num_input_nodes = input_dim
+        sfrnn_params.num_output_nodes = output_dim
         with tf.name_scope('sfrnn'):
           sfrnn = sfrnn_params.cls(sfrnn_params)
 
         np.random.seed(12345)
-        inputs = tf.constant(np.random.uniform(size=(slen, batch, dims)), dtype)
+        input_dim = input_dim if input_dim > 0 else dims
+        output_dim = output_dim if output_dim > 0 else dims
+        inputs = tf.constant(
+            np.random.uniform(size=(slen, batch, input_dim)), dtype)
         paddings = np.zeros([slen, batch, 1])
         if trailing_pad_len > 0:
           paddings[-trailing_pad_len:, :] = 1.0
@@ -109,9 +116,13 @@ class LayersTestBase(tf.test.TestCase):
         tf.global_variables_initializer().run()
         if bi_directional:
           sfrnn_outputs = sfrnn.FPropFullSequence(sfrnn.theta, inputs, paddings)
+          sfrnn_outputs = py_utils.HasShape(sfrnn_outputs,
+                                            [slen, batch, output_dim])
           return sess.run(sfrnn_outputs)
         else:
           sfrnn_outputs, sfrnn_final = sfrnn.FPropDefaultTheta(inputs, paddings)
+          sfrnn_outputs = py_utils.HasShape(sfrnn_outputs,
+                                            [slen, batch, output_dim])
           return sess.run([sfrnn_outputs, sfrnn_final])
 
   def _testStackedFRNNGradHelper(self, cls, bi_directional=False):
@@ -908,6 +919,20 @@ class LayersTest(LayersTestBase):
       rtol = 1e-6
     self.assertAllClose([175.974121], [np.sum(v1_out * v1_out)], rtol=rtol)
 
+  def testStackedFRNNInputOutputDims(self):
+    v1_out, _ = self._testStackedFRNNHelper(
+        rnn_layers.StackedFRNNLayerByLayer,
+        tf.float32,
+        trailing_pad_len=0,
+        keep_prob=0.5,
+        input_dim=5,
+        output_dim=7)
+    if tf.test.is_gpu_available():
+      rtol = 1e-5
+    else:
+      rtol = 1e-6
+    self.assertAllClose([32.743263], [np.sum(v1_out * v1_out)], rtol=rtol)
+
   def testStackedFRNNLayerByLayerGrad(self):
     self._testStackedFRNNGradHelper(rnn_layers.StackedFRNNLayerByLayer)
 
@@ -923,6 +948,21 @@ class LayersTest(LayersTestBase):
     else:
       rtol = 1e-6
     self.assertAllClose([305.774384], [np.sum(v1_out * v1_out)], rtol=rtol)
+
+  def testStackedBiFRNNInputOutputDims(self):
+    v1_out = self._testStackedFRNNHelper(
+        rnn_layers.StackedBiFRNNLayerByLayer,
+        tf.float32,
+        trailing_pad_len=0,
+        keep_prob=0.5,
+        bi_directional=True,
+        input_dim=5,
+        output_dim=8)
+    if tf.test.is_gpu_available():
+      rtol = 1e-5
+    else:
+      rtol = 1e-6
+    self.assertAllClose([8.116007], [np.sum(v1_out * v1_out)], rtol=rtol)
 
   def testStackedBiFRNNLayerByLayerGrad(self):
     self._testStackedFRNNGradHelper(

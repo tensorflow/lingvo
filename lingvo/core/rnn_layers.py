@@ -186,6 +186,12 @@ class StackedRNNBase(base_layer.BaseLayer):
   def Params(cls):
     p = super(StackedRNNBase, cls).Params()
     p.Define('num_layers', 1, 'The number of RNN layers.')
+    p.Define(
+        'num_input_nodes', -1,
+        'If >= 0, overrides cell_tpl.num_input_nodes for the first layer.')
+    p.Define(
+        'num_output_nodes', -1,
+        'If >= 0, overrides cell_tpl.num_output_nodes for the last layer.')
     p.Define('skip_start', 1, 'The first layer start skip connection.')
     p.Define(
         'cell_tpl', rnn_cell.LSTMCellSimple.Params(),
@@ -237,6 +243,10 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
         params.name = 'frnn_%d' % i
         params.cell = cell_tpl.Copy()
         params.cell.name = '%s_%d' % (p.name, i)
+        if p.num_input_nodes > 0 and i == 0:
+          params.cell.num_input_nodes = p.num_input_nodes
+        if p.num_output_nodes > 0 and i == p.num_layers - 1:
+          params.cell.num_output_nodes = p.num_output_nodes
         rnn_params.append(params)
 
     for i in range(len(rnn_params) - 1):
@@ -283,7 +293,9 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
       ys, state1.rnn[i] = self.rnn[i].FProp(theta.rnn[i], xs, paddings,
                                             state0.rnn[i])
       ys = self.dropout.FProp(theta.dropout, ys)
-      if p.skip_start >= 0 and i >= p.skip_start:
+      if (p.skip_start >= 0 and i >= p.skip_start and
+          (p.num_input_nodes <= 0 or i != 0) and
+          (p.num_output_nodes <= 0 or i != p.num_layers - 1)):
         ys = self.fns.qadd(ys, xs, qt='residual')
       xs = ys
     return xs, state1
@@ -307,6 +319,10 @@ class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
         rnn_p = cell_tpl.Copy()
         if i > 0:
           rnn_p.num_input_nodes = feature_dim
+        if p.num_input_nodes > 0 and i == 0:
+          rnn_p.num_input_nodes = p.num_input_nodes
+        if p.num_output_nodes > 0 and i == p.num_layers - 1:
+          rnn_p.num_output_nodes = p.num_output_nodes // 2
         frnn_param = BidirectionalFRNN.Params()
         frnn_param.name = 'bidi_rnn_%d' % i
         frnn_param.fwd = rnn_p.Copy().Set(name='f_rnn_%d' % i)
@@ -335,7 +351,9 @@ class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     for i in range(p.num_layers):
       ys = self.rnn[i].FProp(theta.rnn[i], xs, paddings)
       ys = self.dropout.FProp(theta.dropout, ys)
-      if p.skip_start >= 0 and i >= p.skip_start:
+      if (p.skip_start >= 0 and i >= p.skip_start and
+          (p.num_input_nodes <= 0 or i != 0) and
+          (p.num_output_nodes <= 0 or i != p.num_layers - 1)):
         ys = self.fns.qadd(ys, xs, qt='residual')
       xs = ys
     return xs
