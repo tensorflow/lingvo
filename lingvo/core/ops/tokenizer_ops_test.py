@@ -221,10 +221,19 @@ class TokenizerOpsTest(tf.test.TestCase):
         'core/ops/testdata/bpe_words.vocab')
     code_vocab = test_helper.test_src_dir_path(
         'core/ops/testdata/bpe_codes.vocab')
-    sentences = ['GIVE ME A PENNY', 'THEY LIVED ALONE']
-    expected_sentences = ['GIVE ME A PENNY </s> ', 'THEY LIVED ALONE </s> ']
-    expected_token_ids = [[27, 9, 30, 14, 28, 14, 52, 11, 4, 6, 6, 10, 2, 2, 2],
-                          [16, 4, 10, 12, 9, 30, 24, 7, 12, 49, 14, 2, 2, 2, 2]]
+    sentences = [
+        'GIVE ME A PENNY', 'THEY LIVED ALONE', 'THEY GIVE ME A PENNY ALONE'
+    ]
+    expected_sentences = [
+        'GIVE ME A PENNY </s> ',
+        'THEY LIVED ALONE </s> ',
+        'THEY GIVE ME A PENNY ',
+    ]
+    expected_token_ids = [
+        [27, 9, 30, 14, 28, 14, 52, 11, 4, 6, 6, 10, 2, 2, 2],
+        [16, 4, 10, 12, 9, 30, 24, 7, 12, 49, 14, 2, 2, 2, 2],
+        [16, 4, 10, 27, 9, 30, 14, 28, 14, 52, 11, 4, 6, 6, 10],
+    ]
     with self.session(use_gpu=False):
       label_tensor = tf.constant(sentences)
       _, token_ids, paddings = py_x_ops.bpe_words_to_ids(

@@ -197,7 +197,6 @@ class BpeIdsToWordsOp : public OpKernel {
     std::vector<string> lines = str_util::Split(contents, '\n',
                                                 str_util::SkipEmpty());
     for (const string& line : lines) {
-      LOG(INFO) << line << " " << id_to_string_map_.size();
       std::vector<string> parts = str_util::Split(line, ' ');
       id_to_string_map_.push_back(parts[0]);
     }
@@ -311,16 +310,35 @@ class BpeWordsToIdsOp : public OpKernel {
               << str_util::Join(tokens, "/");
       int cur_char = 0;
       for (const auto& token : tokens) {
+        if (cur_char >= maxlen_) {
+          break;
+        }
         const std::vector<int32> token_ids = string_to_ids_map_[token];
         for (const auto& token_id : token_ids) {
-          t_token_ids(i, cur_char + 1) = token_id;
           t_target_ids(i, cur_char) = token_id;
           t_paddings(i, cur_char) = 0.0f;
+          // If the number of tokens is longer than the max length - truncate.
+          if (cur_char + 1 >= maxlen_) {
+            cur_char++;
+            int num_token_ids = 0;
+            for (const auto& t : tokens) {
+              num_token_ids += string_to_ids_map_[t].size();
+            }
+            LOG(INFO) << "Label: \"" << label << "\" had " << num_token_ids
+                      << " tokens, and was truncated to size: " << maxlen_
+                      << " (" << num_token_ids - maxlen_ << " tokens ignored).";
+            break;
+          }
+          t_token_ids(i, cur_char + 1) = token_id;
           cur_char++;
         }
       }
-      t_target_ids(i, cur_char) = eos_id_;
-      t_paddings(i, cur_char) = append_eos_ ? 0.0f : 1.0f;
+      if (cur_char < maxlen_) {
+        // There was no truncation, t_token_ids is ahead by 1 over t_target_ids
+        // and t_paddings
+        t_target_ids(i, cur_char) = eos_id_;
+        t_paddings(i, cur_char) = append_eos_ ? 0.0f : 1.0f;
+      }
     }
   }
 
