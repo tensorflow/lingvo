@@ -786,7 +786,6 @@ class TransformerDecoder(MTBaseDecoder):
 
     # Default config for the transformer layers.
     p.trans_tpl.source_dim = p.model_dim
-    p.trans_tpl.is_decoder = True
     p.trans_tpl.tr_atten_tpl.source_dim = p.model_dim
     p.trans_tpl.tr_atten_tpl.num_attention_heads = 8
     p.trans_tpl.tr_fflayer_tpl.input_dim = p.model_dim
@@ -827,6 +826,8 @@ class TransformerDecoder(MTBaseDecoder):
         params = p.trans_tpl.Copy()
         params.name = 'trans_layer_%d' % i
         params.packed_input = p.packed_input
+        params.has_aux_atten = True
+        params.mask_self_atten = True
         params_trans_layers.append(params)
       self.CreateChildren('trans', params_trans_layers)
 

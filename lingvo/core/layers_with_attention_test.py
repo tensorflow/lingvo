@@ -358,7 +358,8 @@ class LayersWithAttentionTest(tf.test.TestCase):
     p.source_dim = 4
     p.tr_fflayer_tpl.hidden_dim = 7
     p.tr_atten_tpl.num_attention_heads = 2
-    p.is_decoder = True
+    p.has_aux_atten = True
+    p.mask_self_atten = True
     _ = layers_with_attention.TransformerLayer(p)
 
   def testTransformerLayerFProp(self):
@@ -368,7 +369,8 @@ class LayersWithAttentionTest(tf.test.TestCase):
       p = layers_with_attention.TransformerLayer.Params()
       p.name = 'transformer'
       p.source_dim = depth
-      p.is_decoder = True
+      p.has_aux_atten = True
+      p.mask_self_atten = True
       p.tr_fflayer_tpl.hidden_dim = 7
       p.tr_atten_tpl.num_attention_heads = 2
       transformer = layers_with_attention.TransformerLayer(p)
@@ -423,7 +425,8 @@ class LayersWithAttentionTest(tf.test.TestCase):
         p = layers_with_attention.TransformerLayer.Params()
         p.name = 'transformer'
         p.source_dim = depth
-        p.is_decoder = True
+        p.has_aux_atten = True
+        p.mask_self_atten = True
         p.tr_fflayer_tpl.hidden_dim = 7
         p.tr_atten_tpl.num_attention_heads = 2
         packed_params = p.Copy()
@@ -483,7 +486,8 @@ class LayersWithAttentionTest(tf.test.TestCase):
       p = layers_with_attention.TransformerLayer.Params()
       p.name = 'transformer'
       p.source_dim = depth
-      p.is_decoder = True
+      p.has_aux_atten = True
+      p.mask_self_atten = True
       p.tr_fflayer_tpl.hidden_dim = 7
       p.tr_atten_tpl.num_attention_heads = 2
       transformer = layers_with_attention.TransformerLayer(p)

@@ -348,15 +348,16 @@ class TransformerLayer(base_layer.BaseLayer):
         TransformerFeedForwardLayer.Params().Set(hidden_dim=2048),
         'Transformer Feed-Forward Layer params.')
     p.Define(
-        'is_decoder', False,
+        'has_aux_atten', False,
         'If set, introduces a second attention layer, which attends to'
         ' the auxiliary source contexts.')
     p.Define('tr_aux_atten_tpl', None, 'Transformer Attention Layer params.')
-    p.Define(
-        'mask_self_atten', False, 'If True, use masked self-attention. '
-        'Note when p.is_decoder=True, masking is enforced.')
+    p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
+    p.Define(
+        'is_decoder', False, '(Deprecated) '
+        'If true, forces both has_aux_atten and mask_self_atten to true.')
     return p
 
   @base_layer.initializer
@@ -366,6 +367,11 @@ class TransformerLayer(base_layer.BaseLayer):
     assert p.name
     assert p.source_dim
 
+    if p.is_decoder:
+      tf.logging.warn('TransformerLayer.is_decoder is deprecated.')
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+
     with tf.variable_scope(p.name):
 
       # Initialize multi-headed self-attention
@@ -373,13 +379,10 @@ class TransformerLayer(base_layer.BaseLayer):
       params.name = 'multihead_self_atten'
       params.source_dim = p.source_dim
       params.packed_input = p.packed_input
-      if p.is_decoder:
-        params.is_masked = True
-      else:
-        params.is_masked = p.mask_self_atten
+      params.is_masked = p.mask_self_atten
       self.CreateChild('self_atten', params)
 
-      if p.is_decoder:
+      if p.has_aux_atten:
         # Initialize masked-multi-headed attention
         params = (
             p.tr_atten_tpl.Copy()
@@ -412,11 +415,11 @@ class TransformerLayer(base_layer.BaseLayer):
     behavior of this layer) `source_*` tensors correspond to the outputs of
     previous encoder layer. Further, keys, values and queries are all
     forked from `source_vecs`. When TransformerLayer is used in the Decoder
-    (is_decoder=True), `source_*` tensors correspond to the outputs of previous
-    decoder layer and used as the queries.
+    (has_aux_atten=True), `source_*` tensors correspond to the outputs of
+    previous decoder layer and used as the queries.
 
     For the cases when `TransformerLayer` is used in the decoder
-    (is_decoder=True) `aux_*` tensors have to be provided.  Auxiliary inputs,
+    (has_aux_atten=True) `aux_*` tensors have to be provided.  Auxiliary inputs,
     `aux_*` tensors, are then correspond to the top-most layer encoder outputs
     and used by the second `TransformerAttentionLayer` as keys and values.
 
@@ -436,14 +439,15 @@ class TransformerLayer(base_layer.BaseLayer):
       The attention context vector, [source_time, source_batch, dim].
 
       The attention probability vector, [source_time, source_batch, source_time]
-      if is_decoder is False, otherwise [source_time, source_batch, aux_time].
+      if has_aux_atten is False, otherwise [source_time, source_batch,
+      aux_time].
     """
     p = self.params
     if p.packed_input:
       assert source_segment_id is not None, ('Need to specify segment id for '
                                              'packed input.')
 
-    if p.is_decoder:
+    if p.has_aux_atten:
       assert aux_vecs is not None
       assert aux_paddings is not None
 
@@ -453,7 +457,7 @@ class TransformerLayer(base_layer.BaseLayer):
         source_paddings,
         query_segment_id=source_segment_id)
 
-    if p.is_decoder:
+    if p.has_aux_atten:
       atten_vec, atten_prob = self.atten.FProp(
           theta.atten, atten_vec, aux_paddings, aux_vecs, source_segment_id,
           aux_segment_id)
@@ -489,7 +493,7 @@ class TransformerLayer(base_layer.BaseLayer):
     """
     p = self.params
 
-    if p.is_decoder:
+    if p.has_aux_atten:
       assert aux_vecs is not None
       assert aux_paddings is not None
 
@@ -501,7 +505,7 @@ class TransformerLayer(base_layer.BaseLayer):
 
     atten_vec = tf.expand_dims(atten_vec, axis=0)
     # Next the source attention layer.
-    if p.is_decoder:
+    if p.has_aux_atten:
       atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
                                                aux_paddings, aux_vecs)
 

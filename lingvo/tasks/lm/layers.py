@@ -777,7 +777,7 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
              'The softmax layer params.')
 
     # Default config for the transformer layers.
-    p.trans_tpl.is_decoder = False
+    p.trans_tpl.has_aux_atten = False
     p.trans_tpl.mask_self_atten = True
     p.trans_tpl.tr_atten_tpl.num_attention_heads = 8
     p.trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_pre_proj = True
@@ -1017,7 +1017,7 @@ class TransformerLm(TransformerLmNoEmbedding):
 
     p.position_emb.Set(embedding_dim=p.model_dim, trainable_scaling=False)
 
-    p.trans_tpl.is_decoder = False
+    p.trans_tpl.has_aux_atten = False
     p.trans_tpl.mask_self_atten = True
 
     p.trans_tpl.tr_atten_tpl.Set(
