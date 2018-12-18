@@ -387,7 +387,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
         'Decay in updating the mean and variance moving average used in'
         ' batch normalization.')
     p.Define(
-        'bn_fold_weights', False,
+        'bn_fold_weights', None,
         'Fold the batch norm parameters into the convolution weights at '
         'eval/inference time as per https://arxiv.org/pdf/1712.05877.pdf. '
         'Requires that batch_norm be True and is incompatible with some other '
@@ -467,7 +467,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
           dim=bn_dim, decay=p.bn_decay, name=p.name, params_init=p.params_init)
       self.CreateChild('bn', bn_params)
 
-    if p.bn_fold_weights:
+    if self._is_bn_folded:
       assert p.batch_norm, 'bn_fold_weights requires batch_norm = True'
       assert not p.conv_last, 'bn_fold_weights requires conv_last = False'
 
@@ -494,6 +494,15 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     # Standard convolution has all output channels in the last dim.
     p = self.params
     return [p.filter_shape[-1]]
+
+  @property
+  def _is_bn_folded(self):
+    """Whether batchnorm folded weights are effectively enabled."""
+    p = self.params
+    if not p.batch_norm:
+      return False
+    return (p.bn_fold_weights or
+            (p.bn_fold_weights is None and p.qdomain.default is not None))
 
   def _EvaluateConvKernel(self, inputs, filter_w, strides, dilation_rate,
                           padding_algorithm, data_format):
@@ -582,7 +591,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
       b = tf.zeros([self.output_channels], dtype=filter_w.dtype)
 
     # Pass-through if weights are not folded with batch normalization.
-    if not p.bn_fold_weights:
+    if not self._is_bn_folded:
       return filter_w, b
 
     # If batch norm is fused with weights, then compute the weights as from
