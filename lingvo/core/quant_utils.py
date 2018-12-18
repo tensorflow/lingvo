@@ -134,8 +134,6 @@ class QuantizableLayer(base_layer.BaseLayer):
     self._tracked_tensors = dict()  # tracked t_name -> (QDomain)
     self._qstate = None  # t_name -> Tensor
 
-    self._AddQuantizationFunctions()
-
     # Instantiate quantization domains.
     with tf.variable_scope(p.name + '/q'):
       self._qdomains = dict()  # Dict of qdname -> QDomain or None
@@ -148,6 +146,8 @@ class QuantizableLayer(base_layer.BaseLayer):
         qdchild_name = 'qdomain_' + qdname
         self.CreateChild(qdchild_name, qdparams)
         self._qdomains[qdname] = self.children[qdchild_name]
+    self._AddQuantizationFunctions()
+
 
   def QRTanh(self, t, domain='actf'):
     """Quantizes the output of a tanh (-1.0, 1.0)."""
@@ -159,10 +159,14 @@ class QuantizableLayer(base_layer.BaseLayer):
     qd = self.GetQDomain(domain)
     return qd.QuantizeNaturalRange(t, 0.0, 1.0) if qd else t
 
-  def QRSoftmax(self, t, domain='softmax'):
-    """Quantizes the output of a softmax (0, 1.0)."""
+  def QRSoftmax(self, t, domain='softmax', narrow_to_asym_bit_depth=False):
+    """Quantizes the output of a softmax (0, 1.0 - 1.0/2^-bits)."""
     qd = self.GetQDomain(domain)
-    return qd.QuantizeNaturalRange(t, 0.0, 1.0) if qd else t
+    # Override based on TFLite softmax support.
+    softmax_max = 1.0
+    if qd is not None and narrow_to_asym_bit_depth:
+      softmax_max = (2**qd.bits - 1) / (2**qd.bits)
+    return qd.QuantizeNaturalRange(t, 0.0, softmax_max) if qd else t
 
   def QRRelu(self, t, domain='relu'):
     """Quantizes the output of a softmax (0, 1.0)."""
@@ -310,6 +314,9 @@ class QuantizableLayer(base_layer.BaseLayer):
         qdomain = kwargs.get('qdomain')
         if qdomain is not None:
           del kwargs['qdomain']
+        narrow_to_asym_bit_depth = kwargs.get('narrow_to_asym_bit_depth')
+        if narrow_to_asym_bit_depth is not None:
+          del kwargs['narrow_to_asym_bit_depth']
         if qmin is None:
           qmin = default_qmin
         if qmax is None:
@@ -331,6 +338,9 @@ class QuantizableLayer(base_layer.BaseLayer):
         else:
           qd = self.GetQDomain(qdomain)
           if qd:
+            if narrow_to_asym_bit_depth:
+              qrange = qmax - qmin
+              qmax = qmin + qrange * (2**qd.bits - 1) / (2**qd.bits)
             y = qd.QuantizeNaturalRange(y, qmin, qmax)
         return y
 
@@ -622,6 +632,11 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
   def is_quantized(self):
     return True
 
+  @property
+  def bits(self):
+    p = self.params
+    return p.bits
+
   def GetEndRange(self):
     """Public method to get the final range as a constant.
 
@@ -832,6 +847,15 @@ class QDomain(base_layer.BaseLayer):
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('global_step', global_step_pc, trainable=False)
 
+  @property
+  def bits(self):
+    """Retrieves the bits used by this quantization layer.
+
+    Returns:
+      The number of bits available to this qdomain or None if unquantized.
+    """
+    return None
+
   def PostTrainingStepUpdate(self, global_step):
     """Update the cap value."""
     super_op = super(QDomain, self).PostTrainingStepUpdate(global_step)
@@ -946,6 +970,10 @@ class SymetricScheduledClipQDomain(QDomain):
     with tf.variable_scope(p.name):
       self.CreateChild('cc_schedule', p.cc_schedule)
 
+  @property
+  def bits(self):
+    return self.cc_schedule.bits
+
   def QuantizeWeight(self, w):
     return self.cc_schedule.ApplyClipping(self.theta.cc_schedule, w)
 
@@ -1053,6 +1081,11 @@ class PassiveAsymQDomain(QDomain):
                       inputs)
     else:
       return Apply()
+
+  @property
+  def bits(self):
+    p = self.params
+    return p.bits
 
   def QuantizeWeight(self, w):
     p = self.params
