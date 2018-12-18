@@ -547,6 +547,65 @@ class DecoderTest(tf.test.TestCase):
     decoded_hyp = self._testDecoderBeamSearchDecodeHelperWithOutput(params=p)
     self._VerifyHypothesesMatch(expected_hyp, decoded_hyp)
 
+  def testDecoderSampleTargetSequences(self):
+    p = self._DecoderParams(
+        vn_config=py_utils.VariationalNoiseParams(None, False, False),
+        num_classes=8)
+    p.target_seq_len = 5
+    p.random_seed = 1
+    config = tf.ConfigProto(
+        graph_options=tf.GraphOptions(
+            optimizer_options=tf.OptimizerOptions(do_function_inlining=False)))
+    with self.session(use_gpu=False, config=config) as sess:
+      tf.set_random_seed(8372740)
+      np.random.seed(35315)
+      dec = p.cls(p)
+      source_sequence_length = 5
+      batch_size = 4
+      source_encodings = tf.constant(
+          np.random.normal(
+              size=[source_sequence_length, batch_size, p.source_dim]),
+          dtype=tf.float32)
+      source_encoding_padding = tf.constant(
+          [[0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0],
+           [0.0, 1.0, 1.0, 1.0], [0.0, 1.0, 1.0, 1.0]],
+          dtype=tf.float32)
+      encoder_outputs = py_utils.NestedMap(
+          encoded=source_encodings, padding=source_encoding_padding)
+      sampled_sequences = dec.SampleTargetSequences(
+          dec.theta, encoder_outputs, random_seed=tf.to_int32(123))
+      tf.global_variables_initializer().run()
+      decoder_output = sess.run(sampled_sequences)
+      print('ids=%s' % np.array_repr(decoder_output.ids))
+      lens = np.sum(1 - decoder_output.paddings, axis=1)
+      print('lens=%s' % lens)
+      # pyformat: disable
+      # pylint: disable=bad-whitespace,bad-continuation
+      expected_ids = [[6, 2, 2, 2, 2],
+                      [0, 0, 7, 5, 1],
+                      [6, 1, 5, 2, 2],
+                      [6, 7, 7, 4, 5]]
+      # pylint: enable=bad-whitespace,bad-continuation
+      # pyformat: enable
+      expected_lens = [2, 5, 4, 5]
+      self.assertAllEqual(expected_lens, lens)
+      self.assertAllEqual(expected_ids, decoder_output.ids)
+
+      # Sample again with the same random seed.
+      decoder_output2 = sess.run(
+          dec.SampleTargetSequences(
+              dec.theta, encoder_outputs, random_seed=tf.to_int32(123)))
+      # Get the same output.
+      self.assertAllEqual(decoder_output.ids, decoder_output2.ids)
+      self.assertAllEqual(decoder_output.paddings, decoder_output2.paddings)
+
+      # Sample again with a different random seed.
+      decoder_output3 = sess.run(
+          dec.SampleTargetSequences(
+              dec.theta, encoder_outputs, random_seed=tf.to_int32(123456)))
+      # Get different sequences.
+      self.assertNotAllClose(expected_ids, decoder_output3.ids)
+
 
 if __name__ == '__main__':
   tf.test.main()

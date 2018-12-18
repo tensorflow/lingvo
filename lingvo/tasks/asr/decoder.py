@@ -662,6 +662,28 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         num_hyps_per_beam_override, self._InitBeamSearchStateCallback,
         self._PreBeamSearchStepCallback, self._PostBeamSearchStepCallback)
 
+  def SampleTargetSequences(self, theta, encoder_outputs, random_seed):
+    """Performs target sequence sampling.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      encoder_outputs: a NestedMap computed by encoder.
+      random_seed: a scalar int32 tensor representing the random seed.
+
+    Returns:
+      A NestedMap containing the following tensors:
+      - 'ids': [batch, max_target_length] of int32, representing the target
+        sequence ids, not including target_sos_id, but maybe ending with
+        target_eos_id if target_eos_id is sampled.
+      - 'paddings': [batch, max_target_length] of 0/1, where 1 represents
+        a padded timestep.
+    """
+    return self.target_sequence_sampler.Sample(
+        theta, encoder_outputs.encoded, encoder_outputs.padding, random_seed,
+        self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
+        self._PostBeamSearchStepCallback)
+
   def _InitBeamSearchStateCallback(self,
                                    theta,
                                    source_encs,
@@ -1455,6 +1477,7 @@ class AsrDecoder(AsrDecoderBase):
                                    num_hyps_per_beam,
                                    additional_source_info=None):
     # additional_source_info is currently not used.
+    p = self.params
     del additional_source_info
     num_hyps = self._GetNumHypsForBeamSearch(source_encs, num_hyps_per_beam)
     (rnn_states, atten_context, atten_probs, atten_states, fusion_states,
@@ -1473,7 +1496,14 @@ class AsrDecoder(AsrDecoderBase):
         'atten_states': atten_states,
     })
 
-    initial_results = py_utils.NestedMap({'atten_probs': atten_probs})
+    initial_results = py_utils.NestedMap({
+        'log_probs':
+            tf.nn.log_softmax(
+                tf.zeros([num_hyps, p.softmax.num_classes],
+                         dtype=py_utils.FPropDtype(p))),
+        'atten_probs':
+            atten_probs,
+    })
     other_states = py_utils.NestedMap({
         'rnn_states': rnn_states,
         'all_atten_states': all_atten_states,
@@ -1558,7 +1588,8 @@ class AsrDecoder(AsrDecoderBase):
     softmax_input, fusion_states = self.fusion.FuseOutput(
         theta.fusion, fusion_states, lm_output, softmax_input)
 
-    xent_loss = self.softmax.XentLoss(
+    xent_loss = self.softmax.FProp(
+        theta.softmax,
         [softmax_input],
         class_weights=step_weights,
         class_ids=fake_step_labels,
