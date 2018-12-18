@@ -457,7 +457,10 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
                 collections=[self.__class__.__name__ + '_vars']))
 
     if not p.disable_activation_quantization:
-      self.TrackQTensor('pre_activation', 'activation')
+      self.TrackQTensor('activation')
+      if (p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES and
+          p.activation != 'NONE'):
+        self.TrackQTensor('pre_activation')
     if p.batch_norm:
       # batch normalization dimension is number of input channels
       # (filter_shape[2]) if we apply batch_norm on input and convolution
