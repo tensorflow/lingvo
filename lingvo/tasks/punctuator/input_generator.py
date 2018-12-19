@@ -60,11 +60,14 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
     # end-of-sentence token appended.
     tgt_ids, tgt_labels, tgt_paddings = self.StringsToIds([line])
 
-    # Lowercase and remove punctuation, and tokenize that too.
-    normalized_line = tf.py_func(
-        lambda x: x.lower().translate(None, string.punctuation), [line],
-        tf.string,
-        stateful=False)
+    def Normalize(line):
+      # Lowercase and remove punctuation.
+      line = line.lower().translate(None, string.punctuation)
+      # Convert multiple consecutive spaces to a single one.
+      line = ' '.join(line.split())
+      return line
+
+    normalized_line = tf.py_func(Normalize, [line], tf.string, stateful=False)
     _, src_labels, src_paddings = self.StringsToIds([normalized_line],
                                                     is_source=True)
     # The model expects the source without a start-of-sentence token.

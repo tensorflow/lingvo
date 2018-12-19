@@ -67,6 +67,7 @@ class InputGeneratorTest(tf.test.TestCase):
 
       # "the internet is sortof40 this year" - lower-case, no dashes, no dot.
       normalized_ref = expected_ref.lower().translate(None, string.punctuation)
+      normalized_ref = ' '.join(normalized_ref.split())
       _, expected_src_ids, _ = sess.run(
           tokenizer.StringsToIds([normalized_ref], max_length=max_length))
       expected_tgt_ids, expected_tgt_labels, _ = sess.run(
