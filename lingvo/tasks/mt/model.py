@@ -202,3 +202,51 @@ class TransformerModel(MTBaseModel):
     summary_utils.AddNormSummary('atten',
                                  [vg.enc.transformer_stack.trans, vg.dec.trans])
     summary_utils.AddNormSummary('softmax', vg.dec.softmax)
+
+
+class RNMTModel(MTBaseModel):
+  """RNMT+ Model.
+
+  Implements RNMT Variants in The Best of Both Worlds paper:
+  https://aclweb.org/anthology/P18-1008
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(RNMTModel, cls).Params()
+    p.encoder = encoder.MTEncoderBiRNN.Params()
+    p.decoder = decoder.MTDecoderV1.Params()
+    return p
+
+  def BProp(self):
+    super(RNMTModel, self).BProp()
+
+    p = self.params
+    if p.add_summary:
+      vg = self._var_grads
+      # Computes gradients' norm and adds their summaries.
+      emb_grads = []
+      rnn_grads = []
+      atten_grads = []
+      softmax_grads = []
+      if 'enc' in vg:
+        emb_grads += [vg.enc.emb] if 'emb' in vg.enc else []
+        rnn_grads += [vg.enc.rnn] if 'rnn' in vg.enc else []
+      if 'dec' in vg:
+        emb_grads += [vg.dec.emb] if 'emb' in vg.dec else []
+        rnn_grads += [vg.dec.frnn] if 'frnn' in vg.dec else []
+        softmax_grads += [vg.dec.softmax] if 'softmax' in vg.dec else []
+        if 'frnn_with_atten' in vg.dec:
+          if 'cell' in vg.dec.frnn_with_atten:
+            rnn_grads += [vg.dec.frnn_with_atten.cell]
+          if 'atten' in vg.dec.frnn_with_atten:
+            atten_grads += [vg.dec.frnn_with_atten.atten]
+
+      if emb_grads:
+        summary_utils.AddNormSummary('emb', emb_grads)
+      if rnn_grads:
+        summary_utils.AddNormSummary('lstm', rnn_grads)
+      if atten_grads:
+        summary_utils.AddNormSummary('atten', atten_grads)
+      if softmax_grads:
+        summary_utils.AddNormSummary('softmax', softmax_grads)
