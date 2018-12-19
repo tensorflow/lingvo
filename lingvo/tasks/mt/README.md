@@ -28,9 +28,8 @@ the Full Machine translation task below. The entire process should complete in
 fewer than 10 minutes.
 
 In total, `250MB` of free space are required. The location is configured in
-`lingvo/tasks/mt/tools/wmtm16_lib.sh`, defaulting to
-`/tmp/wmtm16`. The final output is in
-`/tmp/wmtm16/wpm`, stored in `tfrecord` format, which is described
+`lingvo/tasks/mt/tools/wmtm16_lib.sh`, defaulting to `/tmp/wmtm16`. The final
+output is in `/tmp/wmtm16/wpm`, stored in `tfrecord` format, which is described
 in detail under the Full Machine translation task.
 
 ## Training a toy system
@@ -87,10 +86,9 @@ Note that we give the same log directory for both of these processes. The
 monitors use the trainer's checkpoints, saved in the log directory, to load
 models and compute scores.
 
-Example translation outputs appear in
-`/tmp/wmtm16/log/decode_dev.log`. To track development BLEU and
-perplexity, run tensorboard on `/tmp/wmtm16/log`. Training should
-achieve well over 30 BLEU in fewer than 10,000 steps.
+Example translation outputs appear in `/tmp/wmtm16/log/decode_dev.log`. To track
+development BLEU and perplexity, run tensorboard on `/tmp/wmtm16/log`. Training
+should achieve well over 30 BLEU in fewer than 10,000 steps.
 
 # Full Machine translation task
 
@@ -110,16 +108,14 @@ bazel build -c opt lingvo/tools:wpm_encode_file
 ```
 
 Then, run the data ingestion scripts. The master script,
-`lingvo/tasks/mt/tools/wmt14_get_data.sh`. If any step
-fails, it can be re-run by hand.
+`lingvo/tasks/mt/tools/wmt14_get_data.sh`. If any step fails, it can be re-run
+by hand.
 
 In total, `13GB` of free space are required. The location is configured in
-`lingvo/tasks/mt/tools/wmt14_lib.sh`, defaulting to
-`/tmp/wmt14`.
+`lingvo/tasks/mt/tools/wmt14_lib.sh`, defaulting to `/tmp/wmt14`.
 
-The final output is in `/tmp/wmt14/wpm`. It comes in the form of
-`tf.Example` protos in `tfrecord` format. The examples contain the following
-features:
+The final output is in `/tmp/wmt14/wpm`. It comes in the form of `tf.Example`
+protos in `tfrecord` format. The examples contain the following features:
 
 *   `source_id`: An `int64` tensor of length `S`, with wordpiece IDs, always
     terminated with `2`, the ID for `</s>`.
@@ -204,8 +200,8 @@ machine.
 ## Setting up your cluster
 
 We provide a script running a docker fleet as an debugging example
-(`lingvo/docker/run_distributed.py`). Please take a look
-at the script to see the cluster configuration.
+(`lingvo/docker/run_distributed.py`). Please take a look at the script to see
+the cluster configuration.
 
 ### Shared filesystem
 
@@ -299,8 +295,8 @@ one that was used to build lingvo.
 ### Uploading the data
 
 You will need to upload the data files to the shared filesystem. The location
-must match the one specified in
-`lingvo/tasks/mt/params/wmt14_en_de.py` as `DATADIR`.
+must match the one specified in `lingvo/tasks/mt/params/wmt14_en_de.py` as
+`DATADIR`.
 
 ## Running the model
 
