@@ -47,6 +47,10 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     p.Define('target_eos_id', 2, 'Id of the end of sentence token.')
     p.Define('target_eoc_id', -1, 'Id of the end of chunk token.')
     p.Define('target_seq_len', 0, 'Maximum allowed target seq length.')
+    p.Define(
+        'temperature', 1., 'If > 1, a smoother distribution than logits; '
+        'if < 1, a sharper distribution than logits. '
+        'Must be > 0.')
     p.name = 'target_sequence_sampler'
     return p
 
@@ -78,6 +82,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         a padded timestep.
     """
     p = self.params
+    assert p.temperature > 0
     recurrent_theta = py_utils.NestedMap(
         theta=decoder_theta,
         random_seed=random_seed,
@@ -115,7 +120,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         # Sample ids from logits. [batch].
         state1.ids = tf.reshape(
             tf.contrib.stateless.stateless_multinomial(
-                state1.logits,
+                state1.logits / p.temperature,
                 num_samples=1,
                 seed=tf.stack([recurrent_theta.random_seed, state0.timestep]),
                 output_dtype=state0.ids.dtype,
@@ -141,4 +146,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     result.ids = tf.where(
         tf.equal(result.paddings, 0), result.ids,
         tf.fill(tf.shape(result.ids), p.target_eos_id))
+    static_batch_size = bs_result.log_probs.shape[0]
+    result.ids.set_shape([static_batch_size, p.target_seq_len])
+    result.paddings.set_shape([static_batch_size, p.target_seq_len])
     return result

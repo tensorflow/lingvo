@@ -35,9 +35,6 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
       src_len = 5
       tgt_len = 7
       batch_size = 2
-      p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
-          name='bsh', target_seq_len=tgt_len)
-      seq_sampler = p.cls(p)
 
       def InitBeamSearchCallBack(unused_theta,
                                  unused_source_encs,
@@ -76,6 +73,9 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
 
       theta = py_utils.NestedMap()
       random_seed = tf.constant(123)
+      p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
+          name='bsh', target_seq_len=tgt_len)
+      seq_sampler = p.cls(p)
       decoder_output = seq_sampler.Sample(
           theta, src_enc, src_enc_padding, random_seed, InitBeamSearchCallBack,
           PreBeamSearchStepCallback, PostBeamSearchStepCallback)
@@ -88,6 +88,24 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
       print(np.array_repr(lens))
       expected_ids = [[10, 3, 4, 2, 2, 2, 2], [1, 1, 11, 6, 1, 0, 6]]
       expected_lens = [4, 7]
+      self.assertAllEqual(expected_ids, ids)
+      self.assertAllEqual(expected_lens, lens)
+
+      p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
+          name='bsh', target_seq_len=tgt_len, temperature=0.2)
+      seq_sampler = p.cls(p)
+      decoder_output = seq_sampler.Sample(
+          theta, src_enc, src_enc_padding, random_seed, InitBeamSearchCallBack,
+          PreBeamSearchStepCallback, PostBeamSearchStepCallback)
+
+      ids, lens = sess.run([
+          decoder_output.ids,
+          tf.reduce_sum(1 - decoder_output.paddings, 1),
+      ])
+      print(np.array_repr(ids))
+      print(np.array_repr(lens))
+      expected_ids = [[10, 11, 1, 9, 1, 7, 11], [10, 2, 2, 2, 2, 2, 2]]
+      expected_lens = [7, 2]
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 

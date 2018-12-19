@@ -574,6 +574,8 @@ class DecoderTest(tf.test.TestCase):
           encoded=source_encodings, padding=source_encoding_padding)
       sampled_sequences = dec.SampleTargetSequences(
           dec.theta, encoder_outputs, random_seed=tf.to_int32(123))
+      self.assertAllEqual([batch_size, p.target_seq_len],
+                          sampled_sequences.ids.shape)
       tf.global_variables_initializer().run()
       decoder_output = sess.run(sampled_sequences)
       print('ids=%s' % np.array_repr(decoder_output.ids))
