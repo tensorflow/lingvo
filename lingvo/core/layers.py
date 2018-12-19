@@ -2866,6 +2866,8 @@ class WeightedSumLayer(base_layer.BaseLayer):
     p.Define(
         'weighted_merger_softmax', True, 'If set, applies a softmax '
         'layer on top of the weights for normalization.')
+    p.Define('global_weight_scale', 1.0, 'A global scale put on weights.')
+    p.Define('minimal_prob', 0.0, 'The minimal weight for each component.')
     p.Define('add_weight_summaries', False, 'If set, creates summaries for the '
              'sum weights.')
     return p
@@ -2919,11 +2921,14 @@ class WeightedSumLayer(base_layer.BaseLayer):
 
     # The constant factor is just meant to support the non-normalized scenario.
     # If softmax is applied, this factor will cancel out.
-    w = theta.sum_weight + (1 / p.num_sources)
+    w = theta.sum_weight * p.global_weight_scale + (1 / p.num_sources)
     w = self.weighted_merger_dropout.FProp(theta.weighted_merger_dropout, w)
 
     if p.weighted_merger_softmax:
-      w = tf.nn.softmax(w, axis=0)
+      residual_weights = p.minimal_prob * p.num_sources
+      assert residual_weights >= 0.0
+      assert residual_weights < 1.0
+      w = tf.nn.softmax(w, axis=0) * (1.0 - residual_weights) + p.minimal_prob
 
     if p.add_weight_summaries:
       for i in range(p.num_sources):

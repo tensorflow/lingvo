@@ -3035,6 +3035,37 @@ class WeightedSumLayerTest(tf.test.TestCase):
       self.assertEqual(actual_ctx.shape, (batch, depth))
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
+  def testWeightedSumLayerGlobalWeightAndMinimalProb(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(505837249)
+      depth = 4
+      batch = 2
+      n_sources = 3
+      ctxs = [[[1.0, 2.0, 3.0, 4.0], [2.0, 3.0, 4.0, 5.0]],
+              [[3.0, 4.0, 5.0, 6.0], [6.0, 7.0, 8.0, 9.0]],
+              [[4.0, 5.0, 6.0, 7.0], [7.0, 8.0, 1.0, 2.0]]]
+      p = layers.WeightedSumLayer.Params()
+      p.name = 'transparent_layer'
+      p.num_sources = n_sources
+      p.random_seed = 505837249
+      p.minimal_prob = 0.01
+      p.global_weight_scale = 10.0
+      merger = p.cls(p)
+
+      ctxs = [tf.expand_dims(i, 2) for i in ctxs]
+      ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run(ctx)
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [[ 2.66666675,  3.66666675,  4.66666698,  5.66666698],
+                      [ 5.0,         6.0,         4.33333349,  5.33333349]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_ctx.shape, (batch, depth))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
 
 if __name__ == '__main__':
   tf.test.main()
