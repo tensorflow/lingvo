@@ -423,6 +423,9 @@ class NestedMap(dict):
   def copy(self):  # Don't delegate w/ super: dict.copy() -> dict.
     return NestedMap(self)
 
+  def __deepcopy__(self, unused_memo):
+    return self.DeepCopy()
+
   def DeepCopy(self):
     flat_v = self.Flatten()
     return self.Pack(flat_v)

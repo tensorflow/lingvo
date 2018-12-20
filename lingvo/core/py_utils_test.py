@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import copy
 import itertools
 
 import numpy as np
@@ -993,6 +994,26 @@ class NestedMapTest(tf.test.TestCase):
     self.assertEqual('a', x.a)
     self.assertEqual('z', y.c.d)
     self.assertEqual('z', x.c.d)
+
+  def testDeepCopy(self):
+    x = py_utils.NestedMap(
+        a='a', b='b', c=py_utils.NestedMap(d='d', e=[1, 2, 4]))
+    # Perform a deep copy.
+    y = copy.deepcopy(x)
+    # Objects are different
+    self.assertNotEqual(id(x), id(y))
+
+    # modify deep copy, even nested version
+    y.a = 'y'
+    y.c.d = 'z'
+
+    # x values are the originals.
+    self.assertEqual('a', x.a)
+    self.assertEqual('d', x.c.d)
+
+    # y values are updated.
+    self.assertEqual('y', y.a)
+    self.assertEqual('z', y.c.d)
 
 
 class ReadOnlyAttrDictViewTest(tf.test.TestCase):
