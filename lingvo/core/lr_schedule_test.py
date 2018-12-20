@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import math
 import os
 
 from six.moves import range
@@ -376,6 +377,45 @@ class LearningRateScheduleTest(tf.test.TestCase):
           pts, [[0, 0.0], [1, 1.6], [2, 3.2], [3, 4.8], [4, 6.4], [5, 8.0],
                 [6, 8.0], [7, 8.0], [8, 8.], [9, 0.8], [10, 0.8], [11, 0.08],
                 [12, 0.08], [13, 0.008], [14, 0.008]])
+
+  def testCosineSchedule(self):
+    p = lr_schedule.CosineSchedule.Params().Set(
+        initial_value=2.0, total_steps=400000)
+    with self.session():
+      lrs = p.cls(p)
+      pts = [[i, lrs.Value(i).eval()] for i in range(0, 500000, 100000)]
+      self.assertAllClose(
+          pts,
+          [
+              [0, 2.0],
+              [100000, math.cos(math.pi / 4) + 1.],  # angle=pi/4
+              [200000, 1.0],  # angle=pi/2, half-way
+              [300000, math.cos(math.pi * 3 / 4) + 1.],  # angle=pi*3/4
+              [400000, 0.0],
+          ])
+
+  def testPiecewiseSchedule(self):
+    # Linear ramp-up in 20000 steps, cosine decay in 40000 steps.
+    p0 = lr_schedule.LinearLearningRateSchedule.Params().Set(
+        start=(0, 0.), limit=(20000, 2.))
+    p1 = lr_schedule.CosineSchedule.Params().Set(
+        initial_value=2.0, total_steps=40000)
+    p = lr_schedule.PiecewiseSchedule.Params().Set(
+        boundaries=[20000], schedules=[p0, p1])
+    with self.session():
+      lrs = p.cls(p)
+      pts = [[i, lrs.Value(i).eval()] for i in range(0, 70000, 10000)]
+      self.assertAllClose(
+          pts,
+          [
+              [0, 0.0],
+              [10000, 1.0],  # half-way in linear ramp-up.
+              [20000, 2.0],  # completed linear ramp-up.
+              [30000, math.cos(math.pi / 4) + 1.],  # pi/4.
+              [40000, 1.0],  # pi/2.
+              [50000, math.cos(math.pi * 3 / 4) + 1.],  # pi*3/4.
+              [60000, 0.0],  # pi.
+          ])
 
 
 if __name__ == '__main__':

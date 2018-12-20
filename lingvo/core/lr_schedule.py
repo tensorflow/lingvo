@@ -507,3 +507,76 @@ class DevBasedSchedule(BaseLearningRateSchedule):
       update_step = tf.assign(self._ref_step, new_step)
       with tf.control_dependencies([update_step]):
         return tf.assign(self._cur_factor, new_factor)
+
+
+class CosineSchedule(BaseLearningRateSchedule):
+  """Cosine learning rate decay.
+
+  First proposed in https://arxiv.org/pdf/1608.03983.pdf, which only uses
+  multiple cycles with angle from 0 to pi/2. Later people use only one cycle
+  with angle from 0 to pi (e.g., https://arxiv.org/pdf/1711.09224.pdf), which
+  is implemented here.
+
+  where:
+    angle = pi * current_step / total_steps
+    value = initial_value * (1 + cosine(angle)) / 2
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(CosineSchedule, cls).Params()
+    p.Define('initial_value', 1.0, 'Initial decay value.')
+    p.Define('total_steps', 0, 'Number of steps to reach full decay.')
+    return p
+
+  def FProp(self, theta, current_step):
+    p = self.params
+    assert p.total_steps > 0
+    with tf.name_scope(p.name):
+      return 0.5 * p.initial_value * (1 + tf.cos(
+          math.pi * tf.cast(current_step, tf.float32) / p.total_steps))
+
+
+class PiecewiseSchedule(BaseLearningRateSchedule):
+  """Piecewise schedule composed of sub-schedules."""
+
+  @classmethod
+  def Params(cls):
+    p = super(PiecewiseSchedule, cls).Params()
+    p.Define('boundaries', None, 'Boundaries between subschedules.')
+    p.Define(
+        'schedules', None, 'A list of sub-schedules. '
+        'The length must be len(boundaries) + 1. '
+        'schedules[i] starts at boundaries[i-1] (inclusive) and ends at '
+        'boundaries[i] (exclusive). '
+        'The *relative* step in each interval will be passed to the '
+        'sub-schedule for FProp.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(PiecewiseSchedule, self).__init__(params)
+    p = self.params
+    prev_boundary = 0
+    for boundary in p.boundaries:
+      if boundary < prev_boundary:
+        raise ValueError('Invalid boundary %s < %s' % (boundary, prev_boundary))
+      prev_boundary = boundary
+    if len(p.schedules) != len(p.boundaries) + 1:
+      raise ValueError('len(schedules) != len(boundaries) + 1: %s vs %s' % (len(
+          p.schedules), len(p.boundaries)))
+    self.CreateChildren('schedules', p.schedules)
+
+  def FProp(self, theta, current_step):
+    p = self.params
+    current_step = tf.cast(current_step, tf.int64)
+    interval_starts = [0] + p.boundaries
+    values = []
+    for interval_start, schedule, schedule_theta in zip(
+        interval_starts, self.schedules, theta.schedules):
+      relative_step = tf.maximum(
+          tf.cast(0, current_step.dtype), current_step - interval_start)
+      values.append(schedule.FProp(schedule_theta, relative_step))
+
+    return py_utils.PiecewiseConstant(current_step, p.boundaries, values,
+                                      values[0].dtype)
