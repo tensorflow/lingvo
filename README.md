@@ -154,7 +154,7 @@ It was used for the following research papers.
 ### Docker
 
 The docker files in the `docker` directory provide a blueprint of how to install
-and run the software in multiple configuration.
+and run the software in multiple configurations.
 
 ### Installation
 
