@@ -150,10 +150,9 @@ class AsrEncoder(base_encoder.BaseEncoder):
         params_conv_layers.append(conv_p)
       self.CreateChildren('conv', params_conv_layers)
 
-      conv_output_shape = tf.TensorShape(p.input_shape)
+      conv_output_shape = p.input_shape
       for i in range(p.num_cnn_layers):
         conv_output_shape = self.conv[i].OutShape(conv_output_shape)
-      conv_output_shape = conv_output_shape.as_list()
       assert len(conv_output_shape) == 4  # batch, height, width, channel.
 
       params_conv_lstm_rnn = []

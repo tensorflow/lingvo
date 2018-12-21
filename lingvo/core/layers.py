@@ -303,6 +303,46 @@ class BatchNormLayer(base_layer.BaseLayer):
         flops=inputs.num_elements() * flops_per_element, out_shapes=(inputs,))
 
 
+def _ComputeConvOutputShape(in_shape,
+                            t_stride,
+                            f_stride,
+                            outc=None,
+                            padding='SAME'):
+  """Computes output shape for convolution and pooling layers.
+
+  If `in_shape` is a dynamic shape, the output will be Tensors, while if
+  `in_shape` is a list of ints then the output will also be a list of ints.
+
+  Args:
+    in_shape: A length 4 Tensor or list representing the input shape.
+    t_stride: The stride along the time dimension.
+    f_stride: The stride along the frequency dimension.
+    outc: The expected output channel. If None, will use the input channel.
+    padding: 'SAME' or 'VALID'.
+
+  Returns:
+    The expected output shape.
+  """
+  # In the order of batch, time, frequency, channel
+  n = in_shape[0]
+  t = in_shape[1]
+  f = in_shape[2]
+  c = in_shape[3]
+  # Last two dimensions has to be specified.
+  assert f is not None and c is not None
+  if padding == 'VALID':
+    if t:
+      t -= t_stride - 1
+    f -= f_stride - 1
+  ot = t
+  if ot is not None:
+    ot = (ot + t_stride - 1) // t_stride
+  of = (f + f_stride - 1) // f_stride
+  if outc is None:
+    outc = c
+  return [n, ot, of, outc]
+
+
 def _ComputeOutputPadding(in_padding, stride):
   """Computes paddings for convolution and pooling output.
 
@@ -527,23 +567,8 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
   def OutShape(self, in_shape):
     """Compute the output shape given the input shape."""
     p = self.params
-    assert isinstance(in_shape, tf.TensorShape)
-    assert in_shape.ndims == 4
-    # In the order of batch, time, frequency, channel
-    n, t, f, c = in_shape.as_list()
-    _, _, f_inc, _ = p.filter_shape
-    f_outc = self.output_channels
-    # Last two dimensions has to be specified.
-    assert f > 0 and c > 0
-    assert c == f_inc
-    t_stride = p.filter_stride[0]
-    f_stride = p.filter_stride[1]
-    ot = t
-    if ot:
-      ot = (ot + t_stride - 1) // t_stride
-    of = (f + f_stride - 1) // f_stride
-    oc = f_outc
-    return tf.TensorShape([n, ot, of, oc])
+    return _ComputeConvOutputShape(in_shape, p.filter_stride[0],
+                                   p.filter_stride[1], self.output_channels)
 
   def _GetWeights(self,
                   theta,
@@ -670,7 +695,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
 
     if dtype != tf.float32:
       out = tf.cast(out, dtype)
-    return py_utils.HasShape(out, [-1, -1, -1, self.output_channels])
+    return out
 
   def FProp(self, theta, inputs, paddings=None):
     """Apply convolution to inputs.
@@ -712,7 +737,10 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
           qpadding,
           inputs,
           use_select=p.is_inference and p.qdomain.default is not None)
+
     with tf.name_scope(p.name):
+      input_shape = tf.shape(inputs)
+
       if paddings is None:
         conv_padding = None
       else:
@@ -735,6 +763,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
             out,
             use_select=p.is_inference and p.qdomain.default is not None)
 
+      out = py_utils.HasShape(out, BaseConv2DLayer.OutShape(self, input_shape))
       return out, conv_padding
 
   def _Compute(self, theta, inputs, paddings, conv_padding):
@@ -1255,20 +1284,11 @@ class PoolingLayer(quant_utils.QuantizableLayer):
   def OutShape(self, in_shape):
     """Compute the output shape given the input shape."""
     p = self.params
-    assert isinstance(in_shape, tf.TensorShape)
-    assert in_shape.ndims == 4
-    # In the order of batch, time, frequency, channel
-    n, t, f, c = in_shape.as_list()
-    # Last two dimensions must be specified.
-    assert f > 0 and c > 0
-    t_stride = p.window_stride[0]
-    f_stride = p.window_stride[1]
-    ot = t
-    if ot:
-      ot = (ot + t_stride - 1) // t_stride
-    of = (f + f_stride - 1) // f_stride
-    oc = c
-    return tf.TensorShape([n, ot, of, oc])
+    return _ComputeConvOutputShape(
+        in_shape,
+        p.window_stride[0],
+        p.window_stride[1],
+        padding=p.padding_algorithm)
 
   def FProp(self, theta, inputs, paddings=None):
     """Apply pooling to inputs.

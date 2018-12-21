@@ -199,5 +199,6 @@ class EncoderTest(tf.test.TestCase):
       test_utils.CompareToGoldenSingleFloat(
           self, 65.77313995361328, enc_out_sum_val)
 
+
 if __name__ == '__main__':
   tf.test.main()

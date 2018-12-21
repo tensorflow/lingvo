@@ -152,7 +152,7 @@ class ModelV1(BaseClassifier):
           'fc',
           layers.FCLayer.Params().Set(
               name='fc',
-              input_dim=np.prod(shape.as_list()[1:]),
+              input_dim=np.prod(shape[1:]),
               output_dim=p.softmax.input_dim))
       self.CreateChild('softmax', p.softmax)
 

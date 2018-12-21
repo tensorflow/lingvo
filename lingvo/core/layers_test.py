@@ -336,12 +336,12 @@ class ConvLayerTest(tf.test.TestCase):
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.is_eval = False
       conv_layer = layers.Conv2DLayer(params)
-      in_shape = tf.TensorShape([None, None, 10, 3])
+      in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, None, 5, 32])
-      in_shape = tf.TensorShape([None, 20, 10, 3])
+      self.assertEqual(out_shape, [None, None, 5, 32])
+      in_shape = [None, 20, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, 10, 5, 32])
+      self.assertEqual(out_shape, [None, 10, 5, 32])
 
   def testDepthwiseConv2DLayerOutShape(self):
     with self.session(use_gpu=True):
@@ -354,12 +354,12 @@ class ConvLayerTest(tf.test.TestCase):
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.is_eval = False
       conv_layer = layers.DepthwiseConv2DLayer(params)
-      in_shape = tf.TensorShape([None, None, 10, 3])
+      in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, None, 5, 96])
-      in_shape = tf.TensorShape([None, 20, 10, 3])
+      self.assertEqual(out_shape, [None, None, 5, 96])
+      in_shape = [None, 20, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, 10, 5, 96])
+      self.assertEqual(out_shape, [None, 10, 5, 96])
 
   def testSeparableConv2DLayerOutShape(self):
     with self.session(use_gpu=True):
@@ -372,12 +372,12 @@ class ConvLayerTest(tf.test.TestCase):
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.is_eval = False
       conv_layer = params.cls(params)
-      in_shape = tf.TensorShape([None, None, 10, 3])
+      in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, None, 5, 32])
-      in_shape = tf.TensorShape([None, 20, 10, 3])
+      self.assertEqual(out_shape, [None, None, 5, 32])
+      in_shape = [None, 20, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, 10, 5, 32])
+      self.assertEqual(out_shape, [None, 10, 5, 32])
 
   def testConv2DLayerWithDilationOutShape(self):
     with self.session(use_gpu=True):
@@ -392,12 +392,12 @@ class ConvLayerTest(tf.test.TestCase):
       params.is_eval = False
       conv_layer = layers.Conv2DLayer(params)
       # dilation_rate does not change output shape.
-      in_shape = tf.TensorShape([None, None, 10, 3])
+      in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, None, 10, 32])
-      in_shape = tf.TensorShape([None, 20, 10, 3])
+      self.assertEqual(out_shape, [None, None, 10, 32])
+      in_shape = [None, 20, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, 20, 10, 32])
+      self.assertEqual(out_shape, [None, 20, 10, 32])
 
   def testDepthwiseConv2DLayerWithDilationOutShape(self):
     with self.session(use_gpu=True):
@@ -412,12 +412,12 @@ class ConvLayerTest(tf.test.TestCase):
       params.is_eval = False
       conv_layer = layers.DepthwiseConv2DLayer(params)
       # dilation_rate does not change output shape.
-      in_shape = tf.TensorShape([None, None, 10, 3])
+      in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, None, 10, 96])
-      in_shape = tf.TensorShape([None, 20, 10, 3])
+      self.assertEqual(out_shape, [None, None, 10, 96])
+      in_shape = [None, 20, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, 20, 10, 96])
+      self.assertEqual(out_shape, [None, 20, 10, 96])
 
   def testSeparableConv2DLayerWithDilationOutShape(self):
     with self.session(use_gpu=True):
@@ -432,12 +432,12 @@ class ConvLayerTest(tf.test.TestCase):
       params.is_eval = False
       conv_layer = params.cls(params)
       # dilation_rate does not change output shape.
-      in_shape = tf.TensorShape([None, None, 10, 3])
+      in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, None, 10, 32])
-      in_shape = tf.TensorShape([None, 20, 10, 3])
+      self.assertEqual(out_shape, [None, None, 10, 32])
+      in_shape = [None, 20, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
-      self.assertEqual(out_shape.as_list(), [None, 20, 10, 32])
+      self.assertEqual(out_shape, [None, 20, 10, 32])
 
   def testConvPoolComputeOutPadding(self):
     with self.session(use_gpu=True):
@@ -496,10 +496,10 @@ class ConvLayerTest(tf.test.TestCase):
       tf.global_variables_initializer().run()
       out, out_pad = sess.run([out, out_pad])
       print(out.shape, out_pad.shape)
-      # We expect conv_layer.OutShape can compute the actually output's shape.
-      self.assertEqual(out.shape, conv_layer.OutShape(inp.get_shape()))
+      # We expect conv_layer.OutShape can compute the actual output shape.
+      self.assertAllEqual(out.shape, conv_layer.OutShape(inp.shape.as_list()))
       # We expect out_pad.shape matches the 1st 2 dimensions of out.
-      self.assertEqual(out.shape[:2], out_pad.shape)
+      self.assertAllEqual(out.shape[:2], out_pad.shape)
 
   def testConv2DLayerOutputShapes(self):
     self._checkConvLayerShapes([2, 4, 4, 3], [3, 3, 3, 32], [1, 1])
@@ -1227,12 +1227,12 @@ class PoolingLayerTest(tf.test.TestCase):
         output2 = tf.nn.max_pool(inputs1, [1] + params.window_shape + [1],
                                  [1] + params.window_stride + [1], 'SAME')
 
-        predicted_out_shape = pool_layer.OutShape(inputs1.shape)
+        predicted_out_shape = pool_layer.OutShape(inputs1.shape.as_list())
 
         tf.global_variables_initializer().run()
         output1_v = output1.eval()
         self.assertAllClose(output2.eval(), output1_v)
-        self.assertAllClose(predicted_out_shape.as_list(), output1_v.shape)
+        self.assertAllClose(predicted_out_shape, output1_v.shape)
 
 
 class ProjectionLayerTest(tf.test.TestCase):
