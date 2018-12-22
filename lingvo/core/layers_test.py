@@ -445,7 +445,7 @@ class ConvLayerTest(tf.test.TestCase):
           [[0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0],
            [0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0]],
           dtype=tf.float32)
-      out_padding = layers._ComputeOutputPadding(in_padding, 2)
+      out_padding = layers._ComputeConvOutputPadding(in_padding, 2, 2)
       expected_out_padding = [[1, 1, 0, 0, 0, 1, 1, 0],
                               [1, 1, 0, 0, 0, 1, 1, 0]]
 
@@ -459,7 +459,7 @@ class ConvLayerTest(tf.test.TestCase):
               0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1
           ], [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]],
           dtype=tf.float32)
-      out_padding = layers._ComputeOutputPadding(in_padding, 3)
+      out_padding = layers._ComputeConvOutputPadding(in_padding, 3, 3)
       expected_out_padding = [[0, 0, 0, 0, 1], [0, 0, 0, 1, 1], [0, 0, 1, 1, 1]]
 
       tf.global_variables_initializer().run()

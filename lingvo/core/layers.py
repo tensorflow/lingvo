@@ -343,46 +343,35 @@ def _ComputeConvOutputShape(in_shape,
   return [n, ot, of, outc]
 
 
-def _ComputeOutputPadding(in_padding, stride):
+def _ComputeConvOutputPadding(paddings,
+                              window,
+                              stride,
+                              padding_algorithm='SAME'):
   """Computes paddings for convolution and pooling output.
 
-  Let the stride on the time axis be ts and the input sequence length be
-  s_len, the output sequence length is s_len / ts. out_padding[i] == 1 iff any
-  of in_padding[ts * i], ..., in_padding[ts * (i + 1) - 1] is 1.
+  out_padding[i] == 1 iff any in_padding corresponding to that output is 1.
 
   Args:
-    in_padding: The paddings tensor. It is expected to be of shape [batch,
-      time].
+    paddings: The paddings tensor. It is expected to be of shape [batch, time].
+    window: The size of the windows.
     stride: The time-stride between adjacent windows.
+    padding_algorithm: 'SAME' or 'VALID'.
 
   Returns:
     out_padding, The new padding tensor of size [batch, ceil(time / stride)].
   """
-  if stride == 1:
-    return in_padding
-
-  dtype = in_padding.dtype
-
-  # in_padding is [b, t]
-  b = tf.shape(in_padding)[0]
-  t = tf.shape(in_padding)[1]
-
-  # time dimension stride s.
-  s = stride
-
-  # We want to pad in_padding from [b, t] to [b, tt] so that tt
-  # divides s.
-  tt = ((t + s - 1) // s) * s
-  extra_padding = tf.ones([b, tt - t], dtype)
-  in_padding = tf.concat([in_padding, extra_padding], 1)
-
-  in_padding = tf.reshape(in_padding, [b, -1, s])
-  out_padding = tf.reduce_sum(in_padding, 2)
-
-  # A timestep becomes a padded step as long as one of the underlying
-  # t_stride steps is a padded one.
-  out_padding = tf.cast(out_padding > 0.5, dtype)
-  return out_padding
+  # Pad so input_length divides stride.
+  input_length = tf.shape(paddings)[1]
+  pad_len = (input_length + stride - 1) // stride * stride - input_length
+  paddings = tf.pad(paddings, [[0, 0], [0, pad_len]], constant_values=1.0)
+  out_padding = tf.nn.pool(
+      tf.expand_dims(paddings, -1),
+      [window],
+      'MAX',
+      padding_algorithm,
+      strides=[stride],
+  )
+  return tf.squeeze(out_padding, -1)
 
 
 class BaseConv2DLayer(quant_utils.QuantizableLayer):
@@ -744,7 +733,13 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
       if paddings is None:
         conv_padding = None
       else:
-        conv_padding = _ComputeOutputPadding(paddings, p.filter_stride[0])
+        # NOTE: this may be slightly inaccurate when p.dilation_rate[0] > 1.
+        # But there's likely no real problems. Trying to set it gives an error:
+        # pooling with SAME padding is not implemented for dilation_rate > 1.
+        # NOTE: we use window=p.filter_stride[0] to be compatible with legacy
+        # implementation.  Consider updating it to be the actual shape.
+        conv_padding = _ComputeConvOutputPadding(
+            paddings, window=p.filter_stride[0], stride=p.filter_stride[0])
 
       if p.conv_last:
         out = self._ComputeConvLast(theta, inputs, paddings, conv_padding)
@@ -1316,7 +1311,8 @@ class PoolingLayer(quant_utils.QuantizableLayer):
       ], inputs)
     with tf.name_scope(p.name):
       if paddings is not None:
-        out_padding = _ComputeOutputPadding(paddings, p.window_stride[0])
+        out_padding = _ComputeConvOutputPadding(paddings, window[0], stride[0],
+                                                p.padding_algorithm)
       else:
         out_padding = None
       inputs = self.QTensor('output', inputs)
@@ -2492,9 +2488,8 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
         frequency_mod, out_channel_1 + out_channel_2 ...] where time_mod and
         frequency_mod depend on the conv layer strides and out_channel_i is
         the output channel size of the i-th conv layer in the set.
-      - output_paddings: Modified paddings tensor generated using
-        `_ComputeOutputPadding` within `ConvLayer.FProp`. Expected to be of the
-        shape [batch, time_mod].
+      - output_paddings: Modified paddings generated within `ConvLayer.FProp`.
+        Expected to be of the shape [batch, time_mod].
     """
     p = self.params
     inputs = py_utils.with_dependencies([
