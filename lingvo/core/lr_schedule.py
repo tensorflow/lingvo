@@ -107,7 +107,51 @@ class ContinuousLearningRateSchedule(BaseLearningRateSchedule):
     return self.params.initial_value * self.exp.Value(current_step)
 
 
-class LinearLearningRateSchedule(BaseLearningRateSchedule):
+class PolynomialLearningRateSchedule(BaseLearningRateSchedule):
+  """Polynomial learning rates.
+
+  If x < x0, returns y0. If x >= x1, returns y1. Otherwise,
+  interpolate with a polynomial between (x0, y0) and (x1, y1).
+
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(PolynomialLearningRateSchedule, cls).Params()
+    p.Define('power', 1, 'Polynomial power.')
+    p.Define('start', (0, 1.), '(x0, y0)')
+    p.Define('limit', (1, 1.), '(x1, y1)')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(PolynomialLearningRateSchedule, self).__init__(params)
+
+    @function.Defun()
+    def Polynomial(x):
+      """Polynomial function of x."""
+      p = self.params
+      x0, y0 = p.start
+      x1, y1 = p.limit
+
+      assert x0 < x1, '%s must be < %s' % (x0, x1)
+
+      x0 = tf.cast(x0, dtype=x.dtype)
+      x1 = tf.cast(x1, dtype=x.dtype)
+      y0 = tf.cast(y0, dtype=x.dtype)
+      y1 = tf.cast(y1, dtype=x.dtype)
+
+      f_x = ((x - x0) / (x1 - x0))**p.power
+      y = y0 + f_x * (y1 - y0)
+      return tf.where(x < x0, y0, tf.where(x >= x1, y1, y))
+
+    self._polynomial = Polynomial
+
+  def FProp(self, theta, current_step):
+    return self._polynomial(tf.cast(current_step, dtype=self.params.dtype))
+
+
+class LinearLearningRateSchedule(PolynomialLearningRateSchedule):
   """Linear learning rate schedule.
 
   If x < x0, returns y0. If x >= x1, returns y1. Otherwise,
@@ -117,35 +161,8 @@ class LinearLearningRateSchedule(BaseLearningRateSchedule):
 
   @classmethod
   def Params(cls):
-    p = super(LinearLearningRateSchedule, cls).Params()
-    p.Define('start', (0, 1.), '(x0, y0)')
-    p.Define('limit', (1, 1.), '(x1, y1)')
+    p = super(LinearLearningRateSchedule, cls).Params().Set(power=1)
     return p
-
-  @base_layer.initializer
-  def __init__(self, params):
-    super(LinearLearningRateSchedule, self).__init__(params)
-
-    @function.Defun()
-    def Linear(x):
-      """Linear function of x."""
-      p = self.params
-      x0, y0 = p.start
-      x1, y1 = p.limit
-      assert x0 < x1, '%s must be < %s' % (x0, x1)
-
-      x0 = tf.cast(x0, dtype=x.dtype)
-      x1 = tf.cast(x1, dtype=x.dtype)
-      y0 = tf.cast(y0, dtype=x.dtype)
-      y1 = tf.cast(y1, dtype=x.dtype)
-
-      y = y0 + (x - x0) * (y1 - y0) / (x1 - x0)
-      return tf.where(x < x0, y0, tf.where(x >= x1, y1, y))
-
-    self._linear = Linear
-
-  def FProp(self, theta, current_step):
-    return self._linear(tf.cast(current_step, dtype=self.params.dtype))
 
 
 class ExponentialLearningRateSchedule(BaseLearningRateSchedule):

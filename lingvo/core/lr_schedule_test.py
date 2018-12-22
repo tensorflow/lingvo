@@ -168,6 +168,20 @@ class LearningRateScheduleTest(tf.test.TestCase):
       self.assertAllClose(base_lrs.Value(4010).eval(), lrs.Value(4010).eval())
       self.assertAllClose(base_lrs.Value(5000).eval(), lrs.Value(5000).eval())
 
+  def testPolynomialLRSchedule(self):
+    p = lr_schedule.PolynomialLearningRateSchedule.Params().Set(
+        power=2, start=(0, 0.), limit=(20000, 2.))
+    with self.session():
+      lrs = p.cls(p)
+      pts = [[i, lrs.Value(i).eval()] for i in [0, 10000, 20000]]
+      self.assertAllClose(
+          pts,
+          [
+              [0, 0.0],
+              [10000, 0.5],  # 2 * (0.5 ** 2)
+              [20000, 2.0],
+          ])
+
   def testCombinedLRSchedule(self):
     p = lr_schedule.CombinedMinimumLearningRateSchedule.Params().Set(schedules=[
         lr_schedule.LinearLearningRateSchedule.Params().Set(
