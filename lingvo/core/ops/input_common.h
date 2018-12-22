@@ -25,6 +25,13 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
+// Constructs single Yielder for a given file pattern or mixes multiple yielders
+// with weights.
+RecordYielder* ConstructYielder(const string& file_pattern,
+                                const std::vector<float>& input_source_weights,
+                                int64 file_random_seed, int64 file_buffer_size,
+                                int64 file_parallelism);
+
 // Base class for op kernels that emit training examples.
 template <class RecordProcessorClass>
 class InputOp : public OpKernel {
@@ -55,47 +62,9 @@ class InputOp : public OpKernel {
         errors::InvalidArgument("Bucket_upper_bound is not sorted"));
     LOG(INFO) << "Create RecordProcessor";
     processor_ = new RecordProcessorClass(ctx);
-
-    std::vector<string> file_patterns;
-    if (input_source_weights.empty()) {
-      LOG(INFO) << "Input source weights are empty, fall back to legacy "
-                << "behavior.";
-      file_patterns.push_back(file_pattern);
-    } else {
-      file_patterns  = str_util::Split(file_pattern, ',');
-      OP_REQUIRES(
-        ctx,
-        file_patterns.size() == input_source_weights.size(),
-        errors::InvalidArgument("There should be exactly one "
-                                "input_source_weight per coma-separated value "
-                                "in file_pattern."));
-    }
-    std::vector<RecordYielder*> yielders;
-    for (int i = 0; i < file_patterns.size(); ++i) {
-      BasicRecordYielder::Options yopts;
-      yopts.file_pattern = file_patterns[i];
-      if (file_random_seed == 0) {
-        yopts.seed = 0;  // Let the yielder pick a random seed.
-      } else {
-        yopts.seed =
-            (file_random_seed + i) % (std::numeric_limits<int32>::max() - 1);
-        if (yopts.seed == 0) {
-          // Add 1 to avoid 0.
-          ++yopts.seed;
-        }
-      }
-      yopts.bufsize = file_buffer_size;
-      yopts.parallelism = file_parallelism;
-      yielders.push_back(BasicRecordYielder::New(yopts));
-    }
-    RecordYielder* yielder = nullptr;
-    if (yielders.size() > 1) {
-      yielder = WeightedMixRecordYielder::New(file_random_seed, yielders,
-                                              input_source_weights);
-    } else {
-      yielder = yielders.front();
-    }
-
+    RecordYielder* yielder = CHECK_NOTNULL(
+        ConstructYielder(file_pattern, input_source_weights, file_random_seed,
+                         file_buffer_size, file_parallelism));
     LOG(INFO) << "Create batcher";
     RecordBatcher::Options bopts;
     bopts.bucket_upper_bound = bucket_upper_bound;

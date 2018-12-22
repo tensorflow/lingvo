@@ -124,6 +124,7 @@ lingvo_cc_test(
 
 lingvo_cc_library(
     name = "input_common",
+    srcs = ["input_common.cc"],
     hdrs = ["input_common.h"],
     deps = [
         ":record",
