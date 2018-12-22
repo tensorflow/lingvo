@@ -545,17 +545,12 @@ py_library(
     name = "plot",
     srcs = ["plot.py"],
     deps = [
+        # Implicit Tkinter dependency.
         # Implicit matplotlib dependency.
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-    ] + select({
-        "//lingvo:py3_mode": [],
-        "//conditions:default": [
-            # b/111617518
-            # Implicit Tkinter dependency.
-        ],
-    }),
+    ],
 )
 
 py_test(
