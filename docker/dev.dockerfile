@@ -2,7 +2,7 @@
 #
 # LINGVO_DIR="/tmp/lingvo"  # (change to the cloned lingvo directory, e.g. "$HOME/lingvo")
 # LINGVO_DEVICE="gpu"  # (Leave empty to build and run CPU only docker)
-# sudo docker build --tag tensorflow:lingvo $(test "$LINGVO_DEVICE" = "gpu" && echo "--build-arg base_image=nvidia/cuda:9.0-cudnn7-runtime-ubuntu16.04") - < lingvo/docker/dev.dockerfile
+# sudo docker build --tag tensorflow:lingvo $(test "$LINGVO_DEVICE" = "gpu" && echo "--build-arg base_image=nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04") - < lingvo/docker/dev.dockerfile
 # sudo docker run --rm $(test "$LINGVO_DEVICE" = "gpu" && echo "--runtime=nvidia") -it -v ${LINGVO_DIR}:/tmp/lingvo -v ${HOME}/.gitconfig:/home/${USER}/.gitconfig:ro -p 6006:6006 -p 8888:8888 --name lingvo tensorflow:lingvo bash
 
 # TODO(drpng): upgrade to latest (18.04)
@@ -68,7 +68,9 @@ RUN pip --no-cache-dir install \
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws
 
-RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu==1.13.0.dev20181210")
+# The latest tf-nightly-gpu requires CUDA 10 compatible nvidia drivers (410.xx).
+# Use a corresponding base_image and tf-nightly-gpu==1.13.0.dev2018121 for CUDA 9.
+RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
 
 ARG bazel_version=0.17.2
 # This is to install bazel, for development purposes.
