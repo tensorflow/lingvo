@@ -75,6 +75,23 @@ class BaseLayerTest(tf.test.TestCase):
     self.assertEqual(len(layer.theta.a), 3)
     self.assertEqual(len(layer.theta.a[1]), 2)
 
+  def testGetDescendant(self):
+    q = base_layer.BaseLayer.Params()
+    q.name = 'test'
+    l = q.cls(q)
+    p = base_layer.BaseLayer.Params()
+    l.CreateChild('a', p)
+    l.CreateChild('b', p)
+    l.a.CreateChild('c', p)
+    l.a.c.CreateChild('d', p)
+    l.b.CreateChild('e', p)
+    self.assertEqual(l, l.GetDescendant(''))
+    self.assertEqual(l.a, l.GetDescendant('a'))
+    self.assertEqual(l.b, l.GetDescendant('b'))
+    self.assertEqual(l.a.c, l.GetDescendant('a.c'))
+    self.assertEqual(l.a.c.d, l.GetDescendant('a.c.d'))
+    self.assertEqual(l.b.e, l.GetDescendant('b.e'))
+
   def testCreateAccumulator(self):
     layer_p = base_layer.BaseLayer.Params()
     layer_p.name = 'test'

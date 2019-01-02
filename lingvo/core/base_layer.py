@@ -351,6 +351,21 @@ class BaseLayer(object):
     else:
       raise AttributeError('%s is not a sub-layer of %s.' % (name, self))
 
+  def GetDescendant(self, path):
+    """Returns a descendent layer given the path.
+
+    Args:
+      path: a comma separated string denoting a descendant of this layer.
+
+    Returns:
+      The descendent layer.
+    """
+    sub = self
+    if path:
+      for k in path.split('.'):
+        sub = sub.children[k]
+    return sub
+
   @property
   def vars(self):
     """Returns variables of this layer and its children in a `.NestedMap`."""
