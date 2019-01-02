@@ -2146,22 +2146,24 @@ def RetryOnTransientTfError(*args, **kwargs):
   return Retry(transient_tf_errors, *args, **kwargs)
 
 
-def PadOrTrimTo(x, shape):
+def PadOrTrimTo(x, shape, pad_val=0):
   """Pad and slice x to the given shape.
 
   Args:
     x: A tensor.
     shape: The shape of the returned tensor.
+    pad_val: An int or float used to pad x.
 
   Returns:
-    'x' is padded with zeros and sliced so that the result has the given shape.
+    'x' is padded with pad_val and sliced so that the result has the given
+    shape.
   """
   x = HasRank(x, len(shape))
   # If dim-i is less than shape[i], pads on the right shape[i] -
   # dim-i.  Otherwise, pads [0, 0] for dim-i.
   pad = shape - tf.minimum(tf.shape(x), shape)
   zeros = tf.zeros_like(pad)
-  x = tf.pad(x, tf.stack([zeros, pad], axis=1))
+  x = tf.pad(x, tf.stack([zeros, pad], axis=1), constant_values=pad_val)
   # If dim-i is larger than shape[i], we slice [0:shape[i]] for dim-i.
   return tf.reshape(tf.slice(x, zeros, shape), shape)
 
