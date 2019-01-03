@@ -14,7 +14,7 @@
 # ==============================================================================
 """Global import for model hyper-parameters.
 
-Using this module any ModelParams can be accessed via GetModelParams.
+Using this module any ModelParams can be accessed via GetParams.
 """
 
 from __future__ import absolute_import
