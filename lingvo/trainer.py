@@ -204,10 +204,11 @@ class Controller(base_runner.BaseRunner):
                          'train.pbtxt')
 
   def Start(self):
-    self._RunLoop('controller', self._Loop)
+    self._RunLoop('controller', self._Loop, is_main_thread=True)
 
   def StartEnqueueOp(self, op):
-    self._RunLoop('controller/enqueue_op/%s' % op.name, self._LoopEnqueue, op)
+    self._RunLoop(
+        'controller/enqueue_op/%s' % op.name, self._LoopEnqueue, loop_args=[op])
 
   def _Loop(self):
     self._summary_writer.add_graph(self._graph)
@@ -404,10 +405,11 @@ class Trainer(base_runner.BaseRunner):
       writer.add_summary(metrics.CreateScalarSummary(tag, value), steps)
 
   def Start(self):
-    self._RunLoop('trainer', self._Loop)
+    self._RunLoop('trainer', self._Loop, is_main_thread=True)
 
   def StartEnqueueOp(self, op):
-    self._RunLoop('trainer/enqueue_op/%s' % op.name, self._LoopEnqueue, op)
+    self._RunLoop(
+        'trainer/enqueue_op/%s' % op.name, self._LoopEnqueue, loop_args=[op])
 
   def _LoopEnqueue(self, op):
     # Evaler/Controller jobs may find that the trial is infeasible and report
@@ -612,10 +614,11 @@ class TrainerTpu(base_runner.BaseRunner):
 
   def Start(self):
     # Run training.
-    self._RunLoop('trainer', self._Loop)
+    self._RunLoop('trainer', self._Loop, is_main_thread=True)
 
   def StartEnqueueOp(self, op):
-    self._RunLoop('trainer/enqueue_op/%s' % op.name, self._LoopEnqueue, op)
+    self._RunLoop(
+        'trainer/enqueue_op/%s' % op.name, self._LoopEnqueue, loop_args=[op])
 
   def _SummarizeValue(self, steps, tag, value):
     self._summary_writer.add_summary(
@@ -701,7 +704,7 @@ class Evaler(base_runner.BaseRunner):
                            '%s.pbtxt' % self._eval_type)
 
   def Start(self):
-    self._RunLoop(self._eval_type, self._Loop)
+    self._RunLoop(self._eval_type, self._Loop, is_main_thread=True)
 
   def _Loop(self):
     """The main loop."""
@@ -854,7 +857,7 @@ class Decoder(base_runner.BaseRunner):
                            '%s.pbtxt' % self._decoder_type)
 
   def Start(self):
-    self._RunLoop(self._decoder_type, self._Loop)
+    self._RunLoop(self._decoder_type, self._Loop, is_main_thread=True)
 
   def _Loop(self):
     with tf.container(

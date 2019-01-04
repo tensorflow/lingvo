@@ -78,6 +78,8 @@ class BaseRunner(object):
     # trials.
     self._container_id = self._trial.Name()
 
+    self._has_stopped = False
+
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._train_dir = os.path.join(self._logdir, 'train')
     self._graph = tf.Graph()
@@ -158,12 +160,22 @@ class BaseRunner(object):
     return path
 
   @py_utils.Retry()
-  def _RunLoop(self, job_name, loop_func, *args):
-    """Runs `loop_func`, retrying on expected errors."""
+  def _RunLoop(self, job_name, loop_func, loop_args=(), is_main_thread=False):
+    """Runs `loop_func`, retrying on expected errors.
+
+    Args:
+      job_name: string job name.
+      loop_func: callable to run and retry on expected errors.
+      loop_args: list or tuple of arguments to be passed to the loop_func.
+      is_main_thread: if set to True, this is the main thread and it will set
+        has_stopped to True upon completion.
+    """
     try:
       tf.logging.info('%s started.', job_name)
-      loop_func(*args)
+      loop_func(*loop_args)
       tf.logging.info('%s done.', job_name)
+      if is_main_thread:
+        self._has_stopped = True
       return
     except py_utils.transient_tf_errors + (tf.errors.OutOfRangeError,
                                            tf.errors.DataLossError) as e:
@@ -191,6 +203,8 @@ class BaseRunner(object):
               infeasible=True,
               infeasible_reason='Infeasible error encountered.')
           tf.logging.info('%s done (infeasible error).', job_name)
+          if is_main_thread:
+            self._has_stopped = True
           return
 
       # Retry indefinitely (error should be transient).
@@ -234,11 +248,6 @@ class BaseRunner(object):
       gsteps = self._model.global_step
       local_enqueue_steps = 0
 
-      # Avoid calling trial.ShouldStop too often as it can slow down the
-      # infeed queue by adding latency. last_should_stop_check_time tracks
-      # the last time we made the call, and rate limits below.
-      last_should_stop_check_time = 0
-
       # Global enqueue steps measures how many global steps have data enqueued
       # for already. We use this to terminate; note that the enqueue op may
       # hang in session.run if we do not terminate with this check.
@@ -263,16 +272,12 @@ class BaseRunner(object):
               'local_enqueue_steps: %d, global_step: %d', global_enqueue_steps,
               local_enqueue_steps, global_step)
 
-        # Check trial.ShouldStop only every 10 seconds
-        trial_should_stop = False
-        if time.time() > last_should_stop_check_time + 10:
-          trial_should_stop = self._trial.ShouldStop()
-          last_should_stop_check_time = time.time()
-
-        if (trial_should_stop or
-            self._ShouldStop(sess, global_enqueue_steps - adjust_steps) or
+        if (self._ShouldStop(sess, global_enqueue_steps - adjust_steps) or
             self._ShouldStop(sess, global_step)):
           tf.logging.info('Done. Params.train.max_steps reached.')
+          return
+        if self._has_stopped:
+          tf.logging.info('Done. has_stopped set to True.')
           return
         if (FLAGS.enqueue_max_steps > 0 and
             local_enqueue_steps > FLAGS.enqueue_max_steps):
