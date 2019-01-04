@@ -485,7 +485,8 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
       else:
         self.tokenizer_dict[k] = None
 
-    self.tokenizer = self.tokenizer_dict['default']
+    if 'default' in self.tokenizer_dict:
+      self.tokenizer = self.tokenizer_dict['default']
 
   @property  # Adjust batch size according to the cluster spec.
   def scaled_bucket_batch_limit(self):
