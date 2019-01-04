@@ -174,7 +174,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       segment_id = tf.transpose(targets.segment_ids)
     return self._FPropSoftmax(theta, predictions, tf.transpose(targets.labels),
                               tf.transpose(targets.weights),
-                              tf.transpose(targets.paddings), segment_id)
+                              tf.transpose(targets.paddings), segment_id), {}
 
   def _TruncateTargetSequence(self, targets):
     """Truncate padded time steps from all sequences."""

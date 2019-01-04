@@ -219,7 +219,7 @@ class DistillationTestTask(base_model.DistillationTask):
     super(DistillationTestTask, self).__init__(params)
 
   def ComputeLoss(self, theta, input_batch, predictions):
-    return {'loss': (predictions.teacher - predictions.student, 1)}
+    return {'loss': (predictions.teacher - predictions.student, 1)}, {}
 
 
 class DistillationTaskTest(tf.test.TestCase):

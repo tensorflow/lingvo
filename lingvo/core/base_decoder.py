@@ -61,7 +61,7 @@ class BaseDecoder(base_layer.BaseLayer):
     """
     predictions = self.ComputePredictions(theta, src_encs, src_enc_paddings,
                                           targets, src_segment_id)
-    return self.ComputeLoss(theta, predictions, targets)
+    return self.ComputeLoss(theta, predictions, targets)[0]
 
   def ComputePredictions(self, theta, src_encs, src_enc_paddings, targets,
                          src_segment_id):

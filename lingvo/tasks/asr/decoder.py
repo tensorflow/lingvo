@@ -714,7 +714,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
   def FProp(self, theta, encoder_outputs, targets):
     with tf.device(self.cluster.WorkerDeviceInModelSplit(0)):
       predictions = self.ComputePredictions(theta, encoder_outputs, targets)
-      return self.ComputeLoss(theta, predictions, targets)
+      return self.ComputeLoss(theta, predictions, targets)[0]
 
   def FPropWithPerExampleLoss(self,
                               encoder_outputs,
@@ -735,7 +735,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
   def ComputeLoss(self, theta, predictions, targets):
     metrics, _ = self.ComputeMetricsAndPerSequenceLoss(theta, predictions,
                                                        targets)
-    return metrics
+    return metrics, {}
 
   def ComputeMetricsAndPerSequenceLoss(self,
                                        theta,

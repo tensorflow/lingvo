@@ -286,8 +286,12 @@ class BaseTask(base_layer.BaseLayer):
       predictions: The output of `ComputePredictions`.
 
     Returns:
+      Two dicts:
       A dict containing str keys and (metric, weight) pairs as values, where
       one of the keys is expected to be 'loss'.
+      A dict containing arbitrary tensors describing something about each
+      training example, where the first dimension of each tensor is the batch
+      index.
     """
     raise NotImplementedError('Abstract method')
 
@@ -312,7 +316,7 @@ class BaseTask(base_layer.BaseLayer):
       A dict containing metrics pairs.
     """
     predicted = self.ComputePredictions(theta, input_batch)
-    return self.ComputeLoss(theta, input_batch, predicted)
+    return self.ComputeLoss(theta, input_batch, predicted)[0]
 
   def FProp(self, theta, input_batch):
     """Forward propagation.
@@ -900,15 +904,18 @@ class DistillationTask(BaseTask):
                          self.p.teacher_target_type)
 
   def ComputeLoss(self, theta, input_batch, predictions):
+    per_example = {}
     with tf.name_scope('groundtruth_loss'):
-      groundtruth_loss = self.student.ComputeLoss(theta.student, input_batch,
-                                                  predictions.student)
+      groundtruth_loss, groundtruth_per_example = self.student.ComputeLoss(
+          theta.student, input_batch, predictions.student)
       groundtruth_loss['groundtruth_loss'] = groundtruth_loss['loss']
+      per_example.update(groundtruth_per_example)
 
     with tf.name_scope('distillation_loss'):
-      distillation_loss = self.ComputeDistillationLoss(theta, input_batch,
-                                                       predictions)
+      distillation_loss, distill_per_example = self.ComputeDistillationLoss(
+          theta, input_batch, predictions)
       distillation_loss['distillation_loss'] = distillation_loss['loss']
+      per_example.update(distill_per_example)
 
     distillation_loss_weight = self.distillation_loss_weight.FProp(
         theta.distillation_loss_weight, self._global_step)
@@ -916,7 +923,7 @@ class DistillationTask(BaseTask):
         (groundtruth_loss, 1 - distillation_loss_weight),
         (distillation_loss, distillation_loss_weight),
     ])
-    return metrics
+    return metrics, per_example
 
   def ComputeDistillationLoss(self, theta, input_batch, predictions):
     raise NotImplementedError('Abstract method')
