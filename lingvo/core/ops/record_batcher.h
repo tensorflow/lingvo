@@ -118,6 +118,10 @@ class RecordBatcher {
   FlushList to_flush_ GUARDED_BY(mu_);
   Condition to_flush_empty_;
   Condition to_flush_non_empty_;
+  std::time_t start_time_;  // Not necessary to guard.
+  std::time_t last_log_update_time_ GUARDED_BY(mu_);
+  int64 next_status_update_duration_seconds_ GUARDED_BY(mu_) = 60;
+
 
   // Conditions.
   bool CurrEmpty() const SHARED_LOCKS_REQUIRED(mu_) {

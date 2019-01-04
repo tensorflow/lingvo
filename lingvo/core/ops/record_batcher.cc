@@ -86,6 +86,11 @@ RecordBatcher::RecordBatcher(const Options& opts, RecordYielder* yielder,
       to_flush_non_empty_(this, &ME::ToFlushNonEmpty) {
   CHECK_EQ(opts_.bucket_upper_bound.size(), opts_.bucket_batch_limit.size());
   buckets_.resize(opts_.bucket_upper_bound.size());
+  start_time_ = std::time(nullptr);
+  {
+    MutexLock l(&mu_);
+    last_log_update_time_ = start_time_;
+  }
   for (int i = 0; i < opts_.num_threads; i++) {
     processor_thread_->Schedule([this]() { ProcessorLoop(); });
   }
@@ -114,10 +119,7 @@ void RecordBatcher::GetNext(int64* bucket, TensorVec* batch) {
 }
 
 void RecordBatcher::ProcessorLoop() {
-  std::time_t start_time = std::time(nullptr);
-  std::time_t last_update_time = start_time;
-  // Start with 60 seconds and multiple by 2 every update.
-  int64 next_status_update_duration = 60;
+  // Multiply next_status_update_duration_seconds_ by 2 every update.
   const int64 status_update_duration_multiplier = 2;
   while (true) {
     {
@@ -197,14 +199,15 @@ void RecordBatcher::ProcessorLoop() {
       ++total_records_yielded_;
     }
 
-    std::time_t current_time =  std::time(nullptr);
-    if (current_time - last_update_time > next_status_update_duration) {
-      LOG(INFO) << current_time - start_time
+    std::time_t current_time = std::time(nullptr);
+    if (current_time - last_log_update_time_ >
+        next_status_update_duration_seconds_) {
+      LOG(INFO) << current_time - start_time_
                 << " total seconds passed. Total records yielded: "
                 << total_records_yielded_
                 << ". Total records skipped: " << total_records_skipped_;
-      last_update_time = current_time;
-      next_status_update_duration *= status_update_duration_multiplier;
+      last_log_update_time_ = current_time;
+      next_status_update_duration_seconds_ *= status_update_duration_multiplier;
     }
   }
 }
