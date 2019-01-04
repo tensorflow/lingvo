@@ -54,7 +54,9 @@ py_library(
     name = "audio_lib",
     srcs = ["audio_lib.py"],
     deps = [
+        # Additional FFT kernels dependency.
         # Implicit tensorflow dependency.
+        "//lingvo/core:asr_frontend",
     ],
 )
 

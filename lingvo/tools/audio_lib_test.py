@@ -77,6 +77,21 @@ class AudioLibTest(tf.test.TestCase):
       assert audio_sample_rate == static_sample_rate
       self.assertAllEqual(mfcc.shape, [1, 126, 40])
 
+  def testExtractLogMelFeatures(self):
+    with open(
+        test_helper.test_src_dir_path('tools/testdata/gan_or_vae.16k.wav'),
+        'r') as f:
+      wav = f.read()
+
+    wav_bytes_t = tf.constant(wav, dtype=tf.string)
+    log_mel_t = audio_lib.ExtractLogMelFeatures(wav_bytes_t)
+
+    with self.session() as sess:
+      log_mel = sess.run(log_mel_t)
+      # We expect 105 frames, each of which consists of three 80 dimensional
+      # stacked frames.
+      self.assertAllEqual(log_mel.shape, [1, 105, 80 * 3, 1])
+
 
 if __name__ == '__main__':
   tf.test.main()
