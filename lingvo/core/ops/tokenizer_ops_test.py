@@ -85,6 +85,44 @@ class TokenizerOpsTest(tf.test.TestCase):
         ], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
          [0, 0, 0, 0, 0, 0, 0, 1, 1, 1], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1]])
 
+  def testLabelsToTokenIdNoPadToMaxlen(self):
+    with self.session(use_gpu=False) as sess:
+      token_ids, target_ids, paddings = sess.run(
+          py_x_ops.ascii_to_token_id([
+              'hElLo', 'sIr<epsilon>', 'What a <unk> day', 'america\'s',
+              '<noise> early', '1:00 AM', '<text_only>morning'
+          ],
+                                     append_eos=True,
+                                     maxlen=20,
+                                     pad_to_maxlen=False))
+    self.assertAllEqual(token_ids, [
+        [1, 12, 9, 16, 16, 19, 2, 2, 2, 2, 2, 2, 2],
+        [1, 23, 13, 22, 73, 2, 2, 2, 2, 2, 2, 2, 2],
+        [1, 27, 12, 5, 24, 3, 5, 3, 0, 3, 8, 5, 29],
+        [1, 5, 17, 9, 22, 13, 7, 5, 32, 23, 2, 2, 2],
+        [1, 4, 3, 9, 5, 22, 16, 29, 2, 2, 2, 2, 2],
+        [1, 40, 34, 39, 39, 3, 5, 17, 2, 2, 2, 2, 2],
+        [1, 74, 17, 19, 22, 18, 13, 18, 11, 2, 2, 2, 2],
+    ])
+    self.assertAllEqual(target_ids, [
+        [12, 9, 16, 16, 19, 2, 2, 2, 2, 2, 2, 2, 2],
+        [23, 13, 22, 73, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+        [27, 12, 5, 24, 3, 5, 3, 0, 3, 8, 5, 29, 2],
+        [5, 17, 9, 22, 13, 7, 5, 32, 23, 2, 2, 2, 2],
+        [4, 3, 9, 5, 22, 16, 29, 2, 2, 2, 2, 2, 2],
+        [40, 34, 39, 39, 3, 5, 17, 2, 2, 2, 2, 2, 2],
+        [74, 17, 19, 22, 18, 13, 18, 11, 2, 2, 2, 2, 2],
+    ])
+    self.assertAllEqual(paddings, [
+        [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+    ])
+
   def testIdToToken(self):
     with self.session(use_gpu=False) as sess:
       token_ids = [[12, 9, 16, 16, 19, 2, 2, 2, 2,
@@ -165,6 +203,29 @@ class TokenizerOpsTest(tf.test.TestCase):
       self.assertEqual(token_ids.tolist(), [[1, 5, 6, 7, 8]])
       self.assertEqual(target_ids.tolist(), [[5, 6, 7, 8, 9]])
       self.assertEqual(paddings.tolist(), [[0., 0., 0., 0., 0.]])
+
+  def testStrToVocabTokenNoPadToMaxlen(self):
+    vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
+    with self.session(use_gpu=False) as sess:
+      token_ids, target_ids, paddings = sess.run(
+          py_x_ops.str_to_vocab_tokens([
+              'a b c d e',
+              '<epsilon> <S> </S> <UNK>',
+              'øut über ♣ 愤青 ←',
+          ],
+                                       append_eos=True,
+                                       maxlen=10,
+                                       pad_to_maxlen=False,
+                                       vocab_filepath=vocab))
+      self.assertEqual(
+          token_ids.tolist(),
+          [[1, 5, 6, 7, 8, 9], [1, 0, 1, 2, 3, 2], [1, 10, 11, 12, 13, 3]])
+      self.assertEqual(
+          target_ids.tolist(),
+          [[5, 6, 7, 8, 9, 2], [0, 1, 2, 3, 2, 2], [10, 11, 12, 13, 3, 2]])
+      self.assertEqual(paddings.tolist(),
+                       [[0., 0., 0., 0., 0., 0.], [0., 0., 0., 0., 0., 1.],
+                        [0., 0., 0., 0., 0., 0.]])
 
   def testStrToVocabTokenCustomDelimiter(self):
     custom_delimiter = '_'

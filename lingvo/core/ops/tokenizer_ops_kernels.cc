@@ -42,6 +42,7 @@ class StrToVocabTokensOp : public OpKernel {
   explicit StrToVocabTokensOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("append_eos", &append_eos_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("maxlen", &maxlen_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("pad_to_maxlen", &pad_to_maxlen_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("vocab_filepath", &vocab_filepath_));
     bool load_token_ids_from_vocab;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("load_token_ids_from_vocab",
@@ -57,26 +58,18 @@ class StrToVocabTokensOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->input("labels", &labels));
     const auto& t_label = labels->vec<string>();
     const int32 b_size = labels->dim_size(0);
-    Tensor* token_ids = nullptr;
-    Tensor* target_ids = nullptr;
-    Tensor* paddings = nullptr;
-    OP_REQUIRES_OK(
-        ctx, ctx->allocate_output("token_ids", TensorShape({b_size, maxlen_}),
-                                  &token_ids));
-    OP_REQUIRES_OK(
-        ctx, ctx->allocate_output("target_ids", TensorShape({b_size, maxlen_}),
-                                  &target_ids));
-    OP_REQUIRES_OK(
-        ctx, ctx->allocate_output("paddings", TensorShape({b_size, maxlen_}),
-                                  &paddings));
+    Tensor token_ids(DT_INT32, TensorShape({b_size, maxlen_}));
+    Tensor target_ids(DT_INT32, TensorShape({b_size, maxlen_}));
+    Tensor paddings(DT_FLOAT, TensorShape({b_size, maxlen_}));
 
-    auto t_token_ids = token_ids->tensor<int32, 2>();
-    auto t_target_ids = target_ids->tensor<int32, 2>();
-    auto t_paddings = paddings->tensor<float, 2>();
+    auto t_token_ids = token_ids.tensor<int32, 2>();
+    auto t_target_ids = target_ids.tensor<int32, 2>();
+    auto t_paddings = paddings.tensor<float, 2>();
     t_token_ids.setZero();
     t_target_ids.setZero();
     t_paddings.setZero();
 
+    int actual_maxlen = pad_to_maxlen_ ? maxlen_ : 0;
     for (int i = 0; i < b_size; ++i) {
       t_token_ids(i, 0) = vocab_.sos_id();
 
@@ -117,18 +110,36 @@ class StrToVocabTokensOp : public OpKernel {
         t_paddings(i, cur_char) = append_eos_ ? 0.0 : 1.0;
         ++cur_char;
       }
+      actual_maxlen = std::max(actual_maxlen, cur_char);
       for (; cur_char < maxlen_; ++cur_char) {
         t_token_ids(i, cur_char) = vocab_.eos_id();
         t_target_ids(i, cur_char) = vocab_.eos_id();
         t_paddings(i, cur_char) = 1.0;
       }
     }
+
+    Tensor out_token_ids(DT_INT32, TensorShape({b_size, actual_maxlen}));
+    Tensor out_target_ids(DT_INT32, TensorShape({b_size, actual_maxlen}));
+    Tensor out_paddings(DT_FLOAT, TensorShape({b_size, actual_maxlen}));
+
+    typedef const Eigen::DSizes<Eigen::DenseIndex, 2> DSize2;
+    out_token_ids.matrix<int32>() =
+        t_token_ids.slice(DSize2{0, 0}, DSize2{b_size, actual_maxlen});
+    out_target_ids.matrix<int32>() =
+        t_target_ids.slice(DSize2{0, 0}, DSize2{b_size, actual_maxlen});
+    out_paddings.matrix<float>() =
+        t_paddings.slice(DSize2{0, 0}, DSize2{b_size, actual_maxlen});
+
+    OP_REQUIRES_OK(ctx, ctx->set_output("token_ids", out_token_ids));
+    OP_REQUIRES_OK(ctx, ctx->set_output("target_ids", out_target_ids));
+    OP_REQUIRES_OK(ctx, ctx->set_output("paddings", out_paddings));
   }
 
  private:
   string vocab_filepath_;
   bool append_eos_ = true;
   int maxlen_ = 0;
+  bool pad_to_maxlen_ = true;
   string delimiter_;
   Vocab vocab_;
 };

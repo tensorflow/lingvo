@@ -387,6 +387,7 @@ REGISTER_OP("AsciiToTokenId")
     .Output("paddings: float")
     .Attr("append_eos: bool = true")
     .Attr("maxlen: int = 300")
+    .Attr("pad_to_maxlen: bool = true")
     .Doc(R"doc(
 Converts ASCII label strings into token ids.
 
@@ -401,6 +402,8 @@ paddings: A matrix of shape [batch, maxlen].
     j-th target token is padded and should be ignored.
 append_eos: Whether to append </s> at the end and treat it as a non-padded
     label.
+maxlen: an integer, sequence length of the output tensors.
+pad_to_maxlen: Whether to pad the output to maxlen.
 )doc");
 
 REGISTER_OP("StrToVocabTokens")
@@ -410,6 +413,7 @@ REGISTER_OP("StrToVocabTokens")
     .Output("paddings: float")
     .Attr("append_eos: bool = true")
     .Attr("maxlen: int = 300")
+    .Attr("pad_to_maxlen: bool = true")
     .Attr("vocab_filepath: string")
     .Attr("load_token_ids_from_vocab: bool = true")
     .Attr("delimiter: string = ' '")
@@ -437,6 +441,7 @@ paddings: A matrix of shape [batch, maxlen].
 append_eos: Whether to append </s> at the end and treat it as a non-padded
     label.
 maxlen: an integer, sequence length of the output tensors.
+pad_to_maxlen: Whether to pad the output to maxlen.
 vocab_filepath: a string, filepath to the vocab file.
 load_token_ids_from_vocab: Whether token ids are present in vocab (i.e. vocab
     contains two colums, one for IDs and one for words).  If false, line numbers

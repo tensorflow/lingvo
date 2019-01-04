@@ -37,6 +37,7 @@ class LabelToTokenIdOp : public OpKernel {
   explicit LabelToTokenIdOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("append_eos", &append_eos_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("maxlen", &maxlen_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("pad_to_maxlen", &pad_to_maxlen_));
   }
 
   void Compute(OpKernelContext* ctx) override {
@@ -46,21 +47,16 @@ class LabelToTokenIdOp : public OpKernel {
                                         labels.shape().DebugString()));
     const int batch = labels.NumElements();
     auto Tlabels = labels.flat<string>();
-    Tensor* token_ids;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({batch, maxlen_}),
-                                             &token_ids));
-    auto Ttoken_ids = token_ids->matrix<int32>();
+    Tensor token_ids(DT_INT32, TensorShape({batch, maxlen_}));
+    auto Ttoken_ids = token_ids.matrix<int32>();
     Ttoken_ids.setZero();  // Sanity
-    Tensor* target_ids;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(1, TensorShape({batch, maxlen_}),
-                                             &target_ids));
-    auto Ttarget_ids = target_ids->matrix<int32>();
+    Tensor target_ids(DT_INT32, TensorShape({batch, maxlen_}));
+    auto Ttarget_ids = target_ids.matrix<int32>();
     Ttarget_ids.setZero();  // Sanity
-    Tensor* paddings;
-    OP_REQUIRES_OK(
-        ctx, ctx->allocate_output(2, TensorShape({batch, maxlen_}), &paddings));
-    auto Tpaddings = paddings->matrix<float>();
+    Tensor paddings(DT_FLOAT, TensorShape({batch, maxlen_}));
+    auto Tpaddings = paddings.matrix<float>();
     Tpaddings.setZero();  // Sanity
+    int actual_maxlen = pad_to_maxlen_ ? maxlen_ : 0;
     for (int i = 0; i < batch; ++i) {
       VLOG(1) << i << " " << Tlabels(i);
       std::vector<int32> ids = TokenizerClass::StringToIds(Tlabels(i));
@@ -79,17 +75,35 @@ class LabelToTokenIdOp : public OpKernel {
       }
       Ttarget_ids(i, id_size) = kEOS;
       Tpaddings(i, id_size) = append_eos_ ? 0.0 : 1.0;
+      actual_maxlen = std::max(actual_maxlen, id_size + 1);
       for (int j = id_size + 1; j < maxlen_; ++j) {
         Ttoken_ids(i, j) = kEOS;
         Ttarget_ids(i, j) = kEOS;
         Tpaddings(i, j) = 1.0;  // padding = true
       }
     }
+
+    Tensor out_token_ids(DT_INT32, TensorShape({batch, actual_maxlen}));
+    Tensor out_target_ids(DT_INT32, TensorShape({batch, actual_maxlen}));
+    Tensor out_paddings(DT_FLOAT, TensorShape({batch, actual_maxlen}));
+
+    typedef const Eigen::DSizes<Eigen::DenseIndex, 2> DSize2;
+    out_token_ids.matrix<int32>() =
+        Ttoken_ids.slice(DSize2{0, 0}, DSize2{batch, actual_maxlen});
+    out_target_ids.matrix<int32>() =
+        Ttarget_ids.slice(DSize2{0, 0}, DSize2{batch, actual_maxlen});
+    out_paddings.matrix<float>() =
+        Tpaddings.slice(DSize2{0, 0}, DSize2{batch, actual_maxlen});
+
+    OP_REQUIRES_OK(ctx, ctx->set_output("token_ids", out_token_ids));
+    OP_REQUIRES_OK(ctx, ctx->set_output("target_ids", out_target_ids));
+    OP_REQUIRES_OK(ctx, ctx->set_output("paddings", out_paddings));
   }
 
  private:
   bool append_eos_ = true;
   int maxlen_ = 0;
+  bool pad_to_maxlen_ = true;
 };
 
 template <typename TokenizerClass>
