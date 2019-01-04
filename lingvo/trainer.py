@@ -118,6 +118,13 @@ tf.flags.DEFINE_bool(
     'Whether or not evaler is in the same address space as '
     ' controller. This flag is meant for unittest only.')
 
+tf.flags.DEFINE_string(
+    'vizier_reporting_job', 'evaler',
+    'Job reponsible for reporting metrics. This specifies a '
+    'job prefix, evaler will match all evaler jobs, while '
+    'evaler_dev and decoder_dev will only match the corresponding '
+    'jobs that are on the dev set.')
+
 FLAGS = tf.flags.FLAGS
 
 
@@ -675,13 +682,16 @@ class Evaler(base_runner.BaseRunner):
 
   def __init__(self, eval_type, *args, **kwargs):
     super(Evaler, self).__init__(*args, **kwargs)
-    self._eval_type = 'eval_' + eval_type
+    self._job_name = 'evaler_' + eval_type
+    self._output_name = 'eval_' + eval_type
     self.params.is_eval = True
-    self._eval_dir = os.path.join(self._logdir, self._eval_type)
+    self._eval_dir = os.path.join(self._logdir, self._output_name)
     if self._model_task_name:
       self._eval_dir += '_' + str(self._model_task_name)
     tf.gfile.MakeDirs(self._eval_dir)
     self._summary_writer = self._CreateSummaryWriter(self._eval_dir)
+    self._should_report_metrics = self._job_name.startswith(
+        FLAGS.vizier_reporting_job)
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
@@ -701,10 +711,10 @@ class Evaler(base_runner.BaseRunner):
     self._WriteToLog(self.params.ToText(), self._eval_dir, 'params.txt')
     if self.params.cluster.task == 0:
       tf.train.write_graph(self._graph.as_graph_def(), self._eval_dir,
-                           '%s.pbtxt' % self._eval_type)
+                           '%s.pbtxt' % self._output_name)
 
   def Start(self):
-    self._RunLoop(self._eval_type, self._Loop, is_main_thread=True)
+    self._RunLoop(self._job_name, self._Loop, is_main_thread=True)
 
   def _Loop(self):
     """The main loop."""
@@ -718,7 +728,8 @@ class Evaler(base_runner.BaseRunner):
           break
 
     self.EvalLatestCheckpoint(path)
-    self._trial.ReportDone()
+    if self._should_report_metrics:
+      self._trial.ReportDone()
     tf.logging.info('Evaluation finished.')
 
   def EvalLatestCheckpoint(self, last_path=None):
@@ -780,9 +791,12 @@ class Evaler(base_runner.BaseRunner):
         text_filename=os.path.join(self._eval_dir,
                                    'score-{:08d}.txt'.format(global_step)))
 
-    is_final = global_step >= self.params.train.max_steps
-    should_stop = self._trial.ReportEvalMeasure(global_step, metrics_dict, path)
-    return should_stop or is_final
+    should_stop = global_step >= self.params.train.max_steps
+    if self._should_report_metrics:
+      trial_should_stop = self._trial.ReportEvalMeasure(global_step,
+                                                        metrics_dict, path)
+      should_stop = should_stop or trial_should_stop
+    return should_stop
 
 
 def GetDecoderDir(logdir, decoder_type, model_task_name):
@@ -824,12 +838,14 @@ class Decoder(base_runner.BaseRunner):
 
   def __init__(self, decoder_type, *args, **kwargs):
     super(Decoder, self).__init__(*args, **kwargs)
-    self._decoder_type = 'decoder_' + decoder_type
+    self._job_name = 'decoder_' + decoder_type
     self.params.is_eval = True
-    self._decoder_dir = GetDecoderDir(self._logdir, self._decoder_type,
+    self._decoder_dir = GetDecoderDir(self._logdir, self._job_name,
                                       self._model_task_name)
     tf.gfile.MakeDirs(self._decoder_dir)
     self._summary_writer = self._CreateSummaryWriter(self._decoder_dir)
+    self._should_report_metrics = self._job_name.startswith(
+        FLAGS.vizier_reporting_job)
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
@@ -854,10 +870,10 @@ class Decoder(base_runner.BaseRunner):
     self._WriteToLog(self.params.ToText(), self._decoder_dir, 'params.txt')
     if self.params.cluster.task == 0:
       tf.train.write_graph(self._graph.as_graph_def(), self._decoder_dir,
-                           '%s.pbtxt' % self._decoder_type)
+                           '%s.pbtxt' % self._job_name)
 
   def Start(self):
-    self._RunLoop(self._decoder_type, self._Loop, is_main_thread=True)
+    self._RunLoop(self._job_name, self._Loop, is_main_thread=True)
 
   def _Loop(self):
     with tf.container(
@@ -870,7 +886,12 @@ class Decoder(base_runner.BaseRunner):
         path = self._FindNewCheckpoint(path, sess)
         if not path or self.DecodeCheckpoint(sess, path):
           break
-      tf.logging.info('Decoding finished.')
+
+    self.DecodeLatestCheckpoint(path)
+
+    if self._should_report_metrics:
+      self._trial.ReportDone()
+    tf.logging.info('Decoding finished.')
 
   @classmethod
   def GetDecodeOutPath(cls, decoder_dir, checkpoint_id):
@@ -933,7 +954,26 @@ class Decoder(base_runner.BaseRunner):
       decode_out_path = self.GetDecodeOutPath(self._decoder_dir, checkpoint_id)
       self._WriteKeyValuePairs(decode_out_path, buffered_decode_out)
 
-    return global_step >= self.params.train.max_steps
+    should_stop = global_step >= self.params.train.max_steps
+    if self._should_report_metrics:
+      trial_should_stop = self._trial.ReportEvalMeasure(
+          global_step, dec_metrics, checkpoint_path)
+      should_stop = should_stop or trial_should_stop
+    return should_stop
+
+  def DecodeLatestCheckpoint(self, last_path=None):
+    """Runs decoder on the latest checkpoint."""
+    with tf.container(self._container_id), self._GetSession() as sess:
+      # This initializes local tables
+      sess.run(self.initialize_tables)
+      path = tf.train.latest_checkpoint(self._train_dir)
+      if not path:
+        tf.logging.info('No checkpoint available.')
+        return
+      elif path == last_path:
+        tf.logging.info('Latest checkpoint was already decoded.')
+        return
+      self.DecodeCheckpoint(sess, path)
 
 
 class RunnerManager(object):

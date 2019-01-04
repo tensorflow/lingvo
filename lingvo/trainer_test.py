@@ -50,6 +50,7 @@ class BaseTrainerTest(tf.test.TestCase):
   def setUp(self):
     FLAGS.model_params_override = ''
     FLAGS.tf_master = tf.train.Server.create_local_server().target
+    FLAGS.vizier_reporting_job = 'decoder'
 
   def _CreateController(self, cfg):
     return trainer.Controller(cfg, FLAGS.model_task_name, FLAGS.logdir,
@@ -237,7 +238,12 @@ class TrainerWithTrialTest(TrainerTest):
     # steps.
     self._CreateEvalerDev(cfg).EvalLatestCheckpoint()
     # EvalerDev calls report_measure, request_trial_stop, and report_done.
-    self.assertGreater(trial.ReportEvalMeasure.call_count, 0)
+    after_eval_count = trial.ReportEvalMeasure.call_count
+    self.assertEqual(after_eval_count, 0)
+
+    self._CreateDecoderDev(cfg).DecodeLatestCheckpoint()
+    after_decoder_count = trial.ReportEvalMeasure.call_count
+    self.assertGreater(after_decoder_count, 0)
 
     dev_files = tf.gfile.Glob(logdir + '/eval_dev/*')
     self.assertTrue(self._HasFile(dev_files, 'params.txt'))
