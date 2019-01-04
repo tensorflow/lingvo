@@ -162,6 +162,7 @@ py_library(
         "//lingvo/core:lr_schedule",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
+        "//lingvo/tools:audio_lib",
     ],
 )
 

@@ -28,6 +28,8 @@ from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import lr_schedule
 from lingvo.core import metrics
+from lingvo.core import py_utils
+from lingvo.tools import audio_lib
 from lingvo.tasks.asr import decoder
 from lingvo.tasks.asr import decoder_utils
 from lingvo.tasks.asr import encoder
@@ -317,3 +319,51 @@ class AsrModel(base_model.BaseTask):
     dec_metrics_dict = self.UpdateAdditionalMetrics(dec_out_dict,
                                                     dec_metrics_dict)
     return key_value_pairs
+
+  def Inference(self):
+    """Constructs inference subgraphs.
+
+    Returns:
+      A dictionary of the form {'subgraph_name': (fetches, feeds)}. Each of
+      fetches and feeds is itself a dictionary which maps a string name (which
+      describes the tensor) to a corresponding tensor in the inference graph
+      which should be fed/fetched from.
+    """
+    subgraphs = {}
+    with tf.name_scope('inference'):
+      subgraphs['default'] = self._InferenceSubgraph_Default()
+    return subgraphs
+
+  def _InferenceSubgraph_Default(self):
+    """Constructs graph for offline inference.
+
+    Returns:
+      (fetches, feeds) where both fetches and feeds are dictionaries. Each
+      dictionary consists of keys corresponding to tensor names, and values
+      corresponding to a tensor in the graph which should be input/read from.
+    """
+    with tf.name_scope('default'):
+      wav_bytes = tf.placeholder(dtype=tf.string, name='wav')
+      log_mel = audio_lib.ExtractLogMelFeatures(wav_bytes)
+
+      # Reshape log_mel features, if required. For example, by undoing default
+      # stacking.
+      src_frames = tf.reshape(
+          log_mel, shape=[1, -1, self.params.input.frame_size, 1])
+      src_paddings = tf.zeros(
+          shape=[1, tf.shape(src_frames)[1]], dtype=tf.float32)
+
+      encoder_outputs = self.encoder.FPropDefaultTheta(
+          py_utils.NestedMap(src_inputs=src_frames, paddings=src_paddings))
+      decoder_outputs = self.decoder.BeamSearchDecode(encoder_outputs)
+      topk = self._GetTopK(decoder_outputs)
+
+      feeds = {'wav': wav_bytes}
+      fetches = {
+          'hypotheses': topk.decoded,
+          'scores': topk.scores,
+          'src_frames': src_frames,
+          'encoder_frames': encoder_outputs.encoded
+      }
+
+      return fetches, feeds
