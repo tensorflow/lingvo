@@ -82,6 +82,12 @@ class AsrEncoder(base_encoder.BaseEncoder):
         'bidi_rnn_type', 'func', 'Options: func, native_cudnn. '
         'func: BidirectionalFRNN, '
         'native_cudnn: BidirectionalNativeCuDNNLSTM.')
+    p.Define(
+        'extra_per_layer_outputs', False,
+        'Whether to output the encoding result from each encoder layer besides '
+        'the regular final output. The corresponding extra outputs are keyed '
+        'by "${layer_type}_${layer_index}" in the encoder output NestedMap, '
+        'where layer_type is one of: "conv", "conv_lstm" and "rnn".')
 
     # TODO(yonghui): Maybe move those configs to a separate file.
     # Set some reasonable default values.
@@ -280,9 +286,14 @@ class AsrEncoder(base_encoder.BaseEncoder):
       - 'encoded': a feature tensor of shape [time, batch, depth]
       - 'padding': a 0/1 tensor of shape [time, batch]
       - 'state': the updated recurrent state
+      - '${layer_type}_${layer_index}': The per-layer encoder output. Each one
+        is a NestedMap containing 'encoded' and 'padding' similar to regular
+        final outputs, except that 'encoded' from conv or conv_lstm layers are
+        of shape [time, batch, depth, channels].
     """
     p = self.params
     inputs, paddings = batch.src_inputs, batch.paddings
+    outputs = py_utils.NestedMap()
     with tf.name_scope(p.name):
       # Add a few extra padded timesteps at the end. This is for ensuring the
       # correctness of the conv-layers at the edges.
@@ -318,6 +329,11 @@ class AsrEncoder(base_encoder.BaseEncoder):
       for i, conv_layer in enumerate(self.conv):
         conv_out, out_padding = conv_layer.FProp(theta.conv[i], conv_out,
                                                  out_padding)
+        if p.extra_per_layer_outputs:
+          conv_out *= (1.0 - out_padding[:, :, tf.newaxis, tf.newaxis])
+          outputs['conv_%d' % i] = py_utils.NestedMap(
+              encoded=tf.transpose(conv_out, [1, 0, 2, 3]),  # to [t, b, d, c]
+              padding=tf.transpose(out_padding))
         plots.append(
             ReshapeForPlot(
                 tf.transpose(conv_out, [0, 1, 3, 2]), out_padding,
@@ -351,6 +367,12 @@ class AsrEncoder(base_encoder.BaseEncoder):
         cnn_out, cnn_out_padding = cnn.FProp(theta.conv_lstm_cnn[i], cnn_in,
                                              cnn_in_padding)
         conv_lstm_out, conv_lstm_out_padding = cnn_out, cnn_out_padding
+        if p.extra_per_layer_outputs:
+          conv_lstm_out *= (1.0 - conv_lstm_out_padding)
+          outputs['conv_lstm_%d' % i] = py_utils.NestedMap(
+              encoded=tf.transpose(conv_lstm_out,
+                                   [1, 0, 2, 3]),  # to [t, b, d, c]
+              padding=conv_lstm_out_padding)
         plots.append(
             ReshapeForPlot(conv_lstm_out, conv_lstm_out_padding,
                            'conv_lstm_%d_out' % i))
@@ -396,6 +418,10 @@ class AsrEncoder(base_encoder.BaseEncoder):
           rnn_out = self.proj[i].FProp(theta.proj[i], rnn_out, rnn_padding)
         if i == p.num_lstm_layers - 1:
           rnn_out *= (1.0 - rnn_padding)
+        if p.extra_per_layer_outputs:
+          rnn_out *= (1.0 - rnn_padding)
+          outputs['rnn_%d' % i] = py_utils.NestedMap(
+              encoded=rnn_out, padding=tf.squeeze(rnn_padding, [2]))
         plots.append(
             ReshapeForPlot(
                 tf.transpose(rnn_out, [1, 0, 2]),
@@ -417,6 +443,7 @@ class AsrEncoder(base_encoder.BaseEncoder):
               xlabel='Time')
         fig.Finalize()
 
-      rnn_padding = tf.squeeze(rnn_padding, [2])
-      return py_utils.NestedMap(
-          encoded=final_out, padding=rnn_padding, state=py_utils.NestedMap())
+      outputs['encoded'] = final_out
+      outputs['padding'] = tf.squeeze(rnn_padding, [2])
+      outputs['state'] = py_utils.NestedMap()
+      return outputs

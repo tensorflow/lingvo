@@ -64,9 +64,7 @@ class EncoderTest(tf.test.TestCase):
     batch = py_utils.NestedMap()
     batch.src_inputs = tf.random_normal([2, 20, 16, 3], seed=92837472)
     batch.paddings = tf.zeros([2, 20])
-    enc_out = stt_enc.FPropDefaultTheta(batch)
-
-    return enc_out.encoded
+    return stt_enc.FPropDefaultTheta(batch)
 
   def testEncoderConstruction(self):
     vn_config = py_utils.VariationalNoiseParams(None, True, False)
@@ -77,7 +75,7 @@ class EncoderTest(tf.test.TestCase):
     with self.session(use_gpu=False):
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
       p = self._EncoderParams(vn_config)
-      enc_out = self._ForwardPass(p)
+      enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out, 0)
       tf.global_variables_initializer().run()
 
@@ -117,7 +115,7 @@ class EncoderTest(tf.test.TestCase):
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
       p = self._EncoderParams(vn_config)
       p.num_conv_lstm_layers = 1
-      enc_out = self._ForwardPass(p)
+      enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
       tf.global_variables_initializer().run()
 
@@ -131,7 +129,7 @@ class EncoderTest(tf.test.TestCase):
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
       p = self._EncoderParams(vn_config)
       p.num_conv_lstm_layers = 2
-      enc_out = self._ForwardPass(p)
+      enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
       tf.global_variables_initializer().run()
 
@@ -145,7 +143,7 @@ class EncoderTest(tf.test.TestCase):
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
       p = self._EncoderParams(vn_config)
       p.residual_start = 1
-      enc_out = self._ForwardPass(p)
+      enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
       tf.global_variables_initializer().run()
 
@@ -159,7 +157,7 @@ class EncoderTest(tf.test.TestCase):
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
       p = self._EncoderParams(vn_config)
       p.residual_start = 2
-      enc_out = self._ForwardPass(p)
+      enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
       tf.global_variables_initializer().run()
 
@@ -174,7 +172,7 @@ class EncoderTest(tf.test.TestCase):
       p = self._EncoderParams(vn_config)
       p.residual_start = 1
       p.residual_stride = 2
-      enc_out = self._ForwardPass(p)
+      enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
       tf.global_variables_initializer().run()
 
@@ -190,7 +188,7 @@ class EncoderTest(tf.test.TestCase):
       p.residual_start = 1
       p.residual_stride = 2
       p.highway_skip = True
-      enc_out = self._ForwardPass(p)
+      enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
       tf.global_variables_initializer().run()
 
@@ -198,6 +196,39 @@ class EncoderTest(tf.test.TestCase):
       print('expected enc_out_sum_val', enc_out_sum_val)
       test_utils.CompareToGoldenSingleFloat(
           self, 65.77313995361328, enc_out_sum_val)
+
+
+  def testForwardPassWithExtraPerLayerOutputs(self):
+    with self.session(use_gpu=False):
+      vn_config = py_utils.VariationalNoiseParams(None, False, False)
+      p = self._EncoderParams(vn_config)
+      p.extra_per_layer_outputs = True
+      enc_out = self._ForwardPass(p)
+      regular_encoded_sum = tf.reduce_sum(enc_out.encoded)
+      conv_0_encoded_sum = tf.reduce_sum(enc_out.conv_0.encoded)
+      conv_1_encoded_sum = tf.reduce_sum(enc_out.conv_1.encoded)
+      rnn_0_encoded_sum = tf.reduce_sum(enc_out.rnn_0.encoded)
+
+      tf.global_variables_initializer().run()
+
+      self.assertAllEqual(
+          tf.shape(enc_out.conv_0.encoded).eval(), [13, 2, 8, 6])
+      self.assertAllEqual(tf.shape(enc_out.conv_0.padding).eval(), [13, 2])
+      self.assertAllEqual(tf.shape(enc_out.conv_1.encoded).eval(), [7, 2, 4, 6])
+      self.assertAllEqual(tf.shape(enc_out.conv_1.padding).eval(), [7, 2])
+      self.assertAllEqual(tf.shape(enc_out.rnn_0.encoded).eval(), [7, 2, 32])
+      self.assertAllEqual(tf.shape(enc_out.rnn_0.padding).eval(), [7, 2])
+      self.assertAllEqual(tf.shape(enc_out.encoded).eval(), [7, 2, 32])
+      self.assertAllEqual(tf.shape(enc_out.padding).eval(), [7, 2])
+
+      test_utils.CompareToGoldenSingleFloat(self, 379.937927246,
+                                            conv_0_encoded_sum.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 94.8624038696,
+                                            conv_1_encoded_sum.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 12.9774456024,
+                                            rnn_0_encoded_sum.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 0.0088064968586,
+                                            regular_encoded_sum.eval())
 
 
 if __name__ == '__main__':
