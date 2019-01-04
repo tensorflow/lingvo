@@ -773,6 +773,32 @@ class WeightedAvgTest(tf.test.TestCase):
       actual = sess.run(weighted_avg)
       self.assertDictEqual(actual, expected)
 
+  def testConcatPerExampleTensors(self):
+    with self.session(use_gpu=False) as sess:
+      # pyformat: disable
+      per_example_1 = {
+          'a': tf.constant([[1.0, 2.0, 3.0],
+                            [12.0, 13.0, 14.0]], dtype=tf.float32),
+          'b': tf.constant([[1.5, 2.5, 3.5, 4.5]], dtype=tf.float32),
+      }
+      per_example_2 = {
+          'a': tf.constant([[3.0, 4.0, 5.0],
+                            [9.0, 10.0, 11.0]], dtype=tf.float32),
+          'b': tf.constant([[3.5, 4.5, 5.5, 6.5]],
+                           dtype=tf.float32),
+      }
+      expected = {
+          'a': [[1.0, 2.0, 3.0], [12.0, 13.0, 14.0], [3.0, 4.0, 5.0],
+                [9.0, 10.0, 11.0]],
+          'b': [[1.5, 2.5, 3.5, 4.5], [3.5, 4.5, 5.5, 6.5]]
+      }
+      # pyformat: enable
+      stacked = py_utils.ConcatPerExampleTensors([per_example_1, per_example_2])
+      actual = sess.run(stacked)
+      self.assertAllClose(actual['a'], expected['a'])
+      self.assertAllClose(actual['b'], expected['b'])
+      self.assertEqual(2, len(actual))
+
   def testCombineMetrics(self):
     a = py_utils.NestedMap()
     a['a'] = (1, 1)

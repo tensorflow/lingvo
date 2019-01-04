@@ -329,7 +329,7 @@ class TransformerModelTest(tf.test.TestCase):
         ]
         with cluster_factory.ForTestingWorker(gpus=num_splits):
           mdl = p.cls(p)
-          metrics = mdl.FPropDefaultTheta()
+          metrics = mdl.FPropDefaultTheta()[0]
         tf.global_variables_initializer().run()
         return sess.run(metrics['loss'])
 
@@ -518,7 +518,7 @@ class RNMTModelTest(tf.test.TestCase):
         ]
         with cluster_factory.ForTestingWorker(gpus=num_splits):
           mdl = p.cls(p)
-          metrics = mdl.FPropDefaultTheta()
+          metrics = mdl.FPropDefaultTheta()[0]
         tf.global_variables_initializer().run()
         return sess.run(metrics['loss'])
 

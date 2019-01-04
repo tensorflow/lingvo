@@ -1620,6 +1620,29 @@ def WeightedAvgOfMetrics(metrics):
   return ret_dict
 
 
+def ConcatPerExampleTensors(per_example):
+  """Concatenate per-example tensors from many hosts into one large block.
+
+  Args:
+    per_example: list of dictionaries of per-example tensors.
+
+  Returns:
+    ret_dict - string -> concatenated tensors.
+  """
+  ret_dict = {}
+  lists_of_per_example = {}
+  for m in per_example:
+    for name, value in six.iteritems(m):
+      if name not in lists_of_per_example:
+        lists_of_per_example[name] = []
+      lists_of_per_example[name].append(value)
+
+  for name, values in sorted(six.iteritems(lists_of_per_example)):
+    ret_dict[name] = tf.concat(values, 0)
+
+  return ret_dict
+
+
 def CombineMetrics(loss_metric_weight_pairs):
   """Combines metrics from `loss_metric_weight_pairs` according to weights.
 

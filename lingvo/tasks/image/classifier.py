@@ -192,12 +192,12 @@ class ModelV1(BaseClassifier):
       acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
       acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
       rets.update(accuracy=(acc1, batch), acc5=(acc5, batch))
-    return rets
+    return rets, {}
 
   def Decode(self, input_batch):
     p = self.params
     with tf.name_scope('decode'):
-      return self.FPropDefaultTheta(input_batch)
+      return self.FPropDefaultTheta(input_batch)[0]
 
   def CreateDecoderMetrics(self):
     return {
@@ -258,4 +258,4 @@ class ModelV2(BaseClassifier):
       acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
       acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
       rets.update(accuracy=(acc1, batch), acc5=(acc5, batch))
-    return rets
+    return rets, {}

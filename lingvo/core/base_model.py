@@ -235,6 +235,7 @@ class BaseTask(base_layer.BaseLayer):
     self._num_predictions = None
     self._train_op = None
     self._eval_metrics = {}
+    self._per_example = {}
     self._trainer_verbose_tensors = {}
 
     # Create the gradient mask,
@@ -316,7 +317,7 @@ class BaseTask(base_layer.BaseLayer):
       A dict containing metrics pairs.
     """
     predicted = self.ComputePredictions(theta, input_batch)
-    return self.ComputeLoss(theta, input_batch, predicted)[0]
+    return self.ComputeLoss(theta, input_batch, predicted)
 
   def FProp(self, theta, input_batch):
     """Forward propagation.
@@ -338,19 +339,19 @@ class BaseTask(base_layer.BaseLayer):
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
       if py_utils.use_tpu():
-        metrics = self._FPropTpu(theta, input_batch)
+        metrics, per_example = self._FPropTpu(theta, input_batch)
       else:
-        metrics = self._FPropSplitInputBatch(theta, input_batch)
-      self._FPropMetrics(metrics)
-    return metrics
+        metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
+      self._FPropResult(metrics, per_example)
+    return metrics, per_example
 
   def _FPropTpu(self, theta, input_batch):
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
       with tf.name_scope('tower_0_0'):
-        metrics = self.FPropTower(theta, input_batch)
+        metrics, per_example = self.FPropTower(theta, input_batch)
         metrics = py_utils.WeightedAvgOfMetrics([metrics])
-    return metrics
+    return metrics, per_example
 
   def _FPropSplitInputBatch(self, theta, input_batch):
     """Splits the input batch on the input device."""
@@ -371,7 +372,8 @@ class BaseTask(base_layer.BaseLayer):
     assert num_splits == splits_per_replica * len(dev_list_per_replica), (
         num_splits, splits_per_replica, len(dev_list_per_replica))
 
-    all_fprop_metrics = []
+    all_metrics = []
+    all_per_example_tensors = []
     for w_id, w_devs in enumerate(dev_list_per_replica):
       # Make local copy of the vars, shard on devices for this worker.
       theta_local = py_utils.CreateLocalTheta(
@@ -385,18 +387,22 @@ class BaseTask(base_layer.BaseLayer):
             with tf.name_scope('tower_%d_%d' % (w_id, s_id)):
               batch = self.input_generator.PreprocessInputBatch(
                   input_batch[split_id])
-              dec_metrics = self.FPropTower(theta_local, batch)
-        all_fprop_metrics.append(dec_metrics)
+              metrics, per_example = self.FPropTower(theta_local, batch)
+        all_metrics.append(metrics)
+        all_per_example_tensors.append(per_example)
 
-    return py_utils.WeightedAvgOfMetrics(all_fprop_metrics)
+    return py_utils.WeightedAvgOfMetrics(
+        all_metrics), py_utils.ConcatPerExampleTensors(all_per_example_tensors)
 
-  def _FPropMetrics(self, metrics):
+  def _FPropResult(self, metrics, per_example):
     # Adds stats about the input batch.
     metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
         self.input_generator.InputBatchSize()), tf.constant(1.0))
     # Generates summaries.
     for name, (value, weight) in six.iteritems(metrics):
       self.AddEvalMetric(name, value, weight)
+    for name, value in six.iteritems(per_example):
+      self.AddPerExampleTensor(name, value)
     # Loss.
     self._loss, self._num_predictions = metrics['loss']
     self._loss = py_utils.CheckNumerics(self._loss)
@@ -723,6 +729,17 @@ class BaseTask(base_layer.BaseLayer):
     """
     return self._eval_metrics
 
+  @property
+  def per_example_tensors(self):
+    """Returns per-example outputs.
+
+    Returns:
+      A map from tensor name (a python string) to a tensor, where the
+      first dimension is the batch index of the training example corresponding
+      to this output.
+    """
+    return self._per_example
+
   def AddEvalMetric(self, name, value, weight):
     """Adds a metric to the eval metrics.
 
@@ -738,6 +755,11 @@ class BaseTask(base_layer.BaseLayer):
     if name in self._eval_metrics:
       raise ValueError('Metric %s has already been defined.' % name)
     self._eval_metrics[name] = (value, weight)
+
+  def AddPerExampleTensor(self, name, value):
+    if name in self._eval_metrics:
+      raise ValueError('Metric %s has already been defined.' % name)
+    self._per_example[name] = value
 
   @property
   def total_examples(self):

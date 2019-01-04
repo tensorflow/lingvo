@@ -111,7 +111,7 @@ class LanguageModel(base_model.BaseTask):
         'log_pplx_per_word': (xent_output.total_xent / num_words, num_words),
         'num_predictions': (num_preds, 1),
         'num_words': (num_words, 1)
-    }
+    }, {}
 
   def AdjustGradients(self, var_grad):
     """Clip LSTM gradients.
