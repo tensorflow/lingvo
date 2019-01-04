@@ -581,6 +581,7 @@ lingvo_py_binary(
     name = "predictor",
     srcs = ["predictor.py"],
     deps = [
+        ":inference_graph_exporter",
         ":predictor_lib",
         "//lingvo:model_imports",
     ],

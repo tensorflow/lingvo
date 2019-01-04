@@ -17,7 +17,9 @@
 
 Example:
   params = model_registry.GetParams('MyModel', 'Test')
-  pred = Predictor(inference_graph=inference_graph_exporter.Export(params))
+  pred = Predictor(
+      inference_graph=inference_graph_exporter.InferenceGraphExporter.Export(
+          params))
   pred.Load("/tmp/logdir/train/ckpt-00000000")
   [topk_hyps] = pred.Run(["topk_hyps"], src_strings=["Hello World"])
 """
