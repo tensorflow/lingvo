@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.base_trial &mdash; lingvo  documentation</title>
+  <title>lingvo.base_trial &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../index.html" class="icon icon-home"> lingvo
+            <a href="../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">lingvo</a>
+          <a href="../../index.html">Lingvo</a>
         
       </nav>
 
@@ -218,6 +217,10 @@
     <span class="sd">&quot;&quot;&quot;Returns whether the trial should stop.&quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Trial.ReportDone"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.ReportDone">[docs]</a>  <span class="k">def</span> <span class="nf">ReportDone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">infeasible</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Report that the trial is completed.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="Trial.ShouldStopAndMaybeReport"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.ShouldStopAndMaybeReport">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldStopAndMaybeReport</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns whether the trial should stop.</span>
 
@@ -237,7 +240,7 @@
 <div class="viewcode-block" id="Trial._DoReportTrainingProgress"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial._DoReportTrainingProgress">[docs]</a>  <span class="k">def</span> <span class="nf">_DoReportTrainingProgress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Trial.ReportEvalMeasure"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.ReportEvalMeasure">[docs]</a>  <span class="k">def</span> <span class="nf">ReportEvalMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
+<div class="viewcode-block" id="Trial.ReportEvalMeasure"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.ReportEvalMeasure">[docs]</a>  <span class="k">def</span> <span class="nf">ReportEvalMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Reports eval measurement and returns whether the trial should stop.&quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div></div>
 
@@ -257,12 +260,15 @@
 <div class="viewcode-block" id="NoOpTrial.ShouldStop"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="kc">False</span></div>
 
+<div class="viewcode-block" id="NoOpTrial.ReportDone"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ReportDone">[docs]</a>  <span class="k">def</span> <span class="nf">ReportDone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">infeasible</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
 <div class="viewcode-block" id="NoOpTrial.ShouldStopAndMaybeReport"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ShouldStopAndMaybeReport">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldStopAndMaybeReport</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span>  <span class="c1"># Unused</span>
     <span class="k">return</span> <span class="kc">False</span></div>
 
-<div class="viewcode-block" id="NoOpTrial.ReportEvalMeasure"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ReportEvalMeasure">[docs]</a>  <span class="k">def</span> <span class="nf">ReportEvalMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
-    <span class="k">del</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">metrics_dict</span>  <span class="c1"># Unused</span>
+<div class="viewcode-block" id="NoOpTrial.ReportEvalMeasure"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ReportEvalMeasure">[docs]</a>  <span class="k">def</span> <span class="nf">ReportEvalMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">checkpoint_path</span>  <span class="c1"># Unused</span>
     <span class="k">return</span> <span class="kc">False</span></div></div>
 </pre></div>
 
@@ -276,7 +282,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -295,21 +301,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
 
   
 

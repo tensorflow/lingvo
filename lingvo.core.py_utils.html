@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.py_utils module &mdash; lingvo  documentation</title>
+  <title>lingvo.core.py_utils module &mdash; Lingvo  documentation</title>
   
 
   
@@ -29,7 +29,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.quant_utils module" href="lingvo.core.quant_utils.html" />
-    <link rel="prev" title="lingvo.core.plot module" href="lingvo.core.plot.html" /> 
+    <link rel="prev" title="lingvo.core.predictor module" href="lingvo.core.predictor.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,8 +78,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
@@ -108,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -165,11 +164,6 @@
   <div class="section" id="module-lingvo.core.py_utils">
 <span id="lingvo-core-py-utils-module"></span><h1>lingvo.core.py_utils module<a class="headerlink" href="#module-lingvo.core.py_utils" title="Permalink to this headline">¶</a></h1>
 <p>Common utilities.</p>
-<dl class="function">
-<dt id="lingvo.core.py_utils._scalar">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_scalar</code><span class="sig-paren">(</span><em>params</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_scalar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._scalar" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="function">
 <dt id="lingvo.core.py_utils.Assert">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">Assert</code><span class="sig-paren">(</span><em>condition</em>, <em>data</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Assert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Assert" title="Permalink to this definition">¶</a></dt>
@@ -232,6 +226,81 @@
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils._PrintOptions">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_PrintOptions</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_PrintOptions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._PrintOptions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils._Print">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_Print</code><span class="sig-paren">(</span><em>name</em>, <em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_Print"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._Print" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.Log">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">Log</code><span class="sig-paren">(</span><em>value</em>, <em>prefix</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints out values of tensors.</p>
+<dl class="docutils">
+<dt>Useful for debugging. E.g.,</dt>
+<dd>x = … a tf.Tensor …
+y = … a tf.Tensor …
+z = compute(x, y)
+z = Log(z, ‘debug compute()’, x=x, y=y)</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>value</strong> – A Tensor. Log happens after this tensor’s computed.</li>
+<li><strong>prefix</strong> – Every tensor is logged with this prefix.</li>
+<li><strong>**kwargs</strong> – keywords and tensors. Tensors are logged in the sort order of
+these keywards.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">value is returned.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils._Save">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_Save</code><span class="sig-paren">(</span><em>steps</em>, <em>prefix</em>, <em>key</em>, <em>val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._Save" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.Save">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">Save</code><span class="sig-paren">(</span><em>value</em>, <em>filename_prefix</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Saves values of tensors into files.</p>
+<dl class="docutils">
+<dt>Useful for debugging. E.g.,</dt>
+<dd>x = … a tf.Tensor …
+y = … a tf.Tensor …
+z = compute(x, y)
+z = Save(z, ‘/path/tmp’, x=x, y=y, z=z)</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>value</strong> – A Tensor. Saving happens after this tensor is computed.</li>
+<li><strong>filename_prefix</strong> – Every tensor is saved with this filename prefix.</li>
+<li><strong>**kwargs</strong> – keywords and tensors. Tensors are logged in the sort order of
+these keywards.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">value is returned.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.HasRank">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">HasRank</code><span class="sig-paren">(</span><em>tensor</em>, <em>expected_rank</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#HasRank"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.HasRank" title="Permalink to this definition">¶</a></dt>
 <dd><p>Syntactic sugar for asserting that tensor has the expected rank.</p>
@@ -287,6 +356,23 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <dt id="lingvo.core.py_utils.outside_all_rewrites">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">outside_all_rewrites</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#outside_all_rewrites"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.outside_all_rewrites" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.RunOnTpuHost">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">RunOnTpuHost</code><span class="sig-paren">(</span><em>func</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RunOnTpuHost"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RunOnTpuHost" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs the given function call on TPU host.</p>
+<p>Invokes func(*args, **kwargs) directly if not running on tpu.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>func</strong> – the function to invoke.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The function return value.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.SetTpuDeviceAssignment">
@@ -360,13 +446,13 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <dl class="method">
 <dt id="lingvo.core.py_utils.NestedMap.Flatten">
 <code class="descname">Flatten</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Flatten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Flatten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flatten the nested map and returns values in a list.</p>
+<dd><p>Flatten the <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> and returns values in a list.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.py_utils.NestedMap.FlattenItems">
 <code class="descname">FlattenItems</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.FlattenItems"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.FlattenItems" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flatten the nested map and returns &lt;key, value&gt; pairs in a list.</p>
+<dd><p>Flatten the <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> and returns &lt;key, value&gt; pairs in a list.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -381,13 +467,13 @@ represented in the form of <code class="xref py py-obj docutils literal notransl
 <dl class="method">
 <dt id="lingvo.core.py_utils.NestedMap.Transform">
 <code class="descname">Transform</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Transform" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a copy of this NestedMap with fn applied on each value.</p>
+<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fn applied on each value.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.py_utils.NestedMap.Filter">
 <code class="descname">Filter</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Filter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a copy of this NestedMap with entries that fn(entry) is True.</p>
+<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with entries that fn(entry) is True.</p>
 </dd></dl>
 
 <dl class="method">
@@ -404,18 +490,17 @@ represented in the form of <code class="xref py py-obj docutils literal notransl
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>other</strong> – Another NestedMap.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>other</strong> – Another <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.  If x and y are two compatible <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">x.Pack(y.Flatten())</span></code> produces y and <code class="xref py py-obj docutils literal notranslate"><span class="pre">y.Pack(x.Flatten())</span></code> produces x.</td>
 </tr>
 </tbody>
 </table>
-<p>If x and y are two compatible <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">x.Pack(y.Flatten())</span></code>
-produces y and <code class="xref py py-obj docutils literal notranslate"><span class="pre">y.Pack(x.Flatten())</span></code> produces x.</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.py_utils.NestedMap.DebugString">
 <code class="descname">DebugString</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.DebugString"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.DebugString" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a debug string for this nested map.</p>
+<dd><p>Returns a debug string for this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
 </dd></dl>
 
 </dd></dl>
@@ -564,8 +649,8 @@ produces y and <code class="xref py py-obj docutils literal notranslate"><span c
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>renames</strong> – pairs of (regexp, new_name_format). If the regexp matches,
-the new_name_format will be interpolated using the matched groups.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>renames</strong> – pairs of (regexp, new_name_format). If the regexp matches, the
+new_name_format will be interpolated using the matched groups.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Yields:</th><td class="field-body">scope in which the renaming rules are applied</td>
 </tr>
@@ -605,13 +690,13 @@ the new_name_format will be interpolated using the matched groups.</td>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>name</strong> – A string, name of the variable.</li>
-<li><strong>params</strong> – A WeightParams specifying the details of how
-this variable should be constructed and initialized.</li>
+<li><strong>params</strong> – A WeightParams specifying the details of how this variable should be
+constructed and initialized.</li>
 <li><strong>reuse</strong> – Whether or not to reuse an existing variable. It has the same
 semantics as the reuse arg in tf.variable_scope.</li>
 <li><strong>trainable</strong> – Whether or not the variable is trainable.</li>
-<li><strong>init_wrapper</strong> – a callback which takes a tf initializer callable and returns
-a tensor. It is used when shape of the variable isn’t statically
+<li><strong>init_wrapper</strong> – a callback which takes a tf initializer callable and returns a
+tensor. It is used when shape of the variable isn’t statically
 determinable.</li>
 <li><strong>collections</strong> – Override the default variable collection (
 tf.GraphKeys.GLOBAL_VARIABLES).</li>
@@ -619,7 +704,8 @@ tf.GraphKeys.GLOBAL_VARIABLES).</li>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">tf.identity(var), var pair. The tf.identity() node is colocated
-with var.</p>
+with var. In the case of FLAGS.no_identity_on_vars, simply returns
+a var, var pair.</p>
 </td>
 </tr>
 </tbody>
@@ -633,10 +719,9 @@ with var.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.py_utils.CreateTaskGlobalStep">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">CreateTaskGlobalStep</code><span class="sig-paren">(</span><em>params</em>, <em>task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CreateTaskGlobalStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CreateTaskGlobalStep" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create if needed and return the global_step.</p>
-</dd></dl>
+<dt id="lingvo.core.py_utils.LogMultiLines">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">LogMultiLines</code><span class="sig-paren">(</span><em>label</em>, <em>lines</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#LogMultiLines"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.LogMultiLines" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils._LogPlacement">
@@ -654,9 +739,9 @@ with var.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – a NestedMap of variables.</li>
-<li><strong>device_list</strong> – list of devices to shard across. If None, defaults
-to a list [‘’].</li>
+<li><strong>theta</strong> – a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of variables.</li>
+<li><strong>device_list</strong> – list of devices to shard across. If None, defaults to a list
+[‘’].</li>
 <li><strong>label</strong> – Logging label.</li>
 </ul>
 </td>
@@ -723,7 +808,8 @@ even if they match those in the loading rules.</li>
 <dl class="function">
 <dt id="lingvo.core.py_utils.ComputeGradients">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ComputeGradients</code><span class="sig-paren">(</span><em>loss</em>, <em>vmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes gradients of variables in vmap w.r.t. to loss.</p>
+<dd><p>Computes gradients of variables in vmap w.r.t.</p>
+<p>to loss.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -734,12 +820,35 @@ even if they match those in the loading rules.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">var_grad - a NestedMap of (variable, gradient). You can view
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">var_grad - a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient). You can view
 var_grad as an ordered list of (key, (var, grad)) tuples. Every
 key of var_grad exists in vmap. Every variable in vmap that
 contributes to loss must exist in var_grad. Every var of var_grad
 must exist in vmap.  grad is the corresponding gradient computed
 for var. grad is guaranteed to be not None.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.MaskGradients">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">MaskGradients</code><span class="sig-paren">(</span><em>var_grad</em>, <em>grad_mask</em>, <em>grad_onehot</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#MaskGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.MaskGradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes gradients of variables in vmap w.r.t.</p>
+<p>loss.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>var_grad</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient)</li>
+<li><strong>grad_mask</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, mask).</li>
+<li><strong>grad_onehot</strong> – A 1-hot vector of the current data source selected.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">var_grad - a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, mask *  gradient).</p>
 </td>
 </tr>
 </tbody>
@@ -756,8 +865,8 @@ for var. grad is guaranteed to be not None.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>vs_gs_scale</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient, scale).</li>
-<li><strong>grad_scale</strong> – If None, each vs_gs entry has the scale. Otherwise,
-grad_scale applies to every entry.</li>
+<li><strong>grad_scale</strong> – If None, each vs_gs entry has the scale. Otherwise, grad_scale
+applies to every entry.</li>
 </ul>
 </td>
 </tr>
@@ -771,23 +880,24 @@ gradient is inf or nan.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.py_utils.AdjustGradientsWithL2Loss">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">AdjustGradientsWithL2Loss</code><span class="sig-paren">(</span><em>var_grads</em>, <em>l2_regularizer_weight</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#AdjustGradientsWithL2Loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.AdjustGradientsWithL2Loss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Adjusts the map of (var, grad) with L2 regularization.</p>
+<dt id="lingvo.core.py_utils.AdjustGradientsWithLpLoss">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">AdjustGradientsWithLpLoss</code><span class="sig-paren">(</span><em>var_grads</em>, <em>lp_regularizer_weight</em>, <em>p=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#AdjustGradientsWithLpLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.AdjustGradientsWithLpLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adjusts the map of (var, grad) with Lp regularization, where p=1.0 or 2.0.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>var_grads</strong> – a NestedMap of (variable, gradient).</li>
-<li><strong>l2_regularizer_weight</strong> – L2 regularization weight.</li>
+<li><strong>var_grads</strong> – a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient).</li>
+<li><strong>lp_regularizer_weight</strong> – Lp regularization weight.</li>
+<li><strong>p</strong> – For now we support 1.0 or 2.0.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple (l2_loss, var_grads).</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple (lp_loss, var_grads).</p>
 <ul class="simple">
-<li>l2_loss: A scalar. The l2 loss.</li>
-<li>var_grads: a NestedMap of (variable, gradient) regulated by L2.</li>
+<li>lp_loss: A scalar. The lp loss.</li>
+<li>var_grads: a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient) regulated by Lp.</li>
 </ul>
 </p>
 </td>
@@ -817,7 +927,7 @@ gradient is inf or nan.</p>
 <li>If ‘x’ is a list, a list of lists, where each sublist has the same length
 as ‘x’ and the k’th element in each sublist corresponds to a split of the
 k’th element from ‘x’.</li>
-<li>If ‘x’ is a NestedMap, a list of <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, where each field
+<li>If ‘x’ is a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, a list of <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, where each field
 corresponds to a split from the same field of ‘x’.</li>
 </ul>
 </p>
@@ -851,7 +961,7 @@ structure.  For example, list elements must have the same length;
 <li>If input ‘splits’ are lists, returns a list of the same length where the
 k’th element represents concatenated data of the k’th element from each
 split.</li>
-<li>If input ‘splits’ are <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, returns a NestedMap with each field
+<li>If input ‘splits’ are <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, returns a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with each field
 concatenated from corresponding fields of input splits.</li>
 </ul>
 </p>
@@ -877,7 +987,7 @@ matching structures.</li>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.WeightedAvg">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">WeightedAvg</code><span class="sig-paren">(</span><em>values</em>, <em>weights</em>, <em>sum_reduction_fn=&lt;function reduce_sum&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightedAvg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightedAvg" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">WeightedAvg</code><span class="sig-paren">(</span><em>values</em>, <em>weights</em>, <em>sum_reduction_fn=&lt;function reduce_sum_v1&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightedAvg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightedAvg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes weighted average of values from a tensor.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -919,6 +1029,22 @@ matching structures.</li>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.ConcatPerExampleTensors">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ConcatPerExampleTensors</code><span class="sig-paren">(</span><em>per_example</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ConcatPerExampleTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ConcatPerExampleTensors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concatenate per-example tensors from many hosts into one large block.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>per_example</strong> – list of dictionaries of per-example tensors.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">ret_dict - string -&gt; concatenated tensors.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.CombineMetrics">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">CombineMetrics</code><span class="sig-paren">(</span><em>loss_metric_weight_pairs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CombineMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CombineMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Combines metrics from <code class="xref py py-obj docutils literal notranslate"><span class="pre">loss_metric_weight_pairs</span></code> according to weights.</p>
@@ -940,25 +1066,6 @@ of <code class="xref py py-obj docutils literal notranslate"><span class="pre">l
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="class">
-<dt id="lingvo.core.py_utils.StatsCounter">
-<em class="property">class </em><code class="descclassname">lingvo.core.py_utils.</code><code class="descname">StatsCounter</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#StatsCounter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.StatsCounter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
-<p>A single counter in TF.</p>
-<dl class="method">
-<dt id="lingvo.core.py_utils.StatsCounter.Value">
-<code class="descname">Value</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#StatsCounter.Value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.StatsCounter.Value" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the current counter value.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.py_utils.StatsCounter.IncBy">
-<code class="descname">IncBy</code><span class="sig-paren">(</span><em>params</em>, <em>delta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#StatsCounter.IncBy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.StatsCounter.IncBy" title="Permalink to this definition">¶</a></dt>
-<dd><p>Increment the counter by delta and return the new value.</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="function">
@@ -1111,8 +1218,8 @@ all in batch_norm_updates but not in the first list.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>tensor</strong> – A tensor.</li>
-<li><strong>summarize</strong> – Only print this many entries of each tensor. If None,
-then a maximum of 3 elements are printed per input tensor.</li>
+<li><strong>summarize</strong> – Only print this many entries of each tensor. If None, then a
+maximum of 3 elements are printed per input tensor.</li>
 <li><strong>name</strong> – An optional name for the tensor.</li>
 </ul>
 </td>
@@ -1153,10 +1260,24 @@ logits[indices, i] is the maximum among logits[indices, :].</td>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.clip_by_value">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">clip_by_value</code><span class="sig-paren">(</span><em>t</em>, <em>clip_value_min</em>, <em>clip_value_max</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#clip_by_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.clip_by_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils._TransformAndSum">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_TransformAndSum</code><span class="sig-paren">(</span><em>tensor_list</em>, <em>transform</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_TransformAndSum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._TransformAndSum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.SumSquared">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">SumSquared</code><span class="sig-paren">(</span><em>tensor_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SumSquared"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SumSquared" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes sum([x*x for x in tensor_list].</p>
-</dd></dl>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.SumAbs">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">SumAbs</code><span class="sig-paren">(</span><em>tensor_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SumAbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SumAbs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.PiecewiseConstant">
@@ -1194,7 +1315,7 @@ ret[:, :seq_len, …] == x.</p>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.ApplyPadding">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ApplyPadding</code><span class="sig-paren">(</span><em>padding</em>, <em>x</em>, <em>padded=None</em>, <em>broadcast=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyPadding" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ApplyPadding</code><span class="sig-paren">(</span><em>padding</em>, <em>x</em>, <em>padded=None</em>, <em>broadcast=True</em>, <em>use_select=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyPadding" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies padding to a tensor.</p>
 <p>This is preferable to using arithmetic means for masking out padded values
 such as:</p>
@@ -1217,11 +1338,15 @@ guaranteed to have an exact 0 but not necessarily any other number (i.e. 1).</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>padding</strong> – Tensor of padding values where 0 == keep and 1 == pad.</li>
 <li><strong>x</strong> – Tensor to apply padding to.</li>
-<li><strong>padded</strong> – Optional. Values to include for padded elements. Defaults to
-zeros. Must be the same shape as ‘x’ if specified.</li>
-<li><strong>broadcast</strong> – Whether to broadcast the padding shape to the shape of ‘x’.
-You almost certainly want this to be true as it matches how padding
-would be expanded if applied arithmetically.</li>
+<li><strong>padded</strong> – Optional. Values to include for padded elements. Defaults to zeros.
+Must be the same shape as ‘x’ if specified.</li>
+<li><strong>broadcast</strong> – Whether to broadcast the padding shape to the shape of ‘x’. You
+almost certainly want this to be true as it matches how padding would be
+expanded if applied arithmetically.</li>
+<li><strong>use_select</strong> – Controls whether padding is applied with a select-mask
+(True/default) or arithmetically (False). Some platforms have a
+sensitivity to one or the other and this is used to work around such
+issues.</li>
 </ul>
 </td>
 </tr>
@@ -1233,18 +1358,42 @@ would be expanded if applied arithmetically.</li>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.ReversePaddedSequence">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ReversePaddedSequence</code><span class="sig-paren">(</span><em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ReversePaddedSequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ReversePaddedSequence" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reverse inputs based on paddings.</p>
+<p>Only reverse the unpadded portion of <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code>. It assumes inputs are only
+padded in the end.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inputs</strong> – a tensor of [seq_length, batch_size, num_input_nodes].</li>
+<li><strong>paddings</strong> – a tensor of float32/float64 zero or one of shape [seq_length,
+batch_size, 1].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A reversed tensor of the same shape as <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.Retry">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">Retry</code><span class="sig-paren">(</span><em>max_retries=None</em>, <em>retry_value=&lt;type 'exceptions.Exception'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Retry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Retry" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">Retry</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Retry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Retry" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.RetryOnTransientTfError">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">RetryOnTransientTfError</code><span class="sig-paren">(</span><em>max_retries=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RetryOnTransientTfError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RetryOnTransientTfError" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">RetryOnTransientTfError</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RetryOnTransientTfError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RetryOnTransientTfError" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.PadOrTrimTo">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">PadOrTrimTo</code><span class="sig-paren">(</span><em>x</em>, <em>shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#PadOrTrimTo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.PadOrTrimTo" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">PadOrTrimTo</code><span class="sig-paren">(</span><em>x</em>, <em>shape</em>, <em>pad_val=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#PadOrTrimTo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.PadOrTrimTo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pad and slice x to the given shape.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1253,14 +1402,22 @@ would be expanded if applied arithmetically.</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>x</strong> – A tensor.</li>
 <li><strong>shape</strong> – The shape of the returned tensor.</li>
+<li><strong>pad_val</strong> – An int or float used to pad x.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">‘x’ is padded with zeros and sliced so that the result has the given shape.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">‘x’ is padded with pad_val and sliced so that the result has the given
+shape.</p>
 </td>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.RepeatDim">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">RepeatDim</code><span class="sig-paren">(</span><em>tensor</em>, <em>multiple</em>, <em>axis</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RepeatDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RepeatDim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copies elements in tensor’s axis “multiple” times, like np.repeat.</p>
 </dd></dl>
 
 <dl class="function">
@@ -1281,23 +1438,28 @@ would be expanded if applied arithmetically.</li>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.MixByWeight">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">MixByWeight</code><span class="sig-paren">(</span><em>inputs_with_weights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#MixByWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.MixByWeight" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a weighted random choice from the give inputs.</p>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">MixByWeight</code><span class="sig-paren">(</span><em>inputs</em>, <em>weights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#MixByWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.MixByWeight" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a weighted random choice and bprop type from the give inputs.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>inputs_with_weights</strong> – a list of (fn, weight) pairs, where each fn returns
-a tf.Tensor or a nested structure containing tf.Tensor and weight is a
-float &gt; 0. Function return types must be consistent across elements.
-The tf.Operation to compute the result tensor will only be invoked for
-one input at a time. For example, if each fn represents an input record
-stream, a record will be drawn only from a selected stream while the other
-streams will remain unchanged.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inputs</strong> – a list of callables, where each callable returns a tf.Tensor or a
+nested structure containing tf.Tensor. Function return types must be
+consistent across elements. The tf.Operation to compute the result tensor
+will only be invoked for one input at a time. For example, if each fn
+represents an input record stream, a record will be drawn only from a
+selected stream while the other streams will remain unchanged.</li>
+<li><strong>weights</strong> – a 1D tensor of float &gt; 0 of the same length as inputs.</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A probablistic sample from the inputs proportional to the weights. The
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A probablistic sample from the inputs proportional to the weights. The
 return type will be the same as return type of individual ‘fn’ from the
-inputs.</td>
+inputs.
+A one-hot vector of the source selected.</p>
+</td>
 </tr>
 </tbody>
 </table>
@@ -1310,9 +1472,20 @@ inputs.</td>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.FPropDtype">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">FPropDtype</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#FPropDtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.FPropDtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.UpdateFpropDtype">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">UpdateFpropDtype</code><span class="sig-paren">(</span><em>params</em>, <em>fprop_dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#UpdateFpropDtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.UpdateFpropDtype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Recursively update the fprop_dtype of the Params.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.UpdateDtype">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">UpdateDtype</code><span class="sig-paren">(</span><em>params</em>, <em>dtype</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#UpdateDtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.UpdateDtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recursively update the dtype of the Params.</p>
 </dd></dl>
 
 <dl class="function">
@@ -1350,7 +1523,7 @@ inputs.</td>
         <a href="lingvo.core.quant_utils.html" class="btn btn-neutral float-right" title="lingvo.core.quant_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.plot.html" class="btn btn-neutral" title="lingvo.core.plot module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.predictor.html" class="btn btn-neutral" title="lingvo.core.predictor module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -1359,7 +1532,7 @@ inputs.</td>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -1378,21 +1551,14 @@ inputs.</td>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

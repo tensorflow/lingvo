@@ -1,0 +1,346 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.punctuator.tools.download_brown_corpus &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+
+  
+  <script src="../../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.punctuator.tools.download_brown_corpus</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.punctuator.tools.download_brown_corpus</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Downloads and processes the Brown Corpus (http://www.nltk.org/nltk_data).&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">itertools</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">string</span>
+<span class="kn">from</span> <span class="nn">xml.etree</span> <span class="k">import</span> <span class="n">ElementTree</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s2">&quot;outdir&quot;</span><span class="p">,</span> <span class="s2">&quot;/tmp/punctuator_data&quot;</span><span class="p">,</span>
+                       <span class="s2">&quot;The output directory.&quot;</span><span class="p">)</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.tools.download_brown_corpus.html#lingvo.tasks.punctuator.tools.download_brown_corpus.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+  <span class="n">basename</span> <span class="o">=</span> <span class="s2">&quot;brown_tei&quot;</span>
+  <span class="n">fname</span> <span class="o">=</span> <span class="n">basename</span> <span class="o">+</span> <span class="s2">&quot;.zip&quot;</span>
+  <span class="n">url</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;https://raw.githubusercontent.com/nltk/nltk_data/&quot;</span> <span class="o">+</span>
+         <span class="s2">&quot;gh-pages/packages/corpora/&quot;</span> <span class="o">+</span> <span class="n">fname</span><span class="p">)</span>
+  <span class="n">sha256</span> <span class="o">=</span> <span class="s2">&quot;335bec1ea6362751d5d5c46970137ebb01c80bf7d7d75558787729d275e0a687&quot;</span>
+
+  <span class="n">tf</span><span class="o">.</span><span class="n">keras</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">get_file</span><span class="p">(</span>
+      <span class="n">fname</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">file_hash</span><span class="o">=</span><span class="n">sha256</span><span class="p">,</span> <span class="n">cache_subdir</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">extract</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Download completed. Preprocessing...&quot;</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="n">basename</span><span class="p">,</span> <span class="s2">&quot;Corpus.xml&quot;</span><span class="p">),</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">xml</span><span class="p">:</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="n">ElementTree</span><span class="o">.</span><span class="n">fromstring</span><span class="p">(</span><span class="n">xml</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span>
+        <span class="s1">&#39;xmlns=&quot;http://www.tei-c.org/ns/1.0&quot;&#39;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">))</span>
+  <span class="n">sentences</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">sentence</span> <span class="ow">in</span> <span class="n">root</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;./TEI/text/body/p/s&quot;</span><span class="p">):</span>
+    <span class="c1"># Example input sentence:</span>
+    <span class="c1"># &lt;s n=&quot;1&quot;&gt;&lt;w type=&quot;AT&quot;&gt;The&lt;/w&gt; &lt;w subtype=&quot;TL&quot; type=&quot;NP&quot;&gt;Fulton&lt;/w&gt;</span>
+    <span class="c1"># &lt;w subtype=&quot;TL&quot; type=&quot;NN&quot;&gt;County&lt;/w&gt; &lt;w subtype=&quot;TL&quot; type=&quot;JJ&quot;&gt;Grand&lt;/w&gt;</span>
+    <span class="c1"># &lt;w subtype=&quot;TL&quot; type=&quot;NN&quot;&gt;Jury&lt;/w&gt; &lt;w type=&quot;VBD&quot;&gt;said&lt;/w&gt;</span>
+    <span class="c1"># &lt;w type=&quot;NR&quot;&gt;Friday&lt;/w&gt; &lt;w type=&quot;AT&quot;&gt;an&lt;/w&gt; &lt;w type=&quot;NN&quot;&gt;investigation&lt;/w&gt;</span>
+    <span class="c1"># &lt;w type=&quot;IN&quot;&gt;of&lt;/w&gt; &lt;w type=&quot;NPg&quot;&gt;Atlanta&#39;s&lt;/w&gt; &lt;w type=&quot;JJ&quot;&gt;recent&lt;/w&gt;</span>
+    <span class="c1"># &lt;w type=&quot;NN&quot;&gt;primary&lt;/w&gt; &lt;w type=&quot;NN&quot;&gt;election&lt;/w&gt;</span>
+    <span class="c1"># &lt;w type=&quot;VBD&quot;&gt;produced&lt;/w&gt; &lt;c type=&quot;pct&quot;&gt;``&lt;/c&gt; &lt;w type=&quot;AT&quot;&gt;no&lt;/w&gt;</span>
+    <span class="c1"># &lt;w type=&quot;NN&quot;&gt;evidence&lt;/w&gt; &lt;c type=&quot;pct&quot;&gt;&#39;&#39;&lt;/c&gt; &lt;w type=&quot;CS&quot;&gt;that&lt;/w&gt;</span>
+    <span class="c1"># &lt;w type=&quot;DTI&quot;&gt;any&lt;/w&gt; &lt;w type=&quot;NNS&quot;&gt;irregularities&lt;/w&gt;</span>
+    <span class="c1"># &lt;w type=&quot;VBD&quot;&gt;took&lt;/w&gt; &lt;w type=&quot;NN&quot;&gt;place&lt;/w&gt; &lt;c type=&quot;pct&quot;&gt;.&lt;/c&gt; &lt;/s&gt;</span>
+    <span class="c1"># Example output text:</span>
+    <span class="c1"># The Fulton County Grand Jury said Friday an investigation of Atlanta&#39;s</span>
+    <span class="c1"># recent primary election produced &quot;no evidence&quot; that any irregularities</span>
+    <span class="c1"># took place.</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">prepend_space</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">sentence</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">prepend_space</span><span class="p">:</span>
+          <span class="n">text</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span>
+        <span class="n">text</span> <span class="o">+=</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span>
+        <span class="n">prepend_space</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="k">elif</span> <span class="n">child</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;``&quot;</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">prepend_space</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span>
+          <span class="n">text</span> <span class="o">+=</span> <span class="s1">&#39;&quot;&#39;</span>
+          <span class="n">prepend_space</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;&#39;&#39;&quot;</span><span class="p">:</span>
+          <span class="n">text</span> <span class="o">+=</span> <span class="s1">&#39;&quot;&#39;</span>
+          <span class="n">prepend_space</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;&#39;&quot;</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">prepend_space</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">+=</span> <span class="s2">&quot; &#39;&quot;</span>
+            <span class="n">prepend_space</span> <span class="o">=</span> <span class="kc">False</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">+=</span> <span class="s2">&quot;&#39;&quot;</span>
+            <span class="n">prepend_space</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">elif</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;(&quot;</span> <span class="ow">or</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;[&quot;</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">prepend_space</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span>
+          <span class="n">text</span> <span class="o">+=</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span>
+          <span class="n">prepend_space</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">elif</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;-&quot;</span> <span class="ow">or</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span> <span class="o">==</span> <span class="s2">&quot;--&quot;</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">prepend_space</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">+=</span> <span class="s2">&quot; &quot;</span>
+          <span class="n">text</span> <span class="o">+=</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span>
+          <span class="n">prepend_space</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">text</span> <span class="o">+=</span> <span class="n">child</span><span class="o">.</span><span class="n">text</span>
+          <span class="n">prepend_space</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;!!&quot;</span><span class="p">,</span> <span class="s2">&quot;!&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;??&quot;</span><span class="p">,</span> <span class="s2">&quot;?&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;--&quot;</span><span class="p">,</span> <span class="s2">&quot;-&quot;</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;**&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;;;&quot;</span><span class="p">,</span> <span class="s2">&quot;;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;::&quot;</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">)</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;,,&quot;</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Filter out bad sentences.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">set</span><span class="p">(</span><span class="n">text</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span><span class="p">):</span>
+      <span class="c1"># No letters.</span>
+      <span class="k">continue</span>
+    <span class="k">if</span> <span class="n">text</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="c1"># Uneven number of quotes.</span>
+      <span class="k">continue</span>
+    <span class="k">if</span> <span class="n">text</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;(&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">text</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;)&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">text</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;[&quot;</span><span class="p">)</span> <span class="o">!=</span> <span class="n">text</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">&quot;]&quot;</span><span class="p">):</span>
+      <span class="c1"># Unbalanced parenthesis.</span>
+      <span class="k">continue</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&quot;&#39;</span> <span class="ow">and</span> <span class="n">text</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;&quot;&#39;</span> <span class="ow">or</span>
+        <span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;(&quot;</span> <span class="ow">and</span> <span class="n">text</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;)&quot;</span> <span class="ow">or</span>
+        <span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;[&quot;</span> <span class="ow">and</span> <span class="n">text</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;]&quot;</span><span class="p">):</span>
+      <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">ascii_letters</span> <span class="ow">and</span> <span class="n">text</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">string</span><span class="o">.</span><span class="n">digits</span><span class="p">:</span>
+      <span class="c1"># Doesn&#39;t start with a letter or number.</span>
+      <span class="k">continue</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="o">+</span> <span class="n">text</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">sentences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+  <span class="n">sentences</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">sentences</span><span class="p">))</span>
+  <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="mi">1234</span><span class="p">)</span>
+  <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">sentences</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;train.txt&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">sentences</span><span class="p">[:</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sentences</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.95</span><span class="p">)]:</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">line</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;test.txt&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">sentences</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sentences</span><span class="p">)</span> <span class="o">*</span> <span class="mf">0.95</span><span class="p">):]:</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">line</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">outdir</span><span class="p">,</span> <span class="s2">&quot;grapheme.txt&quot;</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">characters</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">char</span> <span class="k">for</span> <span class="n">sentence</span> <span class="ow">in</span> <span class="n">sentences</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">sentence</span><span class="p">])</span>
+    <span class="n">next_id</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">chain</span><span class="p">([</span><span class="s2">&quot;&lt;unk&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;s&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;/s&gt;&quot;</span><span class="p">],</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">characters</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">:</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\t</span><span class="si">%d</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">next_id</span><span class="p">))</span>
+      <span class="n">next_id</span> <span class="o">+=</span> <span class="mi">1</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;All done.&quot;</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

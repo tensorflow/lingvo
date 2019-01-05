@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.base_trial module &mdash; lingvo  documentation</title>
+  <title>lingvo.base_trial module &mdash; Lingvo  documentation</title>
   
 
   
@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.model_imports module" href="lingvo.model_imports.html" />
+    <link rel="next" title="lingvo.ipython_kernel module" href="lingvo.ipython_kernel.html" />
     <link rel="prev" title="lingvo.base_runner module" href="lingvo.base_runner.html" /> 
 
   
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,13 +78,13 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_runner.html">lingvo.base_runner module</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.base_trial module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.ipython_kernel.html">lingvo.ipython_kernel module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_imports.html">lingvo.model_imports module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_registry.html">lingvo.model_registry module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.trainer.html">lingvo.trainer module</a></li>
@@ -106,7 +106,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -212,6 +212,12 @@ rate, shape, depth, or width of networks).</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.base_trial.Trial.ReportDone">
+<code class="descname">ReportDone</code><span class="sig-paren">(</span><em>infeasible=False</em>, <em>infeasible_reason=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_trial.html#Trial.ReportDone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_trial.Trial.ReportDone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Report that the trial is completed.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.base_trial.Trial.ShouldStopAndMaybeReport">
 <code class="descname">ShouldStopAndMaybeReport</code><span class="sig-paren">(</span><em>global_step</em>, <em>metrics_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_trial.html#Trial.ShouldStopAndMaybeReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_trial.Trial.ShouldStopAndMaybeReport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns whether the trial should stop.</p>
@@ -238,7 +244,7 @@ trial should stop.</li>
 
 <dl class="method">
 <dt id="lingvo.base_trial.Trial.ReportEvalMeasure">
-<code class="descname">ReportEvalMeasure</code><span class="sig-paren">(</span><em>global_step</em>, <em>is_final</em>, <em>metrics_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_trial.html#Trial.ReportEvalMeasure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_trial.Trial.ReportEvalMeasure" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ReportEvalMeasure</code><span class="sig-paren">(</span><em>global_step</em>, <em>metrics_dict</em>, <em>checkpoint_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_trial.html#Trial.ReportEvalMeasure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_trial.Trial.ReportEvalMeasure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reports eval measurement and returns whether the trial should stop.</p>
 </dd></dl>
 
@@ -279,6 +285,12 @@ rate, shape, depth, or width of networks).</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.base_trial.NoOpTrial.ReportDone">
+<code class="descname">ReportDone</code><span class="sig-paren">(</span><em>infeasible=False</em>, <em>infeasible_reason=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_trial.html#NoOpTrial.ReportDone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_trial.NoOpTrial.ReportDone" title="Permalink to this definition">¶</a></dt>
+<dd><p>Report that the trial is completed.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.base_trial.NoOpTrial.ShouldStopAndMaybeReport">
 <code class="descname">ShouldStopAndMaybeReport</code><span class="sig-paren">(</span><em>global_step</em>, <em>metrics_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_trial.html#NoOpTrial.ShouldStopAndMaybeReport"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_trial.NoOpTrial.ShouldStopAndMaybeReport" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns whether the trial should stop.</p>
@@ -300,7 +312,7 @@ trial should stop.</li>
 
 <dl class="method">
 <dt id="lingvo.base_trial.NoOpTrial.ReportEvalMeasure">
-<code class="descname">ReportEvalMeasure</code><span class="sig-paren">(</span><em>global_step</em>, <em>is_final</em>, <em>metrics_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_trial.html#NoOpTrial.ReportEvalMeasure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_trial.NoOpTrial.ReportEvalMeasure" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ReportEvalMeasure</code><span class="sig-paren">(</span><em>global_step</em>, <em>metrics_dict</em>, <em>checkpoint_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_trial.html#NoOpTrial.ReportEvalMeasure"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_trial.NoOpTrial.ReportEvalMeasure" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reports eval measurement and returns whether the trial should stop.</p>
 </dd></dl>
 
@@ -316,7 +328,7 @@ trial should stop.</li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.model_imports.html" class="btn btn-neutral float-right" title="lingvo.model_imports module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.ipython_kernel.html" class="btn btn-neutral float-right" title="lingvo.ipython_kernel module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.base_runner.html" class="btn btn-neutral" title="lingvo.base_runner module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -328,7 +340,7 @@ trial should stop.</li>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -347,21 +359,14 @@ trial should stop.</li>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.mt.layers &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.mt.layers &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../../index.html">lingvo</a>
+          <a href="../../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -169,7 +168,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers_with_attention</span>
 
 
-<div class="viewcode-block" id="TransformerStack"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.layers.html#lingvo.tasks.mt.layers.TransformerStack">[docs]</a><span class="k">class</span> <span class="nc">TransformerStack</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerStack"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.layers.html#lingvo.tasks.mt.layers.TransformerStack">[docs]</a><span class="k">class</span> <span class="nc">TransformerStack</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Stacked self- multi-head attention and fully connected layers.</span>
 
 <span class="sd">  With optional layer normalization applied to the final output.</span>
@@ -188,11 +187,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_transformer_layers&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Number of transformer layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;transformer_tpl&#39;</span><span class="p">,</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;TransformerLayer params tpl.&#39;</span><span class="p">)</span>
-
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;If set, this decides the random seed to apply in various random&#39;</span>
-             <span class="s1">&#39; ops such that this encoder is deterministic. Set this&#39;</span>
-             <span class="s1">&#39; random_seed only for unittests.&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_output&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -225,7 +219,6 @@
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;trans_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="n">params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
         <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
         <span class="n">transformer_layer_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;trans&#39;</span><span class="p">,</span> <span class="n">transformer_layer_params</span><span class="p">)</span>
@@ -318,7 +311,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -337,21 +330,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
 
   
 

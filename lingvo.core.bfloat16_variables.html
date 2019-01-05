@@ -1,0 +1,360 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.bfloat16_variables module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.build_data module" href="lingvo.core.build_data.html" />
+    <link rel="prev" title="lingvo.core.beam_search_helper module" href="lingvo.core.beam_search_helper.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.bfloat16_variables module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.bfloat16_variables.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.bfloat16_variables">
+<span id="lingvo-core-bfloat16-variables-module"></span><h1>lingvo.core.bfloat16_variables module<a class="headerlink" href="#module-lingvo.core.bfloat16_variables" title="Permalink to this headline">¶</a></h1>
+<p>Various methods for bfloat16 training &amp; inference.</p>
+<p>Bfloat16VariableSaveable: Saveable that restores variable into bfloat16 type.</p>
+<p>Usage:</p>
+<blockquote>
+<div><p>Given a checkpoint_path with a variable of type tf.float32, this particular
+saveable allows restore them as tf.bfloat16. This is specifically useful for
+inference.</p>
+<p>Say: checkpoint_path contains a variable “var” with dtype tf.float32:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">variable_name</span> <span class="o">=</span> <span class="s2">&quot;var&quot;</span>
+<span class="n">original_dtype</span> <span class="o">=</span>  <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+
+<span class="n">bfloat16_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+    <span class="mf">0.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">variable_name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span> <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">saveable</span> <span class="o">=</span> <span class="n">bfloat16_variables</span><span class="o">.</span><span class="n">Bfloat16VariableSaveable</span><span class="p">(</span>
+    <span class="n">bfloat16_var</span><span class="p">,</span> <span class="n">original_dtype</span><span class="p">,</span> <span class="n">slice_spec</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span>
+<span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span>
+    <span class="p">{</span><span class="n">variable_name</span><span class="p">:</span> <span class="n">saveable</span><span class="p">},</span> <span class="n">restore_sequentially</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
+
+<span class="c1"># bfloat16_var is now loaded from the checkpoint.</span>
+</pre></div>
+</div>
+</div></blockquote>
+<dl class="function">
+<dt id="lingvo.core.bfloat16_variables.quantization_noise_from_step_num">
+<code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">quantization_noise_from_step_num</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#quantization_noise_from_step_num"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.quantization_noise_from_step_num" title="Permalink to this definition">¶</a></dt>
+<dd><p>A quantization noise equal to (phi * (step_num + 1)) mod 1.0.</p>
+<p>quantization_noise is a float32 scalar in [0, 1). quantization_noise should
+take different values across different steps, approximating a uniform
+distribution over [0, 1).</p>
+<p>In the case of replicated TPU training, quantization_noise should be identical
+across replicas in order to keep the parameters identical across replicas.
+The natural choice for quantization_noise would be tf.random_uniform(),
+but this is not possible for TPU, since there is currently no way to seed
+the different cores to produce identical values across replicas. Instead we
+use this quantization_noise_from_step_num() to generate noise.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a float32 scalar</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.bfloat16_variables.randomized_roundoff_to_bfloat16">
+<code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">randomized_roundoff_to_bfloat16</code><span class="sig-paren">(</span><em>x</em>, <em>quantization_noise</em>, <em>cand1</em>, <em>cand2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#randomized_roundoff_to_bfloat16"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.randomized_roundoff_to_bfloat16" title="Permalink to this definition">¶</a></dt>
+<dd><p>Round-off x to cand1 or to cand2 in an unbiased way.</p>
+<p>Cand1 and cand2 are the same shape as x.
+For every element of x, the corresponding elements of cand1 and cand2 should
+be the two closest bfloat16 values to x.  Order does not matter.
+cand1 and cand2 must differ from each other.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – A float32 Tensor.</li>
+<li><strong>quantization_noise</strong> – A Tensor broadcastable to the shape of x containing
+random uniform values in [0.0, 1.0].</li>
+<li><strong>cand1</strong> – A bfloat16 Tensor the same shape as x.</li>
+<li><strong>cand2</strong> – A bfloat16 Tensor the same shape as x.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A bfloat16 Tensor.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.bfloat16_variables.to_bfloat16_unbiased">
+<code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">to_bfloat16_unbiased</code><span class="sig-paren">(</span><em>x</em>, <em>quantization_noise=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#to_bfloat16_unbiased"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.to_bfloat16_unbiased" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a float32 to a bfloat16 using randomized roundoff.</p>
+<p>The current implementation uses quantization_noise_from_step_num to generate
+quantization_noise, which requires global_step, and is not deterministic.
+To use it for inference, it might be feasible to replace the noise generation
+function with a constant, e.g., 0.5.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – A float32 Tensor.</li>
+<li><strong>quantization_noise</strong> – A float, specifying the quantization noise.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A bfloat16 Tensor, with the same shape as x.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.bfloat16_variables.Bfloat16VariableSaveable">
+<em class="property">class </em><code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">Bfloat16VariableSaveable</code><span class="sig-paren">(</span><em>var</em>, <em>orig_dtype</em>, <em>slice_spec</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#Bfloat16VariableSaveable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.training.saving.saveable_object.SaveableObject</span></code></p>
+<p>Saveable that loads Variables as bfloat16.</p>
+<dl class="method">
+<dt id="lingvo.core.bfloat16_variables.Bfloat16VariableSaveable.restore">
+<code class="descname">restore</code><span class="sig-paren">(</span><em>restored_tensors</em>, <em>restored_shapes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#Bfloat16VariableSaveable.restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable.restore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restores this object from ‘restored_tensors’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>restored_tensors</strong> – the tensors that were loaded from a checkpoint</li>
+<li><strong>restored_shapes</strong> – the shapes this object should conform to after
+restore, or None.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">An operation that restores the state of the object.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If the object cannot be restored using the provided
+parameters.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.build_data.html" class="btn btn-neutral float-right" title="lingvo.core.build_data module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.beam_search_helper.html" class="btn btn-neutral" title="lingvo.core.beam_search_helper module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.mt.decoder module &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.mt.decoder module &mdash; Lingvo  documentation</title>
   
 
   
@@ -29,7 +29,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.tasks.mt.encoder module" href="lingvo.tasks.mt.encoder.html" />
-    <link rel="prev" title="lingvo.tasks.mt.params.wmt14_en_de module" href="lingvo.tasks.mt.params.wmt14_en_de.html" /> 
+    <link rel="prev" title="lingvo.tasks.mt.params.wmtm16_en_de module" href="lingvo.tasks.mt.params.wmtm16_en_de.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,8 +78,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
@@ -107,7 +106,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -264,11 +263,6 @@ predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</li>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.mt.decoder.MTDecoderV1.ComputeLoss">
-<code class="descname">ComputeLoss</code><span class="sig-paren">(</span><em>theta</em>, <em>predictions</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.ComputeLoss" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._InitDecoder">
 <code class="descname">_InitDecoder</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._InitDecoder" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -311,7 +305,7 @@ this to split computation across subgraph boundaries.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback">
-<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>num_hyps_per_beam</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>num_hyps_per_beam</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns initial beams search states.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -366,7 +360,7 @@ information about the source that may be useful for decoding.</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback">
-<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>new_step_ids</em>, <em>states</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>new_step_ids</em>, <em>states</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -443,7 +437,7 @@ predict. Each tensor in targets is of shape [batch, time].</li>
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep">
 <code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>new_ids</em>, <em>t</em>, <em>prefix_states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extend prefix as represeted by <code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_states</span></code> by one more step.</p>
+<dd><p>Extend prefix as represented by <code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_states</span></code> by one more step.</p>
 <p>This function is expected to be called during fast decoding of Transformer
 models.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -501,13 +495,15 @@ predict. Each tensor in targets is of shape [batch, time].</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback">
-<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>num_hyps_per_beam</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>num_hyps_per_beam</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns initial beams search states.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>source_encs</strong> – A tensor of shape [src_len, src_batch, source_dim].
 Can be [time, batch, depth, num_layers] if is_transparent is set.</li>
 <li><strong>source_paddings</strong> – A tensor of shape [src_len, src_batch].</li>
@@ -552,13 +548,15 @@ information about the source that may be useful for decoding.</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback">
-<code class="descname">_PreBeamSearchStepCallback</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>step_ids</em>, <em>states</em>, <em>num_hyps_per_beam</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PreBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_PreBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>step_ids</em>, <em>states</em>, <em>num_hyps_per_beam</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PreBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns logits for sampling ids and the next model states.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>source_encs</strong> – A tensor of shape [src_len, src_batch, source_dim].
 Can be [time, batch, depth, num_layers] if is_transparent is set.</li>
 <li><strong>source_paddings</strong> – A tensor of shape [src_len, src_batch].</li>
@@ -610,7 +608,7 @@ shape [tgt_batch, vocab_size].</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback">
-<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>new_step_ids</em>, <em>states</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>new_step_ids</em>, <em>states</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -649,7 +647,7 @@ shape [tgt_batch, vocab_size].</p>
         <a href="lingvo.tasks.mt.encoder.html" class="btn btn-neutral float-right" title="lingvo.tasks.mt.encoder module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.mt.params.wmt14_en_de.html" class="btn btn-neutral" title="lingvo.tasks.mt.params.wmt14_en_de module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tasks.mt.params.wmtm16_en_de.html" class="btn btn-neutral" title="lingvo.tasks.mt.params.wmtm16_en_de module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -658,7 +656,7 @@ shape [tgt_batch, vocab_size].</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -677,21 +675,14 @@ shape [tgt_batch, vocab_size].</p>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

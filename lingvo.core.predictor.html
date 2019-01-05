@@ -1,0 +1,358 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.predictor module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.py_utils module" href="lingvo.core.py_utils.html" />
+    <link rel="prev" title="lingvo.core.plot module" href="lingvo.core.plot.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.predictor module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.predictor.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.predictor">
+<span id="lingvo-core-predictor-module"></span><h1>lingvo.core.predictor module<a class="headerlink" href="#module-lingvo.core.predictor" title="Permalink to this headline">¶</a></h1>
+<p>Predictor does inference using a saved inference graph.</p>
+<p>Example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">params</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;MyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
+<span class="n">inference_graph</span> <span class="o">=</span> <span class="n">inference_graph_exporter</span><span class="o">.</span><span class="n">InferenceGraphExporter</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span>
+    <span class="n">params</span><span class="p">)</span>
+<span class="n">pred</span> <span class="o">=</span> <span class="n">Predictor</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">pred</span><span class="o">.</span><span class="n">Load</span><span class="p">(</span><span class="s2">&quot;/tmp/logdir/train/ckpt-00000000&quot;</span><span class="p">)</span>
+<span class="p">[</span><span class="n">topk_hyps</span><span class="p">]</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">Run</span><span class="p">([</span><span class="s2">&quot;topk_hyps&quot;</span><span class="p">],</span> <span class="n">src_strings</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Hello World&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<dl class="function">
+<dt id="lingvo.core.predictor.LoadInferenceGraph">
+<code class="descclassname">lingvo.core.predictor.</code><code class="descname">LoadInferenceGraph</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#LoadInferenceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.LoadInferenceGraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parse the given path as an InferenceGraph proto.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> – The path to the file to load.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An InferenceGraph object.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.predictor.Predictor">
+<em class="property">class </em><code class="descclassname">lingvo.core.predictor.</code><code class="descname">Predictor</code><span class="sig-paren">(</span><em>inference_graph</em>, <em>subgraph_name=None</em>, <em>checkpoint=None</em>, <em>device_type='gpu'</em>, <em>tf_master=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Loads a model and does inference.</p>
+<p>See model.Inference() documentation for list of fetches and feeds.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>inference_graph</strong> – A saved InferenceGraph proto.</li>
+<li><strong>subgraph_name</strong> – The subgraph to use for prediction.</li>
+<li><strong>checkpoint</strong> – An optional checkpoint to load.</li>
+<li><strong>device_type</strong> – Device type string. Either “cpu”, “gpu”, or “tpu”.</li>
+<li><strong>tf_master</strong> – The tf_master.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<dl class="attribute">
+<dt id="lingvo.core.predictor.Predictor.fetch_keys">
+<code class="descname">fetch_keys</code><a class="headerlink" href="#lingvo.core.predictor.Predictor.fetch_keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.predictor.Predictor.feed_keys">
+<code class="descname">feed_keys</code><a class="headerlink" href="#lingvo.core.predictor.Predictor.feed_keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor._CreateNewSession">
+<code class="descname">_CreateNewSession</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._CreateNewSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._CreateNewSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates self._sess with a new session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor._MaybeCreateNewSession">
+<code class="descname">_MaybeCreateNewSession</code><span class="sig-paren">(</span><em>sess_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._MaybeCreateNewSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._MaybeCreateNewSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new session if sess_id is the current session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>sess_id</strong> – The id of a session that no longer works.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor._RunWithValidSession">
+<code class="descname">_RunWithValidSession</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._RunWithValidSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._RunWithValidSession" title="Permalink to this definition">¶</a></dt>
+<dd><p>Ensures <code class="xref py py-obj docutils literal notranslate"><span class="pre">fn</span></code> is called while self._sess is a valid session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor.Load">
+<code class="descname">Load</code><span class="sig-paren">(</span><em>checkpoint</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loads parameters from a checkpoint.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>checkpoint</strong> – The checkpoint path to restore.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.predictor.Predictor.Run">
+<code class="descname">Run</code><span class="sig-paren">(</span><em>fetch_keys</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Runs predictor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fetch_keys</strong> – a list of keys in the fetch dictionary to fetch.</li>
+<li><strong>**kwargs</strong> – a dict of inputs to feed.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of predictions corresponding to the order of fetch_keys.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first last simple">
+<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – the number of inputs does not meet requirements.</li>
+<li><code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code> – a key specified in fetch_keys is invalid.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.predictor.main">
+<code class="descclassname">lingvo.core.predictor.</code><code class="descname">main</code><span class="sig-paren">(</span><em>_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.py_utils.html" class="btn btn-neutral float-right" title="lingvo.core.py_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.plot.html" class="btn btn-neutral" title="lingvo.core.plot module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

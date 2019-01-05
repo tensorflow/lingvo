@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.metrics &mdash; lingvo  documentation</title>
+  <title>lingvo.core.metrics &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -162,10 +161,11 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
-<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">scorers</span>
 
 
@@ -283,6 +283,113 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scorer</span><span class="o">.</span><span class="n">ComputeOverallScore</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="TpuEvalMetrics"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.TpuEvalMetrics">[docs]</a><span class="k">class</span> <span class="nc">TpuEvalMetrics</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Manages computation of metrics during TPU execution.</span>
+
+<span class="sd">  TPU execution runs a training loop on device. To get eval metrics out of this,</span>
+<span class="sd">  metric values and weights must be carried through the loop. This requires</span>
+<span class="sd">  passing initial values to the loop setup, updated the values during the loop,</span>
+<span class="sd">  and doing a final aggregation after the loop. This class wraps the metrics</span>
+<span class="sd">  dictionary so that the needed ops can be built at the right time as the</span>
+<span class="sd">  training loop is built.</span>
+
+<span class="sd">  Note that because the model is not constructed until the loop body function is</span>
+<span class="sd">  called, the initial values must be known statically. This is done currently by</span>
+<span class="sd">  hardcoding a limit on the number of metrics and casting each metric and value</span>
+<span class="sd">  count to float32, regardless of the number of actual metrics the model</span>
+<span class="sd">  produced.</span>
+
+<span class="sd">  Note that this implementation computes the metrics over all replicas, for the</span>
+<span class="sd">  last step of the loop only (could be changed to average over all loop steps</span>
+<span class="sd">  instead).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_max_metrics</span> <span class="o">=</span> <span class="mi">51</span>
+
+    <span class="c1"># Loop-carried values alternate value and weight; all values are scalars.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_initial_values</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_metrics</span><span class="p">)</span> <span class="o">*</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)]</span>
+
+<div class="viewcode-block" id="TpuEvalMetrics.SetMetrics"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.TpuEvalMetrics.SetMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">SetMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metric_dict</span><span class="p">,</span> <span class="n">step_args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets the metrics to evaluate and the per-step output tensors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      metric_dict: dict of (name -&gt; (tensor of values, tensor of weights))</span>
+<span class="sd">      step_args: the tensors being passed to the training loop body. These share</span>
+<span class="sd">        the same structure of alternating value and weight scalars as the</span>
+<span class="sd">        initial values and the output of this function.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The tensors to return from the training loop body.  For entries that are</span>
+<span class="sd">      for metrics in self._metrics, returns the value computed within the loop</span>
+<span class="sd">      (the step_args value passed in); for all others, the value will never be</span>
+<span class="sd">      used at the end and so the step_args value is passed through (which has</span>
+<span class="sd">      the effect of passing the initial values through every iteration of the</span>
+<span class="sd">      loop).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_metrics</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metric_dict</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">num_metrics</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_metrics</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;Increase _max_metrics to &gt;= </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">num_metrics</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metric_dict</span><span class="p">)</span>
+
+    <span class="c1"># self._metrics contains a map of (metric_value,</span>
+    <span class="c1"># metric_weight). We convert it into [metric_value *</span>
+    <span class="c1"># metric_weight, metric_weight] to make it easier to aggregate</span>
+    <span class="c1"># metric values across steps and TPU replicas.</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
+      <span class="k">assert</span> <span class="n">value</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">(),</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">value</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">weight</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">(),</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">weight</span><span class="p">)</span>
+      <span class="n">weight</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">*</span> <span class="n">weight</span>
+      <span class="n">ret</span> <span class="o">+=</span> <span class="p">[</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">]</span>
+    <span class="c1"># Each metric has two tensors: value and weight.</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">num_metrics</span>
+    <span class="n">ret</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="n">step_args</span><span class="p">)[</span><span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">):]</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">initial_values</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the initial loop values.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initial_values</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">metrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span>
+
+<div class="viewcode-block" id="TpuEvalMetrics._Zip"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.TpuEvalMetrics._Zip">[docs]</a>  <span class="k">def</span> <span class="nf">_Zip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">values</span><span class="p">[::</span><span class="mi">2</span><span class="p">],</span> <span class="n">values</span><span class="p">[</span><span class="mi">1</span><span class="p">::</span><span class="mi">2</span><span class="p">]))</span></div>
+
+<div class="viewcode-block" id="TpuEvalMetrics.FinalizeMetrics"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.TpuEvalMetrics.FinalizeMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">FinalizeMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loop_result</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute final average of the metrics, given loop_result tensors.</span>
+
+<span class="sd">    To be called outside the training loop body , but still in the scope of</span>
+<span class="sd">    tpu.batch_parallel.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      loop_result: Result of the training loop.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The tensors of the final avg values and total weights.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Each metric has two tensors in the loop carrying result.</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">loop_result</span><span class="p">[:</span><span class="mi">2</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())]</span>
+    <span class="c1"># Aggregate across tpu replicas.</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">]</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Zip</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
+      <span class="n">value</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvg</span><span class="p">(</span><span class="n">value</span> <span class="o">/</span> <span class="n">weight</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+      <span class="n">ret</span> <span class="o">+=</span> <span class="p">[</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="TpuEvalMetrics.PackMetricsValues"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.TpuEvalMetrics.PackMetricsValues">[docs]</a>  <span class="k">def</span> <span class="nf">PackMetricsValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Packs numpy values into a NestedMap of metrics.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Zip</span><span class="p">(</span><span class="n">values</span><span class="p">))</span></div></div>
 </pre></div>
 
            </div>
@@ -295,7 +402,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -314,21 +421,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

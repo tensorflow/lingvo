@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.model_registry &mdash; lingvo  documentation</title>
+  <title>lingvo.model_registry &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../index.html" class="icon icon-home"> lingvo
+            <a href="../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">lingvo</a>
+          <a href="../../index.html">Lingvo</a>
         
       </nav>
 
@@ -195,11 +194,19 @@
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only one of --model_params_override and&#39;</span>
                      <span class="s1">&#39; --model_params_file_override may be specified.&#39;</span><span class="p">)</span>
 
-  <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">))</span>
+  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span><span class="p">:</span>
+    <span class="n">params_override</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Applying params overrides:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">To:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">params_override</span><span class="p">,</span>
+                    <span class="n">cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">params_override</span><span class="p">)</span>
   <span class="k">if</span> <span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span> <span class="ow">and</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">)):</span>
-    <span class="n">text</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">FastGFile</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+    <span class="n">params_override</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">FastGFile</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">,</span>
+                                         <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Applying params overrides from file </span><span class="si">%s</span><span class="s1">:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">To:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">,</span> <span class="n">params_override</span><span class="p">,</span>
+                    <span class="n">cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">params_override</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_ModelRegistryHelper"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper">[docs]</a><span class="k">class</span> <span class="nc">_ModelRegistryHelper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -366,7 +373,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -385,21 +392,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
 
   
 

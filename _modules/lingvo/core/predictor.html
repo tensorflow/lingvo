@@ -1,0 +1,404 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.predictor &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.predictor</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.predictor</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="c1"># pylint: disable=line-too-long</span>
+<span class="sd">&quot;&quot;&quot;Predictor does inference using a saved inference graph.</span>
+
+<span class="sd">Example::</span>
+
+<span class="sd">  params = model_registry.GetParams(&#39;MyModel&#39;, &#39;Test&#39;)</span>
+<span class="sd">  inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(</span>
+<span class="sd">      params)</span>
+<span class="sd">  pred = Predictor(params)</span>
+<span class="sd">  pred.Load(&quot;/tmp/logdir/train/ckpt-00000000&quot;)</span>
+<span class="sd">  [topk_hyps] = pred.Run([&quot;topk_hyps&quot;], src_strings=[&quot;Hello World&quot;])</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="c1"># pylint: enable=line-too-long</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">threading</span>
+
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="k">import</span> <span class="n">text_format</span>
+<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="k">import</span> <span class="n">config_pb2</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">inference_graph_pb2</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+
+
+<div class="viewcode-block" id="LoadInferenceGraph"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.LoadInferenceGraph">[docs]</a><span class="k">def</span> <span class="nf">LoadInferenceGraph</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Parse the given path as an InferenceGraph proto.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    path: The path to the file to load.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    An InferenceGraph object.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">inference_graph</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">text_format</span><span class="o">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">inference_graph</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">inference_graph</span></div>
+
+
+<div class="viewcode-block" id="Predictor"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor">[docs]</a><span class="k">class</span> <span class="nc">Predictor</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Loads a model and does inference.</span>
+
+<span class="sd">  See model.Inference() documentation for list of fetches and feeds.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    inference_graph: A saved InferenceGraph proto.</span>
+<span class="sd">    subgraph_name: The subgraph to use for prediction.</span>
+<span class="sd">    checkpoint: An optional checkpoint to load.</span>
+<span class="sd">    device_type: Device type string. Either &quot;cpu&quot;, &quot;gpu&quot;, or &quot;tpu&quot;.</span>
+<span class="sd">    tf_master: The tf_master.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">inference_graph</span><span class="p">,</span>
+               <span class="n">subgraph_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">device_type</span><span class="o">=</span><span class="s2">&quot;gpu&quot;</span><span class="p">,</span>
+               <span class="n">tf_master</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">device_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;cpu&quot;</span><span class="p">,</span> <span class="s2">&quot;gpu&quot;</span><span class="p">,</span> <span class="s2">&quot;tpu&quot;</span><span class="p">]</span>
+    <span class="n">subgraph_name</span> <span class="o">=</span> <span class="n">subgraph_name</span> <span class="ow">or</span> <span class="s2">&quot;default&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inference_graph</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Reading inference graph from </span><span class="si">%s</span><span class="s2">.&quot;</span><span class="p">,</span> <span class="n">inference_graph</span><span class="p">)</span>
+      <span class="n">inference_graph</span> <span class="o">=</span> <span class="n">LoadInferenceGraph</span><span class="p">(</span><span class="n">inference_graph</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">=</span> <span class="n">checkpoint</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_device_type</span> <span class="o">=</span> <span class="n">device_type</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span> <span class="o">=</span> <span class="n">tf_master</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading inference graph for prediction.&quot;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">saver_def</span><span class="o">=</span><span class="n">inference_graph</span><span class="o">.</span><span class="n">saver_def</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">%s</span><span class="s2">:0&quot;</span> <span class="o">%</span> <span class="s2">&quot;cpu&quot;</span> <span class="k">if</span> <span class="n">device_type</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span> <span class="k">else</span> <span class="n">device_type</span><span class="p">):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">import_graph_def</span><span class="p">(</span><span class="n">inference_graph</span><span class="o">.</span><span class="n">graph_def</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">subgraph_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Subgraph </span><span class="si">%s</span><span class="s2"> not defined. Valid subgraphs: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+            <span class="p">(</span><span class="n">subgraph_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+      <span class="n">subgraph</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">subgraph_name</span><span class="p">]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span> <span class="o">=</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">fetches</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span> <span class="o">=</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">feeds</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">fetches</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">feeds</span>
+
+    <span class="c1"># Lock for creating new sessions.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sess_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateNewSession</span><span class="p">()</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">fetch_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">feed_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+<div class="viewcode-block" id="Predictor._CreateNewSession"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._CreateNewSession">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
+  <span class="k">def</span> <span class="nf">_CreateNewSession</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates self._sess with a new session.&quot;&quot;&quot;</span>
+    <span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SessionConfig</span><span class="p">())</span>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="s2">&quot;init_all_tables&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span><span class="p">:</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="s2">&quot;tpu_init_op&quot;</span><span class="p">))</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Created new predictor session.&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span> <span class="o">=</span> <span class="n">sess</span></div>
+
+<div class="viewcode-block" id="Predictor._MaybeCreateNewSession"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._MaybeCreateNewSession">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeCreateNewSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess_id</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a new session if sess_id is the current session.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess_id: The id of a session that no longer works.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sess_lock</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">sess_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_CreateNewSession</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="Predictor._RunWithValidSession"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._RunWithValidSession">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
+  <span class="k">def</span> <span class="nf">_RunWithValidSession</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Ensures `fn` is called while self._sess is a valid session.&quot;&quot;&quot;</span>
+    <span class="n">sess_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sess</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span><span class="p">:</span>
+      <span class="c1"># self._sess is invalid, most likely due to the worker being preempted.</span>
+      <span class="c1"># Make sure a new session is created before re-raising the exception and</span>
+      <span class="c1"># triggering the py_utils.Retry loop.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeCreateNewSession</span><span class="p">(</span><span class="n">sess_id</span><span class="p">)</span>
+      <span class="k">raise</span></div>
+
+<div class="viewcode-block" id="Predictor.Load"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.Load">[docs]</a>  <span class="k">def</span> <span class="nf">Load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Loads parameters from a checkpoint.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      checkpoint: The checkpoint path to restore.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunWithValidSession</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">=</span> <span class="n">checkpoint</span></div>
+
+<div class="viewcode-block" id="Predictor.Run"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fetch_keys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs predictor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      fetch_keys: a list of keys in the fetch dictionary to fetch.</span>
+<span class="sd">      **kwargs: a dict of inputs to feed.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A list of predictions corresponding to the order of fetch_keys.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: the number of inputs does not meet requirements.</span>
+<span class="sd">      KeyError: a key specified in fetch_keys is invalid.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fetch_keys</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+            <span class="s2">&quot;Key </span><span class="si">%s</span><span class="s2"> is not in the list of available fetches. Available keys: </span><span class="si">%s</span><span class="s2">&quot;</span>
+            <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+    <span class="n">fetches</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fetch_keys</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span>
+            <span class="sd">&quot;&quot;&quot;kwarg %s is not in the list of available feeds. Available kwargs:</span>
+<span class="sd">             %s&quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+    <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="p">[</span><span class="n">k</span><span class="p">]:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)}</span>
+
+    <span class="n">run_options</span> <span class="o">=</span> <span class="n">config_pb2</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span>
+        <span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RunWithValidSession</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="o">.</span><span class="n">run</span><span class="p">,</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="n">feeds</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">_</span><span class="p">):</span>
+  <span class="c1"># pylint: disable=g-import-not-at-top</span>
+  <span class="c1"># pylint: disable=unused-variable</span>
+  <span class="kn">import</span> <span class="nn">lingvo.model_imports</span>
+  <span class="kn">import</span> <span class="nn">IPython</span>
+  <span class="n">IPython</span><span class="o">.</span><span class="n">start_ipython</span><span class="p">(</span><span class="n">argv</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;--colors&quot;</span><span class="p">,</span> <span class="s2">&quot;NoColor&quot;</span><span class="p">],</span> <span class="n">user_ns</span><span class="o">=</span><span class="nb">globals</span><span class="p">())</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

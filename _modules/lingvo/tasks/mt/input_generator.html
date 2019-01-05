@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.mt.input_generator &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.mt.input_generator &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../../index.html">lingvo</a>
+          <a href="../../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -178,6 +177,13 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults params for `NmtInput`.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">NmtInput</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;natural_order_model&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Whether the model consuming the input is a natural order model. Input &#39;</span>
+        <span class="s1">&#39;is generated in natural order if True. Input is generated in reversed &#39;</span>
+        <span class="s1">&#39;order if False. The value should be consistent with the underlying &#39;</span>
+        <span class="s1">&#39;model. Set to True if training or using a natural order model, &#39;</span>
+        <span class="s1">&#39;otherwise set to False.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">VocabFileTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="mi">300</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -214,6 +220,8 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">NmtInput</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">natural_order_model</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">natural_order_model</span>
 
     <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_src_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_src_paddings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_paddings</span><span class="p">,</span>
      <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_weights</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>
@@ -284,7 +292,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -303,21 +311,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
 
   
 

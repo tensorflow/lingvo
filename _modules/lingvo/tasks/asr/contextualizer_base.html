@@ -1,0 +1,323 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.asr.contextualizer_base &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.contextualizer_base</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.asr.contextualizer_base</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;API for context injection into a speech decoder.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+
+
+<div class="viewcode-block" id="ContextualizerBase"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.ContextualizerBase">[docs]</a><span class="k">class</span> <span class="nc">ContextualizerBase</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for a contextualizer.</span>
+
+<span class="sd">  Typical usage of a contextualizer is::</span>
+
+<span class="sd">    contextualizer.SetContextMap(context_map)     # Set context map.</span>
+<span class="sd">    contextualizer.InitAttention(...)             # Initalize attn sources.</span>
+<span class="sd">    context = contextualizer.ZeroAttention(...)   # Initalize attn state.</span>
+<span class="sd">    context = contextualizer.QueryAttention(...)  # Call on each decoding step.</span>
+
+<span class="sd">  `context` is a per-decoding-step context vector that augments the standard</span>
+<span class="sd">  LAS model with additional context.</span>
+
+<span class="sd">  `context_map` can include data needed for initialization.</span>
+
+<span class="sd">  After parameters of the contextualizer are set, these accessors can be used:</span>
+
+<span class="sd">  - contextualizer.GetContextDim()</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ContextualizerBase.SetContextMap"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.SetContextMap">[docs]</a>  <span class="k">def</span> <span class="nf">SetContextMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context_map</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set the context map.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      context_map: A NestedMap object containing the context from which</span>
+<span class="sd">        attention vectors will be computed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;SetContextMap&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ContextualizerBase.InitAttention"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.InitAttention">[docs]</a>  <span class="k">def</span> <span class="nf">InitAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">,</span> <span class="n">misc_states</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialized the contextualizer&#39;s attention.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      packed_src: A NestedMap object into which attention source vectors will be</span>
+<span class="sd">        placed.</span>
+<span class="sd">      misc_states: A NestedMap object into which attention states will be</span>
+<span class="sd">        placed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;InitAttention&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ContextualizerBase.ZeroAttention"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.ZeroAttention">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">dec_bs</span><span class="p">,</span> <span class="n">misc_states</span><span class="p">,</span> <span class="n">audio_context</span><span class="p">,</span>
+                    <span class="n">packed_src</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates the contextualizer &#39;zero&#39; context vector.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      dec_bs: int32, the decoding batch size.</span>
+<span class="sd">      misc_states: A NestedMap object into which attention states will be</span>
+<span class="sd">        placed.</span>
+<span class="sd">      audio_context: Tensor of shape [dec_bs, aud_dim] representing the</span>
+<span class="sd">        audio-based context vector.</span>
+<span class="sd">      packed_src: A NestedMap object into which attention source vectors will be</span>
+<span class="sd">        placed.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A &#39;zero&#39; context vector of shape [dec_bs, aud_dim + context_dim]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;ZeroAttention&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ContextualizerBase.QueryAttention"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.QueryAttention">[docs]</a>  <span class="k">def</span> <span class="nf">QueryAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">attn_query</span><span class="p">,</span> <span class="n">misc_states</span><span class="p">,</span> <span class="n">audio_context</span><span class="p">,</span>
+                     <span class="n">packed_src</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Query the contextualizer&#39;s attention.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      attn_query: Tensor of shape [dec_bs, ...] representing the query vectors.</span>
+<span class="sd">      misc_states: A NestedMap object into which attention states will be</span>
+<span class="sd">        placed.</span>
+<span class="sd">      audio_context: Tensor of shape [dec_bs, aud_dim] representing the</span>
+<span class="sd">        audio-based context vector.</span>
+<span class="sd">      packed_src: A NestedMap object into which attention source vectors will be</span>
+<span class="sd">        placed.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A context vector of shape [dec_bs, aud_dim + context_dim]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;QueryAttention&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ContextualizerBase.GetContextDim"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.GetContextDim">[docs]</a>  <span class="k">def</span> <span class="nf">GetContextDim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the context dimension.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;GetContextDim&#39;</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NullContextualizer"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer">[docs]</a><span class="k">class</span> <span class="nc">NullContextualizer</span><span class="p">(</span><span class="n">ContextualizerBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;An &#39;empty&#39; or no-op contextualizer.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="NullContextualizer.SetContextMap"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer.SetContextMap">[docs]</a>  <span class="k">def</span> <span class="nf">SetContextMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context_map</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="NullContextualizer.InitAttention"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer.InitAttention">[docs]</a>  <span class="k">def</span> <span class="nf">InitAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">):</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="NullContextualizer.ZeroAttention"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer.ZeroAttention">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">dec_bs</span><span class="p">,</span> <span class="n">misc_states</span><span class="p">,</span> <span class="n">audio_context</span><span class="p">,</span>
+                    <span class="n">packed_src</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">audio_context</span></div>
+
+<div class="viewcode-block" id="NullContextualizer.QueryAttention"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer.QueryAttention">[docs]</a>  <span class="k">def</span> <span class="nf">QueryAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">attn_query</span><span class="p">,</span> <span class="n">misc_states</span><span class="p">,</span> <span class="n">audio_context</span><span class="p">,</span>
+                     <span class="n">packed_src</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">audio_context</span></div>
+
+<div class="viewcode-block" id="NullContextualizer.GetContextDim"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer.GetContextDim">[docs]</a>  <span class="k">def</span> <span class="nf">GetContextDim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">0</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

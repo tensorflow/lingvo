@@ -1,0 +1,355 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.asr.encoder module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.asr.fusion module" href="lingvo.tasks.asr.fusion.html" />
+    <link rel="prev" title="lingvo.tasks.asr.decoder_utils module" href="lingvo.tasks.asr.decoder_utils.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.asr.html">lingvo.tasks.asr package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.encoder module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.asr.encoder.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.asr.encoder">
+<span id="lingvo-tasks-asr-encoder-module"></span><h1>lingvo.tasks.asr.encoder module<a class="headerlink" href="#module-lingvo.tasks.asr.encoder" title="Permalink to this headline">¶</a></h1>
+<p>Encoders for the speech model.</p>
+<dl class="class">
+<dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.encoder.</code><code class="descname">ConvLSTMBlock</code><span class="sig-paren">(</span><em>rnn</em>, <em>cnn</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="method">
+<dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock._asdict">
+<code class="descname">_asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._asdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new OrderedDict which maps field names to their values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock._fields">
+<code class="descname">_fields</code><em class="property"> = ('rnn', 'cnn')</em><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._fields" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock._make">
+<em class="property">classmethod </em><code class="descname">_make</code><span class="sig-paren">(</span><em>iterable</em>, <em>new=&lt;built-in method __new__ of type object at 0x8f9920&gt;</em>, <em>len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._make" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a new ConvLSTMBlock object from a sequence or iterable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock._replace">
+<code class="descname">_replace</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock._replace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new ConvLSTMBlock object replacing specified fields with new values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock.cnn">
+<code class="descname">cnn</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock.cnn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.encoder.ConvLSTMBlock.rnn">
+<code class="descname">rnn</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.ConvLSTMBlock.rnn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.asr.encoder.AsrEncoder">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.encoder.</code><code class="descname">AsrEncoder</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_encoder.html#lingvo.core.base_encoder.BaseEncoder" title="lingvo.core.base_encoder.BaseEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_encoder.BaseEncoder</span></code></a></p>
+<p>Speech encoder version 1.</p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.encoder.AsrEncoder.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configs for AsrEncoder.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.encoder.AsrEncoder._use_functional">
+<code class="descname">_use_functional</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder._use_functional" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.encoder.AsrEncoder.CreateBidirectionalRNNParams">
+<code class="descname">CreateBidirectionalRNNParams</code><span class="sig-paren">(</span><em>forward_p</em>, <em>backward_p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.CreateBidirectionalRNNParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.CreateBidirectionalRNNParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.encoder.AsrEncoder.CreateConvLstmLayerParams">
+<code class="descname">CreateConvLstmLayerParams</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.CreateConvLstmLayerParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.CreateConvLstmLayerParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.encoder.AsrEncoder.FirstLstmLayerInputDimAndPadding">
+<code class="descname">FirstLstmLayerInputDimAndPadding</code><span class="sig-paren">(</span><em>conv_output_shape</em>, <em>pad_to_multiple=16</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.FirstLstmLayerInputDimAndPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.FirstLstmLayerInputDimAndPadding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.encoder.AsrEncoder.supports_streaming">
+<code class="descname">supports_streaming</code><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.supports_streaming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.encoder.AsrEncoder.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.encoder.AsrEncoder.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>batch</em>, <em>state0=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/encoder.html#AsrEncoder.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.encoder.AsrEncoder.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Encodes source as represented by ‘inputs’ and ‘paddings’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>batch</strong> – <p>A NestedMap with fields:</p>
+<ul>
+<li>src_inputs - The inputs tensor. It is expected to be of shape [batch,
+time, feature_dim, channels].</li>
+<li>paddings - The paddings tensor. It is expected to be of shape [batch,
+time].</li>
+</ul>
+</li>
+<li><strong>state0</strong> – Recurrent input state. Not supported/ignored by this encoder.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><ul class="simple">
+<li>‘encoded’: a feature tensor of shape [time, batch, depth]</li>
+<li>’padding’: a 0/1 tensor of shape [time, batch]</li>
+<li>’state’: the updated recurrent state</li>
+<li>’${layer_type}_${layer_index}’: The per-layer encoder output. Each one
+is a NestedMap containing ‘encoded’ and ‘padding’ similar to regular
+final outputs, except that ‘encoded’ from conv or conv_lstm layers are
+of shape [time, batch, depth, channels].</li>
+</ul>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">A NestedMap containing</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.asr.fusion.html" class="btn btn-neutral float-right" title="lingvo.tasks.asr.fusion module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.asr.decoder_utils.html" class="btn btn-neutral" title="lingvo.tasks.asr.decoder_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

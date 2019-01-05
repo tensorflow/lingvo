@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.plot &mdash; lingvo  documentation</title>
+  <title>lingvo.core.plot &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -163,7 +162,6 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">collections</span>
-<span class="kn">import</span> <span class="nn">cStringIO</span>
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
 
@@ -172,6 +170,7 @@
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="n">cStringIO</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
@@ -218,11 +217,12 @@
              <span class="n">xlabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
              <span class="n">ylabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
              <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">,</span>
+             <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span>
              <span class="n">suppress_xticks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
              <span class="n">suppress_yticks</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Convenience function to plot data as an image on the given axes.&quot;&quot;&quot;</span>
   <span class="n">image</span> <span class="o">=</span> <span class="n">axes</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span>
-      <span class="n">data</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;lower&#39;</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span>
+      <span class="n">data</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">cmap</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="n">origin</span><span class="p">,</span> <span class="n">aspect</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">interpolation</span><span class="o">=</span><span class="s1">&#39;nearest&#39;</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">show_colorbar</span><span class="p">:</span>
     <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">clim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -230,6 +230,40 @@
   <span class="n">axes</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">title</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
   <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">xlabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
   <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">ylabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">suppress_xticks</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
+  <span class="k">if</span> <span class="n">suppress_yticks</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([])</span></div>
+
+
+<div class="viewcode-block" id="AddScatterPlot"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.AddScatterPlot">[docs]</a><span class="k">def</span> <span class="nf">AddScatterPlot</span><span class="p">(</span><span class="n">unused_fig</span><span class="p">,</span>
+                   <span class="n">axes</span><span class="p">,</span>
+                   <span class="n">xs</span><span class="p">,</span>
+                   <span class="n">ys</span><span class="p">,</span>
+                   <span class="n">title</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="n">xlabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="n">ylabel</span><span class="o">=</span><span class="sa">u</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                   <span class="n">fontsize</span><span class="o">=</span><span class="s1">&#39;small&#39;</span><span class="p">,</span>
+                   <span class="n">xlim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">ylim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">suppress_xticks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="n">suppress_yticks</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                   <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convenience function to add a scatter plot.&quot;&quot;&quot;</span>
+  <span class="c1"># For 3D axes, check to see whether zlim is specified and apply it.</span>
+  <span class="k">if</span> <span class="s1">&#39;zlim&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+    <span class="n">zlim</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;zlim&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">zlim</span><span class="p">:</span>
+      <span class="n">axes</span><span class="o">.</span><span class="n">set_zlim</span><span class="p">(</span><span class="n">zlim</span><span class="p">)</span>
+
+  <span class="n">axes</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">title</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">xlabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">ylabel</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">xlim</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">xlim</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">ylim</span><span class="p">:</span>
+    <span class="n">axes</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">ylim</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">suppress_xticks</span><span class="p">:</span>
     <span class="n">axes</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">([])</span>
   <span class="k">if</span> <span class="n">suppress_yticks</span><span class="p">:</span>
@@ -268,8 +302,8 @@
 <span class="sd">        dimensions in inches.</span>
 <span class="sd">      max_outputs: The maximum number of images to generate.</span>
 <span class="sd">      subplot_grid_shape: A 2D tuple containing the height and width dimensions</span>
-<span class="sd">        of the subplot grid.  height * width must be &lt;= len(tensor_list).</span>
-<span class="sd">        Defaults to (len(tensor_list), 1), i.e. a vertical stack of plots.</span>
+<span class="sd">        of the subplot grid.  height * width must be &gt;= the number of subplots.</span>
+<span class="sd">        Defaults to (num_subplots, 1), i.e. a vertical stack of plots.</span>
 <span class="sd">      gridspec_kwargs: A dict of extra keyword args to use when initializing the</span>
 <span class="sd">        figure&#39;s gridspec, as supported by matplotlib.gridspec.GridSpec.</span>
 <span class="sd">      plot_func: A function shared across all subplots used to populate a single</span>
@@ -414,7 +448,7 @@
   <span class="n">canvas</span> <span class="o">=</span> <span class="n">backend_agg</span><span class="o">.</span><span class="n">FigureCanvasAgg</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>
   <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">draw</span><span class="p">()</span>
   <span class="n">ncols</span><span class="p">,</span> <span class="n">nrows</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">get_width_height</span><span class="p">()</span>
-  <span class="n">png_file</span> <span class="o">=</span> <span class="n">cStringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">()</span>
+  <span class="n">png_file</span> <span class="o">=</span> <span class="n">cStringIO</span><span class="p">()</span>
   <span class="n">canvas</span><span class="o">.</span><span class="n">print_figure</span><span class="p">(</span><span class="n">png_file</span><span class="p">)</span>
   <span class="n">png_str</span> <span class="o">=</span> <span class="n">png_file</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="p">[</span>
@@ -428,26 +462,63 @@
   <span class="p">])</span></div>
 
 
-<div class="viewcode-block" id="Matrix"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.Matrix">[docs]</a><span class="k">def</span> <span class="nf">Matrix</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="n">setter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Plot a numpy matrix and generates tf.Summary proto for it.</span>
+<div class="viewcode-block" id="Image"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.Image">[docs]</a><span class="k">def</span> <span class="nf">Image</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">setter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Plot an image in numpy and generates tf.Summary proto for it.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    name: Image summary name.</span>
-<span class="sd">    figsize: A 2D tuple containing the overall figure (width, height)</span>
-<span class="sd">      dimensions in inches.</span>
-<span class="sd">    matrix: A 2D numpy array.</span>
-<span class="sd">    setter: A callable taking (fig, axes). Useful to fine-control</span>
-<span class="sd">      layout of the figure, xlabel, xticks, etc.</span>
+<span class="sd">    figsize: A 2D tuple containing the overall figure (width, height) dimensions</span>
+<span class="sd">      in inches.</span>
+<span class="sd">    image: A 2D/3D numpy array in the format accepted by pyplot.imshow.</span>
+<span class="sd">    setter: A callable taking (fig, axes). Useful to fine-tune layout of the</span>
+<span class="sd">      figure, xlabel, xticks, etc.</span>
+<span class="sd">    **kwargs: Additional arguments to AddImage.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A `tf.Summary` proto contains one image visualizing &#39;matrix.</span>
+<span class="sd">    A `tf.Summary` proto contains one image visualizing &#39;image.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">image</span><span class="o">.</span><span class="n">ndim</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span>
   <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
   <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-  <span class="n">AddImage</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">matrix</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="n">AddImage</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">origin</span><span class="o">=</span><span class="s1">&#39;upper&#39;</span><span class="p">,</span> <span class="n">show_colorbar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">setter</span><span class="p">:</span>
     <span class="n">setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">_FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Scatter"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.Scatter">[docs]</a><span class="k">def</span> <span class="nf">Scatter</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">setter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Plot a scatter plot in numpy and generates tf.Summary proto for it.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: Scatter plot summary name.</span>
+<span class="sd">    figsize: A 2D tuple containing the overall figure (width, height) dimensions</span>
+<span class="sd">      in inches.</span>
+<span class="sd">    xs: A set of x points to plot.</span>
+<span class="sd">    ys: A set of y points to plot.</span>
+<span class="sd">    setter: A callable taking (fig, axes). Useful to fine-tune layout of the</span>
+<span class="sd">      figure, xlabel, xticks, etc.</span>
+<span class="sd">    **kwargs: Additional arguments to AddScatterPlot.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `tf.Summary` proto contains one image visualizing &#39;image.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">Figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="n">figsize</span><span class="p">,</span> <span class="n">dpi</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">facecolor</span><span class="o">=</span><span class="s1">&#39;white&#39;</span><span class="p">)</span>
+
+  <span class="c1"># If z data is provided, use 3d projection.</span>
+  <span class="c1">#</span>
+  <span class="c1"># This requires the mplot3d toolkit (e.g., from mpl_toolkits import mplot3d)</span>
+  <span class="c1"># to be registered in the program.</span>
+  <span class="k">if</span> <span class="s1">&#39;zs&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+    <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">111</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s1">&#39;3d&#39;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">axes</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">AddScatterPlot</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">setter</span><span class="p">:</span>
+    <span class="n">setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">_FigureToSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span></div>
+
+
+<span class="n">Matrix</span> <span class="o">=</span> <span class="n">Image</span>  <span class="c1"># pylint: disable=invalid-name</span>
 
 
 <div class="viewcode-block" id="Curve"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.Curve">[docs]</a><span class="k">def</span> <span class="nf">Curve</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">setter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -484,7 +555,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -503,21 +574,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

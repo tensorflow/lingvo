@@ -1,0 +1,680 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.inference_graph_exporter &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.inference_graph_exporter</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.inference_graph_exporter</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Utility for exporting an InferenceGraph proto from model params.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">re</span>
+
+<span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="k">import</span> <span class="n">text_format</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">bfloat16_variables</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">inference_graph_pb2</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+<span class="c1"># InferenceDeviceOptions contains options to configure inference on the device.</span>
+<span class="c1"># device: Device to infer on.</span>
+<span class="c1"># retain_device_placement: If true, the specified device in the generated</span>
+<span class="c1">#   inference graph nodes will be retained. Otherwise, the specified device</span>
+<span class="c1">#   will be cleared, so that the runtime can choose automatically.</span>
+<span class="c1"># var_options: Options on handling variables. For TPUs, variables can be</span>
+<span class="c1">#   either placed on device through &#39;ON_DEVICE&#39; option, or treated as</span>
+<span class="c1">#   constants with AS_CONSTANTS.</span>
+<span class="c1"># gen_init_op: Whether to serialize initialization ops for the device. For TPUs,</span>
+<span class="c1">#   servers can be initialized globally once, in which case this should be</span>
+<span class="c1">#   turned off to avoid tripping initialization checks.</span>
+<span class="c1"># dtype_override: Whether to override the dtype to use for activations and</span>
+<span class="c1"># weights in the model. Options supported are None or tf.bfloat16.</span>
+<span class="n">InferenceDeviceOptions</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;InferenceDeviceOptions&#39;</span><span class="p">,</span> <span class="p">[</span>
+    <span class="s1">&#39;device&#39;</span><span class="p">,</span> <span class="s1">&#39;retain_device_placement&#39;</span><span class="p">,</span> <span class="s1">&#39;var_options&#39;</span><span class="p">,</span> <span class="s1">&#39;gen_init_op&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;dtype_override&#39;</span>
+<span class="p">])</span>
+
+<span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="kc">None</span>
+
+
+<div class="viewcode-block" id="NoConstGuaranteeScope"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.NoConstGuaranteeScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">NoConstGuaranteeScope</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Disallow const gauranteeing variable with-in scope.&quot;&quot;&quot;</span>
+  <span class="k">global</span> <span class="n">_CONST_GUARANTEE</span>
+  <span class="n">var_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
+  <span class="n">old_caching_device</span> <span class="o">=</span> <span class="n">var_scope</span><span class="o">.</span><span class="n">caching_device</span>
+  <span class="n">old_val</span> <span class="o">=</span> <span class="n">_CONST_GUARANTEE</span>
+  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_caching_device</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="k">yield</span>
+  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="n">old_val</span>
+  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_caching_device</span><span class="p">(</span><span class="n">old_caching_device</span><span class="p">)</span></div>
+
+
+<span class="c1"># Marks variable as constants for compilation</span>
+<div class="viewcode-block" id="MaybeGuaranteeConstGetter"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.MaybeGuaranteeConstGetter">[docs]</a><span class="k">def</span> <span class="nf">MaybeGuaranteeConstGetter</span><span class="p">(</span><span class="n">getter</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="k">global</span> <span class="n">_CONST_GUARANTEE</span>
+  <span class="k">if</span> <span class="n">_CONST_GUARANTEE</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">guarantee_const</span><span class="p">(</span>
+          <span class="n">getter</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/GuaranteeConst&#39;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">getter</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ConstGuaranteeScope"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.ConstGuaranteeScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">ConstGuaranteeScope</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Treats all variables under this scope as constants.&quot;&quot;&quot;</span>
+  <span class="k">global</span> <span class="n">_CONST_GUARANTEE</span>
+  <span class="n">var_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
+  <span class="n">old_custom_getter</span> <span class="o">=</span> <span class="n">var_scope</span><span class="o">.</span><span class="n">custom_getter</span>
+  <span class="n">old_caching_device</span> <span class="o">=</span> <span class="n">var_scope</span><span class="o">.</span><span class="n">caching_device</span>
+  <span class="n">old_val</span> <span class="o">=</span> <span class="n">_CONST_GUARANTEE</span>
+  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_custom_getter</span><span class="p">(</span><span class="n">MaybeGuaranteeConstGetter</span><span class="p">)</span>
+  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_caching_device</span><span class="p">(</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="k">yield</span>
+  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="n">old_val</span>
+  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_custom_getter</span><span class="p">(</span><span class="n">old_custom_getter</span><span class="p">)</span>
+  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_caching_device</span><span class="p">(</span><span class="n">old_caching_device</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_DummyScope"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter._DummyScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">_DummyScope</span><span class="p">():</span>
+  <span class="k">yield</span> <span class="kc">None</span></div>
+
+
+<div class="viewcode-block" id="_GetVarName"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter._GetVarName">[docs]</a><span class="k">def</span> <span class="nf">_GetVarName</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;:0&#39;</span><span class="p">)]</span></div>
+
+
+<div class="viewcode-block" id="GetVariablesWithBfloat16Overrides"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.GetVariablesWithBfloat16Overrides">[docs]</a><span class="k">def</span> <span class="nf">GetVariablesWithBfloat16Overrides</span><span class="p">(</span><span class="n">variables_to_load</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a dictionary containing overrides to load variables as bf16.&quot;&quot;&quot;</span>
+  <span class="n">saver_dict</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables_to_load</span><span class="p">:</span>
+    <span class="n">var_name</span> <span class="o">=</span> <span class="n">_GetVarName</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">:</span>
+      <span class="c1"># TODO(rohananil): Add support for PartitionedVariables if there is</span>
+      <span class="c1"># demand.</span>
+      <span class="n">savable</span> <span class="o">=</span> <span class="n">bfloat16_variables</span><span class="o">.</span><span class="n">Bfloat16VariableSaveable</span><span class="p">(</span>
+          <span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
+      <span class="n">saver_dict</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">savable</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">saver_dict</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+  <span class="k">return</span> <span class="n">saver_dict</span></div>
+
+
+<div class="viewcode-block" id="GetAllVariables"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.GetAllVariables">[docs]</a><span class="k">def</span> <span class="nf">GetAllVariables</span><span class="p">(</span><span class="n">variables_to_load</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a dictionary contain a mapping between name: variable.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables_to_load</span><span class="p">]):</span>
+    <span class="k">return</span> <span class="n">variables_to_load</span>
+
+  <span class="n">saver_dict</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables_to_load</span><span class="p">:</span>
+    <span class="n">var_name</span> <span class="o">=</span> <span class="n">_GetVarName</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+    <span class="n">saver_dict</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+  <span class="k">return</span> <span class="n">saver_dict</span></div>
+
+
+<div class="viewcode-block" id="IsTpu"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.IsTpu">[docs]</a><span class="k">def</span> <span class="nf">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">device_options</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span></div>
+
+
+<div class="viewcode-block" id="ShouldForceBfloat16ForWeightsAndActivations"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.ShouldForceBfloat16ForWeightsAndActivations">[docs]</a><span class="k">def</span> <span class="nf">ShouldForceBfloat16ForWeightsAndActivations</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">device_options</span><span class="o">.</span><span class="n">dtype_override</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span></div>
+
+
+<div class="viewcode-block" id="ConvertSubgraphDictToProto"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.ConvertSubgraphDictToProto">[docs]</a><span class="k">def</span> <span class="nf">ConvertSubgraphDictToProto</span><span class="p">(</span><span class="n">subgraphs_dict</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Converts dict of subgraphs/feeds/fetches to InferenceGraph.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    subgraphs_dict: Dict of (fetches, feeds) where each fetches/feeds is a</span>
+<span class="sd">      NestedMap.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Equivalent InferenceGraph.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Build the output inference graph.</span>
+  <span class="n">inference_graph_proto</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
+  <span class="k">for</span> <span class="n">subgraph_name</span><span class="p">,</span> <span class="n">tensors</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">subgraphs_dict</span><span class="p">):</span>
+    <span class="n">fetches</span> <span class="o">=</span> <span class="n">tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">feeds</span> <span class="o">=</span> <span class="n">tensors</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Rewrite fetches and feeds to map to their tensor name instead of</span>
+    <span class="c1"># Tensor instance.</span>
+    <span class="n">named_fetches</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">fetches</span><span class="p">)}</span>
+    <span class="n">named_feeds</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">feeds</span><span class="p">)}</span>
+
+    <span class="c1"># Export as subgraph.</span>
+    <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">subgraph_name</span><span class="p">]</span><span class="o">.</span><span class="n">fetches</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">named_fetches</span><span class="p">)</span>
+    <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">subgraph_name</span><span class="p">]</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">named_feeds</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">inference_graph_proto</span></div>
+
+
+<div class="viewcode-block" id="GetOutputOpNames"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.GetOutputOpNames">[docs]</a><span class="k">def</span> <span class="nf">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Gets output op names from an inference graph.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    graph: The tf graph.</span>
+<span class="sd">    inference_graph_proto: an InferenceGraph proto.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Array of tf op names that should be preserved in the graph.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">output_op_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+  <span class="k">for</span> <span class="n">subgraph</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">itervalues</span><span class="p">(</span><span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">):</span>
+    <span class="c1"># Sometimes feeds aren&#39;t connected to any outputs but keep them in the graph</span>
+    <span class="c1"># anyways to avoid errors.</span>
+    <span class="k">for</span> <span class="n">tensor_or_op_name</span> <span class="ow">in</span> <span class="p">(</span>
+        <span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">feeds</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">subgraph</span><span class="o">.</span><span class="n">fetches</span><span class="o">.</span><span class="n">values</span><span class="p">())):</span>
+      <span class="c1"># Tensor names have format &lt;op_name&gt;:&lt;output_index&gt;. Some inference</span>
+      <span class="c1"># graphs put tensors and others put ops in the feeds/fetches (depends</span>
+      <span class="c1"># on how it is used). We differentiate here. We still do the lookup in</span>
+      <span class="c1"># the graph to sanity check (versus relying on the text manipulation).</span>
+      <span class="c1"># If this logic ever breaks, TensorFlow will raise a ValueError with</span>
+      <span class="c1"># a description of the syntax of each.</span>
+      <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;:[0-9]+$&#39;</span><span class="p">,</span> <span class="n">tensor_or_op_name</span><span class="p">):</span>
+        <span class="c1"># Tensor-name.</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span><span class="n">tensor_or_op_name</span><span class="p">)</span>
+        <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="n">tensor_or_op_name</span><span class="p">)</span>
+        <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+  <span class="c1"># We also need to preserve any nodes that are used for colocation.</span>
+  <span class="c1"># E.g., a node may have this attr:</span>
+  <span class="c1">#   attr {</span>
+  <span class="c1">#     key: &quot;_class&quot;</span>
+  <span class="c1">#     value {</span>
+  <span class="c1">#       list {</span>
+  <span class="c1">#         s: &quot;loc:@inference/embedding_lookup/Read/ReadVariableOp&quot;</span>
+  <span class="c1">#       }</span>
+  <span class="c1">#     }</span>
+  <span class="c1">#   }</span>
+  <span class="c1">#</span>
+  <span class="c1"># In this case, we need to make sure the node</span>
+  <span class="c1"># inference/embedding_lookup/Read/ReadVariableOp is not pruned.</span>
+  <span class="c1">#</span>
+  <span class="c1"># TODO(zhifengc): It&#39;s possible that it&#39;s better to fix in</span>
+  <span class="c1"># tf.graph_util.extract_sub_graph.</span>
+  <span class="n">graph_def</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span>
+                                              <span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span>
+  <span class="n">reachable_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph_def</span><span class="o">.</span><span class="n">node</span><span class="p">]</span>
+
+  <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">():</span>
+    <span class="k">if</span> <span class="s1">&#39;_class&#39;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">node_def</span><span class="o">.</span><span class="n">attr</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">node_def</span><span class="o">.</span><span class="n">attr</span><span class="p">[</span><span class="s1">&#39;_class&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">s</span><span class="p">:</span>
+        <span class="n">loc</span> <span class="o">=</span> <span class="n">loc</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">loc</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;loc:@&#39;</span><span class="p">):</span>
+          <span class="n">loc_name</span> <span class="o">=</span> <span class="n">loc</span><span class="p">[</span><span class="mi">5</span><span class="p">:]</span>
+          <span class="k">if</span> <span class="n">loc_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">reachable_vars</span><span class="p">:</span>
+            <span class="c1"># Skip nodes that cannot be reached from the pruned graph.</span>
+            <span class="k">continue</span>
+          <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+          <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">loc_name</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_ParamExists"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter._ParamExists">[docs]</a><span class="k">def</span> <span class="nf">_ParamExists</span><span class="p">(</span><span class="n">param_obj</span><span class="p">,</span> <span class="n">param_name</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Tests whether param_name is contained in param_obj.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">param_obj</span><span class="p">:</span>
+    <span class="k">return</span>
+  <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">param_obj</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">param_name</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">True</span>
+  <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="_FreezeGraphFromCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter._FreezeGraphFromCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">_FreezeGraphFromCheckpoint</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">saver</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Freezes a graph from a checkpoint.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    graph: tf.Graph.</span>
+<span class="sd">    saver: The tf.Saver to use for restoration.</span>
+<span class="sd">    checkpoint: The checkpoint to restore.</span>
+<span class="sd">    output_op_names: Names of output ops.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Resulting tf.GraphDef.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">sess</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SessionConfig</span><span class="p">())</span>
+  <span class="n">saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">convert_variables_to_constants</span><span class="p">(</span>
+      <span class="n">sess</span><span class="p">,</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="n">output_op_names</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_FreezeDefaults"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter._FreezeDefaults">[docs]</a><span class="k">def</span> <span class="nf">_FreezeDefaults</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Default initializes a graph and freezes it.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    graph: tf.Graph.</span>
+<span class="sd">    output_op_names: Names of output ops.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Resulting tf.GraphDef.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">graph</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SessionConfig</span><span class="p">())</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">convert_variables_to_constants</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span>
+                                                        <span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span>
+                                                        <span class="n">output_op_names</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="InferenceGraphExporter"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.InferenceGraphExporter">[docs]</a><span class="k">class</span> <span class="nc">InferenceGraphExporter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Class for exporting inference graphs.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="InferenceGraphExporter.Export"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.InferenceGraphExporter.Export">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Export</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
+             <span class="n">model_cfg</span><span class="p">,</span>
+             <span class="n">model_task_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">per_step_inference</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">device_options</span><span class="o">=</span><span class="n">InferenceDeviceOptions</span><span class="p">(</span>
+                 <span class="n">device</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                 <span class="n">retain_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                 <span class="n">var_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">gen_init_op</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                 <span class="n">dtype_override</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>
+             <span class="n">freeze_checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">freeze_defaults</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">export_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">subgraph_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Exports a InferenceGraph proto with piecewise subgraphs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      model_cfg: a Params instance as returned by</span>
+<span class="sd">        model_registry.GetParams(modelname, &#39;Test&#39;) or model_params.Model().</span>
+<span class="sd">      model_task_name: The task to generate an inference graph for. Should be</span>
+<span class="sd">        None for single-task models.</span>
+<span class="sd">      per_step_inference: Whether the exported graph will be driven step-by-step</span>
+<span class="sd">        instead of being end-to-end.</span>
+<span class="sd">      device_options: Device options for the accelerator used for serving.</span>
+<span class="sd">      freeze_checkpoint: The checkpoint to load. Loads and freezes the model if</span>
+<span class="sd">        given.</span>
+<span class="sd">      freeze_defaults: Default initializes the graph and freeze. Useful for</span>
+<span class="sd">        early testing of downstream tools without having a checkpoint.</span>
+<span class="sd">      export_path: If not None, write the inference graph in ASCII to this path.</span>
+<span class="sd">      subgraph_filter: If not None or empty, export only this list of inference</span>
+<span class="sd">        subgraphs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      InferenceGraph proto.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if the model does not support the listed subgraphs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">BaseModel</span><span class="p">)</span>
+
+    <span class="c1"># TODO(laurenzo): Work out how much we need to specify here in terms of</span>
+    <span class="c1"># cluster configuration.</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_SetClusterParams</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cluster</span><span class="p">,</span> <span class="n">device_options</span><span class="p">)</span>
+
+    <span class="c1"># Disable packed inputs for inference writing purposes.</span>
+    <span class="k">def</span> <span class="nf">_DisablePackedInput</span><span class="p">(</span><span class="n">task</span><span class="p">):</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s1">&#39;encoder&#39;</span><span class="p">)</span> <span class="ow">and</span>
+          <span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="s1">&#39;packed_input&#39;</span><span class="p">)):</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">)</span> <span class="ow">and</span>
+          <span class="n">_ParamExists</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="s1">&#39;packed_input&#39;</span><span class="p">)):</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># Configure the model.</span>
+    <span class="n">model_cfg</span><span class="o">.</span><span class="n">is_eval</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">model_cfg</span><span class="o">.</span><span class="n">is_inference</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">task_param</span> <span class="ow">in</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+        <span class="n">task_param</span><span class="o">.</span><span class="n">per_step_infer</span> <span class="o">=</span> <span class="n">per_step_inference</span>
+        <span class="n">_DisablePackedInput</span><span class="p">(</span><span class="n">task_param</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">model_cfg</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">per_step_infer</span> <span class="o">=</span> <span class="n">per_step_inference</span>
+      <span class="n">_DisablePackedInput</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Model </span><span class="si">%s</span><span class="s1">. Params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+
+    <span class="c1"># Instantiate the graph.</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="n">cluster</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
+      <span class="n">device</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()</span>
+      <span class="n">tpu_const_scope</span> <span class="o">=</span> <span class="n">_DummyScope</span><span class="p">()</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span>
+          <span class="n">device_options</span><span class="o">.</span><span class="n">var_options</span> <span class="o">==</span> <span class="s1">&#39;AS_CONSTANTS&#39;</span><span class="p">):</span>
+        <span class="c1"># Do not specify devices for variables if we are marking them as</span>
+        <span class="c1"># constants.</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="n">tpu_const_scope</span> <span class="o">=</span> <span class="n">ConstGuaranteeScope</span><span class="p">()</span>
+
+      <span class="k">with</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">),</span> <span class="n">tpu_const_scope</span><span class="p">:</span>
+
+        <span class="n">bfloat16_override</span> <span class="o">=</span> <span class="n">ShouldForceBfloat16ForWeightsAndActivations</span><span class="p">(</span>
+            <span class="n">device_options</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">bfloat16_override</span><span class="p">:</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateDtype</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateFpropDtype</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+
+        <span class="n">old_enable_asserts</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span>
+        <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
+          <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">mdl</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">)</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="n">old_enable_asserts</span>
+        <span class="n">variables_to_load</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span> <span class="k">else</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="n">bfloat16_override</span><span class="p">:</span>
+          <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">GetVariablesWithBfloat16Overrides</span><span class="p">(</span><span class="n">variables_to_load</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">GetAllVariables</span><span class="p">(</span><span class="n">variables_to_load</span><span class="p">)</span>
+
+        <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">saver_var_spec</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">gen_init_op</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
+
+        <span class="n">model_task</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">model_task_name</span><span class="p">)</span>
+
+        <span class="n">inference_graph_proto</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
+        <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">model_task</span><span class="o">.</span><span class="n">Inference</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+          <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">ConvertSubgraphDictToProto</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">subgraph</span> <span class="ow">in</span> <span class="n">subgraphs_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="n">subgraph_filter</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">subgraph_filter</span><span class="p">:</span>
+            <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
+
+        <span class="c1"># Add a table init op and global variable init op to the graph.</span>
+        <span class="c1"># Tables can be declared anywhere in the graph, so this op has to be</span>
+        <span class="c1"># added last.</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
+
+    <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">)</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Graph contains ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()])</span>
+
+    <span class="c1"># Freezing.</span>
+    <span class="k">if</span> <span class="n">freeze_defaults</span> <span class="ow">or</span> <span class="n">freeze_checkpoint</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_DeviceSupportsFreezing</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;freeze_checkpoint cannot be used with device &#39;</span> <span class="o">+</span>
+                         <span class="n">device_options</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">freeze_checkpoint</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Freezing graph from checkpoint: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">freeze_checkpoint</span><span class="p">)</span>
+        <span class="n">graph_def</span> <span class="o">=</span> <span class="n">_FreezeGraphFromCheckpoint</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">saver</span><span class="p">,</span> <span class="n">freeze_checkpoint</span><span class="p">,</span>
+                                               <span class="n">output_op_names</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">freeze_defaults</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Default initializing graph and freezing.&#39;</span><span class="p">)</span>
+        <span class="n">graph_def</span> <span class="o">=</span> <span class="n">_FreezeDefaults</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">saver</span><span class="o">.</span><span class="n">as_saver_def</span><span class="p">())</span>
+      <span class="c1"># Prune the graph to just the parts we need.</span>
+      <span class="c1"># To support restoring, we have to not prune out the restore node.</span>
+      <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
+      <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">)</span>
+      <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;save/control_dependency&#39;</span><span class="p">)</span>
+      <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;save/restore_all&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">gen_init_op</span><span class="p">:</span>
+        <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
+      <span class="n">graph_def</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">()</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Pruning graph to output ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
+      <span class="n">graph_def</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">graph_util</span><span class="o">.</span><span class="n">extract_sub_graph</span><span class="p">(</span><span class="n">graph_def</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">device_options</span><span class="o">.</span><span class="n">retain_device_placement</span><span class="p">:</span>
+      <span class="c1"># Clear the device so that the runtime can choose.</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Clearing device placement for: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">device_options</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph_def</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>
+        <span class="n">node</span><span class="o">.</span><span class="n">ClearField</span><span class="p">(</span><span class="s1">&#39;device&#39;</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">function</span> <span class="ow">in</span> <span class="n">graph_def</span><span class="o">.</span><span class="n">library</span><span class="o">.</span><span class="n">function</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">node_def</span> <span class="ow">in</span> <span class="n">function</span><span class="o">.</span><span class="n">node_def</span><span class="p">:</span>
+          <span class="n">node_def</span><span class="o">.</span><span class="n">ClearField</span><span class="p">(</span><span class="s1">&#39;device&#39;</span><span class="p">)</span>
+
+    <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">graph_def</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">graph_def</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">export_path</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">export_path</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">text_format</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="n">inference_graph_proto</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">inference_graph_proto</span></div>
+
+<div class="viewcode-block" id="InferenceGraphExporter._SetClusterParams"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.InferenceGraphExporter._SetClusterParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_SetClusterParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cluster_params</span><span class="p">,</span> <span class="n">device_options</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets cluster params.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      cluster_params: Model().cluster config.</span>
+<span class="sd">      device_options: InferenceDeviceOptions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">Update</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Update cluster params `p`.&quot;&quot;&quot;</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:localhost&#39;</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;decoder&#39;</span>
+    <span class="n">Update</span><span class="p">(</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">controller</span><span class="p">)</span>
+    <span class="n">Update</span><span class="p">(</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">worker</span><span class="p">)</span>
+    <span class="n">Update</span><span class="p">(</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">ps</span><span class="p">)</span>
+    <span class="n">Update</span><span class="p">(</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">evaler</span><span class="p">)</span>
+    <span class="n">Update</span><span class="p">(</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
+    <span class="n">Update</span><span class="p">(</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">input</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="InferenceGraphExporter._DeviceSupportsFreezing"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.InferenceGraphExporter._DeviceSupportsFreezing">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">_DeviceSupportsFreezing</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">device_options</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

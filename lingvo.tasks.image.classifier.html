@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.image.classifier module &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.image.classifier module &mdash; Lingvo  documentation</title>
   
 
   
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,8 +78,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
@@ -107,7 +106,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -183,6 +182,29 @@
 <dd><p>Adds image summaries for the batch.</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="lingvo.tasks.image.classifier.BaseClassifier._Accuracy">
+<code class="descname">_Accuracy</code><span class="sig-paren">(</span><em>k</em>, <em>logits</em>, <em>labels</em>, <em>weights</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#BaseClassifier._Accuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.BaseClassifier._Accuracy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute top-k accuracy.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>k</strong> – An int scalar. Top-k.</li>
+<li><strong>logits</strong> – A [N, C] float tensor.</li>
+<li><strong>labels</strong> – A [N] int vector.</li>
+<li><strong>weights</strong> – A [N] float vector.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A float scalar. The accuracy at precision k.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -205,8 +227,8 @@
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this
-task copied to this tower’s devices.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task
+copied to this tower’s devices.</li>
 <li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
 </ul>
 </td>
@@ -220,9 +242,19 @@ task copied to this tower’s devices.</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.image.classifier.ModelV1.Decode">
-<code class="descname">Decode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1.Decode" title="Permalink to this definition">¶</a></dt>
+<code class="descname">Decode</code><span class="sig-paren">(</span><em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV1.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV1.Decode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph for eval decoding.</p>
-<p>Returns a dict of Tensors as decoder output.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>input_batch</strong> – The input batch. A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of tensors. Or, if input batch
+spiltting is used, a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code>, one for each split.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a dict of Tensors as decoder output.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -277,8 +309,8 @@ object as created by <a class="reference internal" href="#lingvo.tasks.image.cla
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this
-task copied to this tower’s devices.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task
+copied to this tower’s devices.</li>
 <li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
 </ul>
 </td>
@@ -314,7 +346,7 @@ task copied to this tower’s devices.</li>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -333,21 +365,14 @@ task copied to this tower’s devices.</li>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

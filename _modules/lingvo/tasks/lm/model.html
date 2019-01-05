@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.lm.model &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.lm.model &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../../index.html">lingvo</a>
+          <a href="../../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -255,7 +254,7 @@
         <span class="s1">&#39;log_pplx_per_word&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent_output</span><span class="o">.</span><span class="n">total_xent</span> <span class="o">/</span> <span class="n">num_words</span><span class="p">,</span> <span class="n">num_words</span><span class="p">),</span>
         <span class="s1">&#39;num_predictions&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_preds</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
         <span class="s1">&#39;num_words&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">num_words</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="p">}</span></div>
+    <span class="p">},</span> <span class="p">{}</span></div>
 
 <div class="viewcode-block" id="LanguageModel.AdjustGradients"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.LanguageModel.AdjustGradients">[docs]</a>  <span class="k">def</span> <span class="nf">AdjustGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Clip LSTM gradients.</span>
@@ -283,7 +282,84 @@
       <span class="n">var_grad</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">rnns</span> <span class="o">=</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
           <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">lstm_vars</span><span class="p">,</span> <span class="n">clipped_lstm_grads</span><span class="p">)))</span>
 
-    <span class="k">return</span> <span class="n">var_grad</span></div></div>
+    <span class="k">return</span> <span class="n">var_grad</span></div>
+
+<div class="viewcode-block" id="LanguageModel.Inference"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.LanguageModel.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the inference subgraphs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      {&#39;subgraph_name&#39;: (fetches, feeds)}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">subgraphs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;inference&#39;</span><span class="p">):</span>
+      <span class="n">subgraphs</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InferenceSubgraph_Default</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">subgraphs</span></div>
+
+<div class="viewcode-block" id="LanguageModel._InferenceSubgraph_Default"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.model.html#lingvo.tasks.lm.model.LanguageModel._InferenceSubgraph_Default">[docs]</a>  <span class="k">def</span> <span class="nf">_InferenceSubgraph_Default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Default inference subgraph.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (fetches, feeds), with:</span>
+
+<span class="sd">      - fetches: A dictionary of fetches, containing:</span>
+
+<span class="sd">        - log_pplx_per_token: A matrix of shape [batch, time]. [i, j]</span>
+<span class="sd">          is i-th input text&#39;s j-th token&#39;s log prob.</span>
+<span class="sd">        - paddings: A matrix of shape [batch, time]. The padding mask.</span>
+<span class="sd">        - log_pplx_per_sample: A vector of shape [batch]. [i]</span>
+<span class="sd">          is i-th input text&#39;s log prob.</span>
+<span class="sd">        - num_oovs_per_sample: A vector of shape [batch] counting the total</span>
+<span class="sd">          number of out-of-vocabulary tokens in each input.</span>
+<span class="sd">        - tokens_from_labels: A vector of shape [batch] returning the predicted</span>
+<span class="sd">          tokens as a sequence after mapping them back to strings from ids using</span>
+<span class="sd">          the vocabulary.</span>
+<span class="sd">        - ids: A matrix of shape [batch, time]. [i, j]</span>
+<span class="sd">          is i-th input text&#39;s j-th token&#39;s id.</span>
+
+<span class="sd">      - feeds: A dictionary of feeds, containing:</span>
+
+<span class="sd">        - text: A placeholder for a vector of strings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">])</span>
+    <span class="c1"># [batch, time]</span>
+    <span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+    <span class="n">lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">tokens_from_labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">lengths</span><span class="p">)</span>
+    <span class="n">oovs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">unk_id</span><span class="p">)</span>
+    <span class="n">num_oovs_per_sample</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">oovs</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+    <span class="c1"># [time, batch]</span>
+    <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrimIfPossibleThenTranspose</span><span class="p">(</span>
+        <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">)</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">xent_output</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">ids</span><span class="p">,</span>
+        <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">,</span>
+        <span class="n">state0</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">),</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">class_ids</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">class_weights</span><span class="o">=</span><span class="n">weights</span><span class="p">))</span>
+
+    <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">xent_output</span><span class="o">.</span><span class="n">per_example_xent</span><span class="p">,</span>
+                                         <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+    <span class="n">log_pplx_per_sample</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">per_example_xent</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">fetches</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;log_pplx_per_token&#39;</span><span class="p">:</span>  <span class="c1"># [batch, time]</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">per_example_xent</span><span class="p">),</span>
+        <span class="s1">&#39;paddings&#39;</span><span class="p">:</span>  <span class="c1"># [batch, time]</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span>
+        <span class="s1">&#39;lengths&#39;</span><span class="p">:</span>  <span class="c1"># [batch]</span>
+            <span class="n">lengths</span><span class="p">,</span>
+        <span class="s1">&#39;log_pplx_per_sample&#39;</span><span class="p">:</span>  <span class="c1"># [batch]</span>
+            <span class="n">log_pplx_per_sample</span><span class="p">,</span>
+        <span class="s1">&#39;num_oovs_per_sample&#39;</span><span class="p">:</span>  <span class="c1"># [batch], int32</span>
+            <span class="n">num_oovs_per_sample</span><span class="p">,</span>
+        <span class="s1">&#39;tokens_from_labels&#39;</span><span class="p">:</span>  <span class="c1"># [batch], string</span>
+            <span class="n">tokens_from_labels</span><span class="p">,</span>
+        <span class="s1">&#39;ids&#39;</span><span class="p">:</span>  <span class="c1"># [batch, time], int32</span>
+            <span class="n">ids</span>
+    <span class="p">}</span>
+    <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div></div>
 </pre></div>
 
            </div>
@@ -296,7 +372,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -315,21 +391,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
 
   
 

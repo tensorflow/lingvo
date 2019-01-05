@@ -6,11 +6,7 @@
 Welcome to lingvo's documentation!
 ==================================
 
-.. toctree::
-   :maxdepth: 4
-   :caption: Contents:
-
-   lingvo
+.. include:: modules.rst
 
 
 Indices and tables

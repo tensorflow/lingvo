@@ -1,0 +1,564 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.asr.model &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.model</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.asr.model</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;Speech model.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tools</span> <span class="k">import</span> <span class="n">audio_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="k">import</span> <span class="n">decoder</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="k">import</span> <span class="n">decoder_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="k">import</span> <span class="n">encoder</span>
+
+<span class="c1"># hyps: [num_beams, num_hyps_per_beam] of serialized Hypothesis protos.</span>
+<span class="c1"># ids: [num_beams * num_hyps_per_beam, max_target_length].</span>
+<span class="c1"># lens: [num_beams * num_hyps_per_beam].</span>
+<span class="c1"># scores: [num_beams, num_hyps_per_beam].</span>
+<span class="c1"># decoded: [num_beams, num_hyps_per_beam].</span>
+<span class="n">DecoderTopK</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;topk&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;hyps&#39;</span><span class="p">,</span> <span class="s1">&#39;ids&#39;</span><span class="p">,</span> <span class="s1">&#39;lens&#39;</span><span class="p">,</span> <span class="s1">&#39;scores&#39;</span><span class="p">,</span> <span class="s1">&#39;decoded&#39;</span><span class="p">])</span>  <span class="c1"># pyformat: disable</span>
+
+
+<div class="viewcode-block" id="AsrModel"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel">[docs]</a><span class="k">class</span> <span class="nc">AsrModel</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Speech model.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AsrModel.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AsrModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">AsrEncoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">AsrDecoder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;target_key&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;If non-empty, will use the specified key from &#39;</span>
+        <span class="s1">&#39;input_batch.additional_tgts to set training targets.&#39;</span><span class="p">)</span>
+
+    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">lr_schedule</span><span class="o">.</span><span class="n">PiecewiseConstantLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">boundaries</span><span class="o">=</span><span class="p">[</span><span class="mi">350000</span><span class="p">,</span> <span class="mi">500000</span><span class="p">,</span> <span class="mi">600000</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span>
+                                                         <span class="mf">0.001</span><span class="p">]))</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">vn_start_step</span> <span class="o">=</span> <span class="mi">20000</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">vn_std</span> <span class="o">=</span> <span class="mf">0.075</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">l2_regularizer_weight</span> <span class="o">=</span> <span class="mf">1e-6</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.001</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">clip_gradient_norm_to_value</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_to_clip_to_zero</span> <span class="o">=</span> <span class="mf">100.0</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">=</span> <span class="mi">20</span>
+
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;params.name not set.&#39;</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">AsrModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># Construct the model.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;enc&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;encoder&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;dec&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="p">)</span>
+
+<div class="viewcode-block" id="AsrModel.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">target_key</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;Using batch.additional_tgts[</span><span class="si">%s</span><span class="s1">] to source &#39;</span>
+          <span class="s1">&#39;tgts instead of batch.tgts.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">target_key</span><span class="p">)</span>
+      <span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">additional_tgts</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">target_key</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AsrModel.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">target_key</span><span class="p">:</span>
+      <span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">additional_tgts</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">target_key</span><span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AsrModel._GetTopK"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._GetTopK">[docs]</a>  <span class="k">def</span> <span class="nf">_GetTopK</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_outs</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="n">hyps</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_hyps</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_ids</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;TopKLabelIds&#39;</span> <span class="o">+</span> <span class="n">tag</span><span class="p">)</span>
+    <span class="n">lens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_lens</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;TopKLabelLengths&#39;</span> <span class="o">+</span> <span class="n">tag</span><span class="p">)</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_scores</span>
+    <span class="n">decoded</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_decoded</span>
+
+    <span class="k">if</span> <span class="n">ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">decoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">decoded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">decoded</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;top_k_decoded&#39;</span><span class="p">)</span>
+      <span class="n">decoded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">decoded</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">hyps</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">hyps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">hyps</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">DecoderTopK</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">decoded</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AsrModel._ComputeNormalizedWER"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._ComputeNormalizedWER">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeNormalizedWER</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">,</span> <span class="n">refs</span><span class="p">):</span>
+    <span class="c1"># Filter out all &#39;&lt;epsilon&gt;&#39; tokens for norm_wer computation.</span>
+    <span class="n">hyps_no_epsilon</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="s1">&#39;(&lt;epsilon&gt;)+&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="c1"># norm_wer is size [num_transcripts * hyps_per_beam, 2]</span>
+    <span class="n">norm_wer</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">ComputeWer</span><span class="p">(</span><span class="n">hyps_no_epsilon</span><span class="p">,</span> <span class="n">refs</span><span class="p">)</span>
+    <span class="c1"># Split into two tensors of size [num_transcripts * hyps_per_beam, 1]</span>
+    <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">norm_wer</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span><span class="p">]</span>
+    <span class="n">norm_wer_errors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span>
+    <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">norm_wer_words</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">norm_wer_words</span></div>
+
+<div class="viewcode-block" id="AsrModel.AddAdditionalDecoderMetricsToGraph"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.AddAdditionalDecoderMetricsToGraph">[docs]</a>  <span class="k">def</span> <span class="nf">AddAdditionalDecoderMetricsToGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">topk_hyps</span><span class="p">,</span> <span class="n">filtered_hyps</span><span class="p">,</span>
+                                         <span class="n">filtered_refs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a dict of metrics which should be computed from decoded hyps.&quot;&quot;&quot;</span>
+    <span class="c1"># The base class implementation returns an empty dictionary. Sub-classes can</span>
+    <span class="c1"># provide their own implementation.</span>
+    <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="AsrModel.Decode"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the inference graph.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fprop&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="s1">&#39;contextualizer&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">contextualizer</span><span class="o">.</span><span class="n">SetContextMap</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="p">)</span>
+      <span class="n">decoder_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">)</span>
+      <span class="n">topk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTopK</span><span class="p">(</span><span class="n">decoder_outs</span><span class="p">)</span>
+
+      <span class="n">utt_ids</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">sample_ids</span>
+      <span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">target_key</span><span class="p">:</span>
+        <span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">additional_tgts</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">target_key</span><span class="p">]</span>
+      <span class="n">transcripts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span>
+          <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+
+      <span class="c1"># Filter out all isolated &#39;&lt;noise&gt;&#39; tokens.</span>
+      <span class="n">noise_pattern</span> <span class="o">=</span> <span class="s1">&#39; &lt;noise&gt; |^&lt;noise&gt; | &lt;noise&gt;$|^&lt;noise&gt;$&#39;</span>
+      <span class="n">filtered_refs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">noise_pattern</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+      <span class="n">filtered_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">topk</span><span class="o">.</span><span class="n">decoded</span><span class="p">,</span> <span class="n">noise_pattern</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+      <span class="c1"># Compute translation quality scores for all hyps.</span>
+      <span class="n">filtered_refs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">filtered_refs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
+          <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span><span class="p">])</span>
+      <span class="n">filtered_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">filtered_hyps</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">filtered_refs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">filtered_refs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeNormalizedWER</span><span class="p">(</span>
+          <span class="n">filtered_hyps</span><span class="p">,</span> <span class="n">filtered_refs</span><span class="p">)</span>
+
+      <span class="n">ret_dict</span> <span class="o">=</span> <span class="p">{</span>
+          <span class="s1">&#39;target_ids&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
+          <span class="s1">&#39;target_labels&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+          <span class="s1">&#39;target_weights&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
+          <span class="s1">&#39;target_paddings&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span>
+          <span class="s1">&#39;utt_id&#39;</span><span class="p">:</span> <span class="n">utt_ids</span><span class="p">,</span>
+          <span class="s1">&#39;transcripts&#39;</span><span class="p">:</span> <span class="n">transcripts</span><span class="p">,</span>
+          <span class="s1">&#39;topk_decoded&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">decoded</span><span class="p">,</span>
+          <span class="s1">&#39;topk_ids&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
+          <span class="s1">&#39;topk_lens&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">lens</span><span class="p">,</span>
+          <span class="s1">&#39;topk_scores&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+          <span class="s1">&#39;norm_wer_errors&#39;</span><span class="p">:</span> <span class="n">norm_wer_errors</span><span class="p">,</span>
+          <span class="s1">&#39;norm_wer_words&#39;</span><span class="p">:</span> <span class="n">norm_wer_words</span><span class="p">,</span>
+      <span class="p">}</span>
+
+      <span class="n">ret_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">AddAdditionalDecoderMetricsToGraph</span><span class="p">(</span><span class="n">topk</span><span class="p">,</span> <span class="n">filtered_hyps</span><span class="p">,</span>
+                                                  <span class="n">filtered_refs</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">ret_dict</span></div>
+
+<div class="viewcode-block" id="AsrModel.CreateAdditionalDecoderMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.CreateAdditionalDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateAdditionalDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a dictionary of additional metrics which should be computed.&quot;&quot;&quot;</span>
+    <span class="c1"># The base class implementation returns an empty dictionary. Sub-classes can</span>
+    <span class="c1"># provide their own implementation.</span>
+    <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="AsrModel.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">base_metrics</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
+        <span class="s1">&#39;wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Word error rate.</span>
+        <span class="s1">&#39;norm_wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Normalized word error rate.</span>
+        <span class="s1">&#39;sacc&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Sentence accuracy.</span>
+        <span class="s1">&#39;ter&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>  <span class="c1"># Token error rate.</span>
+        <span class="s1">&#39;corpus_bleu&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">CorpusBleuMetric</span><span class="p">(),</span>
+        <span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
+    <span class="p">}</span>
+
+    <span class="c1"># Add any additional metrics that should be computed.</span>
+    <span class="n">base_metrics</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CreateAdditionalDecoderMetrics</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">base_metrics</span></div>
+
+<div class="viewcode-block" id="AsrModel.UpdateAdditionalMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.UpdateAdditionalMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">UpdateAdditionalMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates and returns a dictionary of metrics based on decoded hyps.&quot;&quot;&quot;</span>
+    <span class="c1"># Can be implemented in sub-classes to perform any model specific behavior.</span>
+    <span class="c1"># The default implementation just returns the metrics unchanged.</span>
+    <span class="k">del</span> <span class="n">dec_out_dict</span>
+    <span class="k">return</span> <span class="n">dec_metrics_dict</span></div>
+
+  <span class="c1"># TODO(prabhavalkar): Add support to save out the decoded hypotheses.</span>
+<div class="viewcode-block" id="AsrModel.PostProcessDecodeOut"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">topk_scores</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;topk_scores&#39;</span><span class="p">]</span>
+    <span class="n">topk_decoded</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;topk_decoded&#39;</span><span class="p">]</span>
+    <span class="n">transcripts</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;transcripts&#39;</span><span class="p">]</span>
+    <span class="n">utt_id</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;utt_id&#39;</span><span class="p">]</span>
+    <span class="n">norm_wer_errors</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer_errors&#39;</span><span class="p">]</span>
+    <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer_words&#39;</span><span class="p">]</span>
+    <span class="n">target_labels</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;target_labels&#39;</span><span class="p">]</span>
+    <span class="n">target_paddings</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;target_paddings&#39;</span><span class="p">]</span>
+    <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;topk_ids&#39;</span><span class="p">]</span>
+    <span class="n">topk_lens</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;topk_lens&#39;</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_labels</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">utt_id</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">topk_ids</span><span class="p">)</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span> <span class="o">*</span>
+            <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">))</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">norm_wer_errors</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">norm_wer_words</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
+
+    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">GetRefIds</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">,</span> <span class="n">ref_paddinds</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_paddinds</span><span class="p">)</span>
+      <span class="n">return_ids</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="n">ref_paddinds</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">return_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">return_ids</span>
+
+    <span class="n">total_errs</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_oracle_errs</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_ref_words</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_token_errs</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_ref_tokens</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_norm_wer_errs</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_norm_wer_words</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">total_accurate_sentences</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">key_value_pairs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)):</span>
+      <span class="n">ref_str</span> <span class="o">=</span> <span class="n">transcripts</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;utt_id: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">utt_id</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ref_str: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ref_str</span><span class="p">)</span>
+      <span class="n">hyps</span> <span class="o">=</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">ref_ids</span> <span class="o">=</span> <span class="n">GetRefIds</span><span class="p">(</span><span class="n">target_labels</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">target_paddings</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+      <span class="n">hyp_index</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span>
+      <span class="n">top_hyp_ids</span> <span class="o">=</span> <span class="n">topk_ids</span><span class="p">[</span><span class="n">hyp_index</span><span class="p">][:</span><span class="n">topk_lens</span><span class="p">[</span><span class="n">hyp_index</span><span class="p">]]</span>
+      <span class="n">total_ref_tokens</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_ids</span><span class="p">)</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">token_errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistanceInIds</span><span class="p">(</span>
+          <span class="n">ref_ids</span><span class="p">,</span> <span class="n">top_hyp_ids</span><span class="p">)</span>
+      <span class="n">total_token_errs</span> <span class="o">+=</span> <span class="n">token_errs</span>
+
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)</span>
+      <span class="n">filtered_ref</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterNoise</span><span class="p">(</span><span class="n">ref_str</span><span class="p">)</span>
+      <span class="n">filtered_ref</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterEpsilon</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">)</span>
+      <span class="n">oracle_errs</span> <span class="o">=</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hyps</span><span class="p">)):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  </span><span class="si">%f</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span>
+        <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterNoise</span><span class="p">(</span><span class="n">hyp_str</span><span class="p">)</span>
+        <span class="n">filtered_hyp</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">FilterEpsilon</span><span class="p">(</span><span class="n">filtered_hyp</span><span class="p">)</span>
+        <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span> <span class="o">=</span> <span class="n">decoder_utils</span><span class="o">.</span><span class="n">EditDistance</span><span class="p">(</span>
+            <span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
+        <span class="c1"># Note that these numbers are not consistent with what is used to</span>
+        <span class="c1"># compute normalized WER.  In particular, these numbers will be inflated</span>
+        <span class="c1"># when the transcript contains punctuation.</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ins: </span><span class="si">%d</span><span class="s1">, subs: </span><span class="si">%d</span><span class="s1">, del: </span><span class="si">%d</span><span class="s1">, total: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span>
+                        <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span><span class="p">)</span>
+        <span class="n">hyp_norm_wer_errors</span> <span class="o">=</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">n</span><span class="p">]</span>
+        <span class="n">hyp_norm_wer_words</span> <span class="o">=</span> <span class="n">norm_wer_words</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">n</span><span class="p">]</span>
+        <span class="c1"># Only aggregate scores of the top hypothesis.</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">total_errs</span> <span class="o">+=</span> <span class="n">errs</span>
+          <span class="n">total_ref_words</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">decoder_utils</span><span class="o">.</span><span class="n">Tokenize</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">))</span>
+          <span class="n">total_norm_wer_errs</span> <span class="o">+=</span> <span class="n">hyp_norm_wer_errors</span>
+          <span class="k">if</span> <span class="n">hyp_norm_wer_errors</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">total_accurate_sentences</span> <span class="o">+=</span> <span class="mi">1</span>
+          <span class="n">total_norm_wer_words</span> <span class="o">+=</span> <span class="n">hyp_norm_wer_words</span>
+          <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;corpus_bleu&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">filtered_ref</span><span class="p">,</span> <span class="n">filtered_hyp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">hyp_norm_wer_errors</span> <span class="o">&lt;</span> <span class="n">oracle_errs</span><span class="p">:</span>
+          <span class="n">oracle_errs</span> <span class="o">=</span> <span class="n">hyp_norm_wer_errors</span>
+      <span class="n">total_oracle_errs</span> <span class="o">+=</span> <span class="n">oracle_errs</span>
+
+    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_errs</span> <span class="o">/</span> <span class="n">total_ref_words</span><span class="p">,</span>
+                                   <span class="n">total_ref_words</span><span class="p">)</span>
+    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+        <span class="n">total_oracle_errs</span> <span class="o">/</span> <span class="n">total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;sacc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_accurate_sentences</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">),</span>
+                                    <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">))</span>
+    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+        <span class="n">total_norm_wer_errs</span> <span class="o">/</span> <span class="n">total_norm_wer_words</span><span class="p">,</span> <span class="n">total_norm_wer_words</span><span class="p">)</span>
+    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;ter&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_token_errs</span> <span class="o">/</span> <span class="n">total_ref_tokens</span><span class="p">,</span>
+                                   <span class="n">total_ref_tokens</span><span class="p">)</span>
+
+    <span class="c1"># Update any additional metrics.</span>
+    <span class="n">dec_metrics_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UpdateAdditionalMetrics</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="p">,</span>
+                                                    <span class="n">dec_metrics_dict</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">key_value_pairs</span></div>
+
+<div class="viewcode-block" id="AsrModel.Inference"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs inference subgraphs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dictionary of the form {&#39;subgraph_name&#39;: (fetches, feeds)}. Each of</span>
+<span class="sd">      fetches and feeds is itself a dictionary which maps a string name (which</span>
+<span class="sd">      describes the tensor) to a corresponding tensor in the inference graph</span>
+<span class="sd">      which should be fed/fetched from.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">subgraphs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;inference&#39;</span><span class="p">):</span>
+      <span class="n">subgraphs</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InferenceSubgraph_Default</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">subgraphs</span></div>
+
+<div class="viewcode-block" id="AsrModel._InferenceSubgraph_Default"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._InferenceSubgraph_Default">[docs]</a>  <span class="k">def</span> <span class="nf">_InferenceSubgraph_Default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs graph for offline inference.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (fetches, feeds) where both fetches and feeds are dictionaries. Each</span>
+<span class="sd">      dictionary consists of keys corresponding to tensor names, and values</span>
+<span class="sd">      corresponding to a tensor in the graph which should be input/read from.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">):</span>
+      <span class="n">wav_bytes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;wav&#39;</span><span class="p">)</span>
+      <span class="n">log_mel</span> <span class="o">=</span> <span class="n">audio_lib</span><span class="o">.</span><span class="n">ExtractLogMelFeatures</span><span class="p">(</span><span class="n">wav_bytes</span><span class="p">)</span>
+
+      <span class="c1"># Reshape log_mel features, if required. For example, by undoing default</span>
+      <span class="c1"># stacking.</span>
+      <span class="n">src_frames</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">log_mel</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">frame_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">src_frames</span><span class="p">)[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+      <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">src_inputs</span><span class="o">=</span><span class="n">src_frames</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">src_paddings</span><span class="p">))</span>
+      <span class="n">decoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">)</span>
+      <span class="n">topk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTopK</span><span class="p">(</span><span class="n">decoder_outputs</span><span class="p">)</span>
+
+      <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;wav&#39;</span><span class="p">:</span> <span class="n">wav_bytes</span><span class="p">}</span>
+      <span class="n">fetches</span> <span class="o">=</span> <span class="p">{</span>
+          <span class="s1">&#39;hypotheses&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">decoded</span><span class="p">,</span>
+          <span class="s1">&#39;scores&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+          <span class="s1">&#39;src_frames&#39;</span><span class="p">:</span> <span class="n">src_frames</span><span class="p">,</span>
+          <span class="s1">&#39;encoder_frames&#39;</span><span class="p">:</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">encoded</span>
+      <span class="p">}</span>
+
+      <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

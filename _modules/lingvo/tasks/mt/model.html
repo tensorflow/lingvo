@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.mt.model &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.mt.model &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../../index.html">lingvo</a>
+          <a href="../../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -181,16 +180,14 @@
 <div class="viewcode-block" id="MTBaseModel._EncoderDevice"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel._EncoderDevice">[docs]</a>  <span class="k">def</span> <span class="nf">_EncoderDevice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the device to run the encoder computation.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-      <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MTBaseModel._DecoderDevice"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel._DecoderDevice">[docs]</a>  <span class="k">def</span> <span class="nf">_DecoderDevice</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the device to run the decoder computation.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-      <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span></div>
 
@@ -223,11 +220,10 @@
       <span class="k">return</span> <span class="n">key</span>
     <span class="k">return</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="MTBaseModel._BeamSearchDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel._BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">_BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MTBaseModel._BeamSearchDecode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel._BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">_BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fprop&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
-      <span class="n">src_enc</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="p">)</span>
+      <span class="n">src_enc</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="p">)</span>
       <span class="n">decoder_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span><span class="n">src_enc</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">)</span>
 
       <span class="n">topk_hyps</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_hyps</span>
@@ -235,24 +231,24 @@
       <span class="n">topk_lens</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_lens</span>
       <span class="n">topk_scores</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_scores</span>
 
-      <span class="n">slen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="n">slen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
       <span class="n">srcs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span>
-          <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">slen</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTokenizerKeyToUse</span><span class="p">(</span><span class="s1">&#39;src&#39;</span><span class="p">))</span>
+          <span class="n">input_batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">slen</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTokenizerKeyToUse</span><span class="p">(</span><span class="s1">&#39;src&#39;</span><span class="p">))</span>
       <span class="n">topk_decoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span>
           <span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTokenizerKeyToUse</span><span class="p">(</span><span class="s1">&#39;tgt&#39;</span><span class="p">))</span>
       <span class="n">topk_decoded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">topk_hyps</span><span class="p">))</span>
       <span class="n">topk_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">topk_hyps</span><span class="p">))</span>
 
       <span class="n">refs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span>
-          <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span>
+          <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">),</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_GetTokenizerKeyToUse</span><span class="p">(</span><span class="s1">&#39;tgt&#39;</span><span class="p">))</span>
 
       <span class="n">ret_dict</span> <span class="o">=</span> <span class="p">{</span>
-          <span class="s1">&#39;target_ids&#39;</span><span class="p">:</span> <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
-          <span class="s1">&#39;target_labels&#39;</span><span class="p">:</span> <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
-          <span class="s1">&#39;target_weights&#39;</span><span class="p">:</span> <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
-          <span class="s1">&#39;target_paddings&#39;</span><span class="p">:</span> <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span>
+          <span class="s1">&#39;target_ids&#39;</span><span class="p">:</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
+          <span class="s1">&#39;target_labels&#39;</span><span class="p">:</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+          <span class="s1">&#39;target_weights&#39;</span><span class="p">:</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
+          <span class="s1">&#39;target_paddings&#39;</span><span class="p">:</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span>
           <span class="s1">&#39;sources&#39;</span><span class="p">:</span> <span class="n">srcs</span><span class="p">,</span>
           <span class="s1">&#39;targets&#39;</span><span class="p">:</span> <span class="n">refs</span><span class="p">,</span>
           <span class="s1">&#39;topk_decoded&#39;</span><span class="p">:</span> <span class="n">topk_decoded</span><span class="p">,</span>
@@ -278,20 +274,22 @@
 
     <span class="n">key_value_pairs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_samples</span><span class="p">):</span>
-      <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span> <span class="o">=</span> <span class="n">unsegment</span><span class="p">(</span><span class="n">sources</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">unsegment</span><span class="p">(</span><span class="n">targets</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;source: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;target: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span>
+      <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span> <span class="o">=</span> <span class="n">sources</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">targets</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">src_unseg</span><span class="p">,</span> <span class="n">tgt_unseg</span> <span class="o">=</span> <span class="n">unsegment</span><span class="p">(</span><span class="n">src</span><span class="p">),</span> <span class="n">unsegment</span><span class="p">(</span><span class="n">tgt</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;source: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">src_unseg</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;target: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">tgt_unseg</span><span class="p">)</span>
       <span class="n">hyps</span> <span class="o">=</span> <span class="n">topk_decoded</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)</span>
-      <span class="n">info_str</span> <span class="o">=</span> <span class="sa">u</span><span class="s1">&#39;src: </span><span class="si">{}</span><span class="s1"> tgt: </span><span class="si">{}</span><span class="s1"> &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span>
+      <span class="n">info_str</span> <span class="o">=</span> <span class="sa">u</span><span class="s1">&#39;src: </span><span class="si">{}</span><span class="s1"> tgt: </span><span class="si">{}</span><span class="s1"> &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">src_unseg</span><span class="p">,</span> <span class="n">tgt_unseg</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">score</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">hyps</span><span class="p">)):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  </span><span class="si">%f</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span>
+        <span class="n">hyp_str_unseg</span> <span class="o">=</span> <span class="n">unsegment</span><span class="p">(</span><span class="n">hyp_str</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  </span><span class="si">%f</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">score</span><span class="p">,</span> <span class="n">hyp_str_unseg</span><span class="p">)</span>
         <span class="n">info_str</span> <span class="o">+=</span> <span class="sa">u</span><span class="s1">&#39; hyp</span><span class="si">{n}</span><span class="s1">: </span><span class="si">{hyp}</span><span class="s1"> score</span><span class="si">{n}</span><span class="s1">: </span><span class="si">{score}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">hyp</span><span class="o">=</span><span class="n">hyp_str</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="n">score</span><span class="p">)</span>
+            <span class="n">n</span><span class="o">=</span><span class="n">n</span><span class="p">,</span> <span class="n">hyp</span><span class="o">=</span><span class="n">hyp_str_unseg</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="n">score</span><span class="p">)</span>
         <span class="c1"># Only aggregate scores of the top hypothesis.</span>
         <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
           <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;corpus_bleu&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">tgt</span><span class="p">,</span> <span class="n">hyp_str</span><span class="p">)</span>
-      <span class="n">key_value_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">src</span><span class="p">,</span> <span class="n">info_str</span><span class="p">))</span>
+      <span class="n">key_value_pairs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">src_unseg</span><span class="p">,</span> <span class="n">info_str</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">key_value_pairs</span></div>
 
 <div class="viewcode-block" id="MTBaseModel.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -299,7 +297,14 @@
         <span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
         <span class="s1">&#39;corpus_bleu&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">CorpusBleuMetric</span><span class="p">(</span><span class="n">separator_type</span><span class="o">=</span><span class="s1">&#39;wpm&#39;</span><span class="p">),</span>
     <span class="p">}</span>
-    <span class="k">return</span> <span class="n">decoder_metrics</span></div></div>
+    <span class="k">return</span> <span class="n">decoder_metrics</span></div>
+
+<div class="viewcode-block" id="MTBaseModel.Decode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the decoding graph.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BeamSearchDecode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MTBaseModel.PostProcessDecodeOut"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.MTBaseModel.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PostProcessBeamSearchDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TransformerModel"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerModel">[docs]</a><span class="k">class</span> <span class="nc">TransformerModel</span><span class="p">(</span><span class="n">MTBaseModel</span><span class="p">):</span>
@@ -336,18 +341,58 @@
       <span class="n">emb_vg</span><span class="o">.</span><span class="n">child</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">position_emb</span><span class="p">]</span>
     <span class="k">if</span> <span class="s1">&#39;position_emb&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="p">:</span>
       <span class="n">emb_vg</span><span class="o">.</span><span class="n">child</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">position_emb</span><span class="p">]</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">emb_vg</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;atten&#39;</span><span class="p">,</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">emb_vg</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span>
                                  <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">trans</span><span class="p">,</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">trans</span><span class="p">])</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span></div>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span></div></div>
 
-<div class="viewcode-block" id="TransformerModel.Decode"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerModel.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Constructs the inference graph.&quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Decode</span><span class="p">()</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BeamSearchDecode</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="TransformerModel.PostProcessDecodeOut"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerModel.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PostProcessBeamSearchDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span></div></div>
+<div class="viewcode-block" id="RNMTModel"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.RNMTModel">[docs]</a><span class="k">class</span> <span class="nc">RNMTModel</span><span class="p">(</span><span class="n">MTBaseModel</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;RNMT+ Model.</span>
+
+<span class="sd">  Implements RNMT Variants in The Best of Both Worlds paper:</span>
+<span class="sd">  https://aclweb.org/anthology/P18-1008</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RNMTModel.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.RNMTModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RNMTModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">MTDecoderV1</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="RNMTModel.BProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.RNMTModel.BProp">[docs]</a>  <span class="k">def</span> <span class="nf">BProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">RNMTModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
+      <span class="n">vg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span>
+      <span class="c1"># Computes gradients&#39; norm and adds their summaries.</span>
+      <span class="n">emb_grads</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">rnn_grads</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">atten_grads</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">softmax_grads</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">if</span> <span class="s1">&#39;enc&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="p">:</span>
+        <span class="n">emb_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">emb</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;emb&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">enc</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">rnn_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">rnn</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;rnn&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">enc</span> <span class="k">else</span> <span class="p">[]</span>
+      <span class="k">if</span> <span class="s1">&#39;dec&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="p">:</span>
+        <span class="n">emb_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">emb</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;emb&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">rnn_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;frnn&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="n">softmax_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">softmax</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;softmax&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span> <span class="k">else</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="s1">&#39;frnn_with_atten&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="p">:</span>
+          <span class="k">if</span> <span class="s1">&#39;cell&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="p">:</span>
+            <span class="n">rnn_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="p">]</span>
+          <span class="k">if</span> <span class="s1">&#39;atten&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="p">:</span>
+            <span class="n">atten_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">]</span>
+
+      <span class="k">if</span> <span class="n">emb_grads</span><span class="p">:</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">emb_grads</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">rnn_grads</span><span class="p">:</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;lstm&#39;</span><span class="p">,</span> <span class="n">rnn_grads</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">atten_grads</span><span class="p">:</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">atten_grads</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">softmax_grads</span><span class="p">:</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">softmax_grads</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
@@ -360,7 +405,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -379,21 +424,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
 
   
 

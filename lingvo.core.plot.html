@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.plot module &mdash; lingvo  documentation</title>
+  <title>lingvo.core.plot module &mdash; Lingvo  documentation</title>
   
 
   
@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.py_utils module" href="lingvo.core.py_utils.html" />
+    <link rel="next" title="lingvo.core.predictor module" href="lingvo.core.predictor.html" />
     <link rel="prev" title="lingvo.core.optimizer module" href="lingvo.core.optimizer.html" /> 
 
   
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,8 +78,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
@@ -108,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -178,8 +177,14 @@
 
 <dl class="function">
 <dt id="lingvo.core.plot.AddImage">
-<code class="descclassname">lingvo.core.plot.</code><code class="descname">AddImage</code><span class="sig-paren">(</span><em>fig</em>, <em>axes</em>, <em>data</em>, <em>cmap='bone_r'</em>, <em>clim=None</em>, <em>show_colorbar=True</em>, <em>title=u''</em>, <em>xlabel=u''</em>, <em>ylabel=u''</em>, <em>fontsize='small'</em>, <em>suppress_xticks=False</em>, <em>suppress_yticks=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/plot.html#AddImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.plot.AddImage" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.plot.</code><code class="descname">AddImage</code><span class="sig-paren">(</span><em>fig</em>, <em>axes</em>, <em>data</em>, <em>cmap='bone_r'</em>, <em>clim=None</em>, <em>show_colorbar=True</em>, <em>title=u''</em>, <em>xlabel=u''</em>, <em>ylabel=u''</em>, <em>fontsize='small'</em>, <em>origin='lower'</em>, <em>suppress_xticks=False</em>, <em>suppress_yticks=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/plot.html#AddImage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.plot.AddImage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenience function to plot data as an image on the given axes.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.plot.AddScatterPlot">
+<code class="descclassname">lingvo.core.plot.</code><code class="descname">AddScatterPlot</code><span class="sig-paren">(</span><em>unused_fig</em>, <em>axes</em>, <em>xs</em>, <em>ys</em>, <em>title=u''</em>, <em>xlabel=u''</em>, <em>ylabel=u''</em>, <em>fontsize='small'</em>, <em>xlim=None</em>, <em>ylim=None</em>, <em>suppress_xticks=False</em>, <em>suppress_yticks=False</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/plot.html#AddScatterPlot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.plot.AddScatterPlot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience function to add a scatter plot.</p>
 </dd></dl>
 
 <dl class="class">
@@ -199,7 +204,7 @@
 
 <dl class="classmethod">
 <dt id="lingvo.core.plot._SubplotMetadata._make">
-<em class="property">classmethod </em><code class="descname">_make</code><span class="sig-paren">(</span><em>iterable</em>, <em>new=&lt;built-in method __new__ of type object&gt;</em>, <em>len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.plot._SubplotMetadata._make" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">_make</code><span class="sig-paren">(</span><em>iterable</em>, <em>new=&lt;built-in method __new__ of type object at 0x8f9920&gt;</em>, <em>len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.plot._SubplotMetadata._make" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a new _SubplotMetadata object from a sequence or iterable</p>
 </dd></dl>
 
@@ -314,24 +319,78 @@ arguments.</li>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.plot.Matrix">
-<code class="descclassname">lingvo.core.plot.</code><code class="descname">Matrix</code><span class="sig-paren">(</span><em>name</em>, <em>figsize</em>, <em>matrix</em>, <em>setter=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/plot.html#Matrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.plot.Matrix" title="Permalink to this definition">¶</a></dt>
-<dd><p>Plot a numpy matrix and generates tf.Summary proto for it.</p>
+<dt id="lingvo.core.plot.Image">
+<code class="descclassname">lingvo.core.plot.</code><code class="descname">Image</code><span class="sig-paren">(</span><em>name</em>, <em>figsize</em>, <em>image</em>, <em>setter=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/plot.html#Image"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.plot.Image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot an image in numpy and generates tf.Summary proto for it.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>name</strong> – Image summary name.</li>
-<li><strong>figsize</strong> – A 2D tuple containing the overall figure (width, height)
-dimensions in inches.</li>
-<li><strong>matrix</strong> – A 2D numpy array.</li>
-<li><strong>setter</strong> – A callable taking (fig, axes). Useful to fine-control
-layout of the figure, xlabel, xticks, etc.</li>
+<li><strong>figsize</strong> – A 2D tuple containing the overall figure (width, height) dimensions
+in inches.</li>
+<li><strong>image</strong> – A 2D/3D numpy array in the format accepted by pyplot.imshow.</li>
+<li><strong>setter</strong> – A callable taking (fig, axes). Useful to fine-tune layout of the
+figure, xlabel, xticks, etc.</li>
+<li><strong>**kwargs</strong> – Additional arguments to AddImage.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto contains one image visualizing ‘matrix.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto contains one image visualizing ‘image.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.plot.Scatter">
+<code class="descclassname">lingvo.core.plot.</code><code class="descname">Scatter</code><span class="sig-paren">(</span><em>name</em>, <em>figsize</em>, <em>xs</em>, <em>ys</em>, <em>setter=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/plot.html#Scatter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.plot.Scatter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot a scatter plot in numpy and generates tf.Summary proto for it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> – Scatter plot summary name.</li>
+<li><strong>figsize</strong> – A 2D tuple containing the overall figure (width, height) dimensions
+in inches.</li>
+<li><strong>xs</strong> – A set of x points to plot.</li>
+<li><strong>ys</strong> – A set of y points to plot.</li>
+<li><strong>setter</strong> – A callable taking (fig, axes). Useful to fine-tune layout of the
+figure, xlabel, xticks, etc.</li>
+<li><strong>**kwargs</strong> – Additional arguments to AddScatterPlot.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto contains one image visualizing ‘image.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.plot.Matrix">
+<code class="descclassname">lingvo.core.plot.</code><code class="descname">Matrix</code><span class="sig-paren">(</span><em>name</em>, <em>figsize</em>, <em>image</em>, <em>setter=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.plot.Matrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot an image in numpy and generates tf.Summary proto for it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> – Image summary name.</li>
+<li><strong>figsize</strong> – A 2D tuple containing the overall figure (width, height) dimensions
+in inches.</li>
+<li><strong>image</strong> – A 2D/3D numpy array in the format accepted by pyplot.imshow.</li>
+<li><strong>setter</strong> – A callable taking (fig, axes). Useful to fine-tune layout of the
+figure, xlabel, xticks, etc.</li>
+<li><strong>**kwargs</strong> – Additional arguments to AddImage.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto contains one image visualizing ‘image.</p>
 </td>
 </tr>
 </tbody>
@@ -375,7 +434,7 @@ figure, xlabel, xticks, etc.</li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.py_utils.html" class="btn btn-neutral float-right" title="lingvo.core.py_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.predictor.html" class="btn btn-neutral float-right" title="lingvo.core.predictor module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.core.optimizer.html" class="btn btn-neutral" title="lingvo.core.optimizer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -387,7 +446,7 @@ figure, xlabel, xticks, etc.</li>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -406,21 +465,14 @@ figure, xlabel, xticks, etc.</li>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

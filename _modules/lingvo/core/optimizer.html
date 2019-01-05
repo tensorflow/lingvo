@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.optimizer &mdash; lingvo  documentation</title>
+  <title>lingvo.core.optimizer &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -164,28 +163,20 @@
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
 
 
-<div class="viewcode-block" id="Base"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base">[docs]</a><span class="k">class</span> <span class="nc">Base</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Base"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base">[docs]</a><span class="k">class</span> <span class="nc">Base</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for all optimizers.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Base.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the optimizer params.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;Cls that this param object is associated with.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_summary&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Adds summary iff true.&#39;</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Base</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
     <span class="k">return</span> <span class="n">p</span></div>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
-
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
 <div class="viewcode-block" id="Base.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the TF optimizer object.&quot;&quot;&quot;</span>
@@ -200,7 +191,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      lr: A scalar. The base learning rate.</span>
-<span class="sd">      var_grad: A NestedMap of (var, grad) pairs.</span>
+<span class="sd">      var_grad: A `.NestedMap` of (var, grad) pairs.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The variable update op.</span>
@@ -232,7 +223,7 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">GradientDescentOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SGD.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.SGD.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;sgd_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;sgd_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Momentum"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Momentum">[docs]</a><span class="k">class</span> <span class="nc">Momentum</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
@@ -254,7 +245,29 @@
         <span class="n">learning_rate</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">alpha</span><span class="p">,</span> <span class="n">use_nesterov</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_nesterov</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Momentum.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Momentum.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;momentum_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;momentum_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="RMSProp"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.RMSProp">[docs]</a><span class="k">class</span> <span class="nc">RMSProp</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;RMSProp optimizer.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RMSProp.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.RMSProp.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RMSProp</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s1">&#39;Discounting factor for the history/coming gradient&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;momentum&#39;</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s1">&#39;Momentum in RMSProp.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Epsilon term for RMSProp. Small value to avoid zero denominator.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="RMSProp.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.RMSProp.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">RMSPropOptimizer</span><span class="p">(</span>
+        <span class="n">lr</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">decay</span><span class="p">,</span> <span class="n">momentum</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">momentum</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RMSProp.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.RMSProp.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;rmsprop_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Adagrad"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Adagrad">[docs]</a><span class="k">class</span> <span class="nc">Adagrad</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
@@ -274,11 +287,11 @@
 
 <div class="viewcode-block" id="Adagrad.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Adagrad.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;adagrad_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;adagrad_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
       <span class="n">slot</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;accumulator&#39;</span><span class="p">)</span>
       <span class="k">assert</span> <span class="n">slot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;optimizer/adagrad_accum_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;optimizer/adagrad_accum_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">slot</span><span class="p">))</span></div></div>
 
 
@@ -291,6 +304,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;beta1&#39;</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s1">&#39;Beta1 for Adam.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;beta2&#39;</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">,</span> <span class="s1">&#39;Beta2 for Adam.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="s1">&#39;Epsilon for Adam.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Adam&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Adam.ParamsA"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Adam.ParamsA">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -306,10 +320,14 @@
 <div class="viewcode-block" id="Adam.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Adam.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">AdamOptimizer</span><span class="p">(</span>
-        <span class="n">learning_rate</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span> <span class="n">beta1</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">beta1</span><span class="p">,</span> <span class="n">beta2</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">beta2</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span></div>
+        <span class="n">learning_rate</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+        <span class="n">beta1</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">beta1</span><span class="p">,</span>
+        <span class="n">beta2</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">beta2</span><span class="p">,</span>
+        <span class="n">epsilon</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Adam.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Adam.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;adam_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;adam_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Accumulator"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator">[docs]</a><span class="k">class</span> <span class="nc">Accumulator</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
@@ -317,20 +335,19 @@
 
 <div class="viewcode-block" id="Accumulator.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Accumulator</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dtype&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s1">&#39;Datatype to use.&#39;</span><span class="p">)</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;optimizer_tpl&#39;</span><span class="p">,</span> <span class="n">Adam</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-                  <span class="s1">&#39;Params for the wrapped optimizer.&#39;</span><span class="p">)</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Accumulator</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;optimizer_tpl&#39;</span><span class="p">,</span> <span class="n">Adam</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Params for the wrapped optimizer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;accum_steps&#39;</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;Number of gradient accumulation steps&#39;</span>
         <span class="s1">&#39; before invoking wrapped optimizer.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">params</span></div>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Accumulator&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">Accumulator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">add_summary</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">add_summary</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Accumulator.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -382,7 +399,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -401,21 +418,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

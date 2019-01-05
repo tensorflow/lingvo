@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.image.classifier &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.image.classifier &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../../index.html">lingvo</a>
+          <a href="../../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -208,7 +207,28 @@
             <span class="n">horizontalalignment</span><span class="o">=</span><span class="s1">&#39;center&#39;</span><span class="p">)</span>
 
       <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">([</span><span class="n">batch</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">batch</span><span class="o">.</span><span class="n">label</span><span class="p">,</span> <span class="n">prediction</span><span class="p">],</span> <span class="n">Draw</span><span class="p">)</span>
-      <span class="n">fig</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span></div></div>
+      <span class="n">fig</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseClassifier._Accuracy"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.BaseClassifier._Accuracy">[docs]</a>  <span class="k">def</span> <span class="nf">_Accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute top-k accuracy.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      k: An int scalar. Top-k.</span>
+<span class="sd">      logits: A [N, C] float tensor.</span>
+<span class="sd">      labels: A [N] int vector.</span>
+<span class="sd">      weights: A [N] float vector.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A float scalar. The accuracy at precision k.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">n</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">logits</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">])</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">])</span>
+    <span class="n">correct</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">in_top_k</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">correct</span><span class="p">,</span> <span class="n">weights</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">weights</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+            <span class="mf">1e-8</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="ModelV1"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV1">[docs]</a><span class="k">class</span> <span class="nc">ModelV1</span><span class="p">(</span><span class="n">BaseClassifier</span><span class="p">):</span>
@@ -228,13 +248,13 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;batch_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Apply BN or not after the conv.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
              <span class="s1">&#39;Probability of the dropout applied after pooling.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Dropout</span><span class="se">\&#39;</span><span class="s1">s random seed.&#39;</span><span class="p">)</span>
 
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">1e-4</span>  <span class="c1"># Adam base LR.</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">warmup</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">decay_start</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">decay_end</span><span class="o">=</span><span class="mi">1000000</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">))</span>
+        <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span>
+        <span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">warmup</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">decay_start</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">decay_end</span><span class="o">=</span><span class="mi">1000000</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -275,7 +295,7 @@
           <span class="s1">&#39;fc&#39;</span><span class="p">,</span>
           <span class="n">layers</span><span class="o">.</span><span class="n">FCLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fc&#39;</span><span class="p">,</span>
-              <span class="n">input_dim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">:]),</span>
+              <span class="n">input_dim</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span>
               <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span><span class="p">))</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
 
@@ -292,7 +312,7 @@
       <span class="c1"># Dropout (optional)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
         <span class="n">act</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span>
-            <span class="n">act</span><span class="p">,</span> <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropout_seed</span><span class="p">)</span>
+            <span class="n">act</span><span class="p">,</span> <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="c1"># FC</span>
     <span class="n">act</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fc</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fc</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
 
@@ -304,24 +324,23 @@
         <span class="n">class_weights</span><span class="o">=</span><span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span>
         <span class="n">class_ids</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
 
-    <span class="n">accuracy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">per_example_argmax</span><span class="p">,</span>
-                 <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">per_example_argmax</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))</span>
-                            <span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
-
     <span class="bp">self</span><span class="o">.</span><span class="n">_AddSummary</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">per_example_argmax</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="p">{</span>
+    <span class="n">rets</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
-        <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
         <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
         <span class="s1">&#39;num_preds&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-    <span class="p">}</span></div>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="n">acc1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+      <span class="n">acc5</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+      <span class="n">rets</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">accuracy</span><span class="o">=</span><span class="p">(</span><span class="n">acc1</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span> <span class="n">acc5</span><span class="o">=</span><span class="p">(</span><span class="n">acc5</span><span class="p">,</span> <span class="n">batch</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">rets</span><span class="p">,</span> <span class="p">{}</span></div>
 
-<div class="viewcode-block" id="ModelV1.Decode"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV1.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelV1.Decode"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV1.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;decode&#39;</span><span class="p">):</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="ModelV1.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV1.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">{</span>
@@ -353,6 +372,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ModelV2.FPropTower"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2.FPropTower">[docs]</a>  <span class="k">def</span> <span class="nf">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">data</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="c1"># Forward through layers.</span>
@@ -369,19 +389,19 @@
           <span class="n">inputs</span><span class="o">=</span><span class="n">act</span><span class="p">,</span>
           <span class="n">class_weights</span><span class="o">=</span><span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span>
           <span class="n">class_ids</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
-      <span class="n">accuracy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">per_example_argmax</span><span class="p">,</span>
-                   <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">per_example_argmax</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))</span>
-                              <span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_AddSummary</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">per_example_argmax</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="p">{</span>
+    <span class="n">rets</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
-        <span class="s1">&#39;accuracy&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
         <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
         <span class="s1">&#39;num_preds&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-    <span class="p">}</span></div></div>
+    <span class="p">}</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="n">acc1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+      <span class="n">acc5</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
+      <span class="n">rets</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">accuracy</span><span class="o">=</span><span class="p">(</span><span class="n">acc1</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span> <span class="n">acc5</span><span class="o">=</span><span class="p">(</span><span class="n">acc5</span><span class="p">,</span> <span class="n">batch</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">rets</span><span class="p">,</span> <span class="p">{}</span></div></div>
 </pre></div>
 
            </div>
@@ -394,7 +414,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -413,21 +433,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
 
   
 

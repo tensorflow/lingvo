@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.lm.model module &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.lm.model module &mdash; Lingvo  documentation</title>
   
 
   
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,8 +78,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
@@ -107,7 +106,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -191,8 +190,8 @@
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this
-task copied to this tower’s devices.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task
+copied to this tower’s devices.</li>
 <li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
 </ul>
 </td>
@@ -226,6 +225,59 @@ if <code class="xref py py-obj docutils literal notranslate"><span class="pre">s
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="lingvo.tasks.lm.model.LanguageModel.Inference">
+<code class="descname">Inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#LanguageModel.Inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.LanguageModel.Inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs the inference subgraphs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(fetches, feeds)}</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">{‘subgraph_name’</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.lm.model.LanguageModel._InferenceSubgraph_Default">
+<code class="descname">_InferenceSubgraph_Default</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/lm/model.html#LanguageModel._InferenceSubgraph_Default"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.lm.model.LanguageModel._InferenceSubgraph_Default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default inference subgraph.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li>fetches: A dictionary of fetches, containing:<ul>
+<li>log_pplx_per_token: A matrix of shape [batch, time]. [i, j]
+is i-th input text’s j-th token’s log prob.</li>
+<li>paddings: A matrix of shape [batch, time]. The padding mask.</li>
+<li>log_pplx_per_sample: A vector of shape [batch]. [i]
+is i-th input text’s log prob.</li>
+<li>num_oovs_per_sample: A vector of shape [batch] counting the total
+number of out-of-vocabulary tokens in each input.</li>
+<li>tokens_from_labels: A vector of shape [batch] returning the predicted
+tokens as a sequence after mapping them back to strings from ids using
+the vocabulary.</li>
+<li>ids: A matrix of shape [batch, time]. [i, j]
+is i-th input text’s j-th token’s id.</li>
+</ul>
+</li>
+<li>feeds: A dictionary of feeds, containing:<ul>
+<li>text: A placeholder for a vector of strings.</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(fetches, feeds), with</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </dd></dl>
 
 </div>
@@ -250,7 +302,7 @@ if <code class="xref py py-obj docutils literal notranslate"><span class="pre">s
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -269,21 +321,14 @@ if <code class="xref py py-obj docutils literal notranslate"><span class="pre">s
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

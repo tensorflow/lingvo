@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.base_input_generator module &mdash; lingvo  documentation</title>
+  <title>lingvo.core.base_input_generator module &mdash; Lingvo  documentation</title>
   
 
   
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,8 +78,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
@@ -108,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -165,10 +164,31 @@
   <div class="section" id="module-lingvo.core.base_input_generator">
 <span id="lingvo-core-base-input-generator-module"></span><h1>lingvo.core.base_input_generator module<a class="headerlink" href="#module-lingvo.core.base_input_generator" title="Permalink to this headline">¶</a></h1>
 <p>Input generators.</p>
+<dl class="function">
+<dt id="lingvo.core.base_input_generator._LookupTfDataDatasetCtor">
+<code class="descclassname">lingvo.core.base_input_generator.</code><code class="descname">_LookupTfDataDatasetCtor</code><span class="sig-paren">(</span><em>factory_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#_LookupTfDataDatasetCtor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator._LookupTfDataDatasetCtor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks up a tf.data dataset constructor by factory_type.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>factory_type</strong> – One of the well-known string type names. It can also be a
+class, in which case, it will be instantiated and used as the constructor.
+In this case, the class should implement __call__.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A callable that takes a list of filenames (see tf.data.TFRecordDataset
+for the convention).</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If an unknown type.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="class">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator">
 <em class="property">class </em><code class="descclassname">lingvo.core.base_input_generator.</code><code class="descname">BaseInputGenerator</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>The base input generator.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.Params">
@@ -180,6 +200,17 @@
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs">
 <code class="descname">CommonInputOpArgs</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CommonInputOpArgs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Common input params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.GetBpropVariableFilters">
+<code class="descname">GetBpropVariableFilters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GetBpropVariableFilters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GetBpropVariableFilters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.GetInputSourceOneHot">
+<code class="descname">GetInputSourceOneHot</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GetInputSourceOneHot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GetInputSourceOneHot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current bprop type of the input generator batch.</p>
 </dd></dl>
 
 <dl class="method">
@@ -264,15 +295,65 @@ tensors in one split.</td>
 
 <dl class="method">
 <dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">
-<code class="descname">_DataSourceFromFilePattern</code><span class="sig-paren">(</span><em>file_pattern</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_DataSourceFromFilePattern</code><span class="sig-paren">(</span><em>file_pattern</em>, <em>input_source_weights=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read and return input batch from a string file_pattern.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_pattern</strong> – A string file pattern.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>file_pattern</strong> – A string file pattern.</li>
+<li><strong>input_source_weights</strong> – A list of float input source weights to control
+input example mix in the batch. The records will be sampled from inputs
+proportionally to these weights. Defaults to None which should be
+treated as an empty list.</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A tf.Tensor or nested map of tf.Tensor</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource">
+<code class="descname">_BuildWithinBatchMixingDataSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read and return input batch from a p.file_pattern list.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code> should be a list of (file_pattern, weight) pairs. Examples
+in the batch will be mixed together from different file_pattern source
+proportionally to the weights.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource">
+<code class="descname">_BuildCrossBatchMixingDataSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read and return input batch from a p.file_pattern list.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code> should be a list of (file_pattern, weight,
+optional_bprop_filter) tuples. Every batch returned will be filled from one
+source only and batches will be mixed proportionally to the weights.
+Additionally some backprop filters may be applied for different input
+sources.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
 </tr>
 </tbody>
 </table>
@@ -283,12 +364,15 @@ tensors in one split.</td>
 <code class="descname">_BuildDataSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._BuildDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read and return input batch from <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code>.</p>
 <p><code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code> may be a string file_pattern or a
-list of (file_pattern, weight) pairs.</p>
+list of (file_pattern, weight, [bprop_variable_filter]) tuples.
+bprop_variable_filter is optional. When bprop_variable_filter is used,
+batches will always contain the examples from the same source. Otherwise,
+examples from different sources may be mixed together.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tf.Tensor or nested map of tf.Tensor same as
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
@@ -328,7 +412,7 @@ list of (file_pattern, weight) pairs.</p>
 
 <dl class="method">
 <dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.StringsToIds">
-<code class="descname">StringsToIds</code><span class="sig-paren">(</span><em>strs</em>, <em>is_source=False</em>, <em>external_max_length=None</em>, <em>external_append_eos=None</em>, <em>key=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.StringsToIds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.StringsToIds" title="Permalink to this definition">¶</a></dt>
+<code class="descname">StringsToIds</code><span class="sig-paren">(</span><em>strs</em>, <em>is_source=False</em>, <em>external_max_length=None</em>, <em>external_append_eos=None</em>, <em>key=None</em>, <em>languages=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.StringsToIds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.StringsToIds" title="Permalink to this definition">¶</a></dt>
 <dd><p>Tokenize strs into vocab ids.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -343,6 +427,7 @@ list of (file_pattern, weight) pairs.</p>
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">params.append_eos</span></code> will be used. If bool, will determine if an eos
 symbol will be added to tokens.</li>
 <li><strong>key</strong> – A string key in case the model has multiple tokenizers.</li>
+<li><strong>languages</strong> – A vector of str with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">strs</span></code>.</li>
 </ul>
 </td>
 </tr>
@@ -374,8 +459,8 @@ symbol will be added to tokens.</li>
 <li><strong>ids</strong> – A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample’s
 ids.</li>
 <li><strong>lens</strong> – A vector of shape [batch]. lens[i] is the sequence length of the
-i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
-tokens for the i-th sequence.</li>
+i-th sample. Only the first lens[i] tokens in ids[i, :] are valid tokens
+for the i-th sequence.</li>
 <li><strong>key</strong> – A string key in case the model has multiple tokenizers.</li>
 </ul>
 </td>
@@ -439,6 +524,70 @@ and denotes the batch dimension.</td>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.base_input_generator.BaseExampleInputGenerator">
+<em class="property">class </em><code class="descclassname">lingvo.core.base_input_generator.</code><code class="descname">BaseExampleInputGenerator</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseExampleInputGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseExampleInputGenerator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_input_generator.BaseInputGenerator" title="lingvo.core.base_input_generator.BaseInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseInputGenerator</span></code></a></p>
+<p>Base class for input generators that read Feature protos via tf.data.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.base_input_generator.BaseExampleInputGenerator.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseExampleInputGenerator.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseExampleInputGenerator.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params for input generators.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseExampleInputGenerator.GetFeatureSpec">
+<code class="descname">GetFeatureSpec</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseExampleInputGenerator.GetFeatureSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseExampleInputGenerator.GetFeatureSpec" title="Permalink to this definition">¶</a></dt>
+<dd><p>Subclasses must implement and return a feature spec.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">NestedMap of features compatible with tf.parse_example. Default
+implementation returns an empty dict.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseExampleInputGenerator.PostProcessBatch">
+<code class="descname">PostProcessBatch</code><span class="sig-paren">(</span><em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseExampleInputGenerator.PostProcessBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseExampleInputGenerator.PostProcessBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Post processes an input batch.</p>
+<p>By default, just returns the batch unchanged. This happens as part of the
+parallel reader threads and can therefore be more efficient for performing
+expensive operations vs doing work as the result of InputBatch().</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>input_batch</strong> – Input batch NestedMap.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Altered batch NestedMap.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseExampleInputGenerator.InputBatch">
+<code class="descname">InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseExampleInputGenerator.InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseExampleInputGenerator.InputBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>The current input batch, not preprocessed.</p>
+<p>This is meant to be overridden by subclasses, but not called directly.
+Callers should use <code class="xref py py-obj docutils literal notranslate"><span class="pre">GetPreprocessedInputBatch()</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of input tensors. Each tensor’s dim-0 must be the same
+and denotes the batch dimension.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
@@ -461,7 +610,7 @@ and denotes the batch dimension.</td>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -480,21 +629,14 @@ and denotes the batch dimension.</td>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

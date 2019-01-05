@@ -1,0 +1,348 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.bfloat16_variables &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+
+  
+  <script src="../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.bfloat16_variables</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.bfloat16_variables</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Various methods for bfloat16 training &amp; inference.</span>
+
+<span class="sd">Bfloat16VariableSaveable: Saveable that restores variable into bfloat16 type.</span>
+
+<span class="sd">Usage:</span>
+
+<span class="sd">  Given a checkpoint_path with a variable of type tf.float32, this particular</span>
+<span class="sd">  saveable allows restore them as tf.bfloat16. This is specifically useful for</span>
+<span class="sd">  inference.</span>
+
+<span class="sd">  Say: checkpoint_path contains a variable &quot;var&quot; with dtype tf.float32::</span>
+
+<span class="sd">      variable_name = &quot;var&quot;</span>
+<span class="sd">      original_dtype =  tf.float32</span>
+
+<span class="sd">      bfloat16_var = tf.Variable(</span>
+<span class="sd">          0.0, name=variable_name, dtype=tf.bfloat16, use_resource=True)</span>
+
+<span class="sd">      saveable = bfloat16_variables.Bfloat16VariableSaveable(</span>
+<span class="sd">          bfloat16_var, original_dtype, slice_spec, variable_name)</span>
+<span class="sd">      saver = tf.train.Saver(</span>
+<span class="sd">          {variable_name: saveable}, restore_sequentially=True)</span>
+<span class="sd">      saver.restore(sess, checkpoint_path)</span>
+
+<span class="sd">      # bfloat16_var is now loaded from the checkpoint.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.training</span> <span class="k">import</span> <span class="n">saver</span>
+
+
+<div class="viewcode-block" id="quantization_noise_from_step_num"><a class="viewcode-back" href="../../../lingvo.core.bfloat16_variables.html#lingvo.core.bfloat16_variables.quantization_noise_from_step_num">[docs]</a><span class="k">def</span> <span class="nf">quantization_noise_from_step_num</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;A quantization noise equal to (phi * (step_num + 1)) mod 1.0.</span>
+
+<span class="sd">  quantization_noise is a float32 scalar in [0, 1). quantization_noise should</span>
+<span class="sd">  take different values across different steps, approximating a uniform</span>
+<span class="sd">  distribution over [0, 1).</span>
+
+<span class="sd">  In the case of replicated TPU training, quantization_noise should be identical</span>
+<span class="sd">  across replicas in order to keep the parameters identical across replicas.</span>
+<span class="sd">  The natural choice for quantization_noise would be tf.random_uniform(),</span>
+<span class="sd">  but this is not possible for TPU, since there is currently no way to seed</span>
+<span class="sd">  the different cores to produce identical values across replicas. Instead we</span>
+<span class="sd">  use this quantization_noise_from_step_num() to generate noise.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    a float32 scalar</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_or_create_global_step</span><span class="p">())</span> <span class="o">+</span> <span class="mi">1</span>
+  <span class="n">phi</span> <span class="o">=</span> <span class="p">((</span><span class="mi">5</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+  <span class="c1"># Naive computation tf.mod(phi * step, 1.0) in float32 would be disastrous</span>
+  <span class="c1"># due to loss of precision when the step number gets large.</span>
+  <span class="c1"># Computation in doubles does not work on TPU, so we use this complicated</span>
+  <span class="c1"># alternative computation which does not suffer from these roundoff errors.</span>
+  <span class="n">ret</span> <span class="o">=</span> <span class="mf">0.0</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>
+    <span class="n">ret</span> <span class="o">+=</span> <span class="p">(((</span><span class="n">phi</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">i</span><span class="p">))</span> <span class="o">%</span> <span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># double-precision computation in python</span>
+            <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">step</span> <span class="o">//</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">i</span><span class="p">),</span> <span class="mi">2</span><span class="p">)))</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="randomized_roundoff_to_bfloat16"><a class="viewcode-back" href="../../../lingvo.core.bfloat16_variables.html#lingvo.core.bfloat16_variables.randomized_roundoff_to_bfloat16">[docs]</a><span class="k">def</span> <span class="nf">randomized_roundoff_to_bfloat16</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">quantization_noise</span><span class="p">,</span> <span class="n">cand1</span><span class="p">,</span> <span class="n">cand2</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Round-off x to cand1 or to cand2 in an unbiased way.</span>
+
+<span class="sd">  Cand1 and cand2 are the same shape as x.</span>
+<span class="sd">  For every element of x, the corresponding elements of cand1 and cand2 should</span>
+<span class="sd">  be the two closest bfloat16 values to x.  Order does not matter.</span>
+<span class="sd">  cand1 and cand2 must differ from each other.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: A float32 Tensor.</span>
+<span class="sd">    quantization_noise: A Tensor broadcastable to the shape of x containing</span>
+<span class="sd">      random uniform values in [0.0, 1.0].</span>
+<span class="sd">    cand1: A bfloat16 Tensor the same shape as x.</span>
+<span class="sd">    cand2: A bfloat16 Tensor the same shape as x.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A bfloat16 Tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">cand1_f</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">cand1</span><span class="p">)</span>
+  <span class="n">cand2_f</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">cand2</span><span class="p">)</span>
+  <span class="n">step_size</span> <span class="o">=</span> <span class="n">cand2_f</span> <span class="o">-</span> <span class="n">cand1_f</span>
+  <span class="n">fpart</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">cand1_f</span><span class="p">)</span> <span class="o">/</span> <span class="n">step_size</span>
+  <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">fpart</span><span class="p">,</span> <span class="n">quantization_noise</span><span class="p">),</span> <span class="n">cand2</span><span class="p">,</span> <span class="n">cand1</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="to_bfloat16_unbiased"><a class="viewcode-back" href="../../../lingvo.core.bfloat16_variables.html#lingvo.core.bfloat16_variables.to_bfloat16_unbiased">[docs]</a><span class="k">def</span> <span class="nf">to_bfloat16_unbiased</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">quantization_noise</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Convert a float32 to a bfloat16 using randomized roundoff.</span>
+
+<span class="sd">  The current implementation uses quantization_noise_from_step_num to generate</span>
+<span class="sd">  quantization_noise, which requires global_step, and is not deterministic.</span>
+<span class="sd">  To use it for inference, it might be feasible to replace the noise generation</span>
+<span class="sd">  function with a constant, e.g., 0.5.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: A float32 Tensor.</span>
+<span class="sd">    quantization_noise: A float, specifying the quantization noise.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A bfloat16 Tensor, with the same shape as x.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">quantization_noise</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">quantization_noise</span> <span class="o">=</span> <span class="n">quantization_noise_from_step_num</span><span class="p">()</span>
+  <span class="n">x_sign</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sign</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="c1"># Make sure x is positive.  If it is zero, the two candidates are identical.</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x_sign</span> <span class="o">+</span> <span class="mf">1e-30</span>
+  <span class="n">cand1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_bfloat16</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="n">cand1_f</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">cand1</span><span class="p">)</span>
+  <span class="c1"># This relies on the fact that for a positive bfloat16 b,</span>
+  <span class="c1"># b * 1.005 gives you the next higher bfloat16 and b*0.995 gives you the</span>
+  <span class="c1"># next lower one. Both 1.005 and 0.995 are ballpark estimation.</span>
+  <span class="n">cand2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_bfloat16</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">cand1_f</span><span class="p">),</span> <span class="n">cand1_f</span> <span class="o">*</span> <span class="mf">1.005</span><span class="p">,</span> <span class="n">cand1_f</span> <span class="o">*</span> <span class="mf">0.995</span><span class="p">))</span>
+  <span class="n">ret</span> <span class="o">=</span> <span class="n">randomized_roundoff_to_bfloat16</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">quantization_noise</span><span class="p">,</span> <span class="n">cand1</span><span class="p">,</span> <span class="n">cand2</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">ret</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_bfloat16</span><span class="p">(</span><span class="n">x_sign</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Bfloat16VariableSaveable"><a class="viewcode-back" href="../../../lingvo.core.bfloat16_variables.html#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable">[docs]</a><span class="k">class</span> <span class="nc">Bfloat16VariableSaveable</span><span class="p">(</span><span class="n">saver</span><span class="o">.</span><span class="n">BaseSaverBuilder</span><span class="o">.</span><span class="n">SaveableObject</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Saveable that loads Variables as bfloat16.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">orig_dtype</span><span class="p">,</span> <span class="n">slice_spec</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="c1"># TODO(rohananil): Investigate if we can avoid using a callable, instead</span>
+    <span class="c1"># change the saveable api to make use of dtype passed in.</span>
+    <span class="k">def</span> <span class="nf">_make_callable_var</span><span class="p">():</span>
+      <span class="k">return</span> <span class="n">var</span>
+
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">saver</span><span class="o">.</span><span class="n">BaseSaverBuilder</span><span class="o">.</span><span class="n">SaveSpec</span><span class="p">(</span>
+        <span class="n">_make_callable_var</span><span class="p">,</span> <span class="n">slice_spec</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">orig_dtype</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">Bfloat16VariableSaveable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="p">[</span><span class="n">spec</span><span class="p">],</span> <span class="n">name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Bfloat16VariableSaveable.restore"><a class="viewcode-back" href="../../../lingvo.core.bfloat16_variables.html#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable.restore">[docs]</a>  <span class="k">def</span> <span class="nf">restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">restored_tensors</span><span class="p">,</span> <span class="n">restored_shapes</span><span class="p">):</span>
+    <span class="n">restored_tensor</span> <span class="o">=</span> <span class="n">restored_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">restored_shapes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">restored_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">restored_tensor</span><span class="p">,</span> <span class="n">restored_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">op</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">restored_tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">),</span>
+        <span class="n">validate_shape</span><span class="o">=</span><span class="n">restored_shapes</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">())</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

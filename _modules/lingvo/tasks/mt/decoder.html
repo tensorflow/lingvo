@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.mt.decoder &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.mt.decoder &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../../index.html">lingvo</a>
+          <a href="../../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -200,13 +199,9 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MTBaseDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;label_smoothing&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Label smoothing class.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">SimpleFullSoftmax</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Softmax params.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;per_word_avg_loss&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-             <span class="s1">&#39;Compute loss averaged per word. If False &#39;</span>
-             <span class="s1">&#39;loss is computed averaged per sequence.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-             <span class="s1">&#39;If set, this decides the random seed to apply in various random&#39;</span>
-             <span class="s1">&#39; ops such that this decoder is deterministic. Set this&#39;</span>
-             <span class="s1">&#39; random_seed only for unittests.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;per_word_avg_loss&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Compute loss averaged per word. If False &#39;</span>
+        <span class="s1">&#39;loss is computed averaged per sequence.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;unidi_rnn_type&#39;</span><span class="p">,</span> <span class="s1">&#39;func&#39;</span><span class="p">,</span> <span class="s1">&#39;Options: func, native_cudnn. &#39;</span>
              <span class="s1">&#39;func: FRNN, native_cudnn: CuDNNLSTM.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;feed_attention_context_vec_to_softmax&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -322,7 +317,7 @@
       <span class="n">segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropSoftmax</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">labels</span><span class="p">),</span>
                               <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span><span class="p">),</span>
-                              <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">),</span> <span class="n">segment_id</span><span class="p">)</span></div>
+                              <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">),</span> <span class="n">segment_id</span><span class="p">),</span> <span class="p">{}</span></div>
 
 <div class="viewcode-block" id="MTBaseDecoder._TruncateTargetSequence"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._TruncateTargetSequence">[docs]</a>  <span class="k">def</span> <span class="nf">_TruncateTargetSequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Truncate padded time steps from all sequences.&quot;&quot;&quot;</span>
@@ -336,7 +331,7 @@
     <span class="n">target_paddings</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">paddings</span>
     <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;max_seq_length&#39;</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;max_seq_length&#39;</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="p">)</span>
     <span class="c1"># Assert to make sure after max_seq_length, all are padded steps for all</span>
     <span class="c1"># sequences.</span>
     <span class="n">target_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
@@ -366,6 +361,9 @@
 <span class="sd">      atten_probs: a list of attention probs, each element is of shape</span>
 <span class="sd">          [tgt_len, tgt_batch, src_len].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
+      <span class="k">return</span>
+
     <span class="n">num_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span>
     <span class="n">fig</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span>
         <span class="s1">&#39;decoder_example&#39;</span><span class="p">,</span>
@@ -414,8 +412,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_cell_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;size of the rnn cells.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_layers&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;Number of rnn layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_start&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Start residual connections from this layer.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_seq_len&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="s1">&#39;During beam search, decodes &#39;</span>
-             <span class="s1">&#39;up to this length.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_rnn_cls&#39;</span><span class="p">,</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">FRNNWithAttention</span><span class="p">,</span>
              <span class="s1">&#39;Which atten rnn cls to use.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_prev_atten_ctx&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -460,6 +456,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">default_params_init</span>
 
     <span class="c1"># Default config for beam search.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="mi">300</span>
     <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">length_normalization</span> <span class="o">=</span> <span class="mf">0.2</span>
     <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">coverage_penalty</span> <span class="o">=</span> <span class="mf">0.2</span>
 
@@ -478,7 +475,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-        <span class="n">emb_device</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">emb_device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">emb_device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">emb_device</span><span class="p">):</span>
@@ -541,9 +538,6 @@
         <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
 
-      <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;beam_search&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="p">)</span>
-
 <div class="viewcode-block" id="MTDecoderV1.ApplyDropout"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.ApplyDropout">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyDropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_in</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
@@ -588,13 +582,13 @@
         <span class="n">target_segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-        <span class="n">emb_device</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">emb_device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">emb_device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">emb_device</span><span class="p">):</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">)</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;input_emb&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;input_emb&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyDropout</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_emb_out</span> <span class="o">=</span> <span class="n">inputs</span>
 
@@ -607,11 +601,10 @@
             <span class="n">target_paddings</span><span class="p">,</span>
             <span class="n">src_segment_id</span><span class="o">=</span><span class="n">src_segment_id</span><span class="p">,</span>
             <span class="n">segment_id</span><span class="o">=</span><span class="n">target_segment_id</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="p">[</span><span class="n">atten_probs</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="p">[</span><span class="n">atten_probs</span><span class="p">])</span>
 
         <span class="n">atten_ctxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">atten_ctxs</span><span class="p">)</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;atten_ctxs&#39;</span><span class="p">,</span> <span class="n">atten_ctxs</span><span class="p">)</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;atten_ctxs&#39;</span><span class="p">,</span> <span class="n">atten_ctxs</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_theta</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frnn</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">frnn</span><span class="p">)):</span>
           <span class="c1"># Forward through Layer-(i + 1) because Layer-0 handled before.</span>
@@ -626,20 +619,12 @@
             <span class="n">xs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
           <span class="k">else</span><span class="p">:</span>
             <span class="n">xs</span> <span class="o">=</span> <span class="n">ys</span>
-          <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;layer_out_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
+          <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;layer_out_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">feed_attention_context_vec_to_softmax</span><span class="p">:</span>
           <span class="n">xs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">atten_ctxs</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">xs</span>
-
-<div class="viewcode-block" id="MTDecoderV1.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
-    <span class="n">segment_id</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
-      <span class="n">segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropSoftmax</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">labels</span><span class="p">),</span>
-                              <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span><span class="p">),</span>
-                              <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">),</span> <span class="n">segment_id</span><span class="p">)</span></div>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/InitDecoder&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_InitDecoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">):</span>
@@ -754,6 +739,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">SetInitializationSourceState</span><span class="p">(</span><span class="n">new_init_state</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MTDecoderV1._InitBeamSearchStateCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                   <span class="n">theta</span><span class="p">,</span>
                                    <span class="n">source_encs</span><span class="p">,</span>
                                    <span class="n">source_paddings</span><span class="p">,</span>
                                    <span class="n">num_hyps_per_beam</span><span class="p">,</span>
@@ -784,7 +770,7 @@
     <span class="n">num_beams</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_encs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">num_hyps</span> <span class="o">=</span> <span class="n">num_beams</span> <span class="o">*</span> <span class="n">num_hyps_per_beam</span>
     <span class="n">rnn_states</span><span class="p">,</span> <span class="n">init_atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">atten_states</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_InitDecoder</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_InitDecoder</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">))</span>
 
     <span class="n">initial_results</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span><span class="s1">&#39;atten_probs&#39;</span><span class="p">:</span> <span class="n">atten_probs</span><span class="p">})</span>
 
@@ -797,6 +783,7 @@
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/PreBeamSearchStepCallback&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_PreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">theta</span><span class="p">,</span>
                                  <span class="n">source_encs</span><span class="p">,</span>
                                  <span class="n">source_paddings</span><span class="p">,</span>
                                  <span class="n">step_ids</span><span class="p">,</span>
@@ -839,14 +826,14 @@
     <span class="n">prev_atten_probs</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s1">&#39;atten_probs&#39;</span><span class="p">]</span>
     <span class="n">prev_atten_states</span> <span class="o">=</span> <span class="n">states</span><span class="p">[</span><span class="s1">&#39;atten_states&#39;</span><span class="p">]</span>
     <span class="n">step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookupDefaultTheta</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
-    <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
+    <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
     <span class="n">atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">rnn_states</span><span class="p">,</span> <span class="n">step_out</span><span class="p">,</span> <span class="n">atten_states</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_DecodeStep</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">step_paddings</span><span class="p">,</span> <span class="n">prev_atten_context</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DecodeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">step_paddings</span><span class="p">,</span> <span class="n">prev_atten_context</span><span class="p">,</span>
                          <span class="n">prev_rnn_states</span><span class="p">,</span> <span class="n">prev_atten_states</span><span class="p">))</span>
     <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prev_atten_probs</span><span class="p">))</span>
 
-    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">step_out</span><span class="p">])</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">step_out</span><span class="p">])</span>
     <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span><span class="o">.</span><span class="n">qlogsoftmax</span><span class="p">(</span>
         <span class="n">logits</span><span class="p">,</span> <span class="n">qmin</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">qlogsoftmax_range_min</span><span class="p">,</span> <span class="n">qmax</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
 
@@ -869,6 +856,7 @@
     <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span>
 
 <div class="viewcode-block" id="MTDecoderV1._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                  <span class="n">theta</span><span class="p">,</span>
                                   <span class="n">source_encs</span><span class="p">,</span>
                                   <span class="n">source_paddings</span><span class="p">,</span>
                                   <span class="n">new_step_ids</span><span class="p">,</span>
@@ -898,7 +886,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">additional_source_info</span>  <span class="c1"># Unused.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
-        <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div></div>
 
@@ -923,7 +911,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_trans_layers&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Number of Transformer layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;trans_tpl&#39;</span><span class="p">,</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Transformer layer params.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_seq_len&#39;</span><span class="p">,</span> <span class="mi">300</span><span class="p">,</span> <span class="s1">&#39;Target seq length.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Prob at which we do input dropout.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;is_transparent&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set, expects a tensor of shape &#39;</span>
@@ -942,13 +929,13 @@
 
     <span class="c1"># Default config for the transformer layers.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">is_decoder</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
     <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="mi">8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
     <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="mi">2048</span>
 
     <span class="c1"># Default config for beam search.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="mi">300</span>
     <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">length_normalization</span> <span class="o">=</span> <span class="mf">0.5</span>
     <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">coverage_penalty</span> <span class="o">=</span> <span class="mf">0.0</span>
 
@@ -975,23 +962,20 @@
 
       <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
       <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
-      <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
 
-      <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
       <span class="n">params_trans_layers</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">):</span>
         <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;trans_layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
         <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">params_trans_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;trans&#39;</span><span class="p">,</span> <span class="n">params_trans_layers</span><span class="p">)</span>
 
       <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
-
-      <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;beam_search&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TransformerDecoder._FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._FProp">[docs]</a>  <span class="k">def</span> <span class="nf">_FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
              <span class="n">src_segment_id</span><span class="p">):</span>
@@ -1078,14 +1062,13 @@
         <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
         <span class="n">atten_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
 
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
 
       <span class="k">return</span> <span class="n">layer_out</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.ExtendStep"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">new_ids</span><span class="p">,</span>
                  <span class="n">t</span><span class="p">,</span> <span class="n">prefix_states</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Extend prefix as represeted by `prefix_states` by one more step.</span>
+    <span class="sd">&quot;&quot;&quot;Extend prefix as represented by `prefix_states` by one more step.</span>
 
 <span class="sd">    This function is expected to be called during fast decoding of Transformer</span>
 <span class="sd">    models.</span>
@@ -1163,6 +1146,7 @@
                        <span class="n">src_segment_id</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder._InitBeamSearchStateCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                   <span class="n">theta</span><span class="p">,</span>
                                    <span class="n">source_encs</span><span class="p">,</span>
                                    <span class="n">source_paddings</span><span class="p">,</span>
                                    <span class="n">num_hyps_per_beam</span><span class="p">,</span>
@@ -1170,6 +1154,8 @@
     <span class="sd">&quot;&quot;&quot;Returns initial beams search states.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
 <span class="sd">          Can be [time, batch, depth, num_layers] if is_transparent is set.</span>
 <span class="sd">      source_paddings: A tensor of shape [src_len, src_batch].</span>
@@ -1206,18 +1192,22 @@
 
     <span class="n">prefix_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
         <span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
-            <span class="s1">&#39;key&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">key_channels</span><span class="p">]),</span>
-            <span class="s1">&#39;value&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">value_channels</span><span class="p">]),</span>
-        <span class="p">})</span>
-        <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">)</span>
+            <span class="s1">&#39;key&#39;</span><span class="p">:</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">key_channels</span><span class="p">],</span>
+                         <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
+            <span class="s1">&#39;value&#39;</span><span class="p">:</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">value_channels</span><span class="p">],</span>
+                         <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
+        <span class="p">})</span> <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">)</span>
     <span class="p">})</span>
 
     <span class="k">return</span> <span class="n">initial_results</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
         <span class="s1">&#39;prefix_states&#39;</span><span class="p">:</span> <span class="n">prefix_states</span><span class="p">,</span>
-        <span class="s1">&#39;time_step&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="s1">&#39;time_step&#39;</span><span class="p">:</span> <span class="mi">0</span>
     <span class="p">})</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder._PreBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">theta</span><span class="p">,</span>
                                  <span class="n">source_encs</span><span class="p">,</span>
                                  <span class="n">source_paddings</span><span class="p">,</span>
                                  <span class="n">step_ids</span><span class="p">,</span>
@@ -1227,6 +1217,8 @@
     <span class="sd">&quot;&quot;&quot;Returns logits for sampling ids and the next model states.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
 <span class="sd">      source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
 <span class="sd">          Can be [time, batch, depth, num_layers] if is_transparent is set.</span>
 <span class="sd">      source_paddings: A tensor of shape [src_len, src_batch].</span>
@@ -1262,15 +1254,14 @@
     <span class="n">new_states</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
     <span class="n">layer_out</span><span class="p">,</span> <span class="n">updated_prefix_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-        <span class="n">target_time</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">prefix_states</span><span class="p">)</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">target_time</span><span class="p">,</span> <span class="n">prefix_states</span><span class="p">)</span>
 
     <span class="n">new_states</span><span class="o">.</span><span class="n">prefix_states</span> <span class="o">=</span> <span class="n">updated_prefix_states</span>
     <span class="n">new_states</span><span class="o">.</span><span class="n">time_step</span> <span class="o">=</span> <span class="n">target_time</span> <span class="o">+</span> <span class="mi">1</span>
 
     <span class="n">softmax_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">layer_out</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
-    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">softmax_input</span><span class="p">])</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">softmax_input</span><span class="p">])</span>
 
     <span class="n">num_hyps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">source_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_encs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -1293,6 +1284,7 @@
     <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                  <span class="n">theta</span><span class="p">,</span>
                                   <span class="n">source_encs</span><span class="p">,</span>
                                   <span class="n">source_paddings</span><span class="p">,</span>
                                   <span class="n">new_step_ids</span><span class="p">,</span>
@@ -1306,7 +1298,7 @@
                        <span class="n">source_paddings</span><span class="p">,</span>
                        <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
-        <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div></div>
 </pre></div>
@@ -1321,7 +1313,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -1340,21 +1332,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
 
   
 

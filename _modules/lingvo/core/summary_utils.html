@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.summary_utils &mdash; lingvo  documentation</title>
+  <title>lingvo.core.summary_utils &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -166,17 +165,22 @@
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">plot</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
 
-<div class="viewcode-block" id="scalar"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.scalar">[docs]</a><span class="k">def</span> <span class="nf">scalar</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
+<div class="viewcode-block" id="_ShouldAddSummary"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils._ShouldAddSummary">[docs]</a><span class="k">def</span> <span class="nf">_ShouldAddSummary</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">add_summary</span></div>
+
+
+<div class="viewcode-block" id="scalar"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.scalar">[docs]</a><span class="k">def</span> <span class="nf">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">if</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="histogram"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.histogram">[docs]</a><span class="k">def</span> <span class="nf">histogram</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
+<div class="viewcode-block" id="histogram"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.histogram">[docs]</a><span class="k">def</span> <span class="nf">histogram</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">if</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
@@ -240,8 +244,7 @@
     <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">plot</span><span class="o">.</span><span class="n">ToUnicode</span><span class="p">(</span><span class="n">transcript</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="s1">&#39;x-small&#39;</span><span class="p">,</span> <span class="n">wrap</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="AddAttentionSummary"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.AddAttentionSummary">[docs]</a><span class="k">def</span> <span class="nf">AddAttentionSummary</span><span class="p">(</span><span class="n">params</span><span class="p">,</span>
-                        <span class="n">attention_tensors</span><span class="p">,</span>
+<div class="viewcode-block" id="AddAttentionSummary"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.AddAttentionSummary">[docs]</a><span class="k">def</span> <span class="nf">AddAttentionSummary</span><span class="p">(</span><span class="n">attention_tensors</span><span class="p">,</span>
                         <span class="n">src_paddings</span><span class="p">,</span>
                         <span class="n">tgt_paddings</span><span class="p">,</span>
                         <span class="n">transcripts</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -249,7 +252,6 @@
   <span class="sd">&quot;&quot;&quot;Adds an image summary showing the attention probability matrix and state.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    params: A param object.</span>
 <span class="sd">    attention_tensors: A list of 3D tensors shaped [target_len, batch_size,</span>
 <span class="sd">       source_len] where attention[i, j, k] is the probability for the i-th</span>
 <span class="sd">       output attending to the k-th input for element j in the batch.</span>
@@ -265,7 +267,7 @@
 <span class="sd">    The added image summary.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">name</span> <span class="o">=</span> <span class="n">attention_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/Attention&#39;</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;disabled_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
   <span class="n">fig</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">max_outputs</span><span class="o">=</span><span class="n">max_outputs</span><span class="p">)</span>
   <span class="n">src_lens</span> <span class="o">=</span> <span class="n">SequenceLength</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">src_paddings</span><span class="p">))</span>
@@ -275,7 +277,7 @@
     <span class="n">max_entropy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">src_lens</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
     <span class="n">max_entropy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">max_entropy</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">atten_normalized_entropy</span> <span class="o">=</span> <span class="o">-</span><span class="n">atten</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">atten</span> <span class="o">+</span> <span class="mf">1e-10</span><span class="p">)</span> <span class="o">/</span> <span class="n">max_entropy</span>
-    <span class="n">scalar</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;Attention/average_normalized_entropy/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">n</span><span class="p">,</span>
+    <span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;Attention/average_normalized_entropy/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">n</span><span class="p">,</span>
            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">atten_normalized_entropy</span><span class="p">))</span>
     <span class="n">args</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">atten</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span> <span class="n">src_lens</span><span class="p">,</span> <span class="n">tgt_lens</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">transcripts</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -289,11 +291,10 @@
   <span class="k">return</span> <span class="n">fig</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="AddNormSummary"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.AddNormSummary">[docs]</a><span class="k">def</span> <span class="nf">AddNormSummary</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vs_gs</span><span class="p">):</span>
+<div class="viewcode-block" id="AddNormSummary"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.AddNormSummary">[docs]</a><span class="k">def</span> <span class="nf">AddNormSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">vs_gs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;&quot;Returns and creates summary for norms of vs and their gradients gs.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    params: A layer hyperparams.</span>
 <span class="sd">    name: A name string for summary.</span>
 <span class="sd">    vs_gs: A `.NestedMap` or a list of `.NestedMap` of (variable, gradient).</span>
 
@@ -302,13 +303,14 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">flatten</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">child</span><span class="o">=</span><span class="n">vs_gs</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
   <span class="n">v_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SumSquared</span><span class="p">([</span><span class="n">v</span> <span class="k">for</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="n">flatten</span><span class="p">]))</span>
-  <span class="n">scalar</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;var_norm_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span> <span class="n">v_norm</span><span class="p">)</span>
+  <span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;var_norm/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span> <span class="n">v_norm</span><span class="p">)</span>
   <span class="n">g_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SumSquared</span><span class="p">([</span><span class="n">g</span> <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">flatten</span><span class="p">]))</span>
-  <span class="n">scalar</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;grad_norm_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span> <span class="n">g_norm</span><span class="p">)</span>
+  <span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;grad_norm/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span> <span class="n">g_norm</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">v_norm</span><span class="p">,</span> <span class="n">g_norm</span></div>
 
 
-<div class="viewcode-block" id="CollectVarHistogram"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.CollectVarHistogram">[docs]</a><span class="k">def</span> <span class="nf">CollectVarHistogram</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">vs_gs</span><span class="p">):</span>
+<div class="viewcode-block" id="CollectVarHistogram"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.CollectVarHistogram">[docs]</a><span class="k">def</span> <span class="nf">CollectVarHistogram</span><span class="p">(</span><span class="n">vs_gs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Adds histogram summaries for variables and gradients.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">SummaryNamePrefix</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">n</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span>
@@ -320,8 +322,11 @@
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">):</span>
         <span class="n">var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span>
         <span class="n">grad</span> <span class="o">=</span> <span class="n">grad</span><span class="o">.</span><span class="n">values</span>
-      <span class="n">histogram</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">name_prefix</span> <span class="o">+</span> <span class="s1">&#39;var_hist&#39;</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
-      <span class="n">histogram</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">name_prefix</span> <span class="o">+</span> <span class="s1">&#39;grad_hist&#39;</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span></div>
+      <span class="k">if</span> <span class="n">var</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_complex</span><span class="p">:</span>
+        <span class="n">var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+        <span class="n">grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">grad</span><span class="p">)</span>
+      <span class="n">histogram</span><span class="p">(</span><span class="n">name_prefix</span> <span class="o">+</span> <span class="s1">&#39;var_hist&#39;</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+      <span class="n">histogram</span><span class="p">(</span><span class="n">name_prefix</span> <span class="o">+</span> <span class="s1">&#39;grad_hist&#39;</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
@@ -334,7 +339,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -353,21 +358,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

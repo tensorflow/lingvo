@@ -1,0 +1,401 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.asr.fusion &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+
+  
+  <script src="../../../../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.fusion</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.asr.fusion</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;Utilities for fusing language models with the decoder output.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.lm</span> <span class="k">import</span> <span class="n">layers</span> <span class="k">as</span> <span class="n">lm_layers</span>
+
+
+<div class="viewcode-block" id="FusionBase"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase">[docs]</a><span class="k">class</span> <span class="nc">FusionBase</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for fusion with LMs.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FusionBase.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FusionBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lm&#39;</span><span class="p">,</span> <span class="n">lm_layers</span><span class="o">.</span><span class="n">NullLm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Language model params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;base_model_logits_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Dimension of base (i.e., the model being fused with the LM) model</span><span class="se">\&#39;</span><span class="s1">s &#39;</span>
+        <span class="s1">&#39;logits.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initializes Fusion class.&quot;&quot;&quot;</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="p">(</span><span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="p">)):</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">on_ps</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+      <span class="k">pass</span>
+
+    <span class="nb">super</span><span class="p">(</span><span class="n">FusionBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lm&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="p">)</span>
+
+<div class="viewcode-block" id="FusionBase.zero_state"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns initial model state for fusion model.&quot;&quot;&quot;</span>
+    <span class="n">state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">state0</span><span class="o">.</span><span class="n">lm_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">batch_size</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state0</span></div>
+
+<div class="viewcode-block" id="FusionBase.FPropLm"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase.FPropLm">[docs]</a>  <span class="k">def</span> <span class="nf">FPropLm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">misc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;LM FProp.</span>
+
+<span class="sd">    Works for single step or entire seq.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights for the layer and its</span>
+<span class="sd">        children.</span>
+<span class="sd">      state0: A NestedMap of states (specific to the layer).</span>
+<span class="sd">      ids: Target ids, of shape [batch_size] for single step unrolling or</span>
+<span class="sd">        [batch_size, base_model_logits_dim] for the entire sequence.</span>
+<span class="sd">      paddings: Target paddings, of the same shape as &#39;ids&#39;.</span>
+<span class="sd">      misc: NestedMap of miscellaneous items, which might be needed during</span>
+<span class="sd">        training.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (lm_output, state1), with:</span>
+
+<span class="sd">      - lm_output: A NestedMap containing lm output. If &#39;ids&#39; is 1-D, then</span>
+<span class="sd">        lm_output should have shape [batch_size, dim]; if it is 2-D then the</span>
+<span class="sd">        shape should be [seq_len, batch_size, dim].</span>
+<span class="sd">      - state1: A NestedMap of updated states.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">state1</span> <span class="o">=</span> <span class="n">state0</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
+    <span class="n">is_single_step</span> <span class="o">=</span> <span class="p">(</span><span class="n">ids</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">is_single_step</span><span class="p">:</span>
+      <span class="n">seq_len</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ModifyLmBeforeFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">misc</span><span class="p">)</span>
+
+    <span class="n">lm_output</span><span class="p">,</span> <span class="n">state1</span><span class="o">.</span><span class="n">lm_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">lm</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="n">seq_len</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">seq_len</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">state0</span><span class="o">.</span><span class="n">lm_states</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">is_single_step</span><span class="p">:</span>
+      <span class="c1"># lm outputs have dimension [time, batch, dim]. Since this is only one</span>
+      <span class="c1"># step, remove time dimension.</span>
+      <span class="n">lm_output</span> <span class="o">=</span> <span class="n">lm_output</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">state1</span></div>
+
+<div class="viewcode-block" id="FusionBase._ModifyLmBeforeFProp"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase._ModifyLmBeforeFProp">[docs]</a>  <span class="k">def</span> <span class="nf">_ModifyLmBeforeFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">misc</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Perform any LM modifications before LM FProp (no-op by default).&quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">misc</span></div>
+
+<div class="viewcode-block" id="FusionBase.FuseOutput"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase.FuseOutput">[docs]</a>  <span class="k">def</span> <span class="nf">FuseOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">am_output</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Real fusion logic happens here.</span>
+
+<span class="sd">    Works for single step or for the entire sequence.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights for the layer and its</span>
+<span class="sd">        children.</span>
+<span class="sd">      state0: A NestedMap of states (specific to the layer).</span>
+<span class="sd">      lm_output: A NestedMap containing lm output.</span>
+<span class="sd">      am_output: The output from the speech model. &#39;am_output&#39; can have shape</span>
+<span class="sd">        [batch_size, base_model_logits_dim] for a single step unrolling or</span>
+<span class="sd">        [seq_len, batch_size, base_model_logits_dim] for the entire sequence.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (fused_output, state1), with:</span>
+
+<span class="sd">      - fused_output: A tensor containing the fused result. If am_output is 2-D,</span>
+<span class="sd">        then the fused_output should have shape [batch_size, dim]; if</span>
+<span class="sd">        am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</span>
+<span class="sd">      - state1: a NestedMap of updated states (specific to the layer).</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      NotImplementedError: If method is not implemented.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">am_output</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Must be implemented by sub-classes.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FusionBase.FusedEmbDim"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase.FusedEmbDim">[docs]</a>  <span class="k">def</span> <span class="nf">FusedEmbDim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_emb_dim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">input_emb_dim</span></div>
+
+<div class="viewcode-block" id="FusionBase.FuseEmb"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase.FuseEmb">[docs]</a>  <span class="k">def</span> <span class="nf">FuseEmb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">emb</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fuse LM output with input embedding.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights for the layer and its</span>
+<span class="sd">        children.</span>
+<span class="sd">      state0: A NestedMap of states (specific to the layer).</span>
+<span class="sd">      lm_output: a NestedMap containing lm output.</span>
+<span class="sd">      emb: the output from the AM embedding layer. &#39;emb&#39; can have shape</span>
+<span class="sd">        [batch_size, base_model_logits_dim] for a single step unrolling or</span>
+<span class="sd">        [seq_len, batch_size, base_model_logits_dim] for the entire sequence.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tuple (output, state1) which is a tensor containing the fused result</span>
+<span class="sd">      (output) and the updated states (state1), respectively. If emb is 2-D,</span>
+<span class="sd">      then the fused output should have shape [batch_size, dim]; if emb is 3D,</span>
+<span class="sd">      then the fused output should have shape [seq_len, batch_size, dim].</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      NotImplementedError: If method is not implemented.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">emb</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Must be implemented by sub-classes.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FusionBase.ComputeLogitsWithLM"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase.ComputeLogitsWithLM">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLogitsWithLM</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">is_eval</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute resulting logits based on the fusion method.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      state: a NestedMap of states (specific to the layer).</span>
+<span class="sd">      logits: a tensor corresponds to AM logits.</span>
+<span class="sd">      is_eval: whether this is used in eval model (for example, beam search).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Resulting logits after fusion with the LM.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      NotImplementedError: If method is not implemented.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">state</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">is_eval</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Must be implemented by sub-classes.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="FusionBase.AddAdditionalDecoderSummaries"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase.AddAdditionalDecoderSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">AddAdditionalDecoderSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
+                                    <span class="n">seq_out_tas</span><span class="p">,</span> <span class="n">softmax_input</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add any fusion related summaries (no-op by default).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      source_encs: A tensor of shape [time, batch_size, source_dim].</span>
+<span class="sd">      source_paddings: A tensor of shape [time, batch_size].</span>
+<span class="sd">      targets: A NestedMap containing target info.</span>
+<span class="sd">      seq_out_tas: A SequenceOutTensorArrays.</span>
+<span class="sd">      softmax_input: A tensor of shape [batch, time, vocab_size].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">seq_out_tas</span><span class="p">,</span> <span class="n">softmax_input</span></div></div>
+
+
+<div class="viewcode-block" id="NullFusion"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.NullFusion">[docs]</a><span class="k">class</span> <span class="nc">NullFusion</span><span class="p">(</span><span class="n">FusionBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A trivial fusion layer which does nothing.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="NullFusion.FuseEmb"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.NullFusion.FuseEmb">[docs]</a>  <span class="k">def</span> <span class="nf">FuseEmb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">emb</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">theta</span><span class="p">,</span> <span class="n">lm_output</span>
+    <span class="k">return</span> <span class="n">emb</span><span class="p">,</span> <span class="n">state0</span></div>
+
+<div class="viewcode-block" id="NullFusion.FuseOutput"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.NullFusion.FuseOutput">[docs]</a>  <span class="k">def</span> <span class="nf">FuseOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">am_output</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">theta</span><span class="p">,</span> <span class="n">lm_output</span>
+    <span class="k">return</span> <span class="n">am_output</span><span class="p">,</span> <span class="n">state0</span></div>
+
+<div class="viewcode-block" id="NullFusion.ComputeLogitsWithLM"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.NullFusion.ComputeLogitsWithLM">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLogitsWithLM</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">is_eval</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="k">if</span> <span class="n">is_eval</span> <span class="k">else</span> <span class="n">logits</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

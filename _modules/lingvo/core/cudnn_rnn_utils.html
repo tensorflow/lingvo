@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.cudnn_rnn_utils &mdash; lingvo  documentation</title>
+  <title>lingvo.core.cudnn_rnn_utils &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -349,8 +348,8 @@
 <span class="sd">    ValueError: for invalid `direction`.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">UNI_RNN</span><span class="p">,</span> <span class="n">BI_RNN</span><span class="p">):</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">direction</span><span class="se">\&#39;</span><span class="s1"> must be </span><span class="si">%s</span><span class="s1"> or </span><span class="si">%s</span><span class="s1">, receive </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span>
-                     <span class="n">UNI_RNN</span><span class="p">,</span> <span class="n">BI_RNN</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">direction</span><span class="se">\&#39;</span><span class="s1"> must be </span><span class="si">%s</span><span class="s1"> or </span><span class="si">%s</span><span class="s1">, receive </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span>
+                     <span class="p">(</span><span class="n">UNI_RNN</span><span class="p">,</span> <span class="n">BI_RNN</span><span class="p">,</span> <span class="n">direction</span><span class="p">))</span>
   <span class="n">cudnn_initializer</span> <span class="o">=</span> <span class="n">CuDNNLSTMInitializer</span><span class="p">(</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">,</span> <span class="n">direction</span><span class="p">)</span>
   <span class="n">weights</span><span class="p">,</span> <span class="n">biases</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">cudnn_params</span><span class="p">,</span>
                              <span class="p">[</span><span class="n">cudnn_initializer</span><span class="o">.</span><span class="n">weight_size</span><span class="p">,</span>
@@ -380,9 +379,9 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">,</span>
                        <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_BIDIRECTION</span><span class="p">):</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">direction</span><span class="se">\&#39;</span><span class="s1"> must be </span><span class="si">%s</span><span class="s1"> or </span><span class="si">%s</span><span class="s1">, receive </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span>
-                     <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">,</span>
-                     <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_BIDIRECTION</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">direction</span><span class="se">\&#39;</span><span class="s1"> must be </span><span class="si">%s</span><span class="s1"> or </span><span class="si">%s</span><span class="s1">, receive </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span>
+                     <span class="p">(</span><span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">,</span>
+                      <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_BIDIRECTION</span><span class="p">,</span> <span class="n">direction</span><span class="p">))</span>
   <span class="n">weights</span><span class="p">,</span> <span class="n">biases</span> <span class="o">=</span> <span class="n">_CuDNNParamsToCanonical</span><span class="p">(</span><span class="n">cudnn_params</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">cell_dim</span><span class="p">,</span>
                                             <span class="n">direction</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">direction</span> <span class="o">==</span> <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CUDNN_RNN_UNIDIRECTION</span><span class="p">:</span>
@@ -420,6 +419,25 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">fwd_w</span><span class="p">,</span> <span class="n">bak_w</span><span class="p">),</span> <span class="p">(</span><span class="n">fwd_b</span><span class="p">,</span> <span class="n">bak_b</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="CudNNParamsFormatConverterLSTM"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CudNNParamsFormatConverterLSTM">[docs]</a><span class="k">class</span> <span class="nc">CudNNParamsFormatConverterLSTM</span><span class="p">(</span>
+    <span class="n">cudnn_rnn_ops</span><span class="o">.</span><span class="n">CudnnParamsFormatConverterLSTM</span><span class="p">):</span>
+  <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Lingvo CuDNN LSTM params converter.</span>
+
+<span class="sd">  Used by Lingvo CuDNNLSTMSaveable to convert between Cudnn and Lingvo LSTM</span>
+<span class="sd">  formats.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CudNNParamsFormatConverterLSTM._cudnn_to_tf_gate_params"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CudNNParamsFormatConverterLSTM._cudnn_to_tf_gate_params">[docs]</a>  <span class="k">def</span> <span class="nf">_cudnn_to_tf_gate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">cu_gate_order</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Put CuDNN gate params to lingvo RNN cell order.&quot;&quot;&quot;</span>
+    <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">c_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">cu_gate_order</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">c_g</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="CudNNParamsFormatConverterLSTM._tf_to_cudnn_gate_params"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CudNNParamsFormatConverterLSTM._tf_to_cudnn_gate_params">[docs]</a>  <span class="k">def</span> <span class="nf">_tf_to_cudnn_gate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">tf_gate_order</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Put lingvo RNN cell gate params to CuDNN order.&quot;&quot;&quot;</span>
+    <span class="n">c_g</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf_gate_order</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">c_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">]</span></div></div>
+
+
 <div class="viewcode-block" id="CuDNNLSTMSaveable"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable">[docs]</a><span class="k">class</span> <span class="nc">CuDNNLSTMSaveable</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">cudnn_rnn</span><span class="o">.</span><span class="n">CudnnLSTMSaveable</span><span class="p">):</span>
   <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Lingvo CuDNN LSTM opaque params saveable.</span>
 
@@ -430,7 +448,7 @@
 
 <span class="sd">      | i_t = σ(w_i * x_t + r_i * h_(t-1) + b_wi + b_ri)</span>
 <span class="sd">      | f_t = σ(w_f * x_t + r_f * h_(t-1) + b_wf + b_rf)</span>
-<span class="sd">      | o_t = σ(w_o * x_t + r_o h_(t-1) + b_wo + b_ro)</span>
+<span class="sd">      | o_t = σ(w_o * x_t + r_o * h_(t-1) + b_wo + b_ro)</span>
 <span class="sd">      | c&#39;_t = tanh(w_c * x_t + r_c * h_(t-1) + b_wc + b_rc)</span>
 <span class="sd">      | c_t = f_t ◦ c_(t-1) + i_t ◦ c&#39;_t</span>
 <span class="sd">      | h_t = o_t ◦ tanh(c_t)</span>
@@ -459,8 +477,36 @@
 <span class="sd">        \             \</span>
 <span class="sd">         ---------------</span>
 <span class="sd">         |fwd   |bak   |</span>
-<span class="sd">         ---------------</span>
+<span class="sd">         ------------</span>
+
+<span class="sd">  Conceptually, for each layer, cudnn lstm has the following params and layout:</span>
+
+<span class="sd">  .. code-block:: none</span>
+
+<span class="sd">      -------------------------------------------------</span>
+<span class="sd">      | w_i | w_f | w_c | w_o | r_i | r_f | r_c | r_o |</span>
+<span class="sd">      -------------------------------------------------</span>
+<span class="sd">      ---------------------------------------------------------</span>
+<span class="sd">      | b_wi | b_wf | b_wc | b_wo | b_ri | b_rf | b_rc | b_ro |</span>
+<span class="sd">      ---------------------------------------------------------</span>
+
+<span class="sd">  While Lingvo LSTM params and layout is the following:</span>
+
+<span class="sd">  .. code-block:: none</span>
+
+<span class="sd">      -----------------------------</span>
+<span class="sd">      | w_c&#39; | w_i&#39; | w_f&#39; | w_o&#39; |</span>
+<span class="sd">      | r_c&#39; | r_i&#39; | r_f&#39; | r_o&#39; |</span>
+<span class="sd">      -----------------------------</span>
+<span class="sd">      ---------------------------------------------------------</span>
+<span class="sd">      | b_wc + b_rc | b_wi + b_ri | b_wf + b_rf | b_wo + b_ro |</span>
+<span class="sd">      ---------------------------------------------------------</span>
+
+<span class="sd">  The shapes of each element before transpose is reflected by</span>
+<span class="sd">  `CuDNNLSTMInitializer.{weight_shapes, biase_shapes}`.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">_format_converter_cls</span> <span class="o">=</span> <span class="n">CudNNParamsFormatConverterLSTM</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">opaque_params</span><span class="p">,</span>
@@ -492,66 +538,20 @@
         <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 
-<div class="viewcode-block" id="CuDNNLSTMSaveable._TransformSingleLayerCanonical"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._TransformSingleLayerCanonical">[docs]</a>  <span class="k">def</span> <span class="nf">_TransformSingleLayerCanonical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cu_wts</span><span class="p">,</span> <span class="n">cu_bs</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">tf_wts</span><span class="p">,</span>
-                                     <span class="n">tf_wts_names</span><span class="p">,</span> <span class="n">tf_bs</span><span class="p">,</span> <span class="n">tf_bs_names</span><span class="p">):</span>
+<div class="viewcode-block" id="CuDNNLSTMSaveable._tf_canonical_names_single_layer"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._tf_canonical_names_single_layer">[docs]</a>  <span class="k">def</span> <span class="nf">_tf_canonical_names_single_layer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">tf_wts_names</span><span class="p">,</span> <span class="n">tf_bs_names</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Transform single layer Cudnn canonicals to tf canonicals.</span>
 
-<span class="sd">    The elements of cu_weights, cu_biases are laid out in the following order:</span>
-
-<span class="sd">    .. code-block:: none</span>
-
-<span class="sd">        -------------------------------------------------</span>
-<span class="sd">        | w_i | w_f | w_c | w_o | r_i | r_f | r_c | r_o |</span>
-<span class="sd">        -------------------------------------------------</span>
-<span class="sd">        ---------------------------------------------------------</span>
-<span class="sd">        | b_wi | b_wf | b_wc | b_wo | b_ri | b_rf | b_rc | b_ro |</span>
-<span class="sd">        ---------------------------------------------------------</span>
-
-<span class="sd">    The transformed canonicals are in the following format and order:</span>
-
-<span class="sd">    .. code-block:: none</span>
-
-<span class="sd">        -----------------------------</span>
-<span class="sd">        | w_c&#39; | w_i&#39; | w_f&#39; | w_o&#39; |</span>
-<span class="sd">        | r_c&#39; | r_i&#39; | r_f&#39; | r_o&#39; |</span>
-<span class="sd">        -----------------------------</span>
-<span class="sd">        ---------------------------------------------------------</span>
-<span class="sd">        | b_wc + b_rc | b_wi + b_ri | b_wf + b_rf | b_wo + b_ro |</span>
-<span class="sd">        ---------------------------------------------------------</span>
-
-<span class="sd">    The shapes of each element before transpose is reflected by</span>
-<span class="sd">    `CuDNNLSTMInitializer.{weight_shapes, biase_shapes}`.</span>
-
 <span class="sd">    Args:</span>
-<span class="sd">      cu_wts: a list of tensors, single layer weights.</span>
-<span class="sd">      cu_bs: a list of tensors, single layer biases.</span>
 <span class="sd">      prefix: the shared prefix of all tensor names.</span>
-<span class="sd">      tf_wts: a list where transformed weights are stored.</span>
 <span class="sd">      tf_wts_names: a list where names of transformed weights are stored.</span>
-<span class="sd">      tf_bs: a list where transformed biases are stored.</span>
 <span class="sd">      tf_bs_names: a list where names of transformed biases are stored.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="p">(</span><span class="n">w</span><span class="p">,)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cudnn_to_tf_weights</span><span class="p">(</span><span class="o">*</span><span class="n">cu_wts</span><span class="p">)</span>
-    <span class="p">(</span><span class="n">b</span><span class="p">,)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cudnn_to_tf_biases</span><span class="p">(</span><span class="o">*</span><span class="n">cu_bs</span><span class="p">)</span>
-
-    <span class="n">tf_wts</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
     <span class="n">tf_wts_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;/wm/var&#39;</span><span class="p">)</span>
-
-    <span class="n">tf_bs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
     <span class="n">tf_bs_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39;/b/var&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="CuDNNLSTMSaveable._cudnn_to_tf_gate_params"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._cudnn_to_tf_gate_params">[docs]</a>  <span class="k">def</span> <span class="nf">_cudnn_to_tf_gate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">cu_gate_order</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Put CuDNN gate params to lingvo RNN cell order.&quot;&quot;&quot;</span>
-    <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">c_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">cu_gate_order</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">c_g</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="CuDNNLSTMSaveable._tf_to_cudnn_gate_params"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._tf_to_cudnn_gate_params">[docs]</a>  <span class="k">def</span> <span class="nf">_tf_to_cudnn_gate_params</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">tf_gate_order</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Put lingvo RNN cell gate params to CuDNN order.&quot;&quot;&quot;</span>
-    <span class="n">c_g</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf_gate_order</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">c_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="CuDNNLSTMSaveable._TFCanonicalNamePrefix"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._TFCanonicalNamePrefix">[docs]</a>  <span class="k">def</span> <span class="nf">_TFCanonicalNamePrefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">unused_is_fwd</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="CuDNNLSTMSaveable._tf_canonical_name_prefix"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.CuDNNLSTMSaveable._tf_canonical_name_prefix">[docs]</a>  <span class="k">def</span> <span class="nf">_tf_canonical_name_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">is_fwd</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The prefix of names under which lingvo canonical params are saved.&quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">is_fwd</span>
     <span class="c1"># Lingvo only uses single layer.</span>
     <span class="k">assert</span> <span class="n">layer</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rnn_cell_name</span></div></div>
@@ -593,7 +593,7 @@
         <span class="n">scope</span><span class="o">=</span><span class="n">scope</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 
-<div class="viewcode-block" id="BidiCuDNNLSTMSaveable._TFCanonicalNamePrefix"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.BidiCuDNNLSTMSaveable._TFCanonicalNamePrefix">[docs]</a>  <span class="k">def</span> <span class="nf">_TFCanonicalNamePrefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">is_fwd</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="BidiCuDNNLSTMSaveable._tf_canonical_name_prefix"><a class="viewcode-back" href="../../../lingvo.core.cudnn_rnn_utils.html#lingvo.core.cudnn_rnn_utils.BidiCuDNNLSTMSaveable._tf_canonical_name_prefix">[docs]</a>  <span class="k">def</span> <span class="nf">_tf_canonical_name_prefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">is_fwd</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The prefix of names under which lingvo canonical params are saved.&quot;&quot;&quot;</span>
     <span class="c1"># Lingvo only uses single layer.</span>
     <span class="k">assert</span> <span class="n">layer</span> <span class="o">==</span> <span class="mi">0</span>
@@ -610,7 +610,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -629,21 +629,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

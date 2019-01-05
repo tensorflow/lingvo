@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.beam_search_helper &mdash; lingvo  documentation</title>
+  <title>lingvo.core.beam_search_helper &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -214,7 +213,7 @@
 <span class="n">BeamSearchDecodeOutput</span><span class="o">.</span><span class="fm">__new__</span><span class="o">.</span><span class="vm">__defaults__</span> <span class="o">=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span>
 
 
-<div class="viewcode-block" id="BeamSearchHelper"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchHelper</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
+<div class="viewcode-block" id="BeamSearchHelper"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper">[docs]</a><span class="k">class</span> <span class="nc">BeamSearchHelper</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Helper class for performing beam search.</span>
 
 <span class="sd">  The user of this helper class needs to implement three callbacks.</span>
@@ -223,22 +222,25 @@
 
 <span class="sd">  .. code-block:: none</span>
 
-<span class="sd">      def InitBeamSearchState(source_encs,</span>
+<span class="sd">      def InitBeamSearchState(theta,</span>
+<span class="sd">                              source_encs,</span>
 <span class="sd">                              source_paddings,</span>
 <span class="sd">                              num_hyps_per_beam,</span>
 <span class="sd">                              additional_source_info):</span>
 <span class="sd">        Args:</span>
+<span class="sd">          theta: A NestedMap object containing weights&#39; values of this</span>
+<span class="sd">              layer and its children layers.</span>
 <span class="sd">          source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
 <span class="sd">          source_paddings: A tensor of shape [src_len, src_batch].</span>
 <span class="sd">          num_hyps_per_beam: An int, number hyps to keep for source sentence.</span>
-<span class="sd">          additional_source_info: a NestedMap of tensors containing extra</span>
+<span class="sd">          additional_source_info: a `.NestedMap` of tensors containing extra</span>
 <span class="sd">              information about the source that may be useful for decoding.</span>
 <span class="sd">        Returns:</span>
-<span class="sd">          initial_results: a NestedMap of initial results. It should contain the</span>
-<span class="sd">              following tensors at the minimum.</span>
+<span class="sd">          initial_results: a `.NestedMap` of initial results. It should contain</span>
+<span class="sd">              the following tensors at the minimum.</span>
 <span class="sd">                  atten_probs: The initial attention probs, of shape [tgt_batch,</span>
 <span class="sd">                      src_len].</span>
-<span class="sd">          states: a NestedMap of tensors representing states that the client</span>
+<span class="sd">          states: a `.NestedMap` of tensors representing states that the client</span>
 <span class="sd">              would like to keep track of for each hyp.</span>
 
 <span class="sd">  This callback is called once every decoding time step before beam_search_step</span>
@@ -246,56 +248,59 @@
 
 <span class="sd">  .. code-block:: none</span>
 
-<span class="sd">      def PreBeamSearchStepCallback(source_encs,</span>
+<span class="sd">      def PreBeamSearchStepCallback(theta,</span>
+<span class="sd">                                    source_encs,</span>
 <span class="sd">                                    source_paddings,</span>
 <span class="sd">                                    step_ids,</span>
 <span class="sd">                                    in_states,</span>
 <span class="sd">                                    num_hyps_per_beam,</span>
 <span class="sd">                                    additional_source_info):</span>
 <span class="sd">        Args:</span>
+<span class="sd">          theta: A NestedMap object containing weights&#39; values of this</span>
+<span class="sd">              layer and its children layers.</span>
 <span class="sd">          source_encs: A tensor of shape [src_len, src_batch, source_dim].</span>
 <span class="sd">          source_paddings: A tensor of shape [src_len, src_batch].</span>
 <span class="sd">          step_ids: A tensor of shape [tgt_batch, 1].</span>
-<span class="sd">          in_states: A NestedMap of tensors representing states that the clients</span>
-<span class="sd">              would like to keep track of for each of the active hyps.</span>
-<span class="sd">          additional_source_info: a NestedMap of tensors containing extra</span>
+<span class="sd">          in_states: A `.NestedMap` of tensors representing states that the</span>
+<span class="sd">              clients would like to keep track of for each of the active hyps.</span>
+<span class="sd">          additional_source_info: a `.NestedMap` of tensors containing extra</span>
 <span class="sd">              information about the source that may be useful for decoding.</span>
 <span class="sd">        Returns:</span>
-<span class="sd">          results: A NestedMap of beam search results. It should contain</span>
+<span class="sd">          results: A `.NestedMap` of beam search results. It should contain</span>
 <span class="sd">              the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors at the minimal.</span>
-<span class="sd">              Optionally it may contain &#39;lm_log_probs&#39; if a LM is used during</span>
-<span class="sd">              decoding and &#39;is_last_chunk&#39; if it is decoding a neural transducer</span>
-<span class="sd">              model.</span>
+<span class="sd">              Optionally it may contain &#39;is_last_chunk&#39; if it is decoding a</span>
+<span class="sd">              neural transducer model.</span>
 <span class="sd">          atten_probs: The updated attention probs, of shape [tgt_batch,</span>
 <span class="sd">              src_len].</span>
 <span class="sd">          log_probs: Log prob for each of the tokens in the target vocab. This</span>
 <span class="sd">              is of shape [tgt_batch, vocab_size].</span>
-<span class="sd">          lm_log_probs: Language model prob for each of the tokens in the target</span>
-<span class="sd">              vocab.  If not empty, this is of shape [tgt_batch, vocab_size].</span>
 <span class="sd">          is_last_chunk: Whether or not each of the hyp is at the end of a</span>
 <span class="sd">              chunk. If non-empty, it is of shape [tgt_batch, 1]</span>
-<span class="sd">          out_states: A NestedMap. The updated states. This &#39;out_states&#39; should</span>
-<span class="sd">              be of the exact same structure as &#39;in_states&#39;</span>
+<span class="sd">          out_states: A `.NestedMap`. The updated states. This &#39;out_states&#39;</span>
+<span class="sd">              should be of the exact same structure as &#39;in_states&#39;</span>
 
 <span class="sd">  This callback is called once every decoding time step after beam_search_step</span>
 <span class="sd">  is called:</span>
 
 <span class="sd">  .. code-block:: none</span>
 
-<span class="sd">      def PostBeamSearchStepCallback(source_encs,</span>
+<span class="sd">      def PostBeamSearchStepCallback(theta,</span>
+<span class="sd">                                     source_encs,</span>
 <span class="sd">                                     source_paddings,</span>
 <span class="sd">                                     new_step_ids,</span>
 <span class="sd">                                     other_states,</span>
 <span class="sd">                                     additional_source_info):</span>
 <span class="sd">        Args:</span>
+<span class="sd">          theta: A NestedMap object containing weights&#39; values of this</span>
+<span class="sd">              layer and its children layers.</span>
 <span class="sd">          source_encs: The same as above.</span>
 <span class="sd">          source_paddings: The same as above.</span>
 <span class="sd">          new_step_ids: Token ids for the next beam search step.</span>
-<span class="sd">          other_states: A NestedMap.</span>
-<span class="sd">          additional_source_info: a NestedMap of tensors containing extra</span>
+<span class="sd">          other_states: A `.NestedMap`.</span>
+<span class="sd">          additional_source_info: a `.NestedMap` of tensors containing extra</span>
 <span class="sd">              information about the source that may be useful for decoding.</span>
 <span class="sd">        Returns:</span>
-<span class="sd">          final_states, A NestedMap.</span>
+<span class="sd">          final_states, A `.NestedMap`.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BeamSearchHelper.Params"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -320,12 +325,7 @@
         <span class="s1">&#39;The maximum difference between best hyp and the worst in a beam.&#39;</span>
         <span class="s1">&#39; This allows to prune our search when none of the active hyp is&#39;</span>
         <span class="s1">&#39; close enough to the current best.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;lm_log_probs_weight&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
-        <span class="s1">&#39;How much weight to put on lm log probs when re-scoring the top k &#39;</span>
-        <span class="s1">&#39;hyps. Must be within -1 to 1. If less than 0, lm log probs are&#39;</span>
-        <span class="s1">&#39;used to reduce the scores given by the model. If 0, lm log probs&#39;</span>
-        <span class="s1">&#39;are unused.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lm_log_probs_weight&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;deprecated, will be removed.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_sos_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Id of the start of sentence token.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_eos_id&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Id of the end of sentence token.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -339,6 +339,23 @@
         <span class="s1">&#39;probability for that combined hyp will be the sum of the &#39;</span>
         <span class="s1">&#39;probabilities of the component hyps.  This can only be applied &#39;</span>
         <span class="s1">&#39;for epsilon-emitting models (RNN-T and NT).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;allow_empty_terminated_hyp&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether it is okay to consider a &#39;</span>
+        <span class="s1">&#39;hyp that consists only of epsilons as terminated.  By default this &#39;</span>
+        <span class="s1">&#39;is true, as an utterance may consist of silence.  It should be set &#39;</span>
+        <span class="s1">&#39;to false when EMBR training epsilon-emitting models (e.g., RNN-T), &#39;</span>
+        <span class="s1">&#39;which are prone to emit all-epsilon hyps even in the presence of &#39;</span>
+        <span class="s1">&#39;speech.  Note that a hyp that terminates in EOS is not considered &#39;</span>
+        <span class="s1">&#39;empty, so this flag has no effect for non-epsilon-emitting models.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;ensure_full_beam&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, we will not terminate the search &#39;</span>
+        <span class="s1">&#39;until both of these conditions are satisfied: we have found &#39;</span>
+        <span class="s1">&#39;num_hyps_per_beam terminated hyps AND no active hyps have a score &#39;</span>
+        <span class="s1">&#39;within beam_size of the best terminated hyp.  If False, only the &#39;</span>
+        <span class="s1">&#39;second condition must be satisfied.  Note that in either case, we can &#39;</span>
+        <span class="s1">&#39;also terminate if we have run for target_seq_len steps.  Generally &#39;</span>
+        <span class="s1">&#39;this should be False unless beam search is being run as part of &#39;</span>
+        <span class="s1">&#39;minimum word error rate training.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;beam_search&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -346,11 +363,10 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">BeamSearchHelper</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_is_neural_transducer</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_has_lm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lm_log_probs_weight</span> <span class="o">!=</span> <span class="mf">0.0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model_uses_eoc_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
 
-<div class="viewcode-block" id="BeamSearchHelper._BeamSearchStep"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep">[docs]</a>  <span class="k">def</span> <span class="nf">_BeamSearchStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span>
-                      <span class="n">core_bs_states</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
+<div class="viewcode-block" id="BeamSearchHelper._BeamSearchStep"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper._BeamSearchStep">[docs]</a>  <span class="k">def</span> <span class="nf">_BeamSearchStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span>
+                      <span class="n">step_ids</span><span class="p">,</span> <span class="n">core_bs_states</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
                       <span class="n">pre_beam_search_step_callback</span><span class="p">,</span>
                       <span class="n">post_beam_search_step_callback</span><span class="p">,</span> <span class="n">additional_source_info</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extend beam search hyps for one step.</span>
@@ -362,6 +378,8 @@
 <span class="sd">      | tgt_seq_len = Maximum allowed time steps in the target sequence.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of the decoder</span>
+<span class="sd">          layer and its children layers.</span>
 <span class="sd">      source_encs: A tensor of the shape [time, batch, depth]. The encoding of</span>
 <span class="sd">          the source.</span>
 <span class="sd">      source_paddings: A tensor of the shape [time, batch]. Padding state of</span>
@@ -389,8 +407,8 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">bs_results</span><span class="p">,</span> <span class="n">other_states</span> <span class="o">=</span> <span class="n">pre_beam_search_step_callback</span><span class="p">(</span>
-        <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
-        <span class="n">additional_source_info</span><span class="p">)</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">other_states</span><span class="p">,</span>
+        <span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="n">additional_source_info</span><span class="p">)</span>
 
     <span class="p">(</span><span class="n">best_scores</span><span class="p">,</span> <span class="n">cumulative_scores</span><span class="p">,</span> <span class="n">in_scores</span><span class="p">,</span> <span class="n">in_hyps</span><span class="p">,</span> <span class="n">in_prev_hyps</span><span class="p">,</span>
      <span class="n">in_done_hyps</span><span class="p">,</span> <span class="n">in_atten_probs</span><span class="p">)</span> <span class="o">=</span> <span class="n">core_bs_states</span>
@@ -407,17 +425,16 @@
          <span class="n">in_prev_hyps</span><span class="p">,</span>
          <span class="n">in_done_hyps</span><span class="p">,</span>
          <span class="n">in_atten_probs</span><span class="p">,</span>
-         <span class="n">bs_results</span><span class="o">.</span><span class="n">is_last_chunk</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_neural_transducer</span> <span class="k">else</span> <span class="p">[],</span>
-         <span class="n">cur_step</span><span class="p">,</span>
-         <span class="n">bs_results</span><span class="o">.</span><span class="n">lm_log_probs</span>
-         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_lm</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">),</span>
+         <span class="n">bs_results</span><span class="o">.</span><span class="n">is_last_chunk</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_uses_eoc_id</span> <span class="k">else</span> <span class="p">[],</span>
+         <span class="n">cur_step</span><span class="p">,</span> <span class="p">[],</span>
          <span class="n">eoc_id</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span><span class="p">,</span>
          <span class="n">eos_id</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span><span class="p">,</span>
          <span class="n">beam_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span>
          <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="n">num_hyps_per_beam</span><span class="p">,</span>
          <span class="n">valid_eos_max_logit_delta</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">valid_eos_max_logit_delta</span><span class="p">,</span>
-         <span class="n">lm_weight</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lm_log_probs_weight</span><span class="p">,</span>
-         <span class="n">merge_paths</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">merge_paths</span><span class="p">)</span>
+         <span class="n">merge_paths</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">merge_paths</span><span class="p">,</span>
+         <span class="n">allow_empty_terminated_hyp</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_empty_terminated_hyp</span><span class="p">,</span>
+         <span class="n">ensure_full_beam</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ensure_full_beam</span><span class="p">)</span>
 
     <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out_hyps</span><span class="p">[</span><span class="n">cur_step</span><span class="p">,</span> <span class="p">:],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">))</span>
     <span class="n">new_step_ids</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">step_ids</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
@@ -440,23 +457,27 @@
     <span class="n">new_other_states</span> <span class="o">=</span> <span class="n">other_states</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ReOrderHyps</span><span class="p">)</span>
 
     <span class="n">final_other_states</span> <span class="o">=</span> <span class="n">post_beam_search_step_callback</span><span class="p">(</span>
-        <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">new_other_states</span><span class="p">,</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">new_other_states</span><span class="p">,</span>
         <span class="n">additional_source_info</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="p">(</span><span class="n">cur_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">all_done</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">new_bs_states</span><span class="p">,</span>
             <span class="n">final_other_states</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BeamSearchHelper.BeamSearchDecode"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">theta</span><span class="p">,</span>
                        <span class="n">source_encs</span><span class="p">,</span>
                        <span class="n">source_paddings</span><span class="p">,</span>
                        <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                        <span class="n">init_beam_search_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">pre_beam_search_step_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                        <span class="n">post_beam_search_step_callback</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                       <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                       <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">max_steps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Performs beam-search based decoding.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of the decoder</span>
+<span class="sd">        layer and its children layers.</span>
 <span class="sd">      source_encs: source encoding, of shape [time, batch, depth]. In case of</span>
 <span class="sd">        multi-source decoding, a `.NestedMap` object containing source encoding</span>
 <span class="sd">        tensors, again each of shape [time, batch, depth].</span>
@@ -466,15 +487,16 @@
 <span class="sd">      num_hyps_per_beam_override: If set to a value &lt;= 0, this parameter is</span>
 <span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to</span>
 <span class="sd">        override `p.num_hyps_per_beam`.</span>
-<span class="sd">      additional_source_info: a `.NestedMap` of tensors containing extra context</span>
-<span class="sd">          information about the source that may be useful for decoding.</span>
-
 <span class="sd">      init_beam_search_state: The `InitBeamSearchState` callback. Please refer</span>
 <span class="sd">          to the class header comments for more details.</span>
 <span class="sd">      pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.</span>
 <span class="sd">          Please refer to the class header comments for more details.</span>
 <span class="sd">      post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.</span>
 <span class="sd">          Please refer to the class header comments for more details.</span>
+<span class="sd">      additional_source_info: a `.NestedMap` of tensors containing extra context</span>
+<span class="sd">          information about the source that may be useful for decoding.</span>
+<span class="sd">      max_steps: maximum beam search steps. If None,</span>
+<span class="sd">          use self.params.target_seq_len.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A `BeamSearchDecodeOutput`.</span>
@@ -483,6 +505,8 @@
     <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hyps_per_beam</span>
     <span class="k">if</span> <span class="n">num_hyps_per_beam_override</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">num_hyps_per_beam_override</span>
+    <span class="k">if</span> <span class="n">max_steps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">max_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span>
 
     <span class="c1"># Branch to multi-source according to type.</span>
     <span class="n">is_multi_source</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_encs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)</span>
@@ -495,7 +519,8 @@
     <span class="n">num_hyps</span> <span class="o">=</span> <span class="n">num_beams</span> <span class="o">*</span> <span class="n">num_hyps_per_beam</span>
 
     <span class="n">initial_results</span><span class="p">,</span> <span class="n">other_states</span> <span class="o">=</span> <span class="n">init_beam_search_state</span><span class="p">(</span>
-        <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="n">additional_source_info</span><span class="p">)</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
+        <span class="n">additional_source_info</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">is_multi_source</span><span class="p">:</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
@@ -513,12 +538,12 @@
     <span class="n">min_score</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e36</span>
     <span class="n">best_scores</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_beams</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">+</span> <span class="n">min_score</span><span class="p">)</span>
     <span class="n">cumulative_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">in_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">in_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">in_prev_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">in_done_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
+    <span class="n">in_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">in_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">in_prev_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">in_done_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)</span>
     <span class="n">bs_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">,</span>
          <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">initial_results</span><span class="o">.</span><span class="n">atten_probs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]],</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">cur_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -528,14 +553,14 @@
 
     <span class="k">def</span> <span class="nf">LoopContinue</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">all_done</span><span class="p">,</span> <span class="n">unused_step_ids</span><span class="p">,</span> <span class="n">unused_core_bs_states</span><span class="p">,</span>
                      <span class="n">unused_other_states_list</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">cur_step</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span><span class="p">,</span>
-                            <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">all_done</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">cur_step</span> <span class="o">&lt;</span> <span class="n">max_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">all_done</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">LoopBody</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">unused_all_done</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">core_bs_states</span><span class="p">,</span>
                  <span class="n">other_states_list</span><span class="p">):</span>
       <span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">all_done</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">new_bs_states</span><span class="p">,</span>
        <span class="n">new_other_states</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BeamSearchStep</span><span class="p">(</span>
-           <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">core_bs_states</span><span class="p">,</span>
+           <span class="n">theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
+           <span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">core_bs_states</span><span class="p">,</span>
            <span class="n">other_states</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">other_states_list</span><span class="p">),</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
            <span class="n">pre_beam_search_step_callback</span><span class="p">,</span> <span class="n">post_beam_search_step_callback</span><span class="p">,</span>
            <span class="n">additional_source_info</span><span class="p">)</span>
@@ -556,9 +581,11 @@
                           <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">step_ids</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()),</span>
                           <span class="n">_GetShapes</span><span class="p">(</span><span class="n">core_bs_states</span><span class="p">),</span>
                           <span class="n">_GetShapes</span><span class="p">(</span><span class="n">flat_other_states</span><span class="p">,</span> <span class="n">none_shapes</span><span class="o">=</span><span class="kc">True</span><span class="p">)))</span>
+    <span class="c1"># [target_seq_len, num_beams * num_hyps_per_beam].</span>
     <span class="n">final_done_hyps</span> <span class="o">=</span> <span class="n">final_bs_states</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
     <span class="n">final_other_states</span> <span class="o">=</span> <span class="n">other_states</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_final_other_states</span><span class="p">)</span>
 
+    <span class="c1"># [num_beams, num_hyps_per_beam].</span>
     <span class="n">topk_hyps</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">top_k_terminated_hyps</span><span class="p">(</span>
         <span class="n">final_done_hyps</span><span class="p">,</span>
         <span class="n">source_seq_lengths</span><span class="p">,</span>
@@ -569,8 +596,11 @@
         <span class="n">target_seq_length_ratio</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_length_ratio</span><span class="p">,</span>
         <span class="n">eoc_id</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span><span class="p">,</span>
         <span class="n">merge_paths</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">merge_paths</span><span class="p">)</span>
+    <span class="c1"># [num_beams * num_hyps_per_beam, ...].</span>
+    <span class="n">max_seq_length</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="n">max_steps</span>
     <span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span><span class="p">,</span> <span class="n">topk_scores</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">unpack_hyp</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_hyps</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">max_seq_length</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_hyps</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">max_seq_length</span><span class="o">=</span><span class="n">max_seq_length</span><span class="p">)</span>
+    <span class="c1"># [num_beams, num_hyps_per_beam].</span>
     <span class="n">topk_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">topk_hyps</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">BeamSearchDecodeOutput</span><span class="p">(</span><span class="n">final_done_hyps</span><span class="p">,</span> <span class="n">topk_hyps</span><span class="p">,</span> <span class="n">topk_ids</span><span class="p">,</span>
@@ -613,7 +643,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -632,21 +662,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

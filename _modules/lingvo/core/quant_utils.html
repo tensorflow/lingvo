@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.quant_utils &mdash; lingvo  documentation</title>
+  <title>lingvo.core.quant_utils &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -165,18 +164,16 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
-
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
 
 
-<div class="viewcode-block" id="QuantizableLayer"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer">[docs]</a><span class="k">class</span> <span class="nc">QuantizableLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizableLayer"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer">[docs]</a><span class="k">class</span> <span class="nc">QuantizableLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A layer that supports various forms of quantization.</span>
 
-<span class="sd">  It is always safe to extend QuantizableLayer instead of LayerBase (i.e. at</span>
+<span class="sd">  It is always safe to extend QuantizableLayer instead of BaseLayer (i.e. at</span>
 <span class="sd">  the base of layer inheritance hierarchies) if any layer in the hierarchy</span>
 <span class="sd">  may be quantized. Unless if configured/used, all quantization behavior</span>
 <span class="sd">  is disabled by default.</span>
@@ -280,8 +277,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_tracked_tensors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># tracked t_name -&gt; (QDomain)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_qstate</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># t_name -&gt; Tensor</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_AddQuantizationFunctions</span><span class="p">()</span>
-
     <span class="c1"># Instantiate quantization domains.</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/q&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_qdomains</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># Dict of qdname -&gt; QDomain or None</span>
@@ -294,6 +289,8 @@
         <span class="n">qdchild_name</span> <span class="o">=</span> <span class="s1">&#39;qdomain_&#39;</span> <span class="o">+</span> <span class="n">qdname</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">qdchild_name</span><span class="p">,</span> <span class="n">qdparams</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_qdomains</span><span class="p">[</span><span class="n">qdname</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">qdchild_name</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_AddQuantizationFunctions</span><span class="p">()</span>
+
 
 <div class="viewcode-block" id="QuantizableLayer.QRTanh"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QRTanh">[docs]</a>  <span class="k">def</span> <span class="nf">QRTanh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;actf&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantizes the output of a tanh (-1.0, 1.0).&quot;&quot;&quot;</span>
@@ -305,10 +302,14 @@
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeNaturalRange</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">t</span></div>
 
-<div class="viewcode-block" id="QuantizableLayer.QRSoftmax"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QRSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">QRSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Quantizes the output of a softmax (0, 1.0).&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="QuantizableLayer.QRSoftmax"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QRSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">QRSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">narrow_to_asym_bit_depth</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Quantizes the output of a softmax (0, 1.0 - 1.0/2^-bits).&quot;&quot;&quot;</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeNaturalRange</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">t</span></div>
+    <span class="c1"># Override based on TFLite softmax support.</span>
+    <span class="n">softmax_max</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">narrow_to_asym_bit_depth</span><span class="p">:</span>
+      <span class="n">softmax_max</span> <span class="o">=</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">qd</span><span class="o">.</span><span class="n">bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">qd</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeNaturalRange</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">softmax_max</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">t</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.QRRelu"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QRRelu">[docs]</a>  <span class="k">def</span> <span class="nf">QRRelu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantizes the output of a softmax (0, 1.0).&quot;&quot;&quot;</span>
@@ -393,6 +394,22 @@
       <span class="k">return</span> <span class="n">ts</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeTensors</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="n">eval_only</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="QuantizableLayer.GetQTensorRange"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.GetQTensorRange">[docs]</a>  <span class="k">def</span> <span class="nf">GetQTensorRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the range for a quantized tensor.</span>
+
+<span class="sd">    t_name must have been previously create via TrackQTensor and t should be</span>
+<span class="sd">    previously quantized.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      t_name: Preivously created QTensor t_name to fetch range from.</span>
+<span class="sd">      t: Tensor to retrieve range from.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The (min, max) range of the quantized tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tracked_tensors</span><span class="p">[</span><span class="n">t_name</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">GetTensorRange</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="n">ts</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="QuantizableLayer.QWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QWeight">[docs]</a>  <span class="k">def</span> <span class="nf">QWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantizes a weight.</span>
 
@@ -440,6 +457,9 @@
         <span class="n">qdomain</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;qdomain&#39;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">qdomain</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
           <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;qdomain&#39;</span><span class="p">]</span>
+        <span class="n">narrow_to_asym_bit_depth</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;narrow_to_asym_bit_depth&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">narrow_to_asym_bit_depth</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">del</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;narrow_to_asym_bit_depth&#39;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">qmin</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">qmin</span> <span class="o">=</span> <span class="n">default_qmin</span>
         <span class="k">if</span> <span class="n">qmax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -461,6 +481,9 @@
         <span class="k">else</span><span class="p">:</span>
           <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">qd</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">narrow_to_asym_bit_depth</span><span class="p">:</span>
+              <span class="n">qrange</span> <span class="o">=</span> <span class="n">qmax</span> <span class="o">-</span> <span class="n">qmin</span>
+              <span class="n">qmax</span> <span class="o">=</span> <span class="n">qmin</span> <span class="o">+</span> <span class="n">qrange</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">qd</span><span class="o">.</span><span class="n">bits</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="n">qd</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
             <span class="n">y</span> <span class="o">=</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeNaturalRange</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">qmin</span><span class="p">,</span> <span class="n">qmax</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">y</span>
 
@@ -468,21 +491,28 @@
 
     <span class="c1"># Supported quantized functions.</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qadd&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">)</span>
+    <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qsubtract&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qmultiply&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qmatmul&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qbatchmatmul&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">)</span>
+    <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qconv1d&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv1d</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qtanh&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span> <span class="n">default_qmin</span><span class="o">=-</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">default_qmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qsigmoid&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">,</span> <span class="n">default_qmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">default_qmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qsoftmax&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">default_qmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">default_qmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qlogsoftmax&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qrelu&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qrelu6&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu6</span><span class="p">,</span> <span class="n">default_qmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">default_qmax</span><span class="o">=</span><span class="mf">6.0</span><span class="p">)</span>
+    <span class="n">WrapOp</span><span class="p">(</span>
+        <span class="s1">&#39;qrandom_uniform&#39;</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">,</span>
+        <span class="n">default_qmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">default_qmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
 
     <span class="c1"># Convenience for quantizing weights.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">AddFunction</span><span class="p">(</span><span class="s1">&#39;qweight&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="BaseClippingCapSchedule"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.BaseClippingCapSchedule">[docs]</a><span class="k">class</span> <span class="nc">BaseClippingCapSchedule</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseClippingCapSchedule"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.BaseClippingCapSchedule">[docs]</a><span class="k">class</span> <span class="nc">BaseClippingCapSchedule</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for clipping cap schedules.&quot;&quot;&quot;</span>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -645,7 +675,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Clipped (or identity) x.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">cap</span> <span class="o">=</span> <span class="n">state</span>
+    <span class="n">cap</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="o">-</span><span class="n">cap</span><span class="p">,</span> <span class="n">cap</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LinearClippingCapSchedule.GetEndRange"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.LinearClippingCapSchedule.GetEndRange">[docs]</a>  <span class="k">def</span> <span class="nf">GetEndRange</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -689,7 +719,7 @@
     <span class="sd">&quot;&quot;&quot;Update the cap value.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">cap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="n">cap</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;cap&#39;</span><span class="p">,</span> <span class="n">cap</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">cap</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">cap</span><span class="p">)</span></div></div>
 
 
@@ -726,9 +756,6 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">quant_start_step</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">clip_end_step</span><span class="p">,</span> <span class="p">(</span>
         <span class="s1">&#39;quant_start_step must be &gt;= clip_end_step&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_DefineFunctions</span><span class="p">()</span>
-
       <span class="n">clip_ratio_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span>
@@ -744,17 +771,14 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;fq_ratio&#39;</span><span class="p">,</span> <span class="n">fq_ratio_pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<div class="viewcode-block" id="FakeQuantizationSchedule._DefineFunctions"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.FakeQuantizationSchedule._DefineFunctions">[docs]</a>  <span class="k">def</span> <span class="nf">_DefineFunctions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># FIXME: fake_quant gradient in Defun.</span>
-    <span class="c1"># num_bits is an attr, not an input, so we need to hard-code the variants.</span>
-    <span class="c1"># We only support 8/16 now, so that&#39;s what we do.</span>
-    <span class="n">dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_fake_quant_with_min_max_vars</span> <span class="o">=</span> <span class="n">_DefineFakeQuantWithMinMaxVarsBits</span><span class="p">(</span>
-        <span class="n">dtype</span><span class="p">)</span></div>
-
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">is_quantized</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="kc">True</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">bits</span>
 
 <div class="viewcode-block" id="FakeQuantizationSchedule.GetEndRange"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.FakeQuantizationSchedule.GetEndRange">[docs]</a>  <span class="k">def</span> <span class="nf">GetEndRange</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Public method to get the final range as a constant.</span>
@@ -794,7 +818,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQuantizedRangeForCap</span><span class="p">(</span><span class="n">end_cap</span><span class="p">,</span> <span class="n">bits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="FakeQuantizationSchedule.ApplyConstantClip"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.FakeQuantizationSchedule.ApplyConstantClip">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyConstantClip</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fake_quant_with_min_max_vars</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">fake_quant_with_min_max_vars</span><span class="p">(</span>
         <span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="FakeQuantizationSchedule.GetState"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.FakeQuantizationSchedule.GetState">[docs]</a>  <span class="k">def</span> <span class="nf">GetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
@@ -883,7 +907,7 @@
       <span class="c1"># if the min/max aren&#39;t constant.</span>
       <span class="k">return</span> <span class="n">_CopyShape</span><span class="p">(</span>
           <span class="n">x</span><span class="p">,</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">fake_quant_with_min_max_args</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">fake_quant_with_min_max_args</span><span class="p">(</span>
               <span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">bits</span><span class="p">))</span>
 
     <span class="c1"># Non-inference.</span>
@@ -902,7 +926,7 @@
                                                     <span class="n">bits</span><span class="p">)</span>
       <span class="n">min_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">min_value</span><span class="p">)</span>
       <span class="n">max_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">max_value</span><span class="p">)</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fake_quant_with_min_max_vars</span><span class="p">(</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">fake_quant_with_min_max_vars</span><span class="p">(</span>
           <span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">bits</span><span class="p">)</span>
 
     <span class="c1"># Quantization will implicitly clip, so if we are in the quant phase, just</span>
@@ -931,18 +955,59 @@
     <span class="c1"># Currently fq is either on (1.0) or off (-1.0). Progressive quantization</span>
     <span class="c1"># may later occupy 0..1.0.</span>
     <span class="n">new_fq_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">global_step</span> <span class="o">&lt;</span> <span class="n">quant_start_step</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;clip_ratio&#39;</span><span class="p">,</span> <span class="n">new_clip_ratio</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;fq_ratio&#39;</span><span class="p">,</span> <span class="n">new_fq_ratio</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;clip_ratio&#39;</span><span class="p">,</span> <span class="n">new_clip_ratio</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;fq_ratio&#39;</span><span class="p">,</span> <span class="n">new_fq_ratio</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">clip_ratio</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">new_clip_ratio</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">fq_ratio</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">new_fq_ratio</span><span class="p">))</span></div></div>
 
 
-<div class="viewcode-block" id="QDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain">[docs]</a><span class="k">class</span> <span class="nc">QDomain</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
+<div class="viewcode-block" id="QDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain">[docs]</a><span class="k">class</span> <span class="nc">QDomain</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for a quantization domain layer.</span>
 
 <span class="sd">  This implementation doubles as a no-op quantization domain.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">QDomain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_enabled</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="QDomain._EnableGlobalStepAccess"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain._EnableGlobalStepAccess">[docs]</a>  <span class="k">def</span> <span class="nf">_EnableGlobalStepAccess</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Called by subclass init to initialize the global step counter.</span>
+
+<span class="sd">    Should be called from __init__ in an appropriate variable scope. Will add</span>
+<span class="sd">    a &#39;global_step&#39; variable to the layer and a post step update to manage</span>
+<span class="sd">    it.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_enabled</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_enabled</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">global_step_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">,</span> <span class="n">global_step_pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Retrieves the bits used by this quantization layer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The number of bits available to this qdomain or None if unquantized.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="QDomain.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update the cap value.&quot;&quot;&quot;</span>
+    <span class="n">super_op</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">QDomain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_enabled</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">super_op</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">([</span>
+        <span class="n">super_op</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">global_step</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">global_step</span><span class="p">),</span>
+    <span class="p">])</span></div>
 
 <div class="viewcode-block" id="QDomain.QuantizeWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QuantizeWeight">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantizes a weight.</span>
@@ -1002,7 +1067,23 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Quantized tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">ts</span></div></div>
+    <span class="k">return</span> <span class="n">ts</span></div>
+
+<div class="viewcode-block" id="QDomain.GetTensorRange"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.GetTensorRange">[docs]</a>  <span class="k">def</span> <span class="nf">GetTensorRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Retrieves the range of a tensor given the t_name used by CreateTensor.</span>
+
+<span class="sd">    Note, this computes the batch range across the list of tensors at training</span>
+<span class="sd">    time but fetches the stored tensor over time. This depends on</span>
+<span class="sd">    QuantizeTensors updating the appropriate value.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      t_name: Tensor name.</span>
+<span class="sd">      ts: Tensor to determine the range for.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A min-max pair that represents the tensor range.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method: NormalizeTensors&#39;</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="SymetricScheduledClipQDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.SymetricScheduledClipQDomain">[docs]</a><span class="k">class</span> <span class="nc">SymetricScheduledClipQDomain</span><span class="p">(</span><span class="n">QDomain</span><span class="p">):</span>
@@ -1031,6 +1112,10 @@
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">bits</span>
 
 <div class="viewcode-block" id="SymetricScheduledClipQDomain.QuantizeWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.SymetricScheduledClipQDomain.QuantizeWeight">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span></div>
@@ -1102,6 +1187,13 @@
              <span class="s1">&#39;Default maximum value (so initial graphs are valid).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;quantize_weight_epsilon&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
              <span class="s1">&#39;Default epsilon for weight quantization to prevent zero range.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;delay_start_steps&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;Delays applying quantization at training time until after &#39;</span>
+        <span class="s1">&#39;this many steps. 0 = start immediately. -1 = start never. &#39;</span>
+        <span class="s1">&#39;This is often needed to allow the model to reach some level &#39;</span>
+        <span class="s1">&#39;of convergence prior to applying quantization. Only affects &#39;</span>
+        <span class="s1">&#39;training (not eval/inference).&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1112,21 +1204,31 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_t_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>  <span class="c1"># set of known t_name (from CreateTensor)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_qvars</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>  <span class="c1"># var_name -&gt; tf.Variable</span>
 
-    <span class="c1"># FIXME: fake_quant gradient in Defun.</span>
-    <span class="c1"># There is an issue with how the gradient is setup for tf.fake_quant* that</span>
-    <span class="c1"># makes it fail if used from within a Defun for backprop. For training/eval,</span>
-    <span class="c1"># wrap it in a special Defun with a manually defined gradient until this can</span>
-    <span class="c1"># be fixed. Inference tools expect to find the not wrapped fake_quant*, so</span>
-    <span class="c1"># special case it back to usual.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_fake_quant_with_min_max_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fake_quant_with_min_max_vars</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_fake_quant_with_min_max_vars</span> <span class="o">=</span> <span class="n">_DefineFakeQuantWithMinMaxVarsBits</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-
     <span class="c1"># Save a scope for lazily created variables.</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/q&#39;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">delay_start_steps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_EnableGlobalStepAccess</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_qvars_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PassiveAsymQDomain._MaybeFakeQuant"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._MaybeFakeQuant">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeFakeQuant</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">min_v</span><span class="p">,</span> <span class="n">max_v</span><span class="p">,</span> <span class="n">num_bits</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">Apply</span><span class="p">():</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">quantization</span><span class="o">.</span><span class="n">fake_quant_with_min_max_vars</span><span class="p">(</span>
+          <span class="n">inputs</span><span class="p">,</span> <span class="n">min_v</span><span class="p">,</span> <span class="n">max_v</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">num_bits</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">delay_start_steps</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">delay_start_steps</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inputs</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">delay_start_steps</span><span class="p">,</span> <span class="n">Apply</span><span class="p">(),</span>
+                      <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">Apply</span><span class="p">()</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">bits</span>
 
 <div class="viewcode-block" id="PassiveAsymQDomain.QuantizeWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeWeight">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1136,7 +1238,7 @@
     <span class="c1"># can cause downstream inference engines to blow up.</span>
     <span class="n">w_min</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">w_min</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">quantize_weight_epsilon</span><span class="p">)</span>
     <span class="n">w_max</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">w_max</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">quantize_weight_epsilon</span><span class="p">)</span>
-    <span class="n">quant_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FakeQuantWithMinMaxVars</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">w_min</span><span class="p">,</span> <span class="n">w_max</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
+    <span class="n">quant_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">w_min</span><span class="p">,</span> <span class="n">w_max</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">quant_w</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1149,13 +1251,11 @@
 
 <div class="viewcode-block" id="PassiveAsymQDomain.QuantizeNaturalRange"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeNaturalRange">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeNaturalRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FakeQuantWithMinMaxVars</span><span class="p">(</span>
-        <span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PassiveAsymQDomain.QuantizeConstantRange"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeConstantRange">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeConstantRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FakeQuantWithMinMaxVars</span><span class="p">(</span>
-        <span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PassiveAsymQDomain.CreateTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.CreateTensor">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1187,8 +1287,7 @@
       <span class="n">min_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">)</span>
       <span class="n">max_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)</span>
       <span class="k">return</span> <span class="p">[</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_FakeQuantWithMinMaxVars</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">min_var</span><span class="p">,</span> <span class="n">max_var</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
-          <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">min_var</span><span class="p">,</span> <span class="n">max_var</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span>
       <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># At training time, use the batch calculated min/max.</span>
@@ -1216,15 +1315,30 @@
           <span class="c1"># NANs. Sometimes early in the training process, things are unstable</span>
           <span class="c1"># and ranges can produce numerical instability that makes it</span>
           <span class="c1"># impossible to perform a fake_quant.</span>
-          <span class="n">quant_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FakeQuantWithMinMaxVars</span><span class="p">(</span>
+          <span class="n">quant_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span>
               <span class="n">t</span><span class="p">,</span> <span class="n">batch_min</span><span class="p">,</span> <span class="n">batch_max</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
           <span class="c1"># TODO(laurenzo): Plumb quant_t_has_nans through state and report.</span>
           <span class="n">quant_t_has_nans</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">quant_t</span><span class="p">)</span>
           <span class="n">quant_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">quant_t_has_nans</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">quant_t</span><span class="p">)</span>
         <span class="n">ts_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">quant_t</span><span class="p">)</span>
         <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_qvars_scope</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">t</span><span class="p">)</span>
+            <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_qvars_scope</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">t</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">ts_out</span></div>
+
+<div class="viewcode-block" id="PassiveAsymQDomain.GetTensorRange"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.GetTensorRange">[docs]</a>  <span class="k">def</span> <span class="nf">GetTensorRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">ts</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Always straddle a real zero point.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="c1"># At eval/inference time, use the memorized range.</span>
+      <span class="c1"># Important: Don&#39;t capture these variables in training mode so as to</span>
+      <span class="c1"># avoid extra/unnecessary captures.</span>
+      <span class="n">min_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">))</span>
+      <span class="n">max_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">))</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">min_var</span><span class="p">,</span> <span class="n">max_var</span><span class="p">)</span>
+    <span class="c1"># Calculate min/max for all tensors.</span>
+    <span class="n">batch_min</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">ts</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">batch_max</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">ts</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">batch_min</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">batch_max</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="PassiveAsymQDomain.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
     <span class="n">ops</span> <span class="o">=</span> <span class="p">[</span><span class="nb">super</span><span class="p">(</span><span class="n">PassiveAsymQDomain</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">(</span><span class="n">global_step</span><span class="p">)]</span>
@@ -1255,15 +1369,8 @@
     <span class="c1"># foo/q/somet_min:0 -&gt; foo/q/somet_min</span>
     <span class="n">summary_name_min</span> <span class="o">=</span> <span class="n">min_var</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">summary_name_max</span> <span class="o">=</span> <span class="n">max_var</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">summary_name_min</span><span class="p">,</span> <span class="n">min_var</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">summary_name_max</span><span class="p">,</span> <span class="n">max_var</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="PassiveAsymQDomain._FakeQuantWithMinMaxVars"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._FakeQuantWithMinMaxVars">[docs]</a>  <span class="k">def</span> <span class="nf">_FakeQuantWithMinMaxVars</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;The FakeQuant* op is problematic. This version works.&quot;&quot;&quot;</span>
-    <span class="n">shape</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fake_quant_with_min_max_vars</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="p">)</span>
-    <span class="n">y</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">y</span></div>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">summary_name_min</span><span class="p">,</span> <span class="n">min_var</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">summary_name_max</span><span class="p">,</span> <span class="n">max_var</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PassiveAsymQDomain._RecordTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._RecordTensor">[docs]</a>  <span class="k">def</span> <span class="nf">_RecordTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1285,11 +1392,21 @@
     <span class="k">def</span> <span class="nf">Ema</span><span class="p">(</span><span class="n">variable</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
       <span class="k">return</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">variable</span> <span class="o">-</span> <span class="n">value</span><span class="p">)</span>
 
+    <span class="c1"># Note that small floating point issues can cause ranges that naturally</span>
+    <span class="c1"># begin or end at zero to move slightly past, causing hard failures</span>
+    <span class="c1"># downstream (checks that all ranges straddle zero). We therefore repeat</span>
+    <span class="c1"># the straddling constraint here.</span>
     <span class="k">return</span> <span class="p">[</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">assign_sub</span><span class="p">(</span><span class="n">min_var</span><span class="p">,</span>
-                      <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">Ema</span><span class="p">(</span><span class="n">min_var</span><span class="p">,</span> <span class="n">min_value</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">)),</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">assign_sub</span><span class="p">(</span><span class="n">max_var</span><span class="p">,</span>
-                      <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">Ema</span><span class="p">(</span><span class="n">max_var</span><span class="p">,</span> <span class="n">max_value</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">))</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+            <span class="n">min_var</span><span class="p">,</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+                <span class="mf">0.</span><span class="p">,</span>
+                <span class="n">min_var</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">Ema</span><span class="p">(</span><span class="n">min_var</span><span class="p">,</span> <span class="n">min_value</span><span class="p">),</span> <span class="mf">0.</span><span class="p">))),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+            <span class="n">max_var</span><span class="p">,</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+                <span class="mf">0.</span><span class="p">,</span>
+                <span class="n">max_var</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">count</span> <span class="o">&gt;</span> <span class="mf">0.</span><span class="p">,</span> <span class="n">Ema</span><span class="p">(</span><span class="n">max_var</span><span class="p">,</span> <span class="n">max_value</span><span class="p">),</span> <span class="mf">0.</span><span class="p">))),</span>
     <span class="p">]</span></div></div>
 
 
@@ -1297,58 +1414,6 @@
   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">from_t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">to_t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
     <span class="n">to_t</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">from_t</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">to_t</span></div>
-
-
-<span class="c1"># pylint: disable=invalid-name</span>
-<span class="c1"># FIXME: fake_quant gradient in Defun</span>
-<div class="viewcode-block" id="_DefineFakeQuantWithMinMaxVars"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils._DefineFakeQuantWithMinMaxVars">[docs]</a><span class="k">def</span> <span class="nf">_DefineFakeQuantWithMinMaxVars</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">bits</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Defines a FakeQuantWithMinMaxVars defun.</span>
-
-<span class="sd">  This is currently necessary because the fake_quant* op does</span>
-<span class="sd">  not define its gradient function properly.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    dtype: Tensorflow dtype.</span>
-<span class="sd">    bits: The num_bits to use for these definitions.</span>
-<span class="sd">  Returns:</span>
-<span class="sd">    FakeQuantWithMinMaxVars(x, min_value, max_value) function.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-
-  <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
-  <span class="k">def</span> <span class="nf">FakeQuantGradient</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">dy</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">fake_quant_with_min_max_vars_gradient</span><span class="p">(</span>
-        <span class="n">dy</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">bits</span><span class="p">)</span>
-
-  <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">grad_func</span><span class="o">=</span><span class="n">FakeQuantGradient</span><span class="p">)</span>
-  <span class="k">def</span> <span class="nf">FakeQuantWithMinMaxVars</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">fake_quant_with_min_max_vars</span><span class="p">(</span>
-        <span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">bits</span><span class="p">)</span>
-
-  <span class="k">return</span> <span class="n">FakeQuantWithMinMaxVars</span></div>
-
-
-<div class="viewcode-block" id="_DefineFakeQuantWithMinMaxVarsBits"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils._DefineFakeQuantWithMinMaxVarsBits">[docs]</a><span class="k">def</span> <span class="nf">_DefineFakeQuantWithMinMaxVarsBits</span><span class="p">(</span><span class="n">dtype</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Defines a FakeQuantWithMinMaxVars that can have num_bits parameterized.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    dtype: Tensorflow dtype.</span>
-<span class="sd">  Returns:</span>
-<span class="sd">    FakeQuantWithMinMaxVars(x, min_value, max_value, num_bits)</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">FakeQuantWithMinMaxVars8</span> <span class="o">=</span> <span class="n">_DefineFakeQuantWithMinMaxVars</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
-  <span class="n">FakeQuantWithMinMaxVars16</span> <span class="o">=</span> <span class="n">_DefineFakeQuantWithMinMaxVars</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
-
-  <span class="c1"># And the python level switcher.</span>
-  <span class="k">def</span> <span class="nf">FakeQuantWithMinMaxVars</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">num_bits</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">FakeQuantWithMinMaxVars8</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">num_bits</span> <span class="o">==</span> <span class="mi">16</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">FakeQuantWithMinMaxVars16</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;FakeQuantWithMinMaxVars only supports 8/16 bits&#39;</span><span class="p">)</span>
-
-  <span class="k">return</span> <span class="n">FakeQuantWithMinMaxVars</span></div>
-<span class="c1"># pylint: enable=invalid-name</span>
 </pre></div>
 
            </div>
@@ -1361,7 +1426,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -1380,21 +1445,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

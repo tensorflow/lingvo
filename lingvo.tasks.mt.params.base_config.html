@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.mt.params.base_config module &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.mt.params.base_config module &mdash; Lingvo  documentation</title>
   
 
   
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,8 +78,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
@@ -107,7 +106,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -300,6 +299,47 @@ and positional embeddings as well context vectors (attention values).</li>
 </table>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.tasks.mt.params.base_config.SetupRNMTParams">
+<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">SetupRNMTParams</code><span class="sig-paren">(</span><em>name</em>, <em>vocab_size</em>, <em>embedding_dim</em>, <em>hidden_dim</em>, <em>num_heads</em>, <em>num_encoder_layers</em>, <em>num_decoder_layers</em>, <em>learning_rate</em>, <em>lr_warmup_steps</em>, <em>lr_decay_start</em>, <em>lr_decay_end</em>, <em>lr_min</em>, <em>atten_dropout_prob</em>, <em>residual_dropout_prob</em>, <em>ls_uncertainty</em>, <em>l2_regularizer_weight</em>, <em>is_transparent=False</em>, <em>num_hyps_per_beam=16</em>, <em>adam_beta1=0.9</em>, <em>adam_beta2=0.999</em>, <em>adam_epsilon=8e-07</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#SetupRNMTParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.SetupRNMTParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates RNMT+ params common to all datasets.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> – A descriptive name for your model.</li>
+<li><strong>vocab_size</strong> – size of the vocabulary. Probably 32000 or 16000.</li>
+<li><strong>embedding_dim</strong> – Dimension of token embeddings.</li>
+<li><strong>hidden_dim</strong> – LSTM cell size.</li>
+<li><strong>num_heads</strong> – number of attention heads.</li>
+<li><strong>num_encoder_layers</strong> – Number of layers in the encoder.</li>
+<li><strong>num_decoder_layers</strong> – Number of layers in the decoder.</li>
+<li><strong>learning_rate</strong> – Optimizer learning rate.</li>
+<li><strong>lr_warmup_steps</strong> – Warm-up steps for the optimizer.</li>
+<li><strong>lr_decay_start</strong> – Learning rate exponential decay starting step.</li>
+<li><strong>lr_decay_end</strong> – Learning rate exponential decay end step.</li>
+<li><strong>lr_min</strong> – Minimum learning rate (ratio with initial learning rate).</li>
+<li><strong>atten_dropout_prob</strong> – Dropout for the attention.</li>
+<li><strong>residual_dropout_prob</strong> – Dropout for residual layers.</li>
+<li><strong>ls_uncertainty</strong> – Label smoothing uncertainty.</li>
+<li><strong>l2_regularizer_weight</strong> – Weight for l2 regularization on parameters.</li>
+<li><strong>is_transparent</strong> – If set, decoder attends to weighted combination of encoder
+layers.</li>
+<li><strong>num_hyps_per_beam</strong> – Number of hyps to keep per source sequence.</li>
+<li><strong>adam_beta1</strong> – Beta-1 parameter of Adam optimizer.</li>
+<li><strong>adam_beta2</strong> – Beta-2 parameter of Adam optimizer.</li>
+<li><strong>adam_epsilon</strong> – Epsilon parameter of Adam optimizer.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a Params() object specifying the RNMT+ Parameters.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 
 
@@ -322,7 +362,7 @@ and positional embeddings as well context vectors (attention values).</li>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -341,21 +381,14 @@ and positional embeddings as well context vectors (attention values).</li>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

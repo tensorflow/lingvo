@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.mt.params.base_config &mdash; lingvo  documentation</title>
+  <title>lingvo.tasks.mt.params.base_config &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../../../index.html">lingvo</a>
+          <a href="../../../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -164,10 +163,13 @@
 
 <span class="kn">import</span> <span class="nn">math</span>
 
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">rnn_cell</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">rnn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">decoder</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">encoder</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">input_generator</span>
@@ -492,6 +494,133 @@
     <span class="n">encoder_params</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">is_transparent</span> <span class="o">=</span> <span class="kc">True</span>
 
   <span class="k">return</span> <span class="n">encoder_params</span></div>
+
+
+<div class="viewcode-block" id="SetupRNMTParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.base_config.html#lingvo.tasks.mt.params.base_config.SetupRNMTParams">[docs]</a><span class="k">def</span> <span class="nf">SetupRNMTParams</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
+                    <span class="n">vocab_size</span><span class="p">,</span>
+                    <span class="n">embedding_dim</span><span class="p">,</span>
+                    <span class="n">hidden_dim</span><span class="p">,</span>
+                    <span class="n">num_heads</span><span class="p">,</span>
+                    <span class="n">num_encoder_layers</span><span class="p">,</span>
+                    <span class="n">num_decoder_layers</span><span class="p">,</span>
+                    <span class="n">learning_rate</span><span class="p">,</span>
+                    <span class="n">lr_warmup_steps</span><span class="p">,</span>
+                    <span class="n">lr_decay_start</span><span class="p">,</span>
+                    <span class="n">lr_decay_end</span><span class="p">,</span>
+                    <span class="n">lr_min</span><span class="p">,</span>
+                    <span class="n">atten_dropout_prob</span><span class="p">,</span>
+                    <span class="n">residual_dropout_prob</span><span class="p">,</span>
+                    <span class="n">ls_uncertainty</span><span class="p">,</span>
+                    <span class="n">l2_regularizer_weight</span><span class="p">,</span>
+                    <span class="n">is_transparent</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                    <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+                    <span class="n">adam_beta1</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span>
+                    <span class="n">adam_beta2</span><span class="o">=</span><span class="mf">0.999</span><span class="p">,</span>
+                    <span class="n">adam_epsilon</span><span class="o">=</span><span class="mf">8e-07</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates RNMT+ params common to all datasets.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: A descriptive name for your model.</span>
+<span class="sd">    vocab_size: size of the vocabulary. Probably 32000 or 16000.</span>
+<span class="sd">    embedding_dim: Dimension of token embeddings.</span>
+<span class="sd">    hidden_dim: LSTM cell size.</span>
+<span class="sd">    num_heads: number of attention heads.</span>
+<span class="sd">    num_encoder_layers: Number of layers in the encoder.</span>
+<span class="sd">    num_decoder_layers: Number of layers in the decoder.</span>
+<span class="sd">    learning_rate: Optimizer learning rate.</span>
+<span class="sd">    lr_warmup_steps: Warm-up steps for the optimizer.</span>
+<span class="sd">    lr_decay_start: Learning rate exponential decay starting step.</span>
+<span class="sd">    lr_decay_end: Learning rate exponential decay end step.</span>
+<span class="sd">    lr_min: Minimum learning rate (ratio with initial learning rate).</span>
+<span class="sd">    atten_dropout_prob: Dropout for the attention.</span>
+<span class="sd">    residual_dropout_prob: Dropout for residual layers.</span>
+<span class="sd">    ls_uncertainty: Label smoothing uncertainty.</span>
+<span class="sd">    l2_regularizer_weight: Weight for l2 regularization on parameters.</span>
+<span class="sd">    is_transparent: If set, decoder attends to weighted combination of encoder</span>
+<span class="sd">      layers.</span>
+<span class="sd">    num_hyps_per_beam: Number of hyps to keep per source sequence.</span>
+<span class="sd">    adam_beta1: Beta-1 parameter of Adam optimizer.</span>
+<span class="sd">    adam_beta2: Beta-2 parameter of Adam optimizer.</span>
+<span class="sd">    adam_epsilon: Epsilon parameter of Adam optimizer.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    a Params() object specifying the RNMT+ Parameters.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="c1"># TODO(orhanf): add transparent connections.</span>
+  <span class="k">del</span> <span class="n">is_transparent</span>
+
+  <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">RNMTModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+  <span class="n">default_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="mf">0.04</span><span class="p">)</span>
+  <span class="n">rnn_cell_tpl</span> <span class="o">=</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LayerNormalizedLSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">num_output_nodes</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+      <span class="n">output_nonlinearity</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+      <span class="n">params_init</span><span class="o">=</span><span class="n">default_params_init</span><span class="p">)</span>
+
+  <span class="c1"># RNMT+ encoder setup.</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">num_lstm_layers</span><span class="o">=</span><span class="n">num_encoder_layers</span><span class="p">,</span>
+      <span class="n">lstm_cell_size</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+      <span class="n">encoder_out_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+      <span class="n">lstm_tpl</span><span class="o">=</span><span class="n">rnn_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">(),</span>
+      <span class="n">dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">)</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">embedding_dim</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
+
+  <span class="c1"># RNMT+ decoder setup.</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">MTDecoderV1</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">rnn_layers</span><span class="o">=</span><span class="n">num_decoder_layers</span><span class="p">,</span>
+      <span class="n">rnn_cell_tpl</span><span class="o">=</span><span class="n">rnn_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">(),</span>
+      <span class="n">atten_rnn_cell_tpl</span><span class="o">=</span><span class="n">rnn_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">(),</span>
+      <span class="n">dropout_prob</span><span class="o">=</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+      <span class="n">attention</span><span class="o">=</span><span class="n">attention</span><span class="o">.</span><span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">source_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+          <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+          <span class="n">query_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+          <span class="n">context_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">,</span>
+          <span class="n">num_attention_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+          <span class="n">inner_atten_params</span><span class="o">=</span><span class="n">attention</span><span class="o">.</span><span class="n">AdditiveAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+          <span class="n">use_source_vec_as_attention_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">enable_ctx_pre_proj</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">enable_query_proj</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
+          <span class="n">atten_dropout_deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+      <span class="n">atten_rnn_cls</span><span class="o">=</span><span class="n">rnn_layers</span><span class="o">.</span><span class="n">FRNNWithAttention</span><span class="p">,</span>
+      <span class="n">feed_attention_context_vec_to_softmax</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+      <span class="n">label_smoothing</span><span class="o">=</span><span class="n">layers</span><span class="o">.</span><span class="n">UniformLabelSmoother</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">num_classes</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">uncertainty</span><span class="o">=</span><span class="n">ls_uncertainty</span><span class="p">))</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">=</span> <span class="n">embedding_dim</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="n">vocab_size</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">hidden_dim</span>
+
+  <span class="c1"># Inference related.</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">num_hyps_per_beam</span>
+
+  <span class="c1"># Optimization setup.</span>
+  <span class="n">learning_rate_schedule</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">warmup</span><span class="o">=</span><span class="n">lr_warmup_steps</span><span class="p">,</span>
+          <span class="n">decay_start</span><span class="o">=</span><span class="n">lr_decay_start</span><span class="p">,</span>
+          <span class="n">decay_end</span><span class="o">=</span><span class="n">lr_decay_end</span><span class="p">,</span>
+          <span class="nb">min</span><span class="o">=</span><span class="n">lr_min</span><span class="p">))</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">l2_regularizer_weight</span><span class="o">=</span><span class="n">l2_regularizer_weight</span><span class="p">,</span>
+      <span class="n">grad_norm_tracker</span><span class="o">=</span><span class="n">layers</span><span class="o">.</span><span class="n">GradNormTracker</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;gradient_norm_tracker&#39;</span><span class="p">),</span>
+      <span class="n">learning_rate</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span>
+      <span class="n">lr_schedule</span><span class="o">=</span><span class="n">learning_rate_schedule</span><span class="p">,</span>
+      <span class="n">grad_norm_to_clip_to_zero</span><span class="o">=</span><span class="mf">100000.0</span><span class="p">,</span>
+      <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">beta1</span><span class="o">=</span><span class="n">adam_beta1</span><span class="p">,</span> <span class="n">beta2</span><span class="o">=</span><span class="n">adam_beta2</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="n">adam_epsilon</span><span class="p">),</span>
+  <span class="p">)</span>
+
+  <span class="c1"># Evaluation related</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">12000</span>
+  <span class="k">return</span> <span class="n">p</span></div>
 </pre></div>
 
            </div>
@@ -504,7 +633,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -523,21 +652,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
 
   
 

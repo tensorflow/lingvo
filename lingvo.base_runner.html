@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.base_runner module &mdash; lingvo  documentation</title>
+  <title>lingvo.base_runner module &mdash; Lingvo  documentation</title>
   
 
   
@@ -29,7 +29,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.base_trial module" href="lingvo.base_trial.html" />
-    <link rel="prev" title="lingvo.tools.wpm_encoder module" href="lingvo.tools.wpm_encoder.html" /> 
+    <link rel="prev" title="lingvo.tools.wpm_encode_file module" href="lingvo.tools.wpm_encode_file.html" /> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,13 +78,13 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a></li>
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#submodules">Submodules</a><ul class="current">
 <li class="toctree-l3 current"><a class="current reference internal" href="#">lingvo.base_runner module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.base_trial.html">lingvo.base_trial module</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.ipython_kernel.html">lingvo.ipython_kernel module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_imports.html">lingvo.model_imports module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.model_registry.html">lingvo.model_registry module</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lingvo.trainer.html">lingvo.trainer module</a></li>
@@ -106,7 +106,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -172,6 +172,11 @@
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="lingvo.base_runner.BaseRunner._InVizierStudy">
+<code class="descname">_InVizierStudy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._InVizierStudy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._InVizierStudy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="lingvo.base_runner.BaseRunner._SetStatusMessage">
 <code class="descname">_SetStatusMessage</code><span class="sig-paren">(</span><em>message</em>, <em>retrying=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._SetStatusMessage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._SetStatusMessage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update the status message for this task.</p>
@@ -209,6 +214,21 @@
 <dt id="lingvo.base_runner.BaseRunner._RunLoop">
 <code class="descname">_RunLoop</code><span class="sig-paren">(</span><em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/base_runner.html#BaseRunner._RunLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.base_runner.BaseRunner._RunLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs <code class="xref py py-obj docutils literal notranslate"><span class="pre">loop_func</span></code>, retrying on expected errors.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>job_name</strong> – string job name.</li>
+<li><strong>loop_func</strong> – callable to run and retry on expected errors.</li>
+<li><strong>loop_args</strong> – list or tuple of arguments to be passed to the loop_func.</li>
+<li><strong>is_main_thread</strong> – if set to True, this is the main thread and it will set
+has_stopped to True upon completion.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -282,7 +302,7 @@
         <a href="lingvo.base_trial.html" class="btn btn-neutral float-right" title="lingvo.base_trial module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tools.wpm_encoder.html" class="btn btn-neutral" title="lingvo.tools.wpm_encoder module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tools.wpm_encode_file.html" class="btn btn-neutral" title="lingvo.tools.wpm_encode_file module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -291,7 +311,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -310,21 +330,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

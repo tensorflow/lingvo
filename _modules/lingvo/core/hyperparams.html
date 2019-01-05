@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.hyperparams &mdash; lingvo  documentation</title>
+  <title>lingvo.core.hyperparams &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -300,11 +299,14 @@
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;_immutable&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># name =&gt; _Param</span>
 
   <span class="k">def</span> <span class="nf">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_params&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;_params&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_params&#39;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_immutable&#39;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">try</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
@@ -312,8 +314,8 @@
         <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_params&#39;</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="s1">&#39;_params&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_params&#39;</span> <span class="ow">or</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_immutable&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
@@ -355,6 +357,7 @@
     <span class="n">res</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)()</span>
     <span class="c1"># pylint: disable=protected-access</span>
     <span class="n">res</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">)</span>
+    <span class="n">res</span><span class="o">.</span><span class="n">_immutable</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
   <span class="c1"># TODO(sadovsky):</span>
@@ -374,12 +377,18 @@
 <span class="sd">    Raises:</span>
 <span class="sd">      AttributeError: If parameter &#39;name&#39; is already defined.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable.&#39;</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
         <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s1">&#39;^[a-z][a-z0-9_]*$&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Parameter </span><span class="si">%s</span><span class="s1"> is already defined&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Param</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Params.Freeze"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Freeze">[docs]</a>  <span class="k">def</span> <span class="nf">Freeze</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Marks this Params as immutable.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 <div class="viewcode-block" id="Params._GetNested"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._GetNested">[docs]</a>  <span class="k">def</span> <span class="nf">_GetNested</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns nested param by its name.&quot;&quot;&quot;</span>
@@ -409,6 +418,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      self</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable.&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
       <span class="c1"># Get nested param.</span>
       <span class="n">param</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetNested</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -457,6 +468,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      self</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable.&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
       <span class="c1"># Get nested param.</span>
       <span class="n">param</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetNested</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
@@ -499,7 +512,9 @@
         <span class="k">return</span> <span class="n">_SortedDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">val</span><span class="p">)})</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
         <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)([</span><span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="p">])</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+          <span class="n">val</span><span class="p">,</span>
+          <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)):</span>
         <span class="k">return</span> <span class="n">val</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">name</span>
@@ -536,6 +551,8 @@
 <span class="sd">      AttributeError: text contains invalid parameter key</span>
 <span class="sd">      ValueError: text contains invalid parameter value</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable.&#39;</span><span class="p">)</span>
     <span class="n">kv</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">string_continue</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># None or (key, quote, value)</span>
     <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
@@ -615,7 +632,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -634,21 +651,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

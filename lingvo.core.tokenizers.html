@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.tokenizers module &mdash; lingvo  documentation</title>
+  <title>lingvo.core.tokenizers module &mdash; Lingvo  documentation</title>
   
 
   
@@ -28,7 +28,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.tasks package" href="lingvo.tasks.html" />
+    <link rel="next" title="lingvo.core.wpm_encoder module" href="lingvo.core.wpm_encoder.html" />
     <link rel="prev" title="lingvo.core.test_utils module" href="lingvo.core.test_utils.html" /> 
 
   
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,8 +78,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
@@ -108,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -168,7 +167,7 @@
 <dl class="class">
 <dt id="lingvo.core.tokenizers.BaseTokenizer">
 <em class="property">class </em><code class="descclassname">lingvo.core.tokenizers.</code><code class="descname">BaseTokenizer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>The base tokenizer.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.tokenizers.BaseTokenizer.Params">
@@ -178,7 +177,7 @@
 
 <dl class="method">
 <dt id="lingvo.core.tokenizers.BaseTokenizer.StringsToIds">
-<code class="descname">StringsToIds</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>external_append_eos=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer.StringsToIds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer.StringsToIds" title="Permalink to this definition">¶</a></dt>
+<code class="descname">StringsToIds</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>external_append_eos=None</em>, <em>languages=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer.StringsToIds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer.StringsToIds" title="Permalink to this definition">¶</a></dt>
 <dd><p>Tokenize strs into vocab ids.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -190,6 +189,7 @@
 <li><strong>external_append_eos</strong> – Bool or None. If None, will be ignored and
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">params.append_eos</span></code> will be used. If bool, will determine if an eos
 symbol will be added to tokens.</li>
+<li><strong>languages</strong> – A vector of strings with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">strs</span></code>.</li>
 </ul>
 </td>
 </tr>
@@ -211,12 +211,12 @@ symbol will be added to tokens.</li>
 
 <dl class="method">
 <dt id="lingvo.core.tokenizers.BaseTokenizer._StringsToIdsImpl">
-<code class="descname">_StringsToIdsImpl</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>append_eos</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer._StringsToIdsImpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_StringsToIdsImpl</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>append_eos</em>, <em>languages</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer._StringsToIdsImpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.tokenizers.BaseTokenizer.IdsToStrings">
-<code class="descname">IdsToStrings</code><span class="sig-paren">(</span><em>ids</em>, <em>lens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer.IdsToStrings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer.IdsToStrings" title="Permalink to this definition">¶</a></dt>
+<code class="descname">IdsToStrings</code><span class="sig-paren">(</span><em>ids</em>, <em>lens</em>, <em>languages=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer.IdsToStrings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer.IdsToStrings" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts ids back to strings.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -228,6 +228,7 @@ ids.</li>
 <li><strong>lens</strong> – A vector of shape [batch]. lens[i] is the sequence length of the
 i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
 tokens for the i-th sequence.</li>
+<li><strong>languages</strong> – A vector of strings of shape [batch].</li>
 </ul>
 </td>
 </tr>
@@ -244,20 +245,20 @@ tokens for the i-th sequence.</li>
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.tokenizers.SimpleTokenizer">
-<em class="property">class </em><code class="descclassname">lingvo.core.tokenizers.</code><code class="descname">SimpleTokenizer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#SimpleTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.SimpleTokenizer" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.tokenizers.AsciiTokenizer">
+<em class="property">class </em><code class="descclassname">lingvo.core.tokenizers.</code><code class="descname">AsciiTokenizer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#AsciiTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.AsciiTokenizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
 <p>A simple grapheme tokenizer.</p>
 <p>Maps a small vocabulary of character tokens for (lower case) letters, digits,
 and punctuation symbols.</p>
 <dl class="method">
-<dt id="lingvo.core.tokenizers.SimpleTokenizer._StringsToIdsImpl">
-<code class="descname">_StringsToIdsImpl</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>append_eos</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#SimpleTokenizer._StringsToIdsImpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.SimpleTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.tokenizers.AsciiTokenizer._StringsToIdsImpl">
+<code class="descname">_StringsToIdsImpl</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>append_eos</em>, <em>languages</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#AsciiTokenizer._StringsToIdsImpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.AsciiTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.tokenizers.SimpleTokenizer.IdsToStrings">
-<code class="descname">IdsToStrings</code><span class="sig-paren">(</span><em>ids</em>, <em>lens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#SimpleTokenizer.IdsToStrings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.SimpleTokenizer.IdsToStrings" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.tokenizers.AsciiTokenizer.IdsToStrings">
+<code class="descname">IdsToStrings</code><span class="sig-paren">(</span><em>ids</em>, <em>lens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#AsciiTokenizer.IdsToStrings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.AsciiTokenizer.IdsToStrings" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts ids back to strings.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -269,6 +270,7 @@ ids.</li>
 <li><strong>lens</strong> – A vector of shape [batch]. lens[i] is the sequence length of the
 i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
 tokens for the i-th sequence.</li>
+<li><strong>languages</strong> – A vector of strings of shape [batch].</li>
 </ul>
 </td>
 </tr>
@@ -307,7 +309,7 @@ tokens for the i-th sequence.</li>
 
 <dl class="method">
 <dt id="lingvo.core.tokenizers.VocabFileTokenizer._StringsToIdsImpl">
-<code class="descname">_StringsToIdsImpl</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>append_eos</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#VocabFileTokenizer._StringsToIdsImpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.VocabFileTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_StringsToIdsImpl</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>append_eos</em>, <em>languages</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#VocabFileTokenizer._StringsToIdsImpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.VocabFileTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -324,6 +326,7 @@ ids.</li>
 <li><strong>lens</strong> – A vector of shape [batch]. lens[i] is the sequence length of the
 i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
 tokens for the i-th sequence.</li>
+<li><strong>languages</strong> – A vector of strings of shape [batch].</li>
 </ul>
 </td>
 </tr>
@@ -339,6 +342,142 @@ tokens for the i-th sequence.</li>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.tokenizers.BpeTokenizer">
+<em class="property">class </em><code class="descclassname">lingvo.core.tokenizers.</code><code class="descname">BpeTokenizer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BpeTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BpeTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
+<p>Tokenizers that use BPE vocab files and word to id lists for look-up.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.tokenizers.BpeTokenizer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BpeTokenizer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BpeTokenizer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params for tokenizers.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.tokenizers.BpeTokenizer._StringsToIdsImpl">
+<code class="descname">_StringsToIdsImpl</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>append_eos</em>, <em>languages</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BpeTokenizer._StringsToIdsImpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BpeTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.tokenizers.BpeTokenizer.IdsToStrings">
+<code class="descname">IdsToStrings</code><span class="sig-paren">(</span><em>ids</em>, <em>lens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BpeTokenizer.IdsToStrings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.BpeTokenizer.IdsToStrings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts ids back to strings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ids</strong> – A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample’s
+ids.</li>
+<li><strong>lens</strong> – A vector of shape [batch]. lens[i] is the sequence length of the
+i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
+tokens for the i-th sequence.</li>
+<li><strong>languages</strong> – A vector of strings of shape [batch].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">sequences - A vector of shape [batch]. The converted string sequence.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.tokenizers.WpmTokenizer">
+<em class="property">class </em><code class="descclassname">lingvo.core.tokenizers.</code><code class="descname">WpmTokenizer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#WpmTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
+<p>Tokenizer for word-piece models.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.tokenizers.WpmTokenizer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#WpmTokenizer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params for tokenizers.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.tokenizers.WpmTokenizer.BOW_STR">
+<code class="descname">BOW_STR</code><em class="property"> = u'\u2581'</em><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer.BOW_STR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.tokenizers.WpmTokenizer._PadOrTruncate">
+<code class="descname">_PadOrTruncate</code><span class="sig-paren">(</span><em>x</em>, <em>desired_len</em>, <em>pad_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#WpmTokenizer._PadOrTruncate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer._PadOrTruncate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.tokenizers.WpmTokenizer._PostProcessIds">
+<code class="descname">_PostProcessIds</code><span class="sig-paren">(</span><em>parsed_token_ids</em>, <em>desired_length</em>, <em>append_eos</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#WpmTokenizer._PostProcessIds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer._PostProcessIds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Post-process token ids.</p>
+<p>This generates <code class="xref py py-obj docutils literal notranslate"><span class="pre">token_ids</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">target_ids</span></code>, and <code class="xref py py-obj docutils literal notranslate"><span class="pre">paddings</span></code> in the format that
+is expected for tokenizers. This performs padding to a fixed length and
+appends the end-of-sentence token as appropriate.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>parsed_token_ids</strong> – a list of vectors of token ids. The vectors have
+variable length.</li>
+<li><strong>desired_length</strong> – a python integer. The second dimension of the
+returned arrays. All sequences are padded or truncated to that
+length.</li>
+<li><strong>append_eos</strong> – a python bool. See <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a> for explanation.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
+<dt>a tensor of sequences of WPM ids starting with SOS. Sequences</dt>
+<dd><p class="first last">always end with EOS unless the sequence exceeds the maximum length.
+Always padded with EOS.</p>
+</dd>
+<dt>target_ids: a tensor of sequences of WPM ids not starting with SOS</dt>
+<dd><p class="first last">but ending with EOS. Always padded with EOS.</p>
+</dd>
+<dt>paddings: a tensor of floats indicating, at each position, whether</dt>
+<dd><p class="first last">the corresponding position is padded.</p>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">token_ids</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.tokenizers.WpmTokenizer._WpmEncode">
+<code class="descname">_WpmEncode</code><span class="sig-paren">(</span><em>batch_strs</em>, <em>max_length</em>, <em>append_eos</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#WpmTokenizer._WpmEncode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer._WpmEncode" title="Permalink to this definition">¶</a></dt>
+<dd><p>By word so that merge_prob is applied correctly.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.tokenizers.WpmTokenizer._StringsToIdsImpl">
+<code class="descname">_StringsToIdsImpl</code><span class="sig-paren">(</span><em>strs</em>, <em>max_length</em>, <em>append_eos</em>, <em>languages</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#WpmTokenizer._StringsToIdsImpl"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer._StringsToIdsImpl" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes a tensor of strings and returns id/padding tensors.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.tokenizers.WpmTokenizer._WpmDecode">
+<code class="descname">_WpmDecode</code><span class="sig-paren">(</span><em>ids</em>, <em>lengths</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#WpmTokenizer._WpmDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer._WpmDecode" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes numpy integer matrices and returns vectors of strings.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.tokenizers.WpmTokenizer.IdsToStrings">
+<code class="descname">IdsToStrings</code><span class="sig-paren">(</span><em>ids</em>, <em>lens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#WpmTokenizer.IdsToStrings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer.IdsToStrings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Takes id tensors and returns vector of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.string</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 
@@ -349,7 +488,7 @@ tokens for the i-th sequence.</li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.tasks.html" class="btn btn-neutral float-right" title="lingvo.tasks package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.wpm_encoder.html" class="btn btn-neutral float-right" title="lingvo.core.wpm_encoder module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.core.test_utils.html" class="btn btn-neutral" title="lingvo.core.test_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
@@ -361,7 +500,7 @@ tokens for the i-th sequence.</li>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -380,21 +519,14 @@ tokens for the i-th sequence.</li>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.rnn_layers module &mdash; lingvo  documentation</title>
+  <title>lingvo.core.rnn_layers module &mdash; Lingvo  documentation</title>
   
 
   
@@ -48,7 +48,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> lingvo
+            <a href="index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -78,8 +78,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
+              <ul class="current">
 <li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
 <li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
 <li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
@@ -108,7 +107,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="index.html">lingvo</a>
+          <a href="index.html">Lingvo</a>
         
       </nav>
 
@@ -171,30 +170,6 @@
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.rnn_layers._ReversePaddedSequence">
-<code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">_ReversePaddedSequence</code><span class="sig-paren">(</span><em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#_ReversePaddedSequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers._ReversePaddedSequence" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reverse inputs based on paddings.</p>
-<p>Only reverse the unpadded portion of ‘inputs’. It assumes inputs are only
-padded in the end.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>inputs</strong> – a tensor of [seq_length, batch_size, num_input_nodes].</li>
-<li><strong>paddings</strong> – a tensor of float32/float64 zero or one of shape
-[seq_length, batch_size, 1].</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A reversed tensor of the same shape as ‘inputs’.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
 <dt id="lingvo.core.rnn_layers._GeneratePackedInputResetMask">
 <code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">_GeneratePackedInputResetMask</code><span class="sig-paren">(</span><em>segment_id</em>, <em>is_reverse=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#_GeneratePackedInputResetMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers._GeneratePackedInputResetMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates mask inputs for RNN cells from segment_id.</p>
@@ -217,15 +192,43 @@ where state needs to be reset (at example boundaries), and 1 otherwise.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.rnn_layers.IdentitySeqLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">IdentitySeqLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#IdentitySeqLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.IdentitySeqLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A no-op sequence layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_layers.IdentitySeqLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#IdentitySeqLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.IdentitySeqLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_layers.IdentitySeqLayer.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#IdentitySeqLayer.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.IdentitySeqLayer.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_layers.IdentitySeqLayer.FPropFullSequence">
+<code class="descname">FPropFullSequence</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#IdentitySeqLayer.FPropFullSequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.IdentitySeqLayer.FPropFullSequence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.rnn_layers.RNN">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">RNN</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#RNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.RNN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Statically unrolled RNN.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.rnn_layers.RNN.Params">
 <em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#RNN.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.RNN.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_layers.RNN.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#RNN.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.RNN.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_layers.RNN.FProp">
@@ -243,7 +246,7 @@ rnn_cell.inputs_arity. For every input tensor, the first dimension is
 assumed to be time, second dimension batch, and third dimension depth.</li>
 <li><strong>paddings</strong> – A tensor. First dim is time, second dim is batch, and third dim
 is expected to be 1.</li>
-<li><strong>state0</strong> – If not None, the initial rnn state in a NestedMap. Defaults
+<li><strong>state0</strong> – If not None, the initial rnn state in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Defaults
 to the cell’s zero-state.</li>
 </ul>
 </td>
@@ -261,7 +264,7 @@ The final recurrent state.</p>
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.StackedRNNBase">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">StackedRNNBase</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedRNNBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedRNNBase" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Stacked RNN base class.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.rnn_layers.StackedRNNBase.Params">
@@ -279,7 +282,7 @@ The final recurrent state.</p>
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.StackedFRNNLayerByLayer">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">StackedFRNNLayerByLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedFRNNLayerByLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedFRNNLayerByLayer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_layers.StackedRNNBase" title="lingvo.core.rnn_layers.StackedRNNBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_layers.StackedRNNBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_layers.StackedRNNBase" title="lingvo.core.rnn_layers.StackedRNNBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_layers.StackedRNNBase</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
 <p>An implemention of StackedRNNBase which computes layer-by-layer.</p>
 <dl class="method">
 <dt id="lingvo.core.rnn_layers.StackedFRNNLayerByLayer.zero_state">
@@ -299,7 +302,7 @@ The final recurrent state.</p>
 layer and its children layers.</li>
 <li><strong>inputs</strong> – A single tensor of shape [time, batch, dims].</li>
 <li><strong>paddings</strong> – A single tensor of shape [time, batch, 1].</li>
-<li><strong>state0</strong> – If not None, the initial rnn state in a NestedMap. Defaults
+<li><strong>state0</strong> – If not None, the initial rnn state in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Defaults
 to the init state.</li>
 </ul>
 </td>
@@ -313,12 +316,52 @@ state1: The final state.</p>
 </table>
 </dd></dl>
 
+<dl class="method">
+<dt id="lingvo.core.rnn_layers.StackedFRNNLayerByLayer.FPropFullSequence">
+<code class="descname">FPropFullSequence</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedFRNNLayerByLayer.FPropFullSequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedFRNNLayerByLayer.FPropFullSequence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">StackedBiFRNNLayerByLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedBiFRNNLayerByLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_layers.StackedRNNBase" title="lingvo.core.rnn_layers.StackedRNNBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_layers.StackedRNNBase</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
+<p>An implemention of StackedRNNBase with bidirection RNN layers.</p>
+<dl class="method">
+<dt id="lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedBiFRNNLayerByLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the forward pass.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>inputs</strong> – A single tensor of shape [time, batch, dims].</li>
+<li><strong>paddings</strong> – A single tensor of shape [time, batch, 1].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tensor of [time, batch, dims].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer.FPropFullSequence">
+<code class="descname">FPropFullSequence</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedBiFRNNLayerByLayer.FPropFullSequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer.FPropFullSequence" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.FRNN">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">FRNN</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Functional while based RNN.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.rnn_layers.FRNN.Params">
@@ -352,7 +395,7 @@ rnn_cell.inputs_arity. For every input tensor, the first dimension is
 assumed to be time, second dimension batch, and third dimension depth.</li>
 <li><strong>paddings</strong> – A tensor. First dim is time, second dim is batch, and third dim
 is expected to be 1.</li>
-<li><strong>state0</strong> – If not None, the initial rnn state in a NestedMap. Defaults
+<li><strong>state0</strong> – If not None, the initial rnn state in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Defaults
 to the cell’s zero-state.</li>
 <li><strong>segment_id</strong> – A tensor to support packed inputs. First dim is time, second
 dim is batch, and third dim is expected to be 1.</li>
@@ -372,7 +415,7 @@ The final recurrent state.</p>
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.BidirectionalFRNN">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">BidirectionalFRNN</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalFRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalFRNN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Bidirectional functional RNN.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.rnn_layers.BidirectionalFRNN.Params">
@@ -417,7 +460,7 @@ dim is batch, and third dim is expected to be 1.</li>
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.BidirectionalRNN">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">BidirectionalRNN</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalRNN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalRNN" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Statically unrolled bidirectional RNN.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.rnn_layers.BidirectionalRNN.Params">
@@ -460,7 +503,7 @@ is expected to be 1.</li>
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.BidirectionalRNNV2">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">BidirectionalRNNV2</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalRNNV2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalRNNV2" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Statically unrolled bidirectional RNN.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.rnn_layers.BidirectionalRNNV2.Params">
@@ -508,7 +551,7 @@ is expected to be 1.</li>
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.CuDNNLSTM">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">CuDNNLSTM</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#CuDNNLSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.CuDNNLSTM" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A single layer of unidirectional LSTM with Cudnn impl.</p>
 <p>Runs training with CuDNN on GPU, and eval using a FRNN with properly
 configured <code class="xref py py-obj docutils literal notranslate"><span class="pre">LSTMCellSimple</span></code> cell.</p>
@@ -543,7 +586,7 @@ compatible with different hardwares.</p>
 layer and its children layers.</li>
 <li><strong>inputs</strong> – A tensor of [seq_length, batch_size, num_input_nodes]</li>
 <li><strong>paddings</strong> – A tensor of [seq_length, batch_size, 1]</li>
-<li><strong>state0</strong> – If not None, the initial rnn state in a NestedMap. Defaults
+<li><strong>state0</strong> – If not None, the initial rnn state in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Defaults
 to the cell’s zero-state.</li>
 </ul>
 </td>
@@ -564,7 +607,7 @@ identical.</p>
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">BidirectionalNativeCuDNNLSTM</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalNativeCuDNNLSTM"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A single layer of bidirectional LSTM with native Cudnn impl.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.rnn_layers.BidirectionalNativeCuDNNLSTM.Params">
@@ -617,10 +660,16 @@ layer and its children layers.</li>
 <dd><p>Shifts xs[:-1] one step to the right and attaches x0 on the left.</p>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.rnn_layers._ShiftRightWithMasking">
+<code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">_ShiftRightWithMasking</code><span class="sig-paren">(</span><em>x0</em>, <em>xs</em>, <em>mask</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#_ShiftRightWithMasking"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers._ShiftRightWithMasking" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shifts xs[:-1] one step to the right and attaches x0 on the left.</p>
+</dd></dl>
+
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.FRNNWithAttention">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">FRNNWithAttention</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNNWithAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNNWithAttention" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>An RNN layer intertwined with an attention layer.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.rnn_layers.FRNNWithAttention.Params">
@@ -700,16 +749,16 @@ layer and its children layers.</li>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.rnn_layers.FRNNWithAttention.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>src_encs</em>, <em>src_paddings</em>, <em>inputs</em>, <em>paddings</em>, <em>src_contexts=None</em>, <em>state0=None</em>, <em>src_segment_id=None</em>, <em>segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNNWithAttention.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNNWithAttention.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward propagate through a rnn layer with attention.</p>
+<dt id="lingvo.core.rnn_layers.FRNNWithAttention.AccumulateStates">
+<code class="descname">AccumulateStates</code><span class="sig-paren">(</span><em>theta</em>, <em>src_encs</em>, <em>src_paddings</em>, <em>inputs</em>, <em>paddings</em>, <em>src_contexts=None</em>, <em>state0=None</em>, <em>src_segment_id=None</em>, <em>segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNNWithAttention.AccumulateStates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNNWithAttention.AccumulateStates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets up and runs the recurrence, returning the raw accumulated states.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
 <li><strong>src_encs</strong> – A tensor of shape [source_seq_length, batch_size, source_dim].</li>
 <li><strong>src_paddings</strong> – A tensor of shape [source_seq_length, batch_size].</li>
 <li><strong>inputs</strong> – A tensor of [time, batch, dims].</li>
@@ -718,10 +767,78 @@ layer and its children layers.</li>
 [source_seq_length, batch_size, some_dim]. When specified, this tensor
 will be used as the source context vectors when computing attention
 context, and src_ends will be only used to compute the attention score
-for each context. If set to None, the ‘src_encs’ will be used as
-source context.</li>
+for each context. If set to None, the ‘src_encs’ will be used as source
+context.</li>
 <li><strong>state0</strong> – [Optional] If not None, the initial rnn state and attention
-context in a NestedMap. Defaults to the cell’s zero-state.</li>
+context in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Defaults to the cell’s zero-state.</li>
+<li><strong>src_segment_id</strong> – A tensor of shape [source_seq_length, batch_size] to
+support masking with packed inputs.</li>
+<li><strong>segment_id</strong> – A tensor of [time, batch, 1].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a NestedMap of accumulated states from the recurrence.
+final_state: final_state: The final recurrent state.
+side_info: Nested map of intermediate results needed for post-processing</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">accumulated_state</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_layers.FRNNWithAttention.PostProcessStates">
+<code class="descname">PostProcessStates</code><span class="sig-paren">(</span><em>acc_state</em>, <em>side_info</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNNWithAttention.PostProcessStates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNNWithAttention.PostProcessStates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Post-process accumulated states to fulfill FProp’s interface.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>acc_state</strong> – a NestedMap of the raw accumulated states from the recurrence.</li>
+<li><strong>side_info</strong> – side-information collected by AccumulateStates.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple (atten_context, rnn_output, atten_probs).</p>
+<ul class="simple">
+<li>atten_context: a tensor of [time, batch, attention.hidden_dim].</li>
+<li>rnn_output: a tensor of [time, batch, rcell.num_output_nodes].</li>
+<li>atten_probs: a tensor of [time, batch, source_seq_length].</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_layers.FRNNWithAttention.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>src_encs</em>, <em>src_paddings</em>, <em>inputs</em>, <em>paddings</em>, <em>src_contexts=None</em>, <em>state0=None</em>, <em>src_segment_id=None</em>, <em>segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNNWithAttention.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNNWithAttention.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagate through a rnn layer with attention.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>src_encs</strong> – A tensor of shape [source_seq_length, batch_size, source_dim].</li>
+<li><strong>src_paddings</strong> – A tensor of shape [source_seq_length, batch_size].</li>
+<li><strong>inputs</strong> – A tensor of [time, batch, dims].</li>
+<li><strong>paddings</strong> – A tensor of [time, batch, 1].</li>
+<li><strong>src_contexts</strong> – [Optional] If specified, must be a tensor of shape
+[source_seq_length, batch_size, some_dim]. When specified, this tensor
+will be used as the source context vectors when computing attention
+context, and src_ends will be only used to compute the attention score
+for each context. If set to None, the ‘src_encs’ will be used as source
+context.</li>
+<li><strong>state0</strong> – [Optional] If not None, the initial rnn state and attention
+context in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Defaults to the cell’s zero-state.</li>
 <li><strong>src_segment_id</strong> – A tensor of shape [source_seq_length, batch_size] to
 support masking with packed inputs.</li>
 <li><strong>segment_id</strong> – A tensor of [time, batch, 1].</li>
@@ -747,7 +864,7 @@ support masking with packed inputs.</li>
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.MultiSourceFRNNWithAttention">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">MultiSourceFRNNWithAttention</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#MultiSourceFRNNWithAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.MultiSourceFRNNWithAttention" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>RNN layer intertwined with an attention layer for multiple sources.</p>
 <p>Allows different attention params per source, if attention is not shared.</p>
 <dl class="classmethod">
@@ -781,15 +898,15 @@ support masking with packed inputs.</li>
 layer and its children layers.</li>
 <li><strong>src_encs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing source encoding tensors,
 each of shape [source_seq_length, batch_size, source_dim]. Children
-names of the nested map is defined by source_names.</li>
+names of the <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> is defined by source_names.</li>
 <li><strong>src_paddings</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object contraining source padding tensors,
 each of shape [source_seq_length, batch_size]. Children names of the
-nested map is defined by source_names.</li>
+<a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> is defined by source_names.</li>
 <li><strong>batch_size</strong> – Scalar Tensor of type int, for initial state shape.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>state0 - Initial attention-rnn state in a NestedMap. Zeros for the rnn
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>state0 - Initial attention-rnn state in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Zeros for the rnn
 initial state, and merger output for attention initial state.</p>
 <p>Transformed source vectors and transposed source vectors.</p>
 </p>
@@ -808,14 +925,14 @@ initial state, and merger output for attention initial state.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</li>
-<li><strong>src_encs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing source encoding tensors,
-each of shape [source_seq_length, batch_size, source_dim]. Children
-names of the nested map is defined by source_names.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>src_encs</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing source encoding tensors, each
+of shape [source_seq_length, batch_size, source_dim]. Children names of
+the <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> is defined by source_names.</li>
 <li><strong>src_paddings</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object contraining source padding tensors,
 each of shape [source_seq_length, batch_size]. Children names of the
-nested map is defined by source_names.</li>
+<a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> is defined by source_names.</li>
 <li><strong>inputs</strong> – A tensor of [time, batch, dims].</li>
 <li><strong>paddings</strong> – A tensor of [time, batch, 1].</li>
 </ul>
@@ -841,7 +958,7 @@ nested map is defined by source_names.</li>
 <dl class="class">
 <dt id="lingvo.core.rnn_layers.BidirectionalFRNNQuasi">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">BidirectionalFRNNQuasi</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalFRNNQuasi"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalFRNNQuasi" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.LayerBase" title="lingvo.core.base_layer.LayerBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.LayerBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Bidirectional functional Quasi-RNN.</p>
 <p>This is very similar to BidirectionalFRNN except the input is a list of the
 forward and backward inputs. It is split because quasi-rnns do the
@@ -908,7 +1025,7 @@ is expected to be 1.</li>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -927,21 +1044,14 @@ is expected to be 1.</li>
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'./',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="_static/jquery.js"></script>
-      <script type="text/javascript" src="_static/underscore.js"></script>
-      <script type="text/javascript" src="_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
 
   
 

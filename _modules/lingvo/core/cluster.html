@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.cluster &mdash; lingvo  documentation</title>
+  <title>lingvo.core.cluster &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -195,14 +194,17 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="s1">&#39;/job:localhost&#39;</span><span class="p">,</span>
              <span class="s1">&#39;TensorFlow job spec, e.g., /job:trainer, /job:ps&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;replicas&#39;</span><span class="p">,</span> <span class="n">replicas</span><span class="p">,</span> <span class="s1">&#39;The number of tasks of a job.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gpus_per_replica&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The number of GPU devices to use per &#39;</span>
-             <span class="s1">&#39;replica. If 0, we assume each replica has 1 CPU device.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;devices_per_split&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Devices of a replica are grouped into &#39;</span>
-             <span class="s1">&#39;splits. Each split contains these many devices. One split is a &#39;</span>
-             <span class="s1">&#39;group of devices on which the computation nodes of a graph is &#39;</span>
-             <span class="s1">&#39;placed upon.E.g., one can place the forward lstm on device 0 of &#39;</span>
-             <span class="s1">&#39;a split and place the backward lstm on device 1. etc.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpus_per_replica&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The number of tpu cores to use per replica.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;gpus_per_replica&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The number of GPU devices to use per &#39;</span>
+        <span class="s1">&#39;replica. If 0, we assume each replica has 1 CPU device.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;devices_per_split&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Devices of a replica are grouped into &#39;</span>
+        <span class="s1">&#39;splits. Each split contains these many devices. One split is a &#39;</span>
+        <span class="s1">&#39;group of devices on which the computation nodes of a graph is &#39;</span>
+        <span class="s1">&#39;placed upon.E.g., one can place the forward lstm on device 0 of &#39;</span>
+        <span class="s1">&#39;a split and place the backward lstm on device 1. etc.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpus_per_replica&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;The number of tpu cores to use per replica.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_tpu_hosts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The number of tpu hosts.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -211,10 +213,12 @@
     <span class="sd">&quot;&quot;&quot;Defaults parameters for a cluster.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;The class that this param is associated with.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mode&#39;</span><span class="p">,</span> <span class="s1">&#39;async&#39;</span><span class="p">,</span> <span class="s1">&#39;A string noting the overall training method. &#39;</span>
-             <span class="s1">&#39;Valid values: sync, async.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;job&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;The role of this job in the training cluster. &#39;</span>
-             <span class="s1">&#39;E.g., trainer_client, trainer, controller,  etc.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;mode&#39;</span><span class="p">,</span> <span class="s1">&#39;async&#39;</span><span class="p">,</span> <span class="s1">&#39;A string noting the overall training method. &#39;</span>
+        <span class="s1">&#39;Valid values: sync, async.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;job&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;The role of this job in the training cluster. &#39;</span>
+        <span class="s1">&#39;E.g., trainer_client, trainer, controller,  etc.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;This process is the task-th task in the job.&#39;</span><span class="p">)</span>
 
     <span class="c1"># How the cluster is composed.</span>
@@ -242,6 +246,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_JobSpec</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;The input job.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;evaler&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_JobSpec</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;The evaler job.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_JobSpec</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;The decoder job.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># A few &#39;global&#39; knobs.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;add_summary&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Whether to add summaries. If None, &#39;</span>
+        <span class="s1">&#39;decides based on the job type.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="_Cluster._MakeDeviceString"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster._MakeDeviceString">[docs]</a>  <span class="nd">@classmethod</span>
@@ -329,9 +338,7 @@
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;controller&#39;</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">controller</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer&#39;</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">worker</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">worker</span>
     <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;evaler&#39;</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">evaler</span>
@@ -428,11 +435,10 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">:(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:]</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer_client&#39;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">sync</span><span class="p">:</span>
-      <span class="c1"># In async mode, trainer_client can use every device.</span>
+      <span class="c1"># In sync mode, trainer_client can use every device.</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;controller&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;evaler&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;decoder&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;evaler&#39;</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">):</span>
       <span class="c1"># Our current policy is that each controller/evaler/decoder task</span>
       <span class="c1"># only uses 1 replica.</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_spec</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">:(</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="p">:]</span>
@@ -464,18 +470,18 @@
       <span class="k">return</span> <span class="s1">&#39;&#39;</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">model_split</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetModelSplit</span><span class="p">()</span>
-      <span class="k">assert</span> <span class="n">model_split</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
-          <span class="n">model_split</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">))</span>
+      <span class="k">assert</span> <span class="n">model_split</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;</span><span class="si">%d</span><span class="s1"> </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">model_split</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">))</span>
       <span class="n">devices_per_split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_devices_per_split</span>
-      <span class="k">return</span> <span class="n">devices</span><span class="p">[</span><span class="n">devices_per_split</span> <span class="o">*</span> <span class="n">model_split</span>
-                     <span class="o">+</span> <span class="n">device_index</span> <span class="o">%</span> <span class="n">devices_per_split</span><span class="p">]</span></div>
+      <span class="k">return</span> <span class="n">devices</span><span class="p">[</span><span class="n">devices_per_split</span> <span class="o">*</span> <span class="n">model_split</span> <span class="o">+</span>
+                     <span class="n">device_index</span> <span class="o">%</span> <span class="n">devices_per_split</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="_Cluster.GetPlacer"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.GetPlacer">[docs]</a>  <span class="k">def</span> <span class="nf">GetPlacer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strategy</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a device function for placing ops within the cluster.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      strategy: A string. Identifier for a placement strategy. By default,</span>
-<span class="sd">        we use a least loaded policy to place variables.</span>
+<span class="sd">      strategy: A string. Identifier for a placement strategy. By default, we</span>
+<span class="sd">        use a least loaded policy to place variables.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Returns a device function can be used in tf.device().</span>
@@ -488,7 +494,15 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ListDevices</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">job_spec</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">task</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
     <span class="k">elif</span> <span class="n">strategy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">_LeastLoadedPlacer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">DeviceFunction</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported placement policy: &#39;</span><span class="p">,</span> <span class="n">strategy</span><span class="p">)</span></div></div>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported placement policy: &#39;</span><span class="p">,</span> <span class="n">strategy</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">add_summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span></div>
 
 
 <span class="c1"># Ops that must be placed on the &#39;ps&#39; devices.</span>
@@ -577,7 +591,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -596,21 +610,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

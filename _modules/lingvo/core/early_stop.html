@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.early_stop &mdash; lingvo  documentation</title>
+  <title>lingvo.core.early_stop &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -214,16 +213,26 @@
         <span class="s1">&#39;If True, training minimizes the metric. If False, training &#39;</span>
         <span class="s1">&#39;maximizes the metric.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;logdir&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Root dir for BF logs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;tfevent_file&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, read the metric from &#39;</span>
+        <span class="s1">&#39;events.out.tfevents.* files in the job dir instead of &#39;</span>
+        <span class="s1">&#39;maintaining a history file.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;local_filesystem&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Logdir is on local filesystem (needed for unit test).&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-    <span class="n">fname</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">metric</span> <span class="o">+</span> <span class="s1">&#39;.history.txt&#39;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_hist_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">tfevent_file</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_hist_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span>
+                                     <span class="s1">&#39;events.out.tfevents*&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">fname</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">metric</span> <span class="o">+</span> <span class="s1">&#39;.history.txt&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_hist_file</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">fname</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_metric_histories_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_Key</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">jobname</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">metric</span><span class="p">)]</span> <span class="o">=</span> <span class="bp">self</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_minimize</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">minimize</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_metric</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">metric</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tfevent_file</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">tfevent_file</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">hist_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -233,11 +242,21 @@
   <span class="k">def</span> <span class="nf">minimize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_minimize</span>
 
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">metric</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metric</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tfevent_file</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tfevent_file</span>
+
 <div class="viewcode-block" id="MetricHistory.ConditionalAppend"><a class="viewcode-back" href="../../../lingvo.core.early_stop.html#lingvo.core.early_stop.MetricHistory.ConditionalAppend">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">ConditionalAppend</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Updates history file iff we are recording given metric and jobname.&quot;&quot;&quot;</span>
     <span class="n">key</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_Key</span><span class="p">(</span><span class="n">jobname</span><span class="p">,</span> <span class="n">metric</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_metric_histories_map</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_metric_histories_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">tfevent_file</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span>
       <span class="bp">cls</span><span class="o">.</span><span class="n">_metric_histories_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">Append</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
       <span class="k">return</span> <span class="kc">True</span>
     <span class="k">else</span><span class="p">:</span>
@@ -310,9 +329,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">theta</span>  <span class="c1"># not used</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">window</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_node</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">best_step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">hist_file</span><span class="p">,</span>
-                                      <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tolerance</span><span class="p">,</span>
-                                      <span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">minimize</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_node</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">best_step</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">hist_file</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tolerance</span><span class="p">,</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">minimize</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">metric_history</span><span class="o">.</span><span class="n">metric</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_node</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node</span></div>
@@ -340,7 +359,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -359,21 +378,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.base_input_generator &mdash; lingvo  documentation</title>
+  <title>lingvo.core.base_input_generator &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../../index.html" class="icon icon-home"> lingvo
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../../index.html">lingvo</a>
+          <a href="../../../index.html">Lingvo</a>
         
       </nav>
 
@@ -170,14 +169,51 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">io_ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">input_generator_helper</span> <span class="k">as</span> <span class="n">ig_helper</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tokenizers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 
 
-<div class="viewcode-block" id="BaseInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGenerator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">LayerBase</span><span class="p">):</span>
+<span class="n">_TFDATA_DATASET_CTORS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;tfrecord&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span><span class="p">,</span>
+    <span class="s1">&#39;textline&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TextLineDataset</span><span class="p">,</span>
+    <span class="s1">&#39;csv&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">CsvDataset</span><span class="p">,</span>
+<span class="p">}</span>
+
+
+<div class="viewcode-block" id="_LookupTfDataDatasetCtor"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator._LookupTfDataDatasetCtor">[docs]</a><span class="k">def</span> <span class="nf">_LookupTfDataDatasetCtor</span><span class="p">(</span><span class="n">factory_type</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Looks up a tf.data dataset constructor by factory_type.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    factory_type: One of the well-known string type names. It can also be a</span>
+<span class="sd">      class, in which case, it will be instantiated and used as the constructor.</span>
+<span class="sd">      In this case, the class should implement __call__.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A callable that takes a list of filenames (see tf.data.TFRecordDataset</span>
+<span class="sd">    for the convention).</span>
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: If an unknown type.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">factory_type</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
+    <span class="n">factory</span> <span class="o">=</span> <span class="n">factory_type</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">callable</span><span class="p">(</span><span class="n">factory</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Dataset factory </span><span class="si">%r</span><span class="s1"> is not callable&#39;</span> <span class="o">%</span> <span class="n">factory_type</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">factory</span>
+
+  <span class="k">if</span> <span class="n">factory_type</span> <span class="o">==</span> <span class="s1">&#39;tfrecord&#39;</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span>
+  <span class="k">elif</span> <span class="n">factory_type</span> <span class="o">==</span> <span class="s1">&#39;textline&#39;</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TextLineDataset</span>
+  <span class="k">elif</span> <span class="n">factory_type</span> <span class="o">==</span> <span class="s1">&#39;csv&#39;</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">CsvDataset</span>
+
+  <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported tf.data dataset factory </span><span class="si">%s</span><span class="s1"> (known </span><span class="si">%r</span><span class="s1">)&#39;</span> <span class="o">%</span>
+                   <span class="p">(</span><span class="n">factory_type</span><span class="p">,</span> <span class="n">_TFDATA_DATASET_CTORS</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="BaseInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGenerator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;The base input generator.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BaseInputGenerator.Params"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -186,7 +222,6 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;input&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Batch size.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Random seed used for input sampling.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;num_samples&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
         <span class="s1">&#39;If non-zero, the dataset contains these many samples. &#39;</span>
@@ -205,15 +240,27 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_made_tpu_infeed</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># parameter to tell the bprop one hot for all the files.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="c1"># Each entry is a regular expression specifying the set of variables</span>
+    <span class="c1"># to bprop per data source.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span>
 
 <div class="viewcode-block" id="BaseInputGenerator.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{}</span></div>
 
+<div class="viewcode-block" id="BaseInputGenerator.GetBpropVariableFilters"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GetBpropVariableFilters">[docs]</a>  <span class="k">def</span> <span class="nf">GetBpropVariableFilters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span></div>
+
+<div class="viewcode-block" id="BaseInputGenerator.GetInputSourceOneHot"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GetInputSourceOneHot">[docs]</a>  <span class="k">def</span> <span class="nf">GetInputSourceOneHot</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get the current bprop type of the input generator batch.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span></div>
+
 <div class="viewcode-block" id="BaseInputGenerator.InputBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.InputBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the batch size for the current step.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
 
     <span class="c1"># If use_per_host_infeed, each input op is only responsible</span>
     <span class="c1"># for generating a subset of the whole batch.</span>
@@ -247,7 +294,7 @@
 <div class="viewcode-block" id="BaseInputGenerator.CreateTpuFeeds"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuFeeds">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuFeeds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates the TPU infeed queue from preprocessed batch.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
     <span class="k">assert</span> <span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;num_tpu_hosts: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">num_tpu_hosts</span><span class="p">)</span>
     <span class="n">num_infeed_hosts</span> <span class="o">=</span> <span class="n">num_tpu_hosts</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="k">else</span> <span class="mi">1</span>
@@ -291,7 +338,7 @@
               <span class="k">if</span> <span class="n">device_assignment</span><span class="p">:</span>
                 <span class="c1"># We put both enqueue/dequeue ops at core 0 in each replica.</span>
                 <span class="n">replica</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">lookup_replicas</span><span class="p">(</span>
-                    <span class="n">task_id</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">))[</span><span class="n">shard_index_in_host</span><span class="p">]</span>  <span class="c1"># pylint: disable=cell-var-from-loop</span>
+                    <span class="n">task_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">)[</span><span class="n">shard_index_in_host</span><span class="p">]</span>  <span class="c1"># pylint: disable=cell-var-from-loop</span>
                 <span class="k">return</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">tpu_ordinal</span><span class="p">(</span><span class="n">replica</span><span class="o">=</span><span class="n">replica</span><span class="p">)</span>
               <span class="k">else</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">shard_index_in_host</span>
@@ -353,9 +400,14 @@
     <span class="sd">&quot;&quot;&quot;Defaults params for input generators.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;file_pattern&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;A single file pattern string or a list &lt;file_pattern, weight&gt; pairs.&#39;</span>
-        <span class="s1">&#39;In the later case, probablistic samples are from the inputs &#39;</span>
+        <span class="c1"># TODO(tilarids): Consider renaming this param to make it clear it may</span>
+        <span class="c1"># be a set of file patterns with weights and filters and not just a</span>
+        <span class="c1"># simple string pattern.</span>
+        <span class="s1">&#39;file_pattern&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;A single file pattern string, a list of &lt;file_pattern, weight&gt; pairs&#39;</span>
+        <span class="s1">&#39;or a list of  &lt;file_pattern, weight, bprop_variable_filter&gt; tuples.&#39;</span>
+        <span class="s1">&#39;In the later 2 cases, probablistic samples are from the inputs &#39;</span>
         <span class="s1">&#39;proportional to their weights. Typically, values are binary &#39;</span>
         <span class="s1">&#39;protocol buffers containing train/eval samples. Keys are not used.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;file_random_seed&#39;</span><span class="p">,</span> <span class="mi">301</span><span class="p">,</span>
@@ -371,53 +423,142 @@
         <span class="s1">&#39;so far every these many records are yielded.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_batcher_threads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of threads to use for input &#39;</span>
              <span class="s1">&#39;record batcher.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_within_batch_mixing&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to mix records from &#39;</span>
+        <span class="s1">&#39;different input sources within batch or across batches (the &#39;</span>
+        <span class="s1">&#39;default option). This option only takes effect when file_pattern&#39;</span>
+        <span class="s1">&#39; is a list of file patterns with weights.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;file_random_seed needs to be 0 when &#39;</span>
+                       <span class="s1">&#39;use_per_host_infeed == True.&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">args</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">()</span>
     <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
-        <span class="s1">&#39;file_random_seed&#39;</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span><span class="p">,</span>
-        <span class="s1">&#39;file_buffer_size&#39;</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
-        <span class="s1">&#39;file_parallelism&#39;</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span><span class="p">,</span>
-        <span class="s1">&#39;flush_every_n&#39;</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">flush_every_n</span><span class="p">,</span>
-        <span class="s1">&#39;num_threads&#39;</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span><span class="p">,</span>
+        <span class="s1">&#39;file_random_seed&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span><span class="p">,</span>
+        <span class="s1">&#39;file_buffer_size&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
+        <span class="s1">&#39;file_parallelism&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span><span class="p">,</span>
+        <span class="s1">&#39;flush_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">flush_every_n</span><span class="p">,</span>
+        <span class="s1">&#39;num_threads&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span><span class="p">,</span>
     <span class="p">})</span>
     <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputOpBucketingArgs</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">args</span></div>
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._InputOpBucketingArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._InputOpBucketingArgs">[docs]</a>  <span class="k">def</span> <span class="nf">_InputOpBucketingArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1000000000</span><span class="p">],</span>
         <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">InputBatchSize</span><span class="p">()],</span>
     <span class="p">}</span></div>
 
-<div class="viewcode-block" id="BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">input_source_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read and return input batch from a string file_pattern.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      file_pattern: A string file pattern.</span>
+<span class="sd">      input_source_weights: A list of float input source weights to control</span>
+<span class="sd">        input example mix in the batch. The records will be sampled from inputs</span>
+<span class="sd">        proportionally to these weights. Defaults to None which should be</span>
+<span class="sd">        treated as an empty list.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tf.Tensor or nested map of tf.Tensor</span>
+<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildWithinBatchMixingDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildWithinBatchMixingDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read and return input batch from a p.file_pattern list.</span>
+
+<span class="sd">    `p.file_pattern` should be a list of (file_pattern, weight) pairs. Examples</span>
+<span class="sd">    in the batch will be mixed together from different file_pattern source</span>
+<span class="sd">    proportionally to the weights.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
+<span class="sd">      `self._DataSourceFromFilePattern()`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If unknown token type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,))</span>
+    <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">))</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="c1"># Within batch mixing doesn&#39;t work with backprop filters, i.e. when</span>
+      <span class="c1"># file_pattern param contains a list of</span>
+      <span class="c1"># &lt;file_pattern, weight, [bprop_variable_filter]&gt; tuples.</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list of pairs, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,))</span>
+
+    <span class="n">file_patterns</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">file_patterns</span><span class="p">:</span>
+      <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">file_pattern</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Can not use commas in file_pattern when within-batch &#39;</span>
+                         <span class="s1">&#39;mixing is used. file_pattern: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">file_pattern</span><span class="p">,))</span>
+
+    <span class="c1"># Do not set self._bprop_onehot as it shouldn&#39;t be used later on.</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">),</span> <span class="n">weights</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+          <span class="s1">&#39;The function may not be fully implemented. Have you added &#39;</span> <span class="o">+</span>
+          <span class="s1">&#39;input_source_weights as params? Original exception: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildCrossBatchMixingDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildCrossBatchMixingDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read and return input batch from a p.file_pattern list.</span>
+
+<span class="sd">    `p.file_pattern` should be a list of (file_pattern, weight,</span>
+<span class="sd">    optional_bprop_filter) tuples. Every batch returned will be filled from one</span>
+<span class="sd">    source only and batches will be mixed proportionally to the weights.</span>
+<span class="sd">    Additionally some backprop filters may be applied for different input</span>
+<span class="sd">    sources.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
+<span class="sd">      `self._DataSourceFromFilePattern()`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If unknown token type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">input_file_pattern</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
+
+    <span class="k">def</span> <span class="nf">_MakeDataSourceFromFilePatternFunc</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">):</span>
+      <span class="c1"># It&#39;s important to invoke self._DataSourceFromFilePattern() inside the</span>
+      <span class="c1"># lambda to make sure that the record is drawn from data source</span>
+      <span class="c1"># only if it will be used.</span>
+      <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">)</span>
+
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="n">input_file_pattern</span><span class="p">:</span>
+      <span class="n">file_pattern</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+      <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_MakeDataSourceFromFilePatternFunc</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">))</span>
+      <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+      <span class="n">bprop_variable_filter</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_entry</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bprop_variable_filter</span><span class="p">)</span>
+    <span class="n">data_source</span><span class="p">,</span> <span class="n">selected_bprop</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MixByWeight</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span> <span class="o">=</span> <span class="n">selected_bprop</span>
+    <span class="k">return</span> <span class="n">data_source</span></div>
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read and return input batch from `p.file_pattern`.</span>
 
 <span class="sd">    `p.file_pattern` may be a string file_pattern or a</span>
-<span class="sd">    list of (file_pattern, weight) pairs.</span>
+<span class="sd">    list of (file_pattern, weight, [bprop_variable_filter]) tuples.</span>
+<span class="sd">    bprop_variable_filter is optional. When bprop_variable_filter is used,</span>
+<span class="sd">    batches will always contain the examples from the same source. Otherwise,</span>
+<span class="sd">    examples from different sources may be mixed together.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tf.Tensor or nested map of tf.Tensor same as</span>
+<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
 <span class="sd">      `self._DataSourceFromFilePattern()`.</span>
 
 <span class="sd">    Raises:</span>
@@ -426,22 +567,15 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">input_file_pattern</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-      <span class="n">data_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">)</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="c1"># Handle weighted input file patterns, where input_file_patterns contain</span>
-      <span class="c1"># a list of &lt;file_pattern, weight&gt; pairs.</span>
-      <span class="k">def</span> <span class="nf">_MakeDataSourceFromFilePatternFunc</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">):</span>
-        <span class="c1"># It&#39;s important to invoke self._DataSourceFromFilePattern() inside the</span>
-        <span class="c1"># lambda to make sure that the record is drawn from data source</span>
-        <span class="c1"># only if it will be used.</span>
-        <span class="k">return</span> <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">)</span>
-
-      <span class="n">data_source</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MixByWeight</span><span class="p">(</span>
-          <span class="p">(</span><span class="n">_MakeDataSourceFromFilePatternFunc</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">),</span> <span class="n">weight</span><span class="p">)</span>
-          <span class="k">for</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">input_file_pattern</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildWithinBatchMixingDataSource</span><span class="p">()</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Otherwise fall back to MixByWeight-based approach.</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildCrossBatchMixingDataSource</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">data_source</span></div></div>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseSequenceInputGenerator</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">):</span>
@@ -466,7 +600,7 @@
              <span class="s1">&#39;The maximum length of the target sequence.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pad_to_max_seq_length&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, input tensors will be padded to max_length.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tokenizer&#39;</span><span class="p">,</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">SimpleTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tokenizer&#39;</span><span class="p">,</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">AsciiTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Tokenizer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;tokenizer_dict&#39;</span><span class="p">,</span> <span class="p">{},</span>
@@ -494,13 +628,14 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="s1">&#39;default&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span>
 
   <span class="nd">@property</span>  <span class="c1"># Adjust batch size according to the cluster spec.</span>
   <span class="k">def</span> <span class="nf">scaled_bucket_batch_limit</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_scaled_bucket_batch_limit&#39;</span><span class="p">):</span>
-      <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+      <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_scaled_bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span>
           <span class="n">b</span> <span class="o">*</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span>
       <span class="p">]</span>
@@ -529,7 +664,8 @@
                    <span class="n">is_source</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                    <span class="n">external_max_length</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">external_append_eos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                   <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                   <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Tokenize strs into vocab ids.</span>
 
 <span class="sd">    Args:</span>
@@ -541,6 +677,7 @@
 <span class="sd">        `params.append_eos` will be used. If bool, will determine if an eos</span>
 <span class="sd">        symbol will be added to tokens.</span>
 <span class="sd">      key: A string key in case the model has multiple tokenizers.</span>
+<span class="sd">      languages: A vector of str with the same length as `strs`.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple (ids, labels, paddings) with the same shape [batch, maxlen].</span>
@@ -554,7 +691,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">if</span> <span class="n">external_max_length</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">external_max_length</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">maxlen</span> <span class="o">=</span> <span class="n">external_max_length</span>
     <span class="k">elif</span> <span class="n">is_source</span><span class="p">:</span>
       <span class="n">maxlen</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span>
@@ -562,8 +699,8 @@
       <span class="n">maxlen</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span>
 
     <span class="n">key</span> <span class="o">=</span> <span class="n">key</span> <span class="ow">or</span> <span class="s1">&#39;default&#39;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span><span class="n">strs</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span>
-                                                 <span class="n">external_append_eos</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
+        <span class="n">strs</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">external_append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="n">languages</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Converts ids back to strings.</span>
@@ -572,8 +709,8 @@
 <span class="sd">      ids: A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample&#39;s</span>
 <span class="sd">        ids.</span>
 <span class="sd">      lens: A vector of shape [batch]. lens[i] is the sequence length of the</span>
-<span class="sd">        i-th sample. Only the first lens[i] tokens in ids[i, :] are valid</span>
-<span class="sd">        tokens for the i-th sequence.</span>
+<span class="sd">        i-th sample. Only the first lens[i] tokens in ids[i, :] are valid tokens</span>
+<span class="sd">        for the i-th sequence.</span>
 <span class="sd">      key: A string key in case the model has multiple tokenizers.</span>
 
 <span class="sd">    Returns:</span>
@@ -647,6 +784,94 @@
 
 <div class="viewcode-block" id="BaseTinyDatasetInput._Preprocess"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseTinyDatasetInput._Preprocess">[docs]</a>  <span class="k">def</span> <span class="nf">_Preprocess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">raw</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">raw</span></div></div>
+
+
+<div class="viewcode-block" id="BaseExampleInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseExampleInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseExampleInputGenerator</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for input generators that read Feature protos via tf.data.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="BaseExampleInputGenerator.Params"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseExampleInputGenerator.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseExampleInputGenerator</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_files&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Delimited glob of input files.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;file_type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The file type. Can be one of &quot;tfrecord&quot; or a class that implements &#39;</span>
+        <span class="s1">&#39;__call__ and takes a list of filenames (note that other file types &#39;</span>
+        <span class="s1">&#39;are not valid for reading examples).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;randomize_order&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to randomize the order.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;parallel_readers&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of parallel reader threads.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_examples&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of examples (-1 for unlimited).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;randomize_shuffle_size&#39;</span><span class="p">,</span> <span class="mi">500</span><span class="p">,</span>
+             <span class="s1">&#39;Size of the random shuffle buffer.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BaseExampleInputGenerator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_files</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;input_files is required for a tf.data example input generator&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;file_type is required for a tf.data example input generator&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseExampleInputGenerator.GetFeatureSpec"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseExampleInputGenerator.GetFeatureSpec">[docs]</a>  <span class="k">def</span> <span class="nf">GetFeatureSpec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Subclasses must implement and return a feature spec.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      NestedMap of features compatible with tf.parse_example. Default</span>
+<span class="sd">      implementation returns an empty dict.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="BaseExampleInputGenerator.PostProcessBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseExampleInputGenerator.PostProcessBatch">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Post processes an input batch.</span>
+
+<span class="sd">    By default, just returns the batch unchanged. This happens as part of the</span>
+<span class="sd">    parallel reader threads and can therefore be more efficient for performing</span>
+<span class="sd">    expensive operations vs doing work as the result of InputBatch().</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_batch: Input batch NestedMap.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Altered batch NestedMap.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">input_batch</span></div>
+
+<div class="viewcode-block" id="BaseExampleInputGenerator.InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseExampleInputGenerator.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">ParseAndProcess</span><span class="p">(</span><span class="o">*</span><span class="n">cols</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Parses a Tensorflow example into features.&quot;&quot;&quot;</span>
+      <span class="c1"># Assume either one or two column input. If one, then the record is</span>
+      <span class="c1"># assumed to be that column. If 2, then it is assumed to be a KV store</span>
+      <span class="c1"># and the record is the second column.</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">cols</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span>
+          <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span>
+      <span class="p">],</span> <span class="p">(</span><span class="s1">&#39;BaseExampleInputGenerator supports one or two column input&#39;</span><span class="p">)</span>
+      <span class="n">record</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">feature_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetFeatureSpec</span><span class="p">()</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">parse_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_spec</span><span class="p">))</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PostProcessBatch</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+
+    <span class="n">dataset_factory</span> <span class="o">=</span> <span class="n">_LookupTfDataDatasetCtor</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_type</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">input_files</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">randomize_order</span><span class="p">))</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">parallel_interleave</span><span class="p">(</span>
+                    <span class="n">dataset_factory</span><span class="p">,</span>
+                    <span class="n">cycle_length</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">parallel_readers</span><span class="p">,</span>
+                    <span class="n">sloppy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">randomize_order</span><span class="p">)))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">randomize_order</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">randomize_shuffle_size</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">take</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_examples</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">drop_remainder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
+        <span class="n">ParseAndProcess</span><span class="p">,</span> <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">parallel_readers</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span>
+    <span class="n">iterator</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">make_one_shot_iterator</span><span class="p">()</span>
+    <span class="n">input_batch</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">input_batch</span></div></div>
 </pre></div>
 
            </div>
@@ -659,7 +884,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -678,21 +903,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
 
   
 

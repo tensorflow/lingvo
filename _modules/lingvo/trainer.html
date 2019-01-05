@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.trainer &mdash; lingvo  documentation</title>
+  <title>lingvo.trainer &mdash; Lingvo  documentation</title>
   
 
   
@@ -46,7 +46,7 @@
           
 
           
-            <a href="../../index.html" class="icon icon-home"> lingvo
+            <a href="../../index.html" class="icon icon-home"> Lingvo
           
 
           
@@ -76,8 +76,7 @@
               
             
             
-              <p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
+              <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../lingvo.html">lingvo package</a></li>
 </ul>
 
@@ -93,7 +92,7 @@
       <nav class="wy-nav-top" aria-label="top navigation">
         
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-          <a href="../../index.html">lingvo</a>
+          <a href="../../index.html">Lingvo</a>
         
       </nav>
 
@@ -163,8 +162,9 @@
 
 <span class="sd">.. code-block:: bash</span>
 
-<span class="sd">  $ bazel build -c opt lingvo:trainer</span>
-<span class="sd">  $ bazel-bin/lingvo/trainer --logtostderr --model=image.mnist.LeNet5 --mode=sync --logdir=/tmp/lenet5 --run_locally=cpu</span>
+<span class="sd">  $ bazel build -c opt //lingvo:trainer</span>
+<span class="sd">  $ bazel-bin/lingvo/trainer --logtostderr \</span>
+<span class="sd">      --model=image.mnist.LeNet5 --mode=sync --logdir=/tmp/lenet5 --run_locally=cpu</span>
 
 <span class="sd">To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.</span>
 <span class="sd">&quot;&quot;&quot;</span>
@@ -182,14 +182,17 @@
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">base_runner</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="k">import</span> <span class="n">config_pb2</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">base_trial</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">inference_graph_exporter</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
@@ -222,8 +225,9 @@
     <span class="s1">&#39;sync: used in a sync training setup; &#39;</span>
     <span class="s1">&#39;shell: an interactive shell for development; &#39;</span>
     <span class="s1">&#39;inspect_evaler: print evaler dataset names; &#39;</span>
-    <span class="s1">&#39;inspect_decoder: print decoder dataset names.&#39;</span><span class="p">)</span>
-<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;job&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;trainer/controller/eval, etc.&#39;</span><span class="p">)</span>
+    <span class="s1">&#39;inspect_decoder: print decoder dataset names; &#39;</span>
+    <span class="s1">&#39;write_inference_graph: write inference graphs to logdir.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;job&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer/controller/eval, etc.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;task&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Task id within the job.&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;controller_job&#39;</span><span class="p">,</span> <span class="s1">&#39;/job:controller&#39;</span><span class="p">,</span> <span class="s1">&#39;Job name.&#39;</span><span class="p">)</span>
@@ -232,6 +236,8 @@
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;worker_job&#39;</span><span class="p">,</span> <span class="s1">&#39;/job:trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;Job name.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;worker_replicas&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of replicas.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;worker_gpus&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of gpus to use per replica.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;worker_tpus&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of tpus to use per replica.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;worker_num_tpu_hosts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of tpu hosts.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_integer</span><span class="p">(</span><span class="s1">&#39;worker_split_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
                         <span class="s1">&#39;Number of devices for one split.&#39;</span><span class="p">)</span>
 
@@ -254,6 +260,13 @@
     <span class="s1">&#39;evaler_in_same_address_as_controller&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;Whether or not evaler is in the same address space as &#39;</span>
     <span class="s1">&#39; controller. This flag is meant for unittest only.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
+    <span class="s1">&#39;vizier_reporting_job&#39;</span><span class="p">,</span> <span class="s1">&#39;evaler&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;Job reponsible for reporting metrics. This specifies a &#39;</span>
+    <span class="s1">&#39;job prefix, evaler will match all evaler jobs, while &#39;</span>
+    <span class="s1">&#39;evaler_dev and decoder_dev will only match the corresponding &#39;</span>
+    <span class="s1">&#39;jobs that are on the dev set.&#39;</span><span class="p">)</span>
 
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
@@ -324,7 +337,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">VARIABLES</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">GLOBAL_VARIABLES</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">report_uninitialized_variables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_all</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
@@ -333,7 +346,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_ExportMetrics</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_num_params</span> <span class="o">=</span> <span class="n">_ModelAnalysis</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">LogMultiLines</span><span class="p">(</span><span class="s1">&#39;MODEL ANALYSIS&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_analysis</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_dir</span><span class="p">,</span>
                      <span class="s1">&#39;model_analysis.txt&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_control_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">)</span>
@@ -341,10 +354,11 @@
                          <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Controller.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Controller.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;controller/enqueue_op/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span>
+        <span class="s1">&#39;controller/enqueue_op/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">,</span> <span class="n">loop_args</span><span class="o">=</span><span class="p">[</span><span class="n">op</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="Controller._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="p">)</span>
@@ -480,7 +494,10 @@
     <span class="sd">&quot;&quot;&quot;Computes the overall step rate and adds a summary.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">(),</span> <span class="n">current_steps</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">))</span>
     <span class="c1"># Keeps a relative long history to compute a smooth steps/second.</span>
-    <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">10000</span><span class="p">:</span>
+    <span class="c1"># Removes duplicate stats for step = 0 to get rid of the warm-up period.</span>
+    <span class="k">while</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">10000</span> <span class="ow">or</span>
+           <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)):</span>
       <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">s0</span><span class="p">,</span> <span class="n">e0</span><span class="p">),</span> <span class="p">(</span><span class="n">t1</span><span class="p">,</span> <span class="n">s1</span><span class="p">,</span> <span class="n">e1</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_time_steps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="n">rate</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -538,12 +555,28 @@
       <span class="n">writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">CreateScalarSummary</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">steps</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trainer.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trainer.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer/enqueue_op/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">,</span> <span class="n">op</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span>
+        <span class="s1">&#39;trainer/enqueue_op/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">,</span> <span class="n">loop_args</span><span class="o">=</span><span class="p">[</span><span class="n">op</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Trainer._LoopEnqueue"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer._LoopEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_LoopEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
+    <span class="c1"># Evaler/Controller jobs may find that the trial is infeasible and report</span>
+    <span class="c1"># done earlier. This is an important check since the trainer may retry</span>
+    <span class="c1"># indefinitely without it.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training skipped (trial requested to stop).&#39;</span><span class="p">)</span>
+      <span class="k">return</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Trainer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">(</span><span class="n">op</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trainer._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Evaler/Controller jobs may find that the trial is infeasible and report</span>
+    <span class="c1"># done earlier. This is an important check since the trainer may retry</span>
+    <span class="c1"># indefinitely without it.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training skipped (trial requested to stop).&#39;</span><span class="p">)</span>
+      <span class="k">return</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
@@ -604,15 +637,18 @@
             <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
               <span class="k">pass</span>
 
-        <span class="n">_</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">fetched_verbose_tensors</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span>
             <span class="n">model_task</span><span class="o">.</span><span class="n">train_op</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">,</span>
             <span class="n">model_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span>
+            <span class="n">model_task</span><span class="o">.</span><span class="n">trainer_verbose_tensors</span><span class="p">,</span>
         <span class="p">])</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;step:</span><span class="si">%6d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">eval_metrics</span><span class="p">)):</span>
           <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%.8g</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="p">)</span>
+        <span class="n">model_task</span><span class="o">.</span><span class="n">ProcessFetchedTrainerVerboseTensors</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
+                                                       <span class="n">fetched_verbose_tensors</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="n">next_status_step</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
           <span class="n">next_status_step</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="n">status_interval_steps</span>
@@ -621,18 +657,184 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ModelPostUpdate</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="TrainerTpu"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu">[docs]</a><span class="k">class</span> <span class="nc">TrainerTpu</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Trainer on TPU.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TrainerTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="c1"># Multiple TPU trainer tasks not tested/implemented.</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">num_replicas</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span>
+    <span class="k">assert</span> <span class="n">data_parallelism</span>
+    <span class="n">num_devices_per_split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;data_parallelism: </span><span class="si">%d</span><span class="s1">, num_devices_per_split: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
+                    <span class="n">data_parallelism</span><span class="p">,</span> <span class="n">num_devices_per_split</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">ComputationShape</span><span class="p">(</span><span class="n">split_size</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Decides the computation shape based on the split_size.&quot;&quot;&quot;</span>
+      <span class="n">computation_shape</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+      <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+      <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+        <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+      <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">16</span><span class="p">:</span>
+        <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Model parallelism with </span><span class="si">%d</span><span class="s1"> devices is currently not&#39;</span>
+                       <span class="s1">&#39; supported.&#39;</span> <span class="o">%</span> <span class="n">split_size</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">computation_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">return</span> <span class="n">computation_shape</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s1">&#39;Creating TrainerTpu using data parallelism </span><span class="si">%s</span><span class="s1"> &#39;</span>
+        <span class="s1">&#39;and </span><span class="si">%s</span><span class="s1"> steps_per_loop&#39;</span><span class="p">,</span> <span class="n">data_parallelism</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">)</span>
+
+    <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">_WaitTillInit</span><span class="p">():</span>
+      <span class="sd">&quot;&quot;&quot;Wait until the model is ready.&quot;&quot;&quot;</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+          <span class="n">topology</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+          <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
+              <span class="n">topology</span><span class="p">,</span>
+              <span class="n">computation_shape</span><span class="o">=</span><span class="n">ComputationShape</span><span class="p">(</span><span class="n">num_devices_per_split</span><span class="p">),</span>
+              <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">)</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">device_assignment</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.core_assignment: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                          <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">core_assignment</span><span class="p">))</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.topology.device_coordinates: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                          <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">device_coordinates</span><span class="p">))</span>
+      <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TPU initialization failed: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="k">raise</span>
+
+    <span class="n">_WaitTillInit</span><span class="p">()</span>
+
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
+
+        <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
+          <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+          <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+            <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
+          <span class="k">return</span> <span class="n">summed_metrics</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">train_op</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">TpuTrain</span><span class="p">():</span>
+          <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
+              <span class="n">TpuTrainStep</span><span class="p">,</span>
+              <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">initial_values</span><span class="p">,</span>
+              <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train_loop&#39;</span><span class="p">)</span>
+          <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
+          <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
+
+        <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">batch_parallel</span><span class="p">(</span>
+            <span class="n">TpuTrain</span><span class="p">,</span>
+            <span class="n">num_shards</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
+            <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
+        <span class="c1"># Get metric result from a single replica; they are all same here.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">]</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CLOSE_QUEUE_OPS</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Trainer number of enqueue ops: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
+
+    <span class="c1"># Saves the graph def.</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
+                         <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TrainerTpu.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Run training.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TrainerTpu.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span>
+        <span class="s1">&#39;trainer/enqueue_op/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">,</span> <span class="n">loop_args</span><span class="o">=</span><span class="p">[</span><span class="n">op</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="TrainerTpu._SummarizeValue"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._SummarizeValue">[docs]</a>  <span class="k">def</span> <span class="nf">_SummarizeValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span>
+        <span class="n">metrics</span><span class="o">.</span><span class="n">CreateScalarSummary</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">steps</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TrainerTpu._LoopEnqueue"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._LoopEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_LoopEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
+    <span class="c1"># Evaler/Controller jobs may find that the trial is infeasible and report</span>
+    <span class="c1"># done earlier. This is an important check since the trainer may retry</span>
+    <span class="c1"># indefinitely without it.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training skipped (trial requested to stop).&#39;</span><span class="p">)</span>
+      <span class="k">return</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TrainerTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">(</span><span class="n">op</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TrainerTpu._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Evaler/Controller jobs may find that the trial is infeasible and report</span>
+    <span class="c1"># done earlier. This is an important check since the trainer may retry</span>
+    <span class="c1"># indefinitely without it.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training skipped (trial requested to stop).&#39;</span><span class="p">)</span>
+      <span class="k">return</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span><span class="p">:</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">())</span>
+      <span class="n">global_step</span><span class="p">,</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">])</span>
+      <span class="n">eval_metrics</span> <span class="o">=</span> <span class="kc">None</span>
+
+      <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStopAndMaybeReport</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">)</span> <span class="ow">or</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
+          <span class="k">return</span>
+
+        <span class="n">values</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span><span class="p">)</span>
+        <span class="n">eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">PackMetricsValues</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
+
+        <span class="c1"># Note: global_step is incremented by self._steps_per_loop by the</span>
+        <span class="c1"># previous sess.run call.</span>
+        <span class="n">global_step</span><span class="p">,</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">])</span>
+
+        <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;step:</span><span class="si">%6d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">eval_metrics</span><span class="p">)):</span>
+          <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%.8g</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="Evaler"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler">[docs]</a><span class="k">class</span> <span class="nc">Evaler</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Evaler.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eval_type</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">Evaler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_type</span> <span class="o">=</span> <span class="s1">&#39;eval_&#39;</span> <span class="o">+</span> <span class="n">eval_type</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span> <span class="o">=</span> <span class="s1">&#39;evaler_&#39;</span> <span class="o">+</span> <span class="n">eval_type</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_output_name</span> <span class="o">=</span> <span class="s1">&#39;eval_&#39;</span> <span class="o">+</span> <span class="n">eval_type</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_type</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_name</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span> <span class="o">+=</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MakeDirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">vizier_reporting_job</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
@@ -643,7 +845,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
       <span class="c1"># No queues are allowed for eval models.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
@@ -653,10 +854,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">,</span>
-                           <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.pbtxt&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_type</span><span class="p">)</span>
+                           <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.pbtxt&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_name</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Evaler.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Evaler._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The main loop.&quot;&quot;&quot;</span>
@@ -669,10 +870,12 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EvalOnce</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
           <span class="k">break</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">EvalLatestCheckpoint</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">EvalLatestCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Evaluation finished.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Evaler.EvalLatestCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler.EvalLatestCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">EvalLatestCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="Evaler.EvalLatestCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler.EvalLatestCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">EvalLatestCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs eval once on the latest checkpoint.&quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
@@ -680,6 +883,9 @@
       <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No checkpoint available.&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+      <span class="k">elif</span> <span class="n">path</span> <span class="o">==</span> <span class="n">last_path</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Latest checkpoint was already evaluated.&#39;</span><span class="p">)</span>
         <span class="k">return</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_EvalOnce</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span></div>
 
@@ -703,13 +909,11 @@
     <span class="n">num_samples_metric</span> <span class="o">=</span> <span class="n">metrics_dict</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
     <span class="k">while</span> <span class="p">(</span><span class="n">num_samples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">&lt;</span>
            <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">):</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># No summaries were collected.</span>
-        <span class="n">ans</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">ans</span><span class="p">,</span> <span class="n">summary</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+      <span class="c1"># NOTE: We intentionally do not let FProp generate summaries by default,</span>
+      <span class="c1"># because evaler calls FProp multiple times for each checkpoint. Multiple</span>
+      <span class="c1"># summaries at the same step is often confusing. Instead, models should</span>
+      <span class="c1"># update eval_metrics and generate aggregate summaries.</span>
+      <span class="n">ans</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">ans</span><span class="p">):</span>
         <span class="n">metrics_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total examples done: </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
@@ -727,12 +931,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="p">,</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">),</span>
         <span class="n">global_step</span><span class="p">,</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)},</span>
-        <span class="n">text_filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">,</span> <span class="s1">&#39;score.txt&#39;</span><span class="p">))</span>
+        <span class="n">text_filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">,</span>
+                                   <span class="s1">&#39;score-</span><span class="si">{:08d}</span><span class="s1">.txt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">global_step</span><span class="p">)))</span>
 
-    <span class="n">is_final</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
-    <span class="n">should_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span>
-                                                <span class="n">metrics_dict</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">should_stop</span> <span class="ow">or</span> <span class="n">is_final</span></div></div>
+    <span class="n">should_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+      <span class="n">trial_should_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
+                                                        <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+      <span class="n">should_stop</span> <span class="o">=</span> <span class="n">should_stop</span> <span class="ow">or</span> <span class="n">trial_should_stop</span>
+    <span class="k">return</span> <span class="n">should_stop</span></div></div>
 
 
 <div class="viewcode-block" id="GetDecoderDir"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.GetDecoderDir">[docs]</a><span class="k">def</span> <span class="nf">GetDecoderDir</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="n">decoder_type</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">):</span>
@@ -752,6 +959,7 @@
 <span class="sd">  Args:</span>
 <span class="sd">   checkpoint_path: path to checkpoint file.</span>
 <span class="sd">   global_step: int specifying the global step of the model.</span>
+
 <span class="sd">  Returns:</span>
 <span class="sd">   Checkpoint id as int.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -773,12 +981,14 @@
 
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_type</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">Decoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_type</span> <span class="o">=</span> <span class="s1">&#39;decoder_&#39;</span> <span class="o">+</span> <span class="n">decoder_type</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span> <span class="o">=</span> <span class="s1">&#39;decoder_&#39;</span> <span class="o">+</span> <span class="n">decoder_type</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span> <span class="o">=</span> <span class="n">GetDecoderDir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_type</span><span class="p">,</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span> <span class="o">=</span> <span class="n">GetDecoderDir</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span>
                                       <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MakeDirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">vizier_reporting_job</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
@@ -789,7 +999,9 @@
         <span class="c1"># tasks, which may result in different node names being chosen.</span>
         <span class="c1"># Obviously, variable names has to be stay the same between train and</span>
         <span class="c1"># decode.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">()</span>
+        <span class="n">input_batch</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
@@ -801,10 +1013,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">task</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">,</span>
-                           <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.pbtxt&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decoder_type</span><span class="p">)</span>
+                           <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.pbtxt&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Decoder.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_type</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span>
@@ -817,7 +1029,12 @@
         <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FindNewCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
           <span class="k">break</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Decoding finished.&#39;</span><span class="p">)</span></div>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">DecodeLatestCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Decoding finished.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder.GetDecodeOutPath"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder.GetDecodeOutPath">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">GetDecodeOutPath</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">decoder_dir</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="p">):</span>
@@ -841,13 +1058,13 @@
     <span class="k">while</span> <span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">&lt;</span> <span class="n">samples_per_summary</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Fetching dec_output.&#39;</span><span class="p">)</span>
       <span class="n">run_options</span> <span class="o">=</span> <span class="n">config_pb2</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span>
-          <span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+          <span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># No summaries were collected.</span>
         <span class="n">dec_out</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">dec_out</span><span class="p">,</span> <span class="n">summary</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
-            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span><span class="p">],</span> <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
+        <span class="n">dec_out</span><span class="p">,</span> <span class="n">summary</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span><span class="p">],</span>
+                                    <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done fetching.&#39;</span><span class="p">)</span>
       <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
@@ -866,7 +1083,8 @@
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">),</span>
         <span class="n">global_step</span><span class="p">,</span>
         <span class="n">summaries</span><span class="p">,</span>
-        <span class="n">text_filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">,</span> <span class="s1">&#39;score.txt&#39;</span><span class="p">))</span>
+        <span class="n">text_filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">,</span>
+                                   <span class="s1">&#39;score-</span><span class="si">{:08d}</span><span class="s1">.txt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">global_step</span><span class="p">)))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ExportMetrics</span><span class="p">(</span>
         <span class="n">decode_checkpoint</span><span class="o">=</span><span class="n">global_step</span><span class="p">,</span>
         <span class="n">dec_metrics</span><span class="o">=</span><span class="n">dec_metrics</span><span class="p">,</span>
@@ -879,7 +1097,26 @@
       <span class="n">decode_out_path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetDecodeOutPath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_WriteKeyValuePairs</span><span class="p">(</span><span class="n">decode_out_path</span><span class="p">,</span> <span class="n">buffered_decode_out</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span></div></div>
+    <span class="n">should_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+      <span class="n">trial_should_stop</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportEvalMeasure</span><span class="p">(</span>
+          <span class="n">global_step</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
+      <span class="n">should_stop</span> <span class="o">=</span> <span class="n">should_stop</span> <span class="ow">or</span> <span class="n">trial_should_stop</span>
+    <span class="k">return</span> <span class="n">should_stop</span></div>
+
+<div class="viewcode-block" id="Decoder.DecodeLatestCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder.DecodeLatestCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeLatestCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs decoder on the latest checkpoint.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="c1"># This initializes local tables</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
+      <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No checkpoint available.&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+      <span class="k">elif</span> <span class="n">path</span> <span class="o">==</span> <span class="n">last_path</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Latest checkpoint was already decoded.&#39;</span><span class="p">)</span>
+        <span class="k">return</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">DecodeCheckpoint</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="RunnerManager"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager">[docs]</a><span class="k">class</span> <span class="nc">RunnerManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -887,39 +1124,62 @@
 
   <span class="c1"># This is a hack so these classes can be overridded with internal</span>
   <span class="c1"># non-public implementations.</span>
+  <span class="n">inference_graph_exporter</span> <span class="o">=</span> <span class="n">inference_graph_exporter</span>
+  <span class="n">model_registry</span> <span class="o">=</span> <span class="n">model_registry</span>
   <span class="n">Controller</span> <span class="o">=</span> <span class="n">Controller</span>
   <span class="n">Trainer</span> <span class="o">=</span> <span class="n">Trainer</span>
+  <span class="n">TrainerTpu</span> <span class="o">=</span> <span class="n">TrainerTpu</span>
   <span class="n">Evaler</span> <span class="o">=</span> <span class="n">Evaler</span>
   <span class="n">Decoder</span> <span class="o">=</span> <span class="n">Decoder</span>
 
-<div class="viewcode-block" id="RunnerManager.LaunchTensorFlow"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.LaunchTensorFlow">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">LaunchTensorFlow</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">model</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span> <span class="o">=</span> <span class="n">model</span>
+
+<div class="viewcode-block" id="RunnerManager.MaybeLaunchTensorFlow"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeLaunchTensorFlow">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeLaunchTensorFlow</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Starts TF machinary in this process.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span><span class="p">:</span>
+      <span class="k">return</span>
+
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Launching tensorflow.&#39;</span><span class="p">)</span>
 
     <span class="n">target</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">target</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;localhost&#39;</span><span class="p">):</span>
-      <span class="c1"># E.g., train_client is configured w/ FLAGS.tf_master pointing to</span>
+      <span class="c1"># E.g., trainer_client is configured w/ FLAGS.tf_master pointing to</span>
       <span class="c1"># another job. In that case, start a local server.</span>
-      <span class="n">target</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Server</span><span class="o">.</span><span class="n">create_local_server</span><span class="p">()</span><span class="o">.</span><span class="n">target</span>
+      <span class="n">job_specs</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
+      <span class="n">cluster_spec_dict</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">job_spec</span> <span class="ow">in</span> <span class="n">job_specs</span><span class="p">:</span>
+        <span class="c1"># ps_host=worker1:1231,worker2:1234</span>
+        <span class="n">job_machines</span> <span class="o">=</span> <span class="n">job_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;=&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_machines</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid job specification: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">)</span>
+        <span class="n">cluster_spec_dict</span><span class="p">[</span><span class="n">job_machines</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">job_machines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tf_server</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ClusterSpec</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">),</span>
+          <span class="n">job_name</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span><span class="p">,</span>
+          <span class="n">task_index</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+      <span class="n">target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tf_server</span><span class="o">.</span><span class="n">target</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">:</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span> <span class="o">=</span> <span class="n">target</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">target</span><span class="p">)</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
       <span class="n">value</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
     <span class="k">assert</span> <span class="n">value</span> <span class="o">==</span> <span class="mf">2.0</span><span class="p">,</span> <span class="s1">&#39;Something is really wrong.&#39;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Launched tensorflow.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="RunnerManager.GetParamsForDataset"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.GetParamsForDataset">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">GetParamsForDataset</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns params for `model_name` on the dataset `dataset_name`.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="RunnerManager.GetParamsForDataset"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.GetParamsForDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetParamsForDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns params for job `job_name` on the dataset `dataset_name`.&quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
-      <span class="n">cfg</span> <span class="o">=</span> <span class="n">base_runner</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
-      <span class="n">cfg</span> <span class="o">=</span> <span class="n">base_runner</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="o">.</span><span class="n">title</span><span class="p">())</span>
-    <span class="bp">cls</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="n">dataset_name_retry</span> <span class="o">=</span> <span class="n">dataset_name</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Exception configuring dataset </span><span class="si">%s</span><span class="s1">, retrying as </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                         <span class="n">dataset_name</span><span class="p">,</span> <span class="n">dataset_name_retry</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="n">dataset_name_retry</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
 
-<div class="viewcode-block" id="RunnerManager.MaybeConfigRunDistributed"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunDistributed">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">MaybeConfigRunDistributed</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;If given a `FLAGS.cluster_spec`, create a server and update flags.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="RunnerManager.MaybeConfigRunDistributed"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunDistributed">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeConfigRunDistributed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;If given a `FLAGS.cluster_spec`, update flags for running distributed.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="p">:</span>
       <span class="k">return</span>
     <span class="n">job_specs</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_spec</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;@&#39;</span><span class="p">)</span>
@@ -930,37 +1190,32 @@
       <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_machines</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid job specification: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_spec</span><span class="p">)</span>
       <span class="n">cluster_spec_dict</span><span class="p">[</span><span class="n">job_machines</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">=</span> <span class="n">job_machines</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
-    <span class="n">start_server</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="k">for</span> <span class="n">role</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
-      <span class="k">if</span> <span class="n">role</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;decoder_&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">:</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span> <span class="o">=</span> <span class="s1">&#39;grpc://</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;worker&#39;</span><span class="p">][</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">task</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">job</span> <span class="ow">in</span> <span class="n">cluster_spec_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;decoder_&#39;</span><span class="p">):</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_specs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Decoder jobs must run on their own&#39;</span>
         <span class="k">assert</span> <span class="s1">&#39;,&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">job_specs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;Only single machine supported&#39;</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_job</span> <span class="o">=</span> <span class="s1">&#39;/job:localhost&#39;</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_job</span> <span class="o">=</span> <span class="s1">&#39;/job:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_replicas</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="n">start_server</span> <span class="o">=</span> <span class="kc">False</span>
-      <span class="k">elif</span> <span class="n">role</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;evaler_&#39;</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">job</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;evaler_&#39;</span><span class="p">):</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">job_specs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Evaler jobs must run on their own&#39;</span>
         <span class="k">assert</span> <span class="s1">&#39;,&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">job_specs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s1">&#39;Only single machine supported&#39;</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_job</span> <span class="o">=</span> <span class="s1">&#39;/job:localhost&#39;</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_job</span> <span class="o">=</span> <span class="s1">&#39;/job:</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">job</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_replicas</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="n">start_server</span> <span class="o">=</span> <span class="kc">False</span>
-      <span class="k">elif</span> <span class="n">role</span> <span class="o">==</span> <span class="s1">&#39;worker&#39;</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">worker</span><span class="se">\&#39;</span><span class="s1"> jobs should only be in sync mode&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
+                                                <span class="s1">&#39;worker&#39;</span><span class="p">):</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:worker&#39;</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;worker&#39;</span><span class="p">])</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:worker&#39;</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
-    <span class="k">if</span> <span class="n">start_server</span><span class="p">:</span>
-      <span class="n">cluster</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ClusterSpec</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">)</span>
-      <span class="n">server</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Server</span><span class="p">(</span>
-          <span class="n">cluster</span><span class="p">,</span> <span class="n">job_name</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span><span class="p">,</span> <span class="n">task_index</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
-      <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span> <span class="o">=</span> <span class="n">server</span><span class="o">.</span><span class="n">target</span>
-      <span class="c1"># TODO(drpng): properly join all processes.</span>
-      <span class="bp">cls</span><span class="o">.</span><span class="n">_server</span> <span class="o">=</span> <span class="n">server</span></div>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;async&#39;</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;ps&#39;</span><span class="p">):</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:trainer&#39;</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;trainer&#39;</span><span class="p">])</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:ps&#39;</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;ps&#39;</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="RunnerManager.UpdateClusterParamsFromFlags"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.UpdateClusterParamsFromFlags">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">job_name</span><span class="p">):</span>
+<div class="viewcode-block" id="RunnerManager.UpdateClusterParamsFromFlags"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.UpdateClusterParamsFromFlags">[docs]</a>  <span class="k">def</span> <span class="nf">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">job_name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update `cfg` with a training cluster configuration from flags.&quot;&quot;&quot;</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="n">job_name</span>
@@ -972,6 +1227,8 @@
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_gpus</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_tpus</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_num_tpu_hosts</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_split_size</span>
 
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span>
@@ -989,9 +1246,7 @@
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_replicas</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span></div>
 
-<div class="viewcode-block" id="RunnerManager._CreateRunner"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager._CreateRunner">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">_CreateRunner</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">,</span>
-                    <span class="n">trial</span><span class="p">):</span>
+<div class="viewcode-block" id="RunnerManager._CreateRunner"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager._CreateRunner">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateRunner</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">,</span> <span class="n">trial</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a runner.&quot;&quot;&quot;</span>
     <span class="n">evaler_job_name_prefix</span> <span class="o">=</span> <span class="s1">&#39;evaler_&#39;</span>
     <span class="n">decoder_job_name_prefix</span> <span class="o">=</span> <span class="s1">&#39;decoder_&#39;</span>
@@ -999,40 +1254,35 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Job </span><span class="si">%s</span><span class="s1"> start&#39;</span><span class="p">,</span> <span class="n">job</span><span class="p">)</span>
     <span class="n">common_args</span> <span class="o">=</span> <span class="p">(</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">,</span> <span class="n">trial</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;controller&#39;</span><span class="p">:</span>
-      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
-      <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Controller</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Controller</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer&#39;</span><span class="p">:</span>
-      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
-      <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">:</span>
-      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;TPU training is not supported.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">TrainerTpu</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Trainer</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">evaler_job_name_prefix</span><span class="p">):</span>
       <span class="n">dataset_name</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">evaler_job_name_prefix</span><span class="p">):]</span>
-      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="s1">&#39;evaler&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">)</span>
-      <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Evaler</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="s1">&#39;evaler&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Evaler</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">job</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">decoder_job_name_prefix</span><span class="p">):</span>
       <span class="n">dataset_name</span> <span class="o">=</span> <span class="n">job</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">decoder_job_name_prefix</span><span class="p">):]</span>
-      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span> <span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">)</span>
-      <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Decoder</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
-    <span class="c1"># TODO(drpng): make a tf_server.</span>
-    <span class="k">elif</span> <span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;ps&#39;</span> <span class="ow">or</span> <span class="s1">&#39;worker&#39;</span> <span class="ow">or</span> <span class="s1">&#39;input&#39;</span><span class="p">:</span>
-      <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_server</span><span class="p">:</span>
-        <span class="bp">cls</span><span class="o">.</span><span class="n">_server</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Decoder</span><span class="p">(</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">(),</span> <span class="n">cfg</span><span class="p">,</span> <span class="o">*</span><span class="n">common_args</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;ps&#39;</span><span class="p">,</span> <span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;input&#39;</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tf_server</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;job </span><span class="si">%s</span><span class="s1"> is not supported&#39;</span> <span class="o">%</span> <span class="n">job</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="RunnerManager.CreateRunners"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.CreateRunners">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">CreateRunners</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">jobs</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
-                    <span class="n">trial</span><span class="o">=</span><span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">()):</span>
+<div class="viewcode-block" id="RunnerManager.CreateRunners"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.CreateRunners">[docs]</a>  <span class="k">def</span> <span class="nf">CreateRunners</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">jobs</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="o">=</span><span class="n">base_trial</span><span class="o">.</span><span class="n">NoOpTrial</span><span class="p">()):</span>
     <span class="sd">&quot;&quot;&quot;Creates a list of runners based on `FLAGS.mode`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      jobs: a list of runner jobs.</span>
-<span class="sd">      model_name: name of a registered `ModelParams` class.</span>
 <span class="sd">      logdir: the directory used for logging, usually on CNS.</span>
 <span class="sd">      trial: optional `Trial` object, used for reporting measures and early</span>
 <span class="sd">        stopping.</span>
@@ -1050,13 +1300,12 @@
           <span class="p">(</span><span class="n">j</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">j</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;evaler&#39;</span><span class="p">))):</span>
         <span class="n">tf_master</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 
-      <span class="n">runner</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CreateRunner</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
-                                 <span class="n">tf_master</span><span class="p">,</span> <span class="n">trial</span><span class="p">)</span>
+      <span class="n">runner</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateRunner</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">,</span>
+                                  <span class="n">trial</span><span class="p">)</span>
       <span class="n">runners</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">runner</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">runners</span></div>
 
-<div class="viewcode-block" id="RunnerManager.StartRunners"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.StartRunners">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">StartRunners</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">runners</span><span class="p">):</span>
+<div class="viewcode-block" id="RunnerManager.StartRunners"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.StartRunners">[docs]</a>  <span class="k">def</span> <span class="nf">StartRunners</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">runners</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs `runners` in parallel threads.</span>
 
 <span class="sd">    Returns when all of them finish.</span>
@@ -1093,36 +1342,30 @@
           <span class="k">break</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;All runners done.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="RunnerManager.RunTrial"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.RunTrial">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">RunTrial</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">):</span>
+<div class="viewcode-block" id="RunnerManager.RunTrial"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.RunTrial">[docs]</a>  <span class="k">def</span> <span class="nf">RunTrial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A wrapper function for running a trial.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
       <span class="c1"># For async mode: Run controller, trainer, evaler jobs in one process,</span>
       <span class="c1"># multiple threads.</span>
-      <span class="bp">cls</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span>
-          <span class="bp">cls</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">],</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
-                            <span class="n">trial</span><span class="p">))</span>
-      <span class="n">evaler</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CreateRunner</span><span class="p">(</span><span class="s1">&#39;evaler_dev&#39;</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span>
-                                 <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span>
-                                 <span class="n">trial</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">],</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">))</span>
+      <span class="n">evaler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateRunner</span><span class="p">(</span><span class="s1">&#39;evaler_dev&#39;</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
+                                  <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span> <span class="n">trial</span><span class="p">)</span>
       <span class="n">evaler</span><span class="o">.</span><span class="n">EvalLatestCheckpoint</span><span class="p">()</span>
     <span class="k">elif</span> <span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;all_sync&#39;</span><span class="p">:</span>
       <span class="c1"># For sync mode: Run controller, trainer_client, evaler jobs in one</span>
       <span class="c1"># process, multiple threads.</span>
-      <span class="bp">cls</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span>
-          <span class="bp">cls</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">],</span> <span class="n">model_name</span><span class="p">,</span>
-                            <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">))</span>
-      <span class="n">evaler</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_CreateRunner</span><span class="p">(</span><span class="s1">&#39;evaler_dev&#39;</span><span class="p">,</span> <span class="n">model_name</span><span class="p">,</span>
-                                 <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span>
-                                 <span class="n">trial</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">],</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">))</span>
+      <span class="n">evaler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateRunner</span><span class="p">(</span><span class="s1">&#39;evaler_dev&#39;</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
+                                  <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span> <span class="n">trial</span><span class="p">)</span>
       <span class="n">evaler</span><span class="o">.</span><span class="n">EvalLatestCheckpoint</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Run each job in separate process/task</span>
       <span class="c1"># TODO(rpang): add support for running evaler_test and decoder.</span>
-      <span class="bp">cls</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="n">job</span><span class="p">],</span> <span class="n">model_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">))</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="n">job</span><span class="p">],</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="RunnerManager.MaybeConfigRunLocally"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunLocally">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">MaybeConfigRunLocally</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+<div class="viewcode-block" id="RunnerManager.MaybeConfigRunLocally"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunLocally">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeConfigRunLocally</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update flags if configured to run locally.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span><span class="p">:</span>
       <span class="c1"># Do nothing</span>
@@ -1134,7 +1377,10 @@
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span><span class="p">:</span>
-      <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;controller,trainer_client&#39;</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span><span class="p">:</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;controller,trainer_client&#39;</span>
 
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -1147,6 +1393,11 @@
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_gpus</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_gpus</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span><span class="p">:</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="s1">&#39;tpu&#39;</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_tpus</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_split_size</span><span class="p">:</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_split_size</span> <span class="o">=</span> <span class="mi">1</span>
@@ -1170,87 +1421,122 @@
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;gpu&#39;</span><span class="p">:</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span> <span class="o">=</span> <span class="mi">0</span></div></div>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span> <span class="o">=</span> <span class="mi">0</span></div>
 
+<div class="viewcode-block" id="RunnerManager.InspectModel"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.InspectModel">[docs]</a>  <span class="k">def</span> <span class="nf">InspectModel</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Prints out model analysis for the model.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
+    <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">c</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
+      <span class="n">analysis</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_ModelAnalysis</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="InspectModel"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.InspectModel">[docs]</a><span class="k">def</span> <span class="nf">InspectModel</span><span class="p">():</span>
-  <span class="sd">&quot;&quot;&quot;Prints out model analysis for the model.&quot;&quot;&quot;</span>
-  <span class="n">p</span> <span class="o">=</span> <span class="n">RunnerManager</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;Train&#39;</span><span class="p">)</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
-  <span class="n">c</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
-  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">c</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
-    <span class="n">analysis</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_ModelAnalysis</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
-  <span class="nb">print</span><span class="p">(</span><span class="n">analysis</span><span class="p">)</span></div>
+<div class="viewcode-block" id="RunnerManager.InspectDatasets"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.InspectDatasets">[docs]</a>  <span class="k">def</span> <span class="nf">InspectDatasets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Prints out datasets configured for the model.&quot;&quot;&quot;</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
+    <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">ismethod</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;GetDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Task&#39;</span>
+                     <span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
+        <span class="n">datasets</span> <span class="o">+=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">_</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">]))</span></div>
 
+<div class="viewcode-block" id="RunnerManager.InspectDecoder"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.InspectDecoder">[docs]</a>  <span class="k">def</span> <span class="nf">InspectDecoder</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Prints out datasets configured for the decoder.&quot;&quot;&quot;</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
 
-<div class="viewcode-block" id="InspectDatasets"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.InspectDatasets">[docs]</a><span class="k">def</span> <span class="nf">InspectDatasets</span><span class="p">():</span>
-  <span class="sd">&quot;&quot;&quot;Prints out datasets configured for the model.&quot;&quot;&quot;</span>
-  <span class="bp">cls</span> <span class="o">=</span> <span class="n">base_runner</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
-  <span class="n">datasets</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getmembers</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">inspect</span><span class="o">.</span><span class="n">ismethod</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;GetDatasetParams&#39;</span><span class="p">,</span> <span class="s1">&#39;Model&#39;</span><span class="p">,</span> <span class="s1">&#39;Task&#39;</span>
-                   <span class="p">]</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_&#39;</span><span class="p">):</span>
-      <span class="n">datasets</span> <span class="o">+=</span> <span class="p">[</span><span class="n">name</span><span class="p">]</span>
-  <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">_</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">]))</span></div>
+    <span class="n">has_decoder</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
+      <span class="n">has_decoder</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
+      <span class="p">)</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span> <span class="o">!=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">task_param</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+        <span class="n">has_decoder</span> <span class="o">|=</span> <span class="p">(</span>
+            <span class="n">task_param</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span> <span class="o">!=</span>
+            <span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">has_decoder</span><span class="p">:</span>
+      <span class="c1"># We assume that the proper decoder is implemented.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">InspectDatasets</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="RunnerManager.WriteInferenceGraph"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.WriteInferenceGraph">[docs]</a>  <span class="k">def</span> <span class="nf">WriteInferenceGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates the inference graphs for a given model.&quot;&quot;&quot;</span>
+    <span class="n">inference_graph_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;inference_graphs&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MakeDirs</span><span class="p">(</span><span class="n">inference_graph_dir</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Writing inference graphs to dir: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">inference_graph_dir</span><span class="p">)</span>
 
-<div class="viewcode-block" id="InspectDecoder"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.InspectDecoder">[docs]</a><span class="k">def</span> <span class="nf">InspectDecoder</span><span class="p">():</span>
-  <span class="sd">&quot;&quot;&quot;Prints out datasets configured for the decoder.&quot;&quot;&quot;</span>
-  <span class="bp">cls</span> <span class="o">=</span> <span class="n">base_runner</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+    <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">)</span> <span class="ow">and</span>
+        <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Cannot write inference graphs for multi-task model &#39;</span>
+                      <span class="s1">&#39;when model_task_name is not specified.&#39;</span><span class="p">)</span>
+      <span class="k">return</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">filename_prefix</span> <span class="o">=</span> <span class="s1">&#39;inference&#39;</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">:</span>
+        <span class="n">filename_prefix</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_inference&#39;</span> <span class="o">%</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span>
+      <span class="n">filename_prefix</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">inference_graph_dir</span><span class="p">,</span> <span class="n">filename_prefix</span><span class="p">)</span>
+      <span class="c1"># Standard inference graph.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">inference_graph_exporter</span><span class="o">.</span><span class="n">InferenceGraphExporter</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span>
+          <span class="n">model_cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span>
+          <span class="n">model_task_name</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span>
+          <span class="n">export_path</span><span class="o">=</span><span class="n">filename_prefix</span> <span class="o">+</span> <span class="s1">&#39;.pbtxt&#39;</span><span class="p">)</span>
+      <span class="c1"># TPU inference graph.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">inference_graph_exporter</span><span class="o">.</span><span class="n">InferenceGraphExporter</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span>
+          <span class="n">model_cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">,</span>
+          <span class="n">model_task_name</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span>
+          <span class="n">device_options</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">inference_graph_exporter</span><span class="o">.</span><span class="n">InferenceDeviceOptions</span><span class="p">(</span>
+              <span class="n">device</span><span class="o">=</span><span class="s1">&#39;tpu&#39;</span><span class="p">,</span>
+              <span class="n">retain_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">var_options</span><span class="o">=</span><span class="s1">&#39;ON_DEVICE&#39;</span><span class="p">,</span>
+              <span class="n">gen_init_op</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">dtype_override</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>
+          <span class="n">export_path</span><span class="o">=</span><span class="n">filename_prefix</span> <span class="o">+</span> <span class="s1">&#39;_tpu.pbtxt&#39;</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">NotImplementedError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;Cannot write inference graph: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span></div>
 
-  <span class="n">has_decoder</span> <span class="o">=</span> <span class="kc">False</span>
-  <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
-    <span class="n">has_decoder</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Task</span><span class="p">(</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span> <span class="o">!=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">task_param</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-      <span class="n">has_decoder</span> <span class="o">|=</span> <span class="p">(</span>
-          <span class="n">task_param</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span> <span class="o">!=</span>
-          <span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">)</span>
-  <span class="k">if</span> <span class="n">has_decoder</span><span class="p">:</span>
-    <span class="c1"># We assume that the proper decoder is implemented.</span>
-    <span class="n">InspectDatasets</span><span class="p">()</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span></div>
+<div class="viewcode-block" id="RunnerManager.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Start the process.&quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Model </span><span class="si">%s</span><span class="s1"> is not found.&#39;</span> <span class="o">%</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_model&#39;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">InspectModel</span><span class="p">()</span>
+      <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_evaler&#39;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">InspectDatasets</span><span class="p">()</span>
+      <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_decoder&#39;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">InspectDecoder</span><span class="p">()</span>
+      <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;write_inference_graph&#39;</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">WriteInferenceGraph</span><span class="p">()</span>
+      <span class="k">return</span>
+
+    <span class="k">assert</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="s1">&#39;async&#39;</span><span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;shell&#39;</span><span class="p">:</span>
+      <span class="n">_StartShell</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
+      <span class="k">return</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">MaybeConfigRunLocally</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">MaybeConfigRunDistributed</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">MaybeLaunchTensorFlow</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">unused_argv</span><span class="p">):</span>
-  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">set_verbosity</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
-  <span class="n">RunnerManager</span><span class="o">.</span><span class="n">MaybeConfigRunLocally</span><span class="p">()</span>
-  <span class="n">RunnerManager</span><span class="o">.</span><span class="n">MaybeConfigRunDistributed</span><span class="p">()</span>
-
-  <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="ow">or</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_evaler&#39;</span> <span class="ow">or</span>
-          <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_decoder&#39;</span><span class="p">):</span>
-    <span class="n">RunnerManager</span><span class="o">.</span><span class="n">LaunchTensorFlow</span><span class="p">()</span>
-
   <span class="c1"># pylint: disable=g-import-not-at-top</span>
   <span class="c1"># pylint: disable=unused-variable</span>
   <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_imports</span>
-
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;shell&#39;</span><span class="p">:</span>
-    <span class="n">_StartShell</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
-    <span class="k">return</span>
-
-  <span class="k">assert</span> <span class="n">base_runner</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span>
-      <span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Model </span><span class="si">%s</span><span class="s1"> is not found.&#39;</span> <span class="o">%</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
-
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_model&#39;</span><span class="p">:</span>
-    <span class="n">InspectModel</span><span class="p">()</span>
-    <span class="k">return</span>
-
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_evaler&#39;</span><span class="p">:</span>
-    <span class="n">InspectDatasets</span><span class="p">()</span>
-    <span class="k">return</span>
-
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;inspect_decoder&#39;</span><span class="p">:</span>
-    <span class="n">InspectDecoder</span><span class="p">()</span>
-    <span class="k">return</span>
-
-  <span class="k">assert</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sync&#39;</span><span class="p">,</span> <span class="s1">&#39;async&#39;</span><span class="p">]</span>
-
-  <span class="n">RunnerManager</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span>
-      <span class="n">RunnerManager</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">(</span>
-          <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">))</span></div>
+  <span class="n">RunnerManager</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">)</span><span class="o">.</span><span class="n">Start</span><span class="p">()</span></div>
 
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
@@ -1267,7 +1553,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2018.
+        &copy; Copyright 2018
 
     </p>
   </div>
@@ -1286,21 +1572,14 @@
 
   
 
-    <script type="text/javascript">
-        var DOCUMENTATION_OPTIONS = {
-            URL_ROOT:'../../',
-            VERSION:'',
-            LANGUAGE:'en',
-            COLLAPSE_INDEX:false,
-            FILE_SUFFIX:'.html',
-            HAS_SOURCE:  true,
-            SOURCELINK_SUFFIX: '.txt'
-        };
-    </script>
-      <script type="text/javascript" src="../../_static/jquery.js"></script>
-      <script type="text/javascript" src="../../_static/underscore.js"></script>
-      <script type="text/javascript" src="../../_static/doctools.js"></script>
-      <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
 
   
 
