@@ -499,6 +499,7 @@ class BeamSearchStepOp : public OpKernel {
     const int t = cur_step.scalar<int>()();
     CHECK_LT(t, in_hyps.dim_size(0));
 
+    VLOG(2) << "BeamSearchStepOp(" << num_hyps_per_beam_ << ") step=" << t;
     auto t_cumulative_scores = cumulative_scores.vec<float>();
     std::vector<Hyp> hyps(num_hyps);
     for (int i = 0; i < num_hyps; ++i) {
@@ -715,6 +716,8 @@ class TopKTerminatedHypsOp : public OpKernel {
       std::sort(ith_topk.begin(), ith_topk.end(), BetterTerminatedHyp());
       for (int j = 0; j < ith_topk.size(); ++j) {
         t_topk_hyps(i, j) = ith_topk[j].SerializeAsString();
+        VLOG(2) << "TopK(" << i << ", " << j << ") = "
+                << debug::IdsToStr(ith_topk[j].ids());
       }
     }
   }
@@ -785,6 +788,7 @@ class TopKTerminatedHypsOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape{num_beams, k_},
                                              &out_topk_hyps));
     ComputeTopK(in_done_hyps, src_seq_lengths, k_, num_beams, out_topk_hyps);
+    VLOG(1) << "TopKTerminatedHypsOp(" << num_hyps_per_beam_ << ") done";
   }
 
  private:
