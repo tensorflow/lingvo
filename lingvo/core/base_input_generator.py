@@ -567,7 +567,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
         ids.
       lens: A vector of shape [batch]. lens[i] is the sequence length of the
         i-th sample. Only the first lens[i] tokens in ids[i, :] are valid tokens
-          for the i-th sequence.
+        for the i-th sequence.
       key: A string key in case the model has multiple tokenizers.
 
     Returns:

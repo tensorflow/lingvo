@@ -74,10 +74,12 @@ class FusionBase(base_layer.BaseLayer):
         training.
 
     Returns:
-      lm_output: A NestedMap containing lm output. If 'ids' is 1-D, then
+      (lm_output, state1), with:
+
+      - lm_output: A NestedMap containing lm output. If 'ids' is 1-D, then
         lm_output should have shape [batch_size, dim]; if it is 2-D then the
         shape should be [seq_len, batch_size, dim].
-      state1: A NestedMap of updated states.
+      - state1: A NestedMap of updated states.
     """
     state1 = state0.DeepCopy()
     is_single_step = (ids.shape.ndims == 1)
@@ -118,10 +120,12 @@ class FusionBase(base_layer.BaseLayer):
         [seq_len, batch_size, base_model_logits_dim] for the entire sequence.
 
     Returns:
-      fused_output: A tensor containing the fused result. If am_output is 2-D,
-        then the fused_output should have shape [batch_size, dim]; if am_output
-        is 3-D, then the shape should be [seq_len, batch_size, dim].
-      state1: a NestedMap of updated states (specific to the layer).
+      (fused_output, state1), with:
+
+      - fused_output: A tensor containing the fused result. If am_output is 2-D,
+        then the fused_output should have shape [batch_size, dim]; if
+        am_output is 3-D, then the shape should be [seq_len, batch_size, dim].
+      - state1: a NestedMap of updated states (specific to the layer).
 
     Raises:
       NotImplementedError: If method is not implemented.

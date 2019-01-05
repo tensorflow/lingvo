@@ -507,8 +507,7 @@ class BaseTask(base_layer.BaseLayer):
       - grad_scale: the gradient scale. 0 if gradient updates should be skipped
         for the step.
       - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs,
-      where
-        gradients have already been scaled.
+        where gradients have already been scaled.
     """
     p = self.params
     tp = p.train

@@ -183,10 +183,13 @@ class Librispeech960Grapheme(Librispeech960Base):
 
   With 8 workers using asynchronous gradient descent on 16 (8x2) GPUs, the model
   achieves the following error rates after ~853.2K steps:
-    Dev:        5.2%
-    DevOther:  15.2%
-    Test:       5.4%
-    TestOther: 15.5%
+
+  ========= =====
+  Dev       5.2%
+  DevOther  15.2%
+  Test      5.4%
+  TestOther 15.5%
+  ========= =====
   """
 
   GRAPHEME_TARGET_SEQUENCE_LENGTH = 620
@@ -248,10 +251,13 @@ class Librispeech960Wpm(Librispeech960Base):
 
   With 8 workers using asynchronous gradient descent on 16 (8x2) GPUs, the model
   achieves the following error rates after ~632.6K steps:
-    Dev:        4.3%
-    DevOther:  13.0%
-    Test:       4.5%
-    TestOther: 13.2%
+
+  ========= =====
+  Dev       4.3%
+  DevOther  13.0%
+  Test      4.5%
+  TestOther 13.2%
+  ========= =====
   """
 
   # Set this to a WPM vocabulary file before training. By default, we use the

@@ -1270,14 +1270,16 @@ class LayerNormalizedLSTMCellLean(RNNCell):
   difference is that in this version, c_state is also being layer-normalized.
 
   state:
-    m: the lstm output. [batch, cell_nodes]
-    c: the lstm cell state. [batch, cell_nodes]
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
 
   inputs:
-    act: a list of input activations. [batch, input_nodes]
-    padding: the padding. [batch, 1].
-    reset_mask: optional 0/1 float input to support packed input training.
-        Shape [batch, 1]
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  - reset_mask: optional 0/1 float input to support packed input training.
+    Shape [batch, 1]
   """
 
   @classmethod
@@ -1847,6 +1849,7 @@ class GRUCell(RNNCell):
   reference: https://arxiv.org/pdf/1412.3555.pdf
 
   theta:
+
   - w_n: the parameter weight matrix for the input block.
   - w_u: the parameter weight matrix for the update gate
   - w_r: the parameter weight matrix for the reset gate
@@ -1855,10 +1858,12 @@ class GRUCell(RNNCell):
   - b_r: the bias vector for the reset gate
 
   state:
+
   - m: the GRU output. [batch, output_cell_nodes]
   - c: the GRU cell state. [batch, hidden_cell_nodes]
 
   inputs:
+
   - act: a list of input activations. [batch, input_nodes]
   - padding: the padding. [batch, 1].
   - reset_mask: optional 0/1 float input to support packed input training.

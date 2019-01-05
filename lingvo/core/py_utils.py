@@ -328,9 +328,9 @@ def outside_all_rewrites():
 
 
 def RunOnTpuHost(func, *args, **kwargs):
-  """Runs the given function call on TPU host.
+  r"""Runs the given function call on TPU host.
 
-  Invokes func(*args, **kwargs) directly if not running on tpu.
+  Invokes func(\*args, \*\*kwargs) directly if not running on tpu.
 
   Args:
     func: the function to invoke.
@@ -1178,12 +1178,12 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
     all_vars: List of all the parameters in the model.
     ckpts_loading_rules: A dictionary of checkpoint path: loading rules.
       Checkpoint path must be a path to a pretrained model, and loading rules
-        is expected to be a tuple of two lists: the first consisting of tuples
-          of strings defining (regex to match parameter names in the model to
-          override, format string to determine the corresponding var in the
-          checkpoint), and the second list consisting of a list of regexes to
-          match parameter names in the model which should not be overridden,
-          even if they match those in the loading rules.
+      is expected to be a tuple of two lists: the first consisting of tuples
+      of strings defining (regex to match parameter names in the model to
+      override, format string to determine the corresponding var in the
+      checkpoint), and the second list consisting of a list of regexes to
+      match parameter names in the model which should not be overridden,
+      even if they match those in the loading rules.
 
   Raises:
     ValueError: if colliding vars exist or loading rules is not a list.

@@ -156,21 +156,26 @@ class LanguageModel(base_model.BaseTask):
     """Default inference subgraph.
 
     Returns:
-      fetches: A dictionary of fetches, containing:
-        log_pplx_per_token: A matrix of shape [batch, time]. [i, j]
+      (fetches, feeds), with:
+
+      - fetches: A dictionary of fetches, containing:
+
+        - log_pplx_per_token: A matrix of shape [batch, time]. [i, j]
           is i-th input text's j-th token's log prob.
-        paddings: A matrix of shape [batch, time]. The padding mask.
-        log_pplx_per_sample: A vector of shape [batch]. [i]
+        - paddings: A matrix of shape [batch, time]. The padding mask.
+        - log_pplx_per_sample: A vector of shape [batch]. [i]
           is i-th input text's log prob.
-        num_oovs_per_sample: A vector of shape [batch] counting the total number
-          of out-of-vocabulary tokens in each input.
-        tokens_from_labels: A vector of shape [batch] returning the predicted
+        - num_oovs_per_sample: A vector of shape [batch] counting the total
+          number of out-of-vocabulary tokens in each input.
+        - tokens_from_labels: A vector of shape [batch] returning the predicted
           tokens as a sequence after mapping them back to strings from ids using
           the vocabulary.
-        ids: A matrix of shape [batch, time]. [i, j]
+        - ids: A matrix of shape [batch, time]. [i, j]
           is i-th input text's j-th token's id.
-      feeds: A dictionary of feeds, containing:
-        text: A placeholder for a vector of strings.
+
+      - feeds: A dictionary of feeds, containing:
+
+        - text: A placeholder for a vector of strings.
     """
     text = tf.placeholder(tf.string, shape=[None])
     # [batch, time]

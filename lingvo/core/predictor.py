@@ -15,11 +15,12 @@
 # pylint: disable=line-too-long
 """Predictor does inference using a saved inference graph.
 
-Example:
+Example::
+
   params = model_registry.GetParams('MyModel', 'Test')
-  pred = Predictor(
-      inference_graph=inference_graph_exporter.InferenceGraphExporter.Export(
-          params))
+  inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
+      params)
+  pred = Predictor(inference_graph=inference_graph)
   pred.Load("/tmp/logdir/train/ckpt-00000000")
   [topk_hyps] = pred.Run(["topk_hyps"], src_strings=["Hello World"])
 """

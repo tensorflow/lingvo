@@ -22,21 +22,21 @@ Usage:
   saveable allows restore them as tf.bfloat16. This is specifically useful for
   inference.
 
-  Say: checkpoint_path contains a variable "var" with dtype tf.float32.
+  Say: checkpoint_path contains a variable "var" with dtype tf.float32::
 
-  variable_name = "var"
-  original_dtype =  tf.float32
+      variable_name = "var"
+      original_dtype =  tf.float32
 
-  bfloat16_var = tf.Variable(
-      0.0, name=variable_name, dtype=tf.bfloat16, use_resource=True)
+      bfloat16_var = tf.Variable(
+          0.0, name=variable_name, dtype=tf.bfloat16, use_resource=True)
 
-  saveable = bfloat16_variables.Bfloat16VariableSaveable(
-      bfloat16_var, original_dtype, slice_spec, variable_name)
-  saver = tf.train.Saver(
-      {variable_name: saveable}, restore_sequentially=True)
-  saver.restore(sess, checkpoint_path)
+      saveable = bfloat16_variables.Bfloat16VariableSaveable(
+          bfloat16_var, original_dtype, slice_spec, variable_name)
+      saver = tf.train.Saver(
+          {variable_name: saveable}, restore_sequentially=True)
+      saver.restore(sess, checkpoint_path)
 
-  # bfloat16_var is now loaded from the checkpoint.
+      # bfloat16_var is now loaded from the checkpoint.
 """
 import tensorflow as tf
 from tensorflow.python.training import saver

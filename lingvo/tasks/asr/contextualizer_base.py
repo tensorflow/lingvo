@@ -23,18 +23,21 @@ from lingvo.core import base_layer
 class ContextualizerBase(base_layer.BaseLayer):
   """Base class for a contextualizer.
 
-  Typical usage of a contextualizer is:
+  Typical usage of a contextualizer is::
+
     contextualizer.SetContextMap(context_map)     # Set context map.
     contextualizer.InitAttention(...)             # Initalize attn sources.
     context = contextualizer.ZeroAttention(...)   # Initalize attn state.
     context = contextualizer.QueryAttention(...)  # Call on each decoding step.
 
-  'context' is a per-decoding-step context vector that augments the standard
-    LAS model with additional context.
-  'context_map' can include data needed for initialization.
+  `context` is a per-decoding-step context vector that augments the standard
+  LAS model with additional context.
+
+  `context_map` can include data needed for initialization.
 
   After parameters of the contextualizer are set, these accessors can be used:
-    contextualizer.GetContextDim()
+
+  - contextualizer.GetContextDim()
   """
 
   def SetContextMap(self, context_map):

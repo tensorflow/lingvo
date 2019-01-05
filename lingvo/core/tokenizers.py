@@ -351,5 +351,5 @@ class WpmTokenizer(BaseTokenizer):
     return [strs]
 
   def IdsToStrings(self, ids, lens):
-    """Takes id tensors and returns vector of `tf.string`s."""
+    """Takes id tensors and returns vector of `tf.string`."""
     return tf.py_func(self._WpmDecode, [ids, lens], tf.string)

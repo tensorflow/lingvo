@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Encoders for the speech model."""
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -275,14 +276,16 @@ class AsrEncoder(base_encoder.BaseEncoder):
       theta: A NestedMap object containing weights' values of this
         layer and its children layers.
       batch: A NestedMap with fields:
-        src_inputs - The inputs tensor. It is expected to be of shape [batch,
-            time, feature_dim, channels].
-        paddings - The paddings tensor. It is expected to be of shape [batch,
+
+        - src_inputs - The inputs tensor. It is expected to be of shape [batch,
+          time, feature_dim, channels].
+        - paddings - The paddings tensor. It is expected to be of shape [batch,
           time].
       state0: Recurrent input state. Not supported/ignored by this encoder.
 
     Returns:
       A NestedMap containing:
+
       - 'encoded': a feature tensor of shape [time, batch, depth]
       - 'padding': a 0/1 tensor of shape [time, batch]
       - 'state': the updated recurrent state
