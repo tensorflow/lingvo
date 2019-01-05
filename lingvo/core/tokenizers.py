@@ -40,6 +40,8 @@ class BaseTokenizer(base_layer.BaseLayer):
     p.Define(
         'append_eos', True, 'Whether to append </s> at the end and treat '
         'it as a non-padded label.')
+    p.Define('pad_to_max_length', True,
+             'If True, output ids will be padded to max_length.')
     # TODO(ciprianchelba): there should be a check in __init__ that the ids
     # below are consistent with the ones assigned by the vocabulary.
     p.Define('target_unk_id', 0, 'Target unknown token id.')
@@ -128,8 +130,12 @@ class AsciiTokenizer(BaseTokenizer):
   """
 
   def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
+    p = self.params
     return py_x_ops.ascii_to_token_id(
-        strs, maxlen=max_length, append_eos=append_eos)
+        strs,
+        maxlen=max_length,
+        pad_to_maxlen=p.pad_to_max_length,
+        append_eos=append_eos)
 
   def IdsToStrings(self, ids, lens):
     return py_x_ops.id_to_ascii(ids, lens)
@@ -170,6 +176,7 @@ class VocabFileTokenizer(BaseTokenizer):
       return py_x_ops.str_to_vocab_tokens(
           strs,
           maxlen=max_length,
+          pad_to_maxlen=p.pad_to_max_length,
           append_eos=append_eos,
           vocab_filepath=p.token_vocab_filepath,
           delimiter=p.tokens_delimiter)
