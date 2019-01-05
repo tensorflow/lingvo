@@ -371,11 +371,12 @@ class AsrEncoder(base_encoder.BaseEncoder):
                                              cnn_in_padding)
         conv_lstm_out, conv_lstm_out_padding = cnn_out, cnn_out_padding
         if p.extra_per_layer_outputs:
-          conv_lstm_out *= (1.0 - conv_lstm_out_padding)
+          conv_lstm_out *= (
+              1.0 - conv_lstm_out_padding[:, :, tf.newaxis, tf.newaxis])
           outputs['conv_lstm_%d' % i] = py_utils.NestedMap(
               encoded=tf.transpose(conv_lstm_out,
                                    [1, 0, 2, 3]),  # to [t, b, d, c]
-              padding=conv_lstm_out_padding)
+              padding=tf.transpose(conv_lstm_out_padding))
         plots.append(
             ReshapeForPlot(conv_lstm_out, conv_lstm_out_padding,
                            'conv_lstm_%d_out' % i))

@@ -202,32 +202,49 @@ class EncoderTest(tf.test.TestCase):
     with self.session(use_gpu=False):
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
       p = self._EncoderParams(vn_config)
+      p.num_conv_lstm_layers = 1
       p.extra_per_layer_outputs = True
       enc_out = self._ForwardPass(p)
       regular_encoded_sum = tf.reduce_sum(enc_out.encoded)
       conv_0_encoded_sum = tf.reduce_sum(enc_out.conv_0.encoded)
       conv_1_encoded_sum = tf.reduce_sum(enc_out.conv_1.encoded)
+      conv_lstm_0_encoded_sum = tf.reduce_sum(enc_out.conv_lstm_0.encoded)
       rnn_0_encoded_sum = tf.reduce_sum(enc_out.rnn_0.encoded)
 
       tf.global_variables_initializer().run()
 
-      self.assertAllEqual(
-          tf.shape(enc_out.conv_0.encoded).eval(), [13, 2, 8, 6])
-      self.assertAllEqual(tf.shape(enc_out.conv_0.padding).eval(), [13, 2])
-      self.assertAllEqual(tf.shape(enc_out.conv_1.encoded).eval(), [7, 2, 4, 6])
-      self.assertAllEqual(tf.shape(enc_out.conv_1.padding).eval(), [7, 2])
-      self.assertAllEqual(tf.shape(enc_out.rnn_0.encoded).eval(), [7, 2, 32])
-      self.assertAllEqual(tf.shape(enc_out.rnn_0.padding).eval(), [7, 2])
-      self.assertAllEqual(tf.shape(enc_out.encoded).eval(), [7, 2, 32])
-      self.assertAllEqual(tf.shape(enc_out.padding).eval(), [7, 2])
+      # pyformat: disable
+      self.assertAllEqual(tf.shape(enc_out.conv_0.encoded).eval(),
+                          [13, 2, 8, 6])
+      self.assertAllEqual(tf.shape(enc_out.conv_0.padding).eval(),
+                          [13, 2])
+      self.assertAllEqual(tf.shape(enc_out.conv_1.encoded).eval(),
+                          [7, 2, 4, 6])
+      self.assertAllEqual(tf.shape(enc_out.conv_1.padding).eval(),
+                          [7, 2])
+      self.assertAllEqual(tf.shape(enc_out.conv_lstm_0.encoded).eval(),
+                          [7, 2, 4, 6])
+      self.assertAllEqual(tf.shape(enc_out.conv_lstm_0.padding).eval(),
+                          [7, 2])
+      self.assertAllEqual(tf.shape(enc_out.rnn_0.encoded).eval(),
+                          [7, 2, 32])
+      self.assertAllEqual(tf.shape(enc_out.rnn_0.padding).eval(),
+                          [7, 2])
+      self.assertAllEqual(tf.shape(enc_out.encoded).eval(),
+                          [7, 2, 32])
+      self.assertAllEqual(tf.shape(enc_out.padding).eval(),
+                          [7, 2])
+      # pyformat: enable
 
-      test_utils.CompareToGoldenSingleFloat(self, 379.937927246,
+      test_utils.CompareToGoldenSingleFloat(self, 371.75390625,
                                             conv_0_encoded_sum.eval())
-      test_utils.CompareToGoldenSingleFloat(self, 94.8624038696,
+      test_utils.CompareToGoldenSingleFloat(self, 92.5332946777,
                                             conv_1_encoded_sum.eval())
-      test_utils.CompareToGoldenSingleFloat(self, 12.9774456024,
+      test_utils.CompareToGoldenSingleFloat(self, 80.975112915,
+                                            conv_lstm_0_encoded_sum.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 10.9648704529,
                                             rnn_0_encoded_sum.eval())
-      test_utils.CompareToGoldenSingleFloat(self, 0.0088064968586,
+      test_utils.CompareToGoldenSingleFloat(self, 0.0522322505713,
                                             regular_encoded_sum.eval())
 
 
