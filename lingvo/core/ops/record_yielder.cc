@@ -152,8 +152,7 @@ void BasicRecordYielder::MainLoop() {
     if (ShouldFinish(s)) break;
 
     if (filenames.empty()) {
-      s = errors::NotFound("Found no files at ", opts_.file_pattern);
-      if (ShouldFinish(s)) break;
+      LOG(FATAL) << "Found no files at " << opts_.file_pattern;
     }
 
     int shuffle_seed = opts_.seed;

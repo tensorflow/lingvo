@@ -185,14 +185,15 @@ TEST(RecordYielderTest, ShufflesShard) {
   }
 }
 
-TEST(RecordYielder, Error) {
-  BasicRecordYielder::Options opts;
-  opts.file_pattern = strings::StrCat(
-      "tfrecord:", io::JoinPath("/tmp", "nothing.*"));
-  auto yielder = BasicRecordYielder::New(opts);
-  Rope v;
-  EXPECT_TRUE(errors::IsNotFound(yielder->Yield(&v)));
-  yielder->Close();
+TEST(RecordYielderDeathTest, Error) {
+  EXPECT_DEATH([](){
+    BasicRecordYielder::Options opts;
+    opts.file_pattern = strings::StrCat(
+        "tfrecord:", io::JoinPath("/tmp", "nothing.*"));
+    auto yielder = BasicRecordYielder::New(opts);
+    Rope v;
+    auto unused = yielder->Yield(&v);
+  }(), "Found no files at .*nothing");
 }
 
 TEST(RecordYielder, MatchFilesFromMultiplePatterns) {
