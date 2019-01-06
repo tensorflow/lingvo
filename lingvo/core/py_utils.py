@@ -1138,6 +1138,7 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules):
       checkpoint_var_name = name_format % match.groups()
       if checkpoint_var_name.endswith(':0'):
         checkpoint_var_name = checkpoint_var_name[:-2]
+      tf.logging.info('Loading %s from %s', model_var, checkpoint_var_name)
       vars_to_load.append((checkpoint_var_name, model_var))
   return vars_to_load
 
@@ -2323,3 +2324,29 @@ def NameScopeDecorator(name_scope):
     return Wrapped
 
   return Decorator
+
+
+def SequencesToDebugStrings(ids, lens, summarize=5):
+  """Returns debug strings for the given sequences.
+
+  Args:
+    ids: int32 of [batch, len].
+    lens: int32 of [batch].
+    summarize: number of ids to summarize per sequence.
+
+  Returns:
+    A string tensor of [batch].
+  """
+  num_seqs = tf.shape(lens)[0]
+
+  def _Body(i, result):
+    line = tf.strings.format('{}', ids[i, :lens[i]], summarize=summarize)
+    return i + 1, tf.concat([result, tf.reshape(line, [1])], axis=0)
+
+  i0 = tf.zeros(shape=[], dtype=tf.int32)
+  result0 = tf.constant('', shape=[0], dtype=tf.string)
+  _, strs = tf.while_loop(
+      lambda i, result: i < num_seqs,
+      _Body, (i0, result0),
+      shape_invariants=(i0.shape, tf.TensorShape([None])))
+  return strs

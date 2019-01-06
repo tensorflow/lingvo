@@ -1292,5 +1292,16 @@ class MixByWeightTest(tf.test.TestCase):
       self.assertAllClose(np.array([0, 1]), np.squeeze(bprop_v))
 
 
+class SequencesToDebugStrings(tf.test.TestCase):
+
+  def testSequencesToDebugStrings(self):
+    with self.session():
+      self.assertAllEqual(['[1 2 3]', '[100 200]'],
+                          py_utils.SequencesToDebugStrings(
+                              tf.constant([[1, 2, 3], [100, 200, 300]],
+                                          dtype=tf.int32),
+                              tf.constant([3, 2], dtype=tf.int32)).eval())
+
+
 if __name__ == '__main__':
   tf.test.main()
