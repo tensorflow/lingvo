@@ -77,8 +77,12 @@ class BaseRunner(object):
     # (e.g., global_step) by the trial id so that we do not share states across
     # trials.
     self._container_id = self._trial.Name()
+    self._should_report_metrics = False
 
-    self._has_stopped = False
+    # To early terminate a runner, we set max_steps here and that will trigger
+    # appropriate ShouldStop behavior in the threads. This is used by Vizier
+    # to early stop a trial.
+    self._max_steps = None
 
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._train_dir = os.path.join(self._logdir, 'train')
@@ -112,8 +116,22 @@ class BaseRunner(object):
     return message
 
   def _ShouldStop(self, sess, step):
-    return step >= self.params.train.max_steps or (self._early_stop and
-                                                   self._early_stop.Stop(sess))
+    """Check if the runner should stop."""
+    if step >= self.params.train.max_steps:
+      tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d', step,
+                      self.params.train.max_steps)
+      return True
+
+    if self._max_steps and step >= self._max_steps:
+      tf.logging.info('ShouldStop: step:%6d _max_steps:%6d', step,
+                      self._max_steps)
+      return True
+
+    if self._early_stop and self._early_stop.Stop(sess):
+      tf.logging.info('ShouldStop: Early stopping.')
+      return True
+
+    return False
 
   def _WriteToLog(self, text, logdir, filename):
     """Logs `text` and saves it under `logdir/filename`."""
@@ -160,22 +178,18 @@ class BaseRunner(object):
     return path
 
   @py_utils.Retry()
-  def _RunLoop(self, job_name, loop_func, loop_args=(), is_main_thread=False):
+  def _RunLoop(self, job_name, loop_func, loop_args=()):
     """Runs `loop_func`, retrying on expected errors.
 
     Args:
       job_name: string job name.
       loop_func: callable to run and retry on expected errors.
       loop_args: list or tuple of arguments to be passed to the loop_func.
-      is_main_thread: if set to True, this is the main thread and it will set
-        has_stopped to True upon completion.
     """
     try:
       tf.logging.info('%s started.', job_name)
       loop_func(*loop_args)
       tf.logging.info('%s done.', job_name)
-      if is_main_thread:
-        self._has_stopped = True
       return
     except py_utils.transient_tf_errors + (tf.errors.OutOfRangeError,
                                            tf.errors.DataLossError) as e:
@@ -199,12 +213,11 @@ class BaseRunner(object):
         if (isinstance(e, tf.errors.AbortedError) and
             'The same RecvTensor (WorkerServiceImpl) request was received twice'
             in str(e)):
-          self._trial.ReportDone(
-              infeasible=True,
-              infeasible_reason='Infeasible error encountered.')
+          if self._should_report_metrics:
+            self._trial.ReportDone(
+                infeasible=True,
+                infeasible_reason='Infeasible error encountered.')
           tf.logging.info('%s done (infeasible error).', job_name)
-          if is_main_thread:
-            self._has_stopped = True
           return
 
       # Retry indefinitely (error should be transient).
@@ -212,8 +225,9 @@ class BaseRunner(object):
     except Exception as e:  # pylint: disable=broad-except
       # Allow the job to complete on errors that are unlikely to be transient,
       # e.g. caused by a mis-configured model.
-      self._trial.ReportDone(
-          infeasible=True, infeasible_reason='Fatal error encountered.')
+      if self._should_report_metrics:
+        self._trial.ReportDone(
+            infeasible=True, infeasible_reason='Fatal error encountered.')
       tf.logging.info('%s done (fatal error).', job_name)
 
       self._SetStatusMessage('%s exception: %s\n' % (job_name, e))
@@ -253,13 +267,6 @@ class BaseRunner(object):
       # hang in session.run if we do not terminate with this check.
       global_enqueue_steps = None
 
-      # Each session run to the tpu trainer makes tpu_steps_per_loop. We need
-      # to continue enqueueing beyond the max train steps since the tpu_steps
-      # in the loop may exceed the max train steps. adjust_steps makes an
-      # appropriate adjustment.
-      adjust_steps = (
-          self.params.train.tpu_steps_per_loop if py_utils.use_tpu() else 0)
-
       tf.logging.info('params.train.max_steps: %d, enqueue_max_steps: %d',
                       self.params.train.max_steps, FLAGS.enqueue_max_steps)
       while True:
@@ -272,12 +279,16 @@ class BaseRunner(object):
               'local_enqueue_steps: %d, global_step: %d', global_enqueue_steps,
               local_enqueue_steps, global_step)
 
-        if (self._ShouldStop(sess, global_enqueue_steps - adjust_steps) or
+        if py_utils.use_tpu():
+          global_steps_with_available_data = int(
+              global_enqueue_steps // self.params.train.tpu_steps_per_loop *
+              self.params.train.tpu_steps_per_loop)
+        else:
+          global_steps_with_available_data = global_enqueue_steps
+
+        if (self._ShouldStop(sess, global_steps_with_available_data) or
             self._ShouldStop(sess, global_step)):
-          tf.logging.info('Done. Params.train.max_steps reached.')
-          return
-        if self._has_stopped:
-          tf.logging.info('Done. has_stopped set to True.')
+          tf.logging.info('Done. ShouldStop is True.')
           return
         if (FLAGS.enqueue_max_steps > 0 and
             local_enqueue_steps > FLAGS.enqueue_max_steps):

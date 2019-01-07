@@ -211,7 +211,7 @@ class Controller(base_runner.BaseRunner):
                          'train.pbtxt')
 
   def Start(self):
-    self._RunLoop('controller', self._Loop, is_main_thread=True)
+    self._RunLoop('controller', self._Loop)
 
   def StartEnqueueOp(self, op):
     self._RunLoop(
@@ -412,7 +412,7 @@ class Trainer(base_runner.BaseRunner):
       writer.add_summary(metrics.CreateScalarSummary(tag, value), steps)
 
   def Start(self):
-    self._RunLoop('trainer', self._Loop, is_main_thread=True)
+    self._RunLoop('trainer', self._Loop)
 
   def StartEnqueueOp(self, op):
     self._RunLoop(
@@ -621,7 +621,7 @@ class TrainerTpu(base_runner.BaseRunner):
 
   def Start(self):
     # Run training.
-    self._RunLoop('trainer', self._Loop, is_main_thread=True)
+    self._RunLoop('trainer', self._Loop)
 
   def StartEnqueueOp(self, op):
     self._RunLoop(
@@ -657,8 +657,15 @@ class TrainerTpu(base_runner.BaseRunner):
       eval_metrics = None
 
       while True:
-        if (self._trial.ShouldStopAndMaybeReport(global_step, eval_metrics) or
-            self._ShouldStop(sess, global_step)):
+        if self._trial.ShouldStopAndMaybeReport(global_step, eval_metrics):
+          # Early terminate gracefully by setting a new max step horizon: three
+          # more TPU steps to ensure that the enqueue ops can gracefully
+          # terminate as well.
+          if self._max_steps is None:
+            self._max_steps = global_step + 3 * self._steps_per_loop
+            tf.logging.info('Early stopping at step: %d', self._max_steps)
+
+        if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
           return
 
@@ -714,7 +721,7 @@ class Evaler(base_runner.BaseRunner):
                            '%s.pbtxt' % self._output_name)
 
   def Start(self):
-    self._RunLoop(self._job_name, self._Loop, is_main_thread=True)
+    self._RunLoop(self._job_name, self._Loop)
 
   def _Loop(self):
     """The main loop."""
@@ -873,7 +880,7 @@ class Decoder(base_runner.BaseRunner):
                            '%s.pbtxt' % self._job_name)
 
   def Start(self):
-    self._RunLoop(self._job_name, self._Loop, is_main_thread=True)
+    self._RunLoop(self._job_name, self._Loop)
 
   def _Loop(self):
     with tf.container(
