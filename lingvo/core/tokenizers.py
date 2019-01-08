@@ -109,8 +109,8 @@ class BaseTokenizer(base_layer.BaseLayer):
       ids: A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample's
         ids.
       lens: A vector of shape [batch]. lens[i] is the sequence length of the
-        i-th sample. Only the first lens[i] tokens in ids[i, :] are valid
-        tokens for the i-th sequence.
+        i-th sample. Only the first lens[i] tokens in ids[i, :] are valid tokens
+        for the i-th sequence.
       languages: A vector of strings of shape [batch].
 
     Returns:
@@ -155,6 +155,11 @@ class VocabFileTokenizer(BaseTokenizer):
              'string separator to use when joining ngrams.')
     p.Define('tokens_delimiter', ' ',
              'The delimiter to split a string to tokens with.')
+    p.Define(
+        'load_token_ids_from_vocab', True,
+        'Whether token ids are present in vocab (i.e. vocab contains two '
+        'colums, one for IDs and one for words).  If false, line numbers '
+        'are used.')
     return p
 
   @property
@@ -179,6 +184,7 @@ class VocabFileTokenizer(BaseTokenizer):
           pad_to_maxlen=p.pad_to_max_length,
           append_eos=append_eos,
           vocab_filepath=p.token_vocab_filepath,
+          load_token_ids_from_vocab=p.load_token_ids_from_vocab,
           delimiter=p.tokens_delimiter)
     elif p.ngram_vocab_filepath:
       raise NotImplementedError('ngram vocab StringsToIds is not supported.')
@@ -273,9 +279,8 @@ class WpmTokenizer(BaseTokenizer):
     Args:
       parsed_token_ids: a list of vectors of token ids. The vectors have
         variable length.
-      desired_length: a python integer. The second dimension of the
-        returned arrays. All sequences are padded or truncated to that
-        length.
+      desired_length: a python integer. The second dimension of the returned
+        arrays. All sequences are padded or truncated to that length.
       append_eos: a python bool. See `BaseTokenizer` for explanation.
 
     Returns:
