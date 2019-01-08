@@ -360,6 +360,9 @@ def _ComputeConvOutputPadding(paddings,
   Returns:
     out_padding, The new padding tensor of size [batch, ceil(time / stride)].
   """
+  if stride == 1:
+    return paddings
+
   # Pad so input_length divides stride.
   input_length = tf.shape(paddings)[1]
   pad_len = (input_length + stride - 1) // stride * stride - input_length
