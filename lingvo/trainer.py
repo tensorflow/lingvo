@@ -494,24 +494,25 @@ class Trainer(base_runner.BaseRunner):
             except AttributeError:
               pass
 
-        _, global_step, eval_metrics, fetched_verbose_tensors = sess.run([
+        _, global_step, eval_metrics, per_example_tensors = sess.run([
             model_task.train_op,
             self._model.global_step,
             model_task.eval_metrics,
-            model_task.trainer_verbose_tensors,
+            model_task.per_example_tensors,
         ])
         msg = 'step:%6d' % (global_step)
         for key, (val, _) in sorted(six.iteritems(eval_metrics)):
           msg += ' %s:%.8g' % (key, val)
           self._SummarizeValue(global_step, key, val, self._summary_writer)
-        model_task.ProcessFetchedTrainerVerboseTensors(global_step,
-                                                       fetched_verbose_tensors)
+        model_task.ProcessFPropResults(sess, global_step, eval_metrics,
+                                       per_example_tensors)
         if global_step >= next_status_step:
           self._SetStatusMessage(msg)
           next_status_step = global_step + status_interval_steps
         else:
           tf.logging.info(msg)
-        self._model.ModelPostUpdate(sess, global_step, eval_metrics)
+        self._model.ProcessFPropResults(sess, global_step, eval_metrics,
+                                        per_example_tensors)
 
 
 class TrainerTpu(base_runner.BaseRunner):

@@ -296,12 +296,20 @@ class BaseTask(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
-  def ProcessFetchedTrainerVerboseTensors(self, global_step, eval_result):
-    """Called each train loop with the eval of the trainer verbose tensors.
+  def ProcessFPropResults(self, sess, global_step, metrics, per_example):
+    """Called once for each train loop on each worker/TPU.
+
+    Note that this method may be called from many threads at once,
+    and that global_step may not be monotonically increasing.
+
+    BaseModel.ProcessFPropResults is also called on each loop, so you
+    can put your implementation wherever it is most convenient for you.
 
     Args:
-      global_step: eval result of the global step.
-      eval_result: eval result for the trainer_verbose_tensors set.
+      sess: a session.
+      global_step: approximate number of model training steps.
+      metrics: the metrics dict returned by FPropTower.
+      per_example: the per_example dict returned by FPropTower.
     """
     pass
 
@@ -314,7 +322,12 @@ class BaseTask(base_layer.BaseLayer):
       input_batch: A `.NestedMap` object containing input tensors to this tower.
 
     Returns:
-      A dict containing metrics pairs.
+      Two dicts:
+      A dict containing str keys and (metric, weight) pairs as values, where
+      one of the keys is expected to be 'loss'.
+      A dict containing arbitrary tensors describing something about each
+      training example, where the first dimension of each tensor is the batch
+      index.
     """
     predicted = self.ComputePredictions(theta, input_batch)
     return self.ComputeLoss(theta, input_batch, predicted)
@@ -333,8 +346,12 @@ class BaseTask(base_layer.BaseLayer):
         spiltting is used, a list of `NestedMap`, one for each split.
 
     Returns:
-      A dict containing metrics pairs. One of the keys should be 'loss' and its
-      value should be a (loss, num_predictions) pair.
+      Two dicts:
+      A dict containing str keys and (metric, weight) pairs as values, where
+      one of the keys is expected to be 'loss'.
+      A dict containing arbitrary tensors describing something about each
+      training example, where the first dimension of each tensor is the batch
+      index.
     """
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
@@ -1062,9 +1079,23 @@ class BaseModel(base_layer.BaseLayer):
           [task.total_examples for task in self.tasks])
     return self._total_examples_sum
 
-  def ModelPostUpdate(self, sess, global_step, eval_metrics):
-    """Update model based on global step and eval_metrics."""
-    del sess, global_step, eval_metrics
+  def ProcessFPropResults(self, sess, global_step, metrics,
+                          per_example_tensors):
+    """Called once for each train loop on each worker/TPU.
+
+    Note that this method may be called from many threads at once,
+    and that global_step may not be monotonically increasing.
+
+    BaseTask.ProcessFPropResults is also called on each loop, so you
+    can put your implementation wherever it is most convenient for you.
+
+    Args:
+      sess: a session.
+      global_step: approximate number of model training steps.
+      metrics: the metrics dict returned by FPropTower.
+      per_example_tensors: the per_example dict returned by FPropTower.
+    """
+    del sess, global_step, metrics, per_example_tensors
     return
 
 
