@@ -2,7 +2,7 @@
 
 ## What is it?
 
-Lingvo is a toolkit for building neural networks in Tensorflow, particularly
+Lingvo is a framework for building neural networks in Tensorflow, particularly
 sequence models.
 
 It was used for the following research papers.
@@ -158,7 +158,7 @@ and run the software in multiple configurations.
 
 ### Installation
 
-The prerequisites of the toolkit are:
+The prerequisites are:
 
 *   a TensorFlow [installation](https://www.tensorflow.org/install/) (for now
     tf-nightly is required),
