@@ -2177,6 +2177,47 @@ class SimpleFullSoftmax(SoftmaxLayer):
         avg_xent=total_xent / total_weights)
 
 
+class ConvSoftmax(quant_utils.QuantizableLayer):
+  """A softmax implementation based on 1x1 convolution.
+
+  On TPU this is much more memory efficient than MatMul after reshaping logits
+  to a matrix.
+  """
+
+  @classmethod
+  def Params(cls):
+    """Params for SoftmaxLayer."""
+    p = super(ConvSoftmax, cls).Params()
+    p.Define('input_dim', 0, 'Dimension of the input.')
+    p.Define('num_classes', 0, 'Total number of target classes.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    """Constructs a SimpleFullSoftmax layer."""
+    super(ConvSoftmax, self).__init__(params)
+    p = self.params
+    with tf.variable_scope(p.name):
+      w_pc = py_utils.WeightParams(
+          shape=(1, p.input_dim, p.num_classes),
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('w', w_pc)
+      self.CreateVariable(
+          'b',
+          py_utils.WeightParams(
+              shape=[p.num_classes],
+              init=py_utils.WeightInit.Constant(0.0),
+              dtype=p.dtype,
+              collections=[self.__class__.__name__ + '_vars']))
+
+  def Logits(self, theta, inputs):
+    p = self.params
+    with tf.name_scope(p.name):
+      return tf.nn.bias_add(tf.nn.conv1d(inputs, theta.w, 1, 'VALID'), theta.b)
+
+
 class FeedForwardNet(quant_utils.QuantizableLayer):
   """A simple multiple layer feedforward network.
 

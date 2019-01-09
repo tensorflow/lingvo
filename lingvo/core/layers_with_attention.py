@@ -451,16 +451,18 @@ class TransformerLayer(base_layer.BaseLayer):
       assert aux_vecs is not None
       assert aux_paddings is not None
 
-    atten_vec, atten_prob = self.self_atten.FProp(
-        theta.self_atten,
-        source_vecs,
-        source_paddings,
-        query_segment_id=source_segment_id)
+    with tf.name_scope('self_atten'):
+      atten_vec, atten_prob = self.self_atten.FProp(
+          theta.self_atten,
+          source_vecs,
+          source_paddings,
+          query_segment_id=source_segment_id)
 
     if p.has_aux_atten:
-      atten_vec, atten_prob = self.atten.FProp(
-          theta.atten, atten_vec, aux_paddings, aux_vecs, source_segment_id,
-          aux_segment_id)
+      with tf.name_scope('aux_atten'):
+        atten_vec, atten_prob = self.atten.FProp(
+            theta.atten, atten_vec, aux_paddings, aux_vecs, source_segment_id,
+            aux_segment_id)
 
     h = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
     return h, atten_prob
