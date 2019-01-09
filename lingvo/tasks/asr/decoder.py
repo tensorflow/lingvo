@@ -290,8 +290,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     super(AsrDecoderBase, self).__init__(params)
 
     p = self.params
-    assert p.packed_input is False, ('Packed inputs are not yet supported for '
-                                     'AsrDecoderBase.')
+    assert not p.packed_input, ('Packed inputs are not yet supported for '
+                                'AsrDecoderBase.')
 
     self._max_label_prob = 1 - p.min_ground_truth_prob
     self._decay_interval = p.min_prob_step - p.prob_decay_start_step

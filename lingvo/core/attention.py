@@ -1570,8 +1570,8 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     p = self.params
     name = p.name
     self._is_quantized = p.qdomain.default is not None
-    assert p.packed_input is False, ('Packed input is not supported yet for '
-                                     'LocationsensitiveAttention.')
+    assert not p.packed_input, ('Packed input is not supported yet for '
+                                'LocationsensitiveAttention.')
 
     if p.atten_dropout_prob != 0:
       raise NotImplementedError('dropout is not supported')
@@ -2083,8 +2083,8 @@ class MonotonicAttention(BaseAttentionLayer):
     """Constructs an MonotonicAttention object."""
     super(MonotonicAttention, self).__init__(params)
     p = self.params
-    assert p.packed_input is False, ('Packed input not supported for '
-                                     'Monotonic Attention.')
+    assert not p.packed_input, ('Packed input not supported for Monotonic '
+                                'Attention.')
     if p.atten_dropout_prob != 0:
       raise NotImplementedError('dropout is not supported')
 

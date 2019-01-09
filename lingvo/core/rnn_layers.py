@@ -118,8 +118,8 @@ class RNN(base_layer.BaseLayer):
   def __init__(self, params):
     super(RNN, self).__init__(params)
     p = self.params
-    assert p.packed_input is False, ('Packed inputs are currently not '
-                                     'supported by Static RNN')
+    assert not p.packed_input, ('Packed inputs are currently not supported by '
+                                'Static RNN')
     p.cell.reset_cell_state = p.packed_input
     assert p.sequence_length >= 0
     self.CreateChild('cell', p.cell)
@@ -208,8 +208,8 @@ class StackedRNNBase(base_layer.BaseLayer):
   def __init__(self, params):
     super(StackedRNNBase, self).__init__(params)
     p = self.params
-    assert p.packed_input is False, ('Packed inputs are currently not '
-                                     'supported by Static RNN Base')
+    assert not p.packed_input, ('Packed inputs are currently not supported by '
+                                'Static RNN Base')
 
   def _GetCellTpls(self):
     p = self.params
@@ -579,8 +579,8 @@ class BidirectionalRNN(base_layer.BaseLayer):
   def __init__(self, params):
     super(BidirectionalRNN, self).__init__(params)
     p = self.params
-    assert p.packed_input is False, ('Packed input is currently not supported '
-                                     'by BiDirectionalRNN')
+    assert not p.packed_input, ('Packed input is currently not supported by '
+                                'BiDirectionalRNN')
     params_forward = p.rnn.Copy()
     params_forward.name = '%s_forward' % p.name
     params_forward.cell = p.fwd.Copy()
@@ -1147,8 +1147,8 @@ class FRNNWithAttention(base_layer.BaseLayer):
       state0 = self.zero_state(theta, src_encs, packed_src, batch,
                                zero_atten_state_dim)
     else:
-      assert p.packed_input is False, ('packed input is only supported with '
-                                       'default initial states.')
+      assert not p.packed_input, ('packed input is only supported with default '
+                                  'initial states.')
 
     def CellFn(theta, state0, inputs):
       """Computes one step forward."""
@@ -1335,8 +1335,8 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
     """Constructs a MultiSourceFRNNWithAttention layer with params."""
     super(MultiSourceFRNNWithAttention, self).__init__(params)
     p = self.params
-    assert p.packed_input is False, ('packed input is not supported for '
-                                     'MultiSourceFRNNWithAttention')
+    assert not p.packed_input, ('packed input is not supported for '
+                                'MultiSourceFRNNWithAttention')
     if p.atten_merger is None:
       raise ValueError('Merger layer cannot be none!')
     if not isinstance(p.source_names, list) or not p.source_names:
@@ -1541,8 +1541,8 @@ class BidirectionalFRNNQuasi(base_layer.BaseLayer):
   def __init__(self, params):
     super(BidirectionalFRNNQuasi, self).__init__(params)
     p = params
-    assert p.packed_input is False, ('packed input is not supported for '
-                                     'BidirectionalFRNNQuasi')
+    assert not p.packed_input, ('packed input is not supported for '
+                                'BidirectionalFRNNQuasi')
     params_forward = FRNN.Params()
     params_forward.name = 'fwd'
     params_forward.dtype = p.dtype

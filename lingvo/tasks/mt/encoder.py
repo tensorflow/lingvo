@@ -82,8 +82,8 @@ class MTEncoderV1(base_encoder.BaseEncoder):
   def __init__(self, params):
     super(MTEncoderV1, self).__init__(params)
     p = self.params
-    assert p.packed_input is False, ('Packed inputs are not yet supported for '
-                                     'MTEncoderV1.')
+    assert not p.packed_input, ('Packed inputs are not yet supported for '
+                                'MTEncoderV1.')
 
     with tf.variable_scope(p.name):
       if p.cc_schedule is not None:
@@ -246,8 +246,8 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
   def __init__(self, params):
     super(MTEncoderUniRNN, self).__init__(params)
     p = self.params
-    assert p.packed_input is False, ('Packed inputs are not yet supported for '
-                                     'MTEncoderUniRNN.')
+    assert not p.packed_input, ('Packed inputs are not yet supported for '
+                                'MTEncoderUniRNN.')
 
     with tf.variable_scope(p.name):
       if p.cc_schedule is None:

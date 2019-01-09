@@ -138,8 +138,8 @@ class AsrEncoder(base_encoder.BaseEncoder):
   def __init__(self, params):
     super(AsrEncoder, self).__init__(params)
     p = self.params
-    assert p.packed_input is False, ('Packed inputs are not yet supported for '
-                                     'AsrEncoder.')
+    assert not p.packed_input, ('Packed inputs are not yet supported for '
+                                'AsrEncoder.')
     name = p.name
 
     with tf.variable_scope(name):
