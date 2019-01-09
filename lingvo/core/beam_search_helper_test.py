@@ -98,5 +98,43 @@ class BeamSearchHelperTest(tf.test.TestCase):
       self.assertAllClose(expected_topk_scores, topk_scores)
 
 
+class MergeBeamSearchOutputsTest(tf.test.TestCase):
+
+  def testMergeBeamSearchOutputs(self):
+    with self.session():
+      topk_scores_1 = [[1., 3., 5.], [-2., -1., 0.]]
+      topk_ids_1 = [[[10, 11, 12], [30, 31, 32], [50, 51, 52]],
+                    [[20, 21, 22], [10, 11, 12], [0, 0, 0]]]
+      topk_lens_1 = [[3, 3, 2], [3, 3, 0]]
+      topk_hyps_1 = [['one', 'three', 'five'], ['minus two', 'minus one', '']]
+      topk_1 = beam_search_helper.BeamSearchDecodeOutput(
+          None, tf.constant(topk_hyps_1),
+          tf.reshape(tf.constant(topk_ids_1), [6, -1]),
+          tf.reshape(tf.constant(topk_lens_1), [-1]),
+          tf.reshape(tf.constant(topk_scores_1), [-1]), None, None)
+
+      topk_scores_2 = [[2., 4.], [-3., 0.]]
+      topk_ids_2 = [[[20, 21, 22], [40, 41, 42]], [[30, 31, 33], [0, 0, 0]]]
+      topk_lens_2 = [[3, 2], [3, 0]]
+      topk_hyps_2 = [['two', 'four'], ['minus three', '']]
+      topk_2 = beam_search_helper.BeamSearchDecodeOutput(
+          None, tf.constant(topk_hyps_2),
+          tf.reshape(tf.constant(topk_ids_2), [4, -1]),
+          tf.reshape(tf.constant(topk_lens_2), [-1]),
+          tf.reshape(tf.constant(topk_scores_2), [-1]), None, None)
+
+      topk = beam_search_helper.MergeBeamSearchOutputs(3, [topk_1, topk_2])
+      self.assertIsNone(topk.done_hyps)
+      self.assertIsNone(topk.topk_decoded)
+      self.assertAllEqual([5., 4., 3., -1., -2., -3.], topk.topk_scores.eval())
+      self.assertAllEqual([2, 2, 3, 3, 3, 3], topk.topk_lens.eval())
+      self.assertAllEqual([[50, 51, 52], [40, 41, 42], [30, 31, 32],
+                           [10, 11, 12], [20, 21, 22], [30, 31, 33]],
+                          topk.topk_ids.eval())
+      self.assertAllEqual([['five', 'four', 'three'],
+                           ['minus one', 'minus two', 'minus three']],
+                          topk.topk_hyps.eval())
+
+
 if __name__ == '__main__':
   tf.test.main()

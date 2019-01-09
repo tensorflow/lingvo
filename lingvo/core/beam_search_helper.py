@@ -488,3 +488,73 @@ def _GetShapes(tensors, none_shapes=False):
 
   return type(tensors)(
       tf.contrib.framework.nest.pack_sequence_as(tensors, shapes))
+
+
+def MergeBeamSearchOutputs(max_hyps_per_beam, beam_search_outputs):
+  """Merges beam search hyps from multiple decoders.
+
+  Args:
+    max_hyps_per_beam: the number of top hyps in the merged results. Must be
+      less than or equal to total number of input hyps.
+    beam_search_outputs: a list of BeamSearchDecodeOutput objects. Must share
+      the same source_batch and max sequence length.
+
+  Returns:
+    A BeamSearchDecodeOutput object containing max_hyps_per_beam hypotheses per
+    beam.
+  """
+  source_batch = tf.shape(beam_search_outputs[0].topk_hyps)[0]
+  value_dict = {}
+  for output in beam_search_outputs:
+    hyps_per_beam = py_utils.with_dependencies([
+        py_utils.assert_equal(source_batch,
+                              tf.shape(output.topk_hyps)[0]),
+    ],
+                                               tf.shape(output.topk_hyps)[1])
+    for k, v in output._asdict().iteritems():
+      if v is None:
+        continue
+      if k == 'done_hyps':
+        v = tf.transpose(v)
+      if k not in value_dict:
+        value_dict[k] = []
+      value_dict[k].append(tf.reshape(v, [source_batch, hyps_per_beam, -1]))
+
+  # Concatenate the tensors along the 'num_hyps_per_beam' dimension.
+  concatenated = {}
+  for k, values in value_dict.iteritems():
+    if len(values) != len(beam_search_outputs):
+      raise ValueError(
+          'Incomplete values for %s: %s' % (k, beam_search_outputs))
+    concatenated[k] = tf.concat(values, axis=1)
+
+  scores = concatenated['topk_scores']
+  scores = tf.where(
+      tf.equal(concatenated['topk_lens'], 0), tf.fill(tf.shape(scores), -1e6),
+      scores)
+  scores = tf.squeeze(scores, -1)
+
+  # Select top max_hyps_per_beam indices per beam.
+  _, top_indices = tf.nn.top_k(scores, max_hyps_per_beam)
+  batch_ids = tf.tile(
+      tf.expand_dims(tf.range(source_batch), -1), [1, max_hyps_per_beam])
+  # [source_batch, max_hyps_per_beam, 2]
+  gather_indices = tf.stack([batch_ids, top_indices], axis=-1)
+
+  # Gather the merged top hyps according to 'gather_indices'.
+  top = beam_search_outputs[0]._asdict()
+  total_hyps = source_batch * max_hyps_per_beam
+  for k, v in concatenated.iteritems():
+    v = tf.gather_nd(v, gather_indices)
+    if k == 'done_hyps':
+      v = tf.transpose(tf.reshape(v, [total_hyps, -1]))
+    elif k == 'topk_hyps':
+      v = tf.reshape(v, [source_batch, max_hyps_per_beam])
+    elif k == 'topk_ids':
+      v = tf.reshape(v, [total_hyps, -1])
+    elif k in ('topk_lens', 'topk_scores', 'topk_decoded'):
+      v = tf.reshape(v, [total_hyps])
+    else:
+      raise ValueError('Unexpected field: %s' % k)
+    top[k] = v
+  return BeamSearchDecodeOutput(**top)
