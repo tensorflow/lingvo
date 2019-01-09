@@ -1149,7 +1149,8 @@ def _OverrideVarsFromCheckpoint(sess, all_vars, checkpoint_path,
   vars_to_load = _GetVarsToLoad(all_vars, variable_loading_rules,
                                 var_ignore_rules)
   if not vars_to_load:
-    raise ValueError('Variable loading rules did not match any vars.')
+    raise ValueError(('Variable loading rules did not match any vars. '
+                      'All known: %r') % [v.name for v in all_vars])
   load_var_names = sorted([v.name for _, v in vars_to_load])
   tf.logging.info('Overriding vars from checkpoint: %r', load_var_names)
 
