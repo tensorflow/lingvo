@@ -3067,5 +3067,42 @@ class WeightedSumLayerTest(tf.test.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
 
+class GatedAverageLayerTest(tf.test.TestCase):
+
+  def testGatedAverageLayer(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(505837249)
+      depth = 4
+      batch = 2
+      num_inputs = 3
+
+      inp_1 = np.asarray([[0.0, 0.0, 0.0, 0.0], [-1.0, -1.0, 1.0, 1.0]],
+                         dtype=np.float32)
+      inp_2 = np.asarray([[1.0, 1.0, 1.0, 1.0], [-1.0, -1.0, 1.0, 1.0]],
+                         dtype=np.float32)
+      inp_3 = np.asarray([[-1.0, -1.0, -1.0, -1.0], [-1.0, -1.0, 1.0, 1.0]],
+                         dtype=np.float32)
+      p = layers.GatedAverageLayer.Params()
+      p.name = 'gated_avg_layer'
+      p.num_inputs = num_inputs
+      p.num_nodes = depth
+      p.random_seed = 505837249
+      g_avg = p.cls(p)
+
+      avg = g_avg.FProp(g_avg.theta, [inp_1, inp_2, inp_3])
+      tf.global_variables_initializer().run()
+      actual_avg = sess.run(avg)
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_avg = [
+          [ 0.13070658,  0.13070658,  0.13070658,  0.13070658],
+          [ -1.0, -1.0, 1.0 , 1.0]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_avg.shape, (batch, depth))
+      self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
+
+
 if __name__ == '__main__':
   tf.test.main()

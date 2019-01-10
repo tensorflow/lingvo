@@ -2996,3 +2996,69 @@ class WeightedSumLayer(base_layer.BaseLayer):
     output = tf.reduce_sum(inputs * w, axis=0)
 
     return output
+
+
+class GatedAverageLayer(base_layer.BaseLayer):
+  """Gated combination of n input vectors.
+
+  Given n inputs, x_1 ... x_n. First learns a gate g in a single layer.
+  Returns g_1 * x_1 + ... g_n * x_n.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(GatedAverageLayer, cls).Params()
+    p.Define('num_nodes', 0, 'Number of nodes in each input vector.')
+    p.Define('num_inputs', 0, 'Number of input vectors to combine.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    """Initializes GatedAverageLayer."""
+    super(GatedAverageLayer, self).__init__(params)
+    p = self.params
+
+    assert p.num_nodes > 0, 'Number of dimensions should be greater than 0.'
+    assert p.num_inputs > 0, 'Number of inputs should be greater than 0.'
+
+    in_size = p.num_inputs * p.num_nodes
+
+    with tf.variable_scope(p.name):
+      # Weight matrix for scalar gates
+      gm_pc = py_utils.WeightParams(
+          shape=[in_size, p.num_inputs],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=self._VariableCollections())
+      self.CreateVariable('gm', gm_pc)
+
+  def FProp(self, theta, inputs):
+    """Gates, then merges a list of n input vectors.
+
+    Args:
+      theta: gm (gate matrix)
+      inputs: List of inputs, each of shape [..., num_nodes]
+
+    Returns:
+      a gated output vector [..., num_nodes]
+    """
+    p = self.params
+    assert len(inputs) == p.num_inputs, 'Number of inputs should match params.'
+
+    for i, inp in enumerate(inputs):
+      inputs[i] = py_utils.with_dependencies([
+          py_utils.assert_shape_match([tf.shape(inp)[-1]], [p.num_nodes]),
+          py_utils.assert_shape_match(tf.shape(inp), tf.shape(inputs[0])),
+      ], inp)
+
+    input_shape = tf.shape(inputs[0])
+
+    reshaped_inputs = [tf.reshape(inp, [-1, p.num_nodes]) for inp in inputs]
+    concat_inputs = tf.concat(reshaped_inputs, axis=1)
+
+    xmg = tf.nn.softmax(py_utils.Matmul(concat_inputs, theta.gm))
+    xmg = tf.expand_dims(xmg, 2)
+    inputs = tf.reshape(concat_inputs, [-1, p.num_inputs, p.num_nodes])
+    gated_sum = tf.reduce_sum(xmg * inputs, axis=1)
+
+    return tf.reshape(gated_sum, input_shape)
