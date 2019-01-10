@@ -36,70 +36,17 @@ _NUMPY_RANDOM_SEED = 9885784
 _TF_RANDOM_SEED = 8372749040
 
 
-class DecoderTest(tf.test.TestCase):
+class DecoderTestCaseBase(tf.test.TestCase):
 
-  def _DecoderParams(self, per_word_avg_loss=False, dtype=tf.float32):
-    p = decoder.MTDecoderV1.Params()
-    p.name = 'decoder'
-    p.source_dim = 4
-    p.emb.vocab_size = 16
-    p.emb.embedding_dim = 4
-    p.emb.max_num_shards = 1
-    p.rnn_cell_dim = 4
-    p.rnn_layers = 3
-    p.attention.hidden_dim = 2
-    p.softmax.num_classes = 16
-    p.softmax.num_shards = 1
-    p.per_word_avg_loss = per_word_avg_loss
-    p.dtype = dtype
-    p.target_seq_len = 5
-
-    for lp in base_layer.RecursiveFindLayerParams(p):
-      lp.dtype = dtype
-
-    return p
-
-  def testDecoderConstruction(self):
-    p = self._DecoderParams()
-    _ = decoder.MTDecoderV1(p)
-
-  def _testInputs(self, dtype=tf.float32):
-    np.random.seed(_NUMPY_RANDOM_SEED)
-    src_seq_len = 5
-    # batch = 2
-    src_enc = tf.constant(
-        np.random.normal(size=[src_seq_len, 2, 4]), dtype=dtype)
-    src_enc_padding = tf.constant(
-        [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
-        dtype=dtype)
-    # batch = 4, time = 3.
-    target_ids = tf.transpose(
-        tf.constant(
-            [[0, 1, 2, 3], [0, 5, 6, 7], [0, 10, 11, 12]], dtype=tf.int32))
-    target_labels = tf.transpose(
-        tf.constant(
-            [[1, 2, 3, 4], [5, 6, 7, 8], [10, 11, 12, 13]], dtype=tf.int32))
-    target_paddings = tf.transpose(
-        tf.constant([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]], dtype=dtype))
-    target_weights = 1.0 - target_paddings
-    targets = py_utils.NestedMap({
-        'ids': target_ids,
-        'labels': target_labels,
-        'weights': target_weights,
-        'paddings': target_paddings
-    })
-
-    return (src_enc, src_enc_padding, targets)
-
-  def _testDecoderFPropHelper(self, decoder_cls, dtype,
-                              feed_att_context_to_softmax):
+  def _DecoderFPropHelper(self, decoder_cls, dtype,
+                          feed_att_context_to_softmax):
     with self.session(use_gpu=True):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
 
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = decoder_cls(p)
-      src_enc, src_enc_padding, targets = self._testInputs(dtype=dtype)
+      src_enc, src_enc_padding, targets = self._Inputs(dtype=dtype)
       loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
                                       None)['loss']
 
@@ -111,28 +58,6 @@ class DecoderTest(tf.test.TestCase):
       else:
         CompareToGoldenSingleFloat(self, 7.624220, actual_loss)
 
-  def testDecoderFPropFixedAttentionSeed(self, dtype=tf.float64):
-    with self.session(use_gpu=True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
-      p = self._DecoderParams(dtype=dtype)
-      p.feed_attention_context_vec_to_softmax = False
-      p.attention.params_init = py_utils.WeightInit.Gaussian(0.1, 12345)
-      dec = decoder.MTDecoderV1(p)
-      src_enc, src_enc_padding, targets = self._testInputs(dtype=dtype)
-      loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
-                                      None)['loss']
-
-      tf.global_variables_initializer().run()
-      actual_loss = loss.eval()
-      print('actual loss = ', actual_loss)
-      CompareToGoldenSingleFloat(self, 7.624183, actual_loss)
-
-  def testDecoderFPropFunctional(self):
-    self._testDecoderFPropHelper(decoder.MTDecoderV1, tf.float64, False)
-
-  def testDecoderFPropFunctionalFeedingAttContext(self):
-    self._testDecoderFPropHelper(decoder.MTDecoderV1, tf.float64, True)
-
   def _DecoderGradientCheckerHelper(self,
                                     decoder_cls,
                                     feed_att_context_to_softmax=False):
@@ -142,7 +67,7 @@ class DecoderTest(tf.test.TestCase):
       p = self._DecoderParams(dtype=tf.float64)
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = decoder_cls(p)
-      src_enc, src_enc_padding, targets = self._testInputs(dtype=tf.float64)
+      src_enc, src_enc_padding, targets = self._Inputs(dtype=tf.float64)
       loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
                                       None)['loss']
       all_vars = tf.trainable_variables()
@@ -176,22 +101,15 @@ class DecoderTest(tf.test.TestCase):
 
       return rets
 
-  def testDecoderBPropFunctional(self):
-    self._DecoderGradientCheckerHelper(decoder.MTDecoderV1)
-
-  def testDecoderBPropFunctionalFeedingAttContext(self):
-    self._DecoderGradientCheckerHelper(
-        decoder.MTDecoderV1, feed_att_context_to_softmax=True)
-
-  def _testDecoderPerWordAvgLossFPropHelper(self,
-                                            decoder_cls,
-                                            feed_att_context_to_softmax=False):
+  def _DecoderPerWordAvgLossFPropHelper(self,
+                                        decoder_cls,
+                                        feed_att_context_to_softmax=False):
     with self.session(use_gpu=True):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(True)
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = decoder_cls(p)
-      src_enc, src_enc_padding, targets = self._testInputs()
+      src_enc, src_enc_padding, targets = self._Inputs()
       loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
                                       None)['loss']
       tf.global_variables_initializer().run()
@@ -202,11 +120,96 @@ class DecoderTest(tf.test.TestCase):
       else:
         CompareToGoldenSingleFloat(self, 2.772190, actual_loss)
 
+
+class DecoderTest(DecoderTestCaseBase):
+
+  def _DecoderParams(self, per_word_avg_loss=False, dtype=tf.float32):
+    p = decoder.MTDecoderV1.Params()
+    p.name = 'decoder'
+    p.source_dim = 4
+    p.emb.vocab_size = 16
+    p.emb.embedding_dim = 4
+    p.emb.max_num_shards = 1
+    p.rnn_cell_dim = 4
+    p.rnn_layers = 3
+    p.attention.hidden_dim = 2
+    p.softmax.num_classes = 16
+    p.softmax.num_shards = 1
+    p.per_word_avg_loss = per_word_avg_loss
+    p.dtype = dtype
+    p.target_seq_len = 5
+
+    for lp in base_layer.RecursiveFindLayerParams(p):
+      lp.dtype = dtype
+
+    return p
+
+  def testDecoderConstruction(self):
+    p = self._DecoderParams()
+    _ = decoder.MTDecoderV1(p)
+
+  def _Inputs(self, dtype=tf.float32):
+    np.random.seed(_NUMPY_RANDOM_SEED)
+    src_seq_len = 5
+    # batch = 2
+    src_enc = tf.constant(
+        np.random.normal(size=[src_seq_len, 2, 4]), dtype=dtype)
+    src_enc_padding = tf.constant(
+        [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+        dtype=dtype)
+    # batch = 4, time = 3.
+    target_ids = tf.transpose(
+        tf.constant(
+            [[0, 1, 2, 3], [0, 5, 6, 7], [0, 10, 11, 12]], dtype=tf.int32))
+    target_labels = tf.transpose(
+        tf.constant(
+            [[1, 2, 3, 4], [5, 6, 7, 8], [10, 11, 12, 13]], dtype=tf.int32))
+    target_paddings = tf.transpose(
+        tf.constant([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]], dtype=dtype))
+    target_weights = 1.0 - target_paddings
+    targets = py_utils.NestedMap({
+        'ids': target_ids,
+        'labels': target_labels,
+        'weights': target_weights,
+        'paddings': target_paddings
+    })
+
+    return (src_enc, src_enc_padding, targets)
+
+  def testDecoderFPropFixedAttentionSeed(self, dtype=tf.float64):
+    with self.session(use_gpu=True):
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype)
+      p.feed_attention_context_vec_to_softmax = False
+      p.attention.params_init = py_utils.WeightInit.Gaussian(0.1, 12345)
+      dec = decoder.MTDecoderV1(p)
+      src_enc, src_enc_padding, targets = self._Inputs(dtype=dtype)
+      loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
+                                      None)['loss']
+
+      tf.global_variables_initializer().run()
+      actual_loss = loss.eval()
+      print('actual loss = ', actual_loss)
+      CompareToGoldenSingleFloat(self, 7.624183, actual_loss)
+
+  def testDecoderFPropFunctional(self):
+    self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, False)
+
+  def testDecoderFPropFunctionalFeedingAttContext(self):
+    self._DecoderFPropHelper(decoder.MTDecoderV1, tf.float64, True)
+
+  def testDecoderBPropFunctional(self):
+    self._DecoderGradientCheckerHelper(decoder.MTDecoderV1)
+
+  def testDecoderBPropFunctionalFeedingAttContext(self):
+    self._DecoderGradientCheckerHelper(
+        decoder.MTDecoderV1, feed_att_context_to_softmax=True)
+
   def testDecoderPerWordAvgLossFPropFunctional(self):
-    self._testDecoderPerWordAvgLossFPropHelper(decoder.MTDecoderV1)
+    self._DecoderPerWordAvgLossFPropHelper(decoder.MTDecoderV1)
 
   def testDecoderPerWordAvgLossFPropFunctionalFeedingAttContext(self):
-    self._testDecoderPerWordAvgLossFPropHelper(
+    self._DecoderPerWordAvgLossFPropHelper(
         decoder.MTDecoderV1, feed_att_context_to_softmax=True)
 
   def testBeamSearchDecode(self, dtype=tf.float32):
@@ -218,7 +221,7 @@ class DecoderTest(tf.test.TestCase):
     p.beam_search.num_hyps_per_beam = 2
     p.rnn_cell_dim = 32
     dec = decoder.MTDecoderV1(p)
-    src_enc, src_enc_padding, _ = self._testInputs(dtype=dtype)
+    src_enc, src_enc_padding, _ = self._Inputs(dtype=dtype)
     decode = dec.BeamSearchDecode(src_enc, src_enc_padding)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
@@ -264,7 +267,7 @@ class DecoderTest(tf.test.TestCase):
     p.rnn_cell_dim = 32
     p.feed_attention_context_vec_to_softmax = True
     dec = decoder.MTDecoderV1(p)
-    src_enc, src_enc_padding, _ = self._testInputs(dtype=dtype)
+    src_enc, src_enc_padding, _ = self._Inputs(dtype=dtype)
     decode = dec.BeamSearchDecode(src_enc, src_enc_padding)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
@@ -304,7 +307,7 @@ class DecoderTest(tf.test.TestCase):
                         actual_decode_feeding_att_context.topk_scores)
 
 
-class TransformerDecoderTest(tf.test.TestCase):
+class TransformerDecoderTestCaseBase(tf.test.TestCase):
 
   def _DecoderParams(self,
                      per_word_avg_loss=False,
@@ -348,15 +351,7 @@ class TransformerDecoderTest(tf.test.TestCase):
 
     return p
 
-  def testDecoderConstruction(self):
-    p = self._DecoderParams()
-    _ = decoder.TransformerDecoder(p)
-
-  def testTransparentDecoderConstruction(self):
-    p = self._DecoderParams(is_transparent=True)
-    _ = decoder.TransformerDecoder(p)
-
-  def _testInputs(self, dtype=tf.float32):
+  def _Inputs(self, dtype=tf.float32):
     np.random.seed(_NUMPY_RANDOM_SEED)
     src_time = 5
     src_batch = 4
@@ -381,6 +376,19 @@ class TransformerDecoderTest(tf.test.TestCase):
         'paddings': tgt_paddings
     })
     return (src_enc, src_paddings, tgts)
+
+
+class TransformerDecoderTest(TransformerDecoderTestCaseBase):
+
+  def testDecoderConstruction(self):
+    p = self._DecoderParams()
+    dec = decoder.TransformerDecoder(p)
+    self.assertIsInstance(dec, p.cls)
+
+  def testTransparentDecoderConstruction(self):
+    p = self._DecoderParams(is_transparent=True)
+    dec = decoder.TransformerDecoder(p)
+    self.assertIsInstance(dec, p.cls)
 
   def _testPackedInputs(self, dtype=tf.float32):
     p = self._DecoderParams()
@@ -431,7 +439,7 @@ class TransformerDecoderTest(tf.test.TestCase):
     src_time = 5
     src_batch = 4
     emb_dims = 4
-    _, paddings, tgts = self._testInputs(dtype)
+    _, paddings, tgts = self._Inputs(dtype)
     src_enc = tf.constant(
         np.random.normal(size=[src_time, src_batch, emb_dims, num_layers]),
         dtype=dtype)
@@ -507,7 +515,7 @@ class TransformerDecoderTest(tf.test.TestCase):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
-      src_enc, src_enc_padding, targets = self._testInputs(dtype=dtype)
+      src_enc, src_enc_padding, targets = self._Inputs(dtype=dtype)
       self._testExtendStep(sess, dec, src_enc, src_enc_padding, targets)
 
   def testTransparentDecoderExtendStep(self, dtype=tf.float32):
@@ -526,7 +534,7 @@ class TransformerDecoderTest(tf.test.TestCase):
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
 
-      src_enc, src_paddings, targets = self._testInputs(dtype=dtype)
+      src_enc, src_paddings, targets = self._Inputs(dtype=dtype)
       src_enc1, src_enc2 = tf.split(src_enc, 2, 1)
       src_paddings1, src_paddings2 = tf.split(src_paddings, 2, 1)
 
@@ -568,7 +576,7 @@ class TransformerDecoderTest(tf.test.TestCase):
     p = self._DecoderParams(dtype=dtype)
     p.beam_search.num_hyps_per_beam = 2
     dec = decoder.TransformerDecoder(p)
-    src_enc, src_enc_padding, _ = self._testInputs(dtype=dtype)
+    src_enc, src_enc_padding, _ = self._Inputs(dtype=dtype)
     decode = dec.BeamSearchDecode(src_enc, src_enc_padding)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
