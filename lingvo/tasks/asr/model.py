@@ -146,8 +146,9 @@ class AsrModel(base_model.BaseTask):
     with tf.name_scope('fprop'), tf.name_scope(p.name):
       encoder_outputs = self.encoder.FPropDefaultTheta(input_batch.src)
 
-      if hasattr(self.decoder, 'contextualizer'):
-        self.decoder.contextualizer.SetContextMap(input_batch.tgt)
+      if 'contextualizer' in self.decoder.theta:
+        self.decoder.contextualizer.SetContextMap(
+            input_batch.tgt, self.decoder.theta.contextualizer)
       decoder_outs = self.decoder.BeamSearchDecode(encoder_outputs)
       topk = self._GetTopK(decoder_outs)
 

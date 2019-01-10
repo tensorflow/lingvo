@@ -25,7 +25,7 @@ class ContextualizerBase(base_layer.BaseLayer):
 
   Typical usage of a contextualizer is::
 
-    contextualizer.SetContextMap(context_map)     # Set context map.
+    contextualizer.SetContextMap(context_map, theta)  # Set context map.
     contextualizer.InitAttention(...)             # Initalize attn sources.
     context = contextualizer.ZeroAttention(...)   # Initalize attn state.
     context = contextualizer.QueryAttention(...)  # Call on each decoding step.
@@ -40,12 +40,13 @@ class ContextualizerBase(base_layer.BaseLayer):
   - contextualizer.GetContextDim()
   """
 
-  def SetContextMap(self, context_map):
+  def SetContextMap(self, context_map, theta):
     """Set the context map.
 
     Args:
       context_map: A NestedMap object containing the context from which
         attention vectors will be computed.
+      theta: NestedMap, parameters needed for embedding.
     """
     raise NotImplementedError('SetContextMap')
 
@@ -110,7 +111,7 @@ class ContextualizerBase(base_layer.BaseLayer):
 class NullContextualizer(ContextualizerBase):
   """An 'empty' or no-op contextualizer."""
 
-  def SetContextMap(self, context_map):
+  def SetContextMap(self, context_map, theta):
     pass
 
   def InitAttention(self, theta, packed_src):

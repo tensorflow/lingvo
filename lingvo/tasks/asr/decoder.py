@@ -828,7 +828,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     assert getattr(encoder_outputs, 'src_segment_id', None) is None
     del targets_per_batch_element
     p = self.params
-    self.contextualizer.SetContextMap(targets)
+    self.contextualizer.SetContextMap(targets, theta.contextualizer)
     if p.use_while_loop_based_unrolling:
       predictions = self.ComputePredictionsDynamic(theta, encoder_outputs,
                                                    targets)
