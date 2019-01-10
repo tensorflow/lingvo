@@ -27,7 +27,6 @@ from tensorflow.python.framework import function
 
 from lingvo.core import attention
 from lingvo.core import base_layer
-from lingvo.core import cluster_factory
 from lingvo.core import cudnn_rnn_utils
 from lingvo.core import hyperparams
 from lingvo.core import layers
@@ -53,11 +52,12 @@ def _AssertCellParamsCuDNNCompatible(p_cell):
 def _GeneratePackedInputResetMask(segment_id, is_reverse=False):
   """Generates mask inputs for RNN cells from segment_id.
 
-    Args:
-      segment_id: A tensor of shape [time, batch_size, 1]
-      is_reverse: True if inputs are fed to the RNN in reverse order.
-    Returns:
-      reset_mask - a tensor of shape [time, batch_size, 1]. Set to 0 for samples
+  Args:
+    segment_id: A tensor of shape [time, batch_size, 1].
+    is_reverse: True if inputs are fed to the RNN in reverse order.
+
+  Returns:
+    reset_mask - a tensor of shape [time, batch_size, 1]. Set to 0 for samples
       where state needs to be reset (at example boundaries), and 1 otherwise.
   """
   segment_id_left = segment_id[:-1]
@@ -639,9 +639,8 @@ class BidirectionalRNNV2(base_layer.BaseLayer):
   @base_layer.initializer
   def __init__(self, params):
     super(BidirectionalRNNV2, self).__init__(params)
-    assert self.params.packed_input is False, (
-        'Packed input is currently not '
-        'supported by BiDirectionalRNNV2')
+    assert not self.params.packed_input, ('Packed input is currently not '
+                                          'supported by BiDirectionalRNNV2')
     p = BidirectionalRNN.Params()
     p.packed_input = self.params.packed_input
     p.name = '%s_brnn' % self.params.name
@@ -724,8 +723,8 @@ class CuDNNLSTM(base_layer.BaseLayer):
   def __init__(self, params):
     super(CuDNNLSTM, self).__init__(params)
     p = self.params
-    assert self.params.packed_input is False, ('Packed input is currently not '
-                                               'supported by CuDNNLSTM')
+    assert not p.packed_input, ('Packed input is currently not supported by '
+                                'CuDNNLSTM')
     _AssertCellParamsCuDNNCompatible(p.cell)
     if not p.is_eval:
       # Use the cell's name as variable scope such that vars in train and eval
@@ -838,9 +837,8 @@ class BidirectionalNativeCuDNNLSTM(base_layer.BaseLayer):
   def __init__(self, params):
     super(BidirectionalNativeCuDNNLSTM, self).__init__(params)
     p = self.params
-    assert self.params.packed_input is False, (
-        'Packed input is currently not '
-        'supported by BidirectionalNativeCuDNNLSTM')
+    assert not p.packed_input, ('Packed input is currently not supported by '
+                                'BidirectionalNativeCuDNNLSTM')
     assert p.fwd.num_input_nodes == p.bak.num_input_nodes
     assert p.fwd.num_output_nodes == p.bak.num_output_nodes
     _AssertCellParamsCuDNNCompatible(p.fwd)
@@ -974,7 +972,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
     if p.use_zero_atten_state:
       assert p.atten_context_dim > 0, (
           'atten_context_dim needs to be set when '
-          'intializing attention state and context with 0.')
+          'initializing attention state and context with 0.')
     if p.packed_input:
       assert p.use_zero_atten_state, (
           'Packed input is only supported when '
@@ -1158,14 +1156,14 @@ class FRNNWithAttention(base_layer.BaseLayer):
       else:
         state0_mod = state0
       state1 = py_utils.NestedMap(step_state=state0_mod.step_state)
+      if rcell.params.inputs_arity == 1:
+        act = [_ConcatLastDim(inputs.act, state0_mod.atten)]
+      else:
+        act = [inputs.act, state0_mod.atten]
       state1.rnn, _ = rcell.FProp(
           theta.rnn, state0_mod.rnn,
           py_utils.NestedMap(
-              act=[_ConcatLastDim(inputs.act, state0_mod.atten)]
-              if rcell.params.inputs_arity == 1 else
-              [inputs.act, state0_mod.atten],
-              padding=inputs.padding,
-              reset_mask=inputs.reset_mask))
+              act=act, padding=inputs.padding, reset_mask=inputs.reset_mask))
 
       state1.atten, state1.atten_probs, state1.atten_state = (
           atten.ComputeContextVectorWithSource(
@@ -1356,8 +1354,10 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
         att_params.name = 'atten_%s' % src_name
       else:
         att_params = p.attention_tpl.Copy()
-        att_params.name = ('atten_shared'
-                           if p.share_attention else 'atten_%s' % (src_name))
+        if p.share_attention:
+          att_params.name = 'atten_shared'
+        else:
+          att_params.name = 'atten_%s' % (src_name)
       if att_params.params_init is None:
         att_params.params_init = py_utils.WeightInit.Gaussian(
             1. / math.sqrt(att_params.source_dim + att_params.query_dim))

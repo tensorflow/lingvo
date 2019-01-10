@@ -345,8 +345,9 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
 
 class AdditiveAttention(BaseAttentionLayer):
-  """Implements additive attention (also known as "Bahdanau Attention"),
-  as described in:
+  """Implements additive attention (also known as "Bahdanau Attention").
+
+  Described in:
 
   Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio.
   "Neural Machine Translation by Jointly Learning to Align and Translate."
@@ -712,8 +713,9 @@ class AdditiveAttention(BaseAttentionLayer):
 
 
 class DotProductAttention(BaseAttentionLayer):
-  """Implements dot-product attention (also known as "Luong Attention")
-  as described in:
+  """Implements dot-product attention (also known as "Luong Attention").
+
+  Described in:
 
   Minh-Thang Luong, Hieu Pham, Christopher D. Manning.
   "Effective Approaches to Attention-based Neural Machine Translation."
@@ -1085,8 +1087,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     self.TrackQTensor('source_proj_matmul', 'source_proj_add',
                       'query_proj_matmul', 'query_proj_add',
                       'ctx_pre_proj_matmul', 'ctx_pre_proj_add')
-    # TODO: Remove the p.is_eval check below once brop quant within defun is
-    # fixed on the training side. This is less than ideal as-is because
+    # TODO(suderman): Remove the p.is_eval check below once brop quant within
+    # defun is fixed on the training side. This is less than ideal as-is because
     # training will just trend to match downstream quant constraints vs force
     # alignment.
     self.TrackQTensor(
@@ -1956,7 +1958,6 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     """
     del query_segment_id
     p = self.params
-    fns = self.fns
     concated_source_vecs = packed_src.source_vecs
     concated_source_contexts = packed_src.source_contexts
     source_padding = packed_src.source_padding

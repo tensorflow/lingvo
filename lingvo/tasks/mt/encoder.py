@@ -96,9 +96,10 @@ class MTEncoderV1(base_encoder.BaseEncoder):
       # L0 is a bi-directional lstm.
 
       # L0's forward lstm cell
-      params = (
-          p.lstm_tpl.Copy()
-          if p.lstm_tpl_bidi is None else p.lstm_tpl_bidi.Copy())
+      if p.lstm_tpl_bidi is None:
+        params = p.lstm_tpl.Copy()
+      else:
+        params = p.lstm_tpl_bidi.Copy()
       params.name = 'L0_rnn_fwd'
       params.num_input_nodes = p.emb.embedding_dim
       params.num_output_nodes = p.lstm_cell_size
@@ -119,9 +120,10 @@ class MTEncoderV1(base_encoder.BaseEncoder):
       input_size = 2 * p.lstm_cell_size
       for i in range(1, p.num_lstm_layers):
         # Forward lstm cell.
-        cell = (
-            p.lstm_tpl.Copy()
-            if p.lstm_tpl_uni is None else p.lstm_tpl_uni.Copy())
+        if p.lstm_tpl_uni is None:
+          cell = p.lstm_tpl.Copy()
+        else:
+          cell = p.lstm_tpl_uni.Copy()
         cell.name = 'L%d_rnn' % i
         cell.num_input_nodes = input_size
         cell.num_output_nodes = p.lstm_cell_size

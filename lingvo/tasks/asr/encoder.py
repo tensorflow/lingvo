@@ -18,7 +18,6 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
@@ -27,12 +26,12 @@ from tensorflow.python.ops import inplace_ops
 from lingvo.core import base_encoder
 from lingvo.core import base_layer
 from lingvo.core import layers
+from lingvo.core import model_helper
 from lingvo.core import plot
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import summary_utils
-from lingvo.core import model_helper
 
 ConvLSTMBlock = collections.namedtuple('ConvLSTMBlock', ('rnn', 'cnn'))
 

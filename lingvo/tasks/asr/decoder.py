@@ -22,7 +22,6 @@ import math
 
 from matplotlib import font_manager
 from six.moves import range
-from six.moves import zip
 import tensorflow as tf
 
 from lingvo.core import attention
