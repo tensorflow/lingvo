@@ -127,6 +127,7 @@ class WmtEnDeTransformerSmall(WmtEnDeTransformerBase):
 class WmtEnDeRNMT(base_model_params.SingleTaskModelParams):
   """Params for WMT'14 En->De in sync training."""
 
+  # Generated using scripts in lingvo/mt/tools.
   DATADIR = '/tmp/wmt14/wpm/'
   VOCAB_SIZE = 32000
 

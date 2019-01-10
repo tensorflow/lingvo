@@ -36,6 +36,8 @@ from lingvo.tasks.punctuator import model
 class TransformerModel(base_model_params.SingleTaskModelParams):
   """A transformer model for the punctuator task."""
 
+  # Generated using
+  # lingvo/tasks/punctuator/tools:download_brown_corpus.
   _DATADIR = '/tmp/punctuator_data'
   _VOCAB_FILE = os.path.join(_DATADIR, 'grapheme.txt')
   # _VOCAB_SIZE needs to be a multiple of 16 because we use a sharded softmax

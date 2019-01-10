@@ -30,6 +30,7 @@ from lingvo.tasks.mt.params import base_config
 class WmtCaptionEnDeTransformer(base_model_params.SingleTaskModelParams):
   """Params for WMT'16 En->De Captions (ignoring the images)."""
 
+  # Generated using scripts in lingvo/mt/tools.
   DATADIR = '/tmp/wmtm16/wpm/'
   VOCAB_SIZE = 2000
   VOCAB_FILE = 'wpm-ende-2k.voc'

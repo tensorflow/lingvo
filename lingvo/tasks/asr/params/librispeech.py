@@ -57,6 +57,7 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
   """Base parameters for Librispeech 960 hour task."""
 
   # Insert path to the base directory where the data are stored here.
+  # Generated using scripts in lingvo/tasks/asr/tools.
   DATADIR = '/tmp/librispeech'
 
   # Setting the last training bucket to 1710 excludes only ~0.1% of the training

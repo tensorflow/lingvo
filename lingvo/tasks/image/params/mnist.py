@@ -29,6 +29,7 @@ class Base(base_model_params.SingleTaskModelParams):
 
   @classmethod
   def _Path(cls):
+    # Generated using lingvo/tools:keras2ckpt.
     return '/tmp/mnist/mnist'
 
   @classmethod
