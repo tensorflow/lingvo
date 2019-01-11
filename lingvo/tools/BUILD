@@ -56,7 +56,7 @@ py_library(
     deps = [
         # Additional FFT kernels dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:asr_frontend",
+        "//lingvo/tasks/asr:frontend",
     ],
 )
 
@@ -79,7 +79,6 @@ py_binary(
     deps = [
         ":audio_lib",
         # Implicit tensorflow dependency.
-        "//lingvo/core:asr_frontend",
     ],
 )
 

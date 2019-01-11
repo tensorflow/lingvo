@@ -13,31 +13,6 @@ load(
 )
 
 py_library(
-    name = "asr_frontend",
-    srcs = ["asr_frontend.py"],
-    deps = [
-        ":base_layer",
-        ":py_utils",
-    ],
-)
-
-py_test(
-    name = "asr_frontend_test",
-    srcs = ["asr_frontend_test.py"],
-    data = [
-        "//lingvo/tools/testdata:audio_data",
-    ],
-    deps = [
-        ":asr_frontend",
-        ":py_utils",
-        # Additional FFT kernels dependency.
-        # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
-        "//lingvo/core:test_helper",
-    ],
-)
-
-py_library(
     name = "attention",
     srcs = ["attention.py"],
     deps = [

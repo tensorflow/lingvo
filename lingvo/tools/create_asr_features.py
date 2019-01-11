@@ -27,7 +27,6 @@ import tarfile
 
 import tensorflow as tf
 
-from lingvo.core import asr_frontend
 from lingvo.tools import audio_lib
 
 tf.flags.DEFINE_string('input_tarball', '', 'Input .tar.gz file.')

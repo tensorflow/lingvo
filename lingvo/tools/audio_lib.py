@@ -23,7 +23,9 @@ import subprocess
 import tensorflow as tf
 
 from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
-from lingvo.core import asr_frontend
+from lingvo.core import py_utils
+from lingvo.tasks.asr import frontend as asr_frontend
+
 
 # There are two ways to decode a wav in tensorflow:
 # Through the tensorflow native audio decoder, exported
@@ -86,7 +88,7 @@ def ExtractLogMelFeatures(wav_bytes_t):
 
   def _CreateAsrFrontend():
     """Parameters corresponding to default ASR frontend."""
-    p = asr_frontend.MelFrontend.Params()
+    p = asr_frontend.MelAsrFrontend.Params()
     p.sample_rate = 16000.
     p.frame_size_ms = 25.
     p.frame_step_ms = 10.
@@ -111,5 +113,7 @@ def ExtractLogMelFeatures(wav_bytes_t):
   mel_frontend = _CreateAsrFrontend()
   with tf.control_dependencies(
       [tf.assert_equal(sample_rate, static_sample_rate)]):
-    log_mel, _ = mel_frontend.FPropDefaultTheta(audio)
+    outputs = mel_frontend.FPropDefaultTheta(
+        py_utils.NestedMap(src_inputs=audio, paddings=tf.zeros_like(audio)))
+    log_mel = outputs.src_inputs
   return log_mel

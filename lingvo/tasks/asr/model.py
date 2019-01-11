@@ -29,10 +29,11 @@ from lingvo.core import base_model
 from lingvo.core import lr_schedule
 from lingvo.core import metrics
 from lingvo.core import py_utils
-from lingvo.tools import audio_lib
 from lingvo.tasks.asr import decoder
 from lingvo.tasks.asr import decoder_utils
 from lingvo.tasks.asr import encoder
+from lingvo.tasks.asr import frontend as asr_frontend
+from lingvo.tools import audio_lib
 
 # hyps: [num_beams, num_hyps_per_beam] of serialized Hypothesis protos.
 # ids: [num_beams * num_hyps_per_beam, max_target_length].
@@ -51,6 +52,10 @@ class AsrModel(base_model.BaseTask):
     p = super(AsrModel, cls).Params()
     p.encoder = encoder.AsrEncoder.Params()
     p.decoder = decoder.AsrDecoder.Params()
+    p.Define(
+        'frontend', None,
+        'ASR frontend to extract features from input. Defaults to no frontend '
+        'which means that features are taken directly from the input.')
     p.Define(
         'target_key', '', 'If non-empty, will use the specified key from '
         'input_batch.additional_tgts to set training targets.')
@@ -87,14 +92,20 @@ class AsrModel(base_model.BaseTask):
         if not p.decoder.name:
           p.decoder.name = 'dec'
         self.CreateChild('decoder', p.decoder)
+      if p.frontend:
+        self.CreateChild('frontend', p.frontend)
 
   def ComputePredictions(self, theta, input_batch):
-    encoder_outputs = self.encoder.FProp(theta.encoder, input_batch.src)
-    if self.params.target_key:
+    p = self.params
+    input_batch_src = input_batch.src
+    if p.frontend:
+      input_batch_src = self.frontend.FPropDefaultTheta(input_batch_src)
+    encoder_outputs = self.encoder.FPropDefaultTheta(input_batch_src)
+    if p.target_key:
       tf.logging.info(
           'Using batch.additional_tgts[%s] to source '
-          'tgts instead of batch.tgts.', self.params.target_key)
-      tgt = input_batch.additional_tgts[self.params.target_key]
+          'tgts instead of batch.tgts.', p.target_key)
+      tgt = input_batch.additional_tgts[p.target_key]
     else:
       tgt = input_batch.tgt
     return self.decoder.ComputePredictions(theta.decoder, encoder_outputs, tgt)
@@ -144,7 +155,10 @@ class AsrModel(base_model.BaseTask):
     """Constructs the inference graph."""
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
-      encoder_outputs = self.encoder.FPropDefaultTheta(input_batch.src)
+      input_batch_src = input_batch.src
+      if p.frontend:
+        input_batch_src = self.frontend.FPropDefaultTheta(input_batch_src)
+      encoder_outputs = self.encoder.FPropDefaultTheta(input_batch_src)
 
       if 'contextualizer' in self.decoder.theta:
         self.decoder.contextualizer.SetContextMap(
@@ -343,19 +357,31 @@ class AsrModel(base_model.BaseTask):
       dictionary consists of keys corresponding to tensor names, and values
       corresponding to a tensor in the graph which should be input/read from.
     """
+    p = self.params
     with tf.name_scope('default'):
+      # TODO(laurenzo): Once the migration to integrated frontends is complete,
+      # this model should be upgraded to use the MelAsrFrontend in its
+      # params vs relying on pre-computed feature generation and the inference
+      # special casing.
       wav_bytes = tf.placeholder(dtype=tf.string, name='wav')
-      log_mel = audio_lib.ExtractLogMelFeatures(wav_bytes)
+      frontend = self.frontend if p.frontend else None
+      if not frontend:
+        # No custom frontend. Instantiate the default.
+        frontend_p = asr_frontend.MelAsrFrontend.Params()
+        frontend = frontend_p.cls(frontend_p)
 
-      # Reshape log_mel features, if required. For example, by undoing default
-      # stacking.
-      src_frames = tf.reshape(
-          log_mel, shape=[1, -1, self.params.input.frame_size, 1])
-      src_paddings = tf.zeros(
-          shape=[1, tf.shape(src_frames)[1]], dtype=tf.float32)
+      # Decode the wave bytes and use the explicit frontend.
+      unused_sample_rate, audio = audio_lib.DecodeWav(wav_bytes)
+      audio *= 32768
+      # Remove channel dimension, since we have a single channel.
+      audio = tf.squeeze(audio, axis=1)
+      # Add batch.
+      audio = tf.expand_dims(audio, axis=0)
+      input_batch_src = py_utils.NestedMap(
+          src_inputs=audio, paddings=tf.zeros_like(audio))
+      input_batch_src = self.frontend.FPropDefaultTheta(input_batch_src)
 
-      encoder_outputs = self.encoder.FPropDefaultTheta(
-          py_utils.NestedMap(src_inputs=src_frames, paddings=src_paddings))
+      encoder_outputs = self.encoder.FPropDefaultTheta(input_batch_src)
       decoder_outputs = self.decoder.BeamSearchDecode(encoder_outputs)
       topk = self._GetTopK(decoder_outputs)
 
@@ -363,7 +389,7 @@ class AsrModel(base_model.BaseTask):
       fetches = {
           'hypotheses': topk.decoded,
           'scores': topk.scores,
-          'src_frames': src_frames,
+          'src_frames': input_batch_src.src_inputs,
           'encoder_frames': encoder_outputs.encoded
       }
 

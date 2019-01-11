@@ -30,8 +30,49 @@ def _NextPowerOfTwo(i):
   return math.pow(2, math.ceil(math.log(i, 2)))
 
 
-class MelFrontend(base_layer.BaseLayer):
-  """A layer that implements mel feature extraction.
+class BaseAsrFrontend(base_layer.BaseLayer):
+  """Base class for ASR frontends.
+
+  An ASR frontend is responsible for performing feature extraction from the
+  input in the cases where features are not precomputed as part of the
+  dataset. In such cases, it would be typical for the input to consist of
+  waveform data in some form.
+  """
+
+  def FProp(self, theta, input_batch):
+    """Generates ASR features for a batch.
+
+    Shapes of the input_batch and output are dependent on the implementation
+    and should be paired with the model's input format and encoder expectations.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      input_batch: A NestedMap with fields:  - 'src_inputs' - The inputs tensor,
+        compatible with model input. Expected to be of shape [batch, time, ...].
+        - 'paddings' - The paddings tensor. It is expected to be of shape
+        [batch, time].
+
+    Returns:
+      NestedMap of encoder inputs which can be passed directly to a
+      compatible encoder and contains:
+
+        - 'src_inputs': inputs to the encoder, minimally of shape
+          [batch, time, ...].
+        - 'paddings': a 0/1 tensor of shape [batch, time].
+    """
+    raise NotImplementedError()
+
+
+class NoopAsrFrontend(BaseAsrFrontend):
+  """ASR frontend that does passes its input to its output."""
+
+  def FProp(self, theta, input_batch):
+    return input_batch.DeepCopy()
+
+
+class MelAsrFrontend(BaseAsrFrontend):
+  """An AsrFrontend that implements mel feature extraction from PCM frames.
 
   This is expressed in pure TensorFlow and without reference to external
   resources.
@@ -43,7 +84,7 @@ class MelFrontend(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(MelFrontend, cls).Params()
+    p = super(MelAsrFrontend, cls).Params()
     p.name = 'frontend'
     p.Define('sample_rate', 16000.0, 'Sample rate in Hz')
     p.Define('frame_size_ms', 25.0,
@@ -82,7 +123,7 @@ class MelFrontend(base_layer.BaseLayer):
 
   @base_layer.initializer
   def __init__(self, params):
-    super(MelFrontend, self).__init__(params)
+    super(MelAsrFrontend, self).__init__(params)
     p = self.params
     # Make sure key params are in floating point.
     p.sample_rate = float(p.sample_rate)
@@ -129,19 +170,27 @@ class MelFrontend(base_layer.BaseLayer):
   def window_frame_step(self):
     return self._frame_step
 
-  def FProp(self, theta, pcm_audio_data):
+  def FProp(self, theta, input_batch):
     """Perform signal processing on a sequence of PCM data.
 
     Args:
       theta: Layer theta.
-      pcm_audio_data: int16 or float32 tensor of PCM audio data, scaled to +/-
-        32768 (versus 0..1!). Shaped: [batch, frame_count]
+      input_batch: PCM input map:
 
+        - 'src_inputs': int16 or float32 tensor of PCM audio data, scaled to
+          +/-32768 (versus [-1..1)!). Shaped: [batch, frame_count].
+        - 'paddings': per frame 0/1 paddings. Shaped: [batch, frame].
     Returns:
-      src_inputs shaped [batch, time, features, 1], src_paddings
+      NestedMap of encoder inputs which can be passed directly to a
+      compatible encoder and contains:
+
+        - 'src_inputs': inputs to the encoder, minimally of shape
+          [batch, time, ...].
+        - 'paddings': a 0/1 tensor of shape [batch, time].
     """
     p = self.params
-    batch_size = py_utils.GetShape(pcm_audio_data, 2)[0]
+    pcm_audio_data = input_batch.src_inputs
+    batch_size, frame_count = py_utils.GetShape(pcm_audio_data, 2)
     mel_spectrogram_norm = self._FPropChunk(theta, pcm_audio_data)
 
     # Stacking across the whole sequence.
@@ -152,12 +201,13 @@ class MelFrontend(base_layer.BaseLayer):
     frame_count = tf.shape(padded_mel_spectrogram)[1] // 3
     triple_mel = tf.reshape(padded_mel_spectrogram[:, 0:3 * frame_count, :],
                             [batch_size, frame_count, 3 * p.num_bins])
-    src_paddings = 0 * tf.reduce_sum(triple_mel, axis=2)
+    output_padding = 0 * tf.reduce_sum(triple_mel, axis=2)
 
     # Add feature dim. Shape = [batch, time, features, 1]
-    src_inputs = triple_mel
-    src_inputs = tf.expand_dims(triple_mel, -1)
-    return src_inputs, src_paddings
+    outputs = triple_mel
+    outputs = tf.expand_dims(triple_mel, -1)
+
+    return py_utils.NestedMap(src_inputs=outputs, paddings=output_padding)
 
   def _ApplyPreemphasis(self, framed_signal):
     p = self.params

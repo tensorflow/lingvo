@@ -5,6 +5,31 @@ package(
 licenses(["notice"])  # Apache 2.0
 
 py_library(
+    name = "frontend",
+    srcs = ["frontend.py"],
+    deps = [
+        "//lingvo/core:base_layer",
+        "//lingvo/core:py_utils",
+    ],
+)
+
+py_test(
+    name = "frontend_test",
+    srcs = ["frontend_test.py"],
+    data = [
+        "//lingvo/tools/testdata:audio_data",
+    ],
+    deps = [
+        ":frontend",
+        # Additional FFT kernels dependency.
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:py_utils",
+        "//lingvo/core:test_helper",
+    ],
+)
+
+py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
     deps = [
@@ -155,6 +180,7 @@ py_library(
         ":decoder",
         ":decoder_utils",
         ":encoder",
+        ":frontend",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",

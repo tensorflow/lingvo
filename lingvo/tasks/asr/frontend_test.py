@@ -12,22 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Tests for asr_frontend."""
+"""Tests for asr frontend."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import os
-
 import numpy as np
 
 import tensorflow as tf
 
-from lingvo.core import asr_frontend
+from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
 from lingvo.core import py_utils
 from lingvo.core import test_helper
-from tensorflow.contrib.framework.python.ops import audio_ops as contrib_audio
+from lingvo.tasks.asr import frontend
 
 
 class AsrFrontendTest(tf.test.TestCase):
@@ -45,7 +43,7 @@ class AsrFrontendTest(tf.test.TestCase):
       return result.sample_rate, tf.expand_dims(audio, axis=0)
 
   def _CreateFrontendParams(self):
-    p = asr_frontend.MelFrontend.Params()
+    p = frontend.MelAsrFrontend.Params()
     p.sample_rate = 24000.
     p.num_bins = 2
     p.noise_scale = 0.
@@ -61,7 +59,10 @@ class AsrFrontendTest(tf.test.TestCase):
     mel_frontend = p.cls(p)
     sample_rate, pcm = self._GetPcm()
     pcm *= 32768
-    log_mel, paddings = mel_frontend.FPropDefaultTheta(pcm)
+    outputs = mel_frontend.FPropDefaultTheta(
+        py_utils.NestedMap(src_inputs=pcm, paddings=tf.zeros_like(pcm)))
+    log_mel = outputs.src_inputs
+    paddings = outputs.paddings
     with self.session() as sess:
       pcm = sess.run(pcm)
       tf.logging.info('pcm: ~ %s = %s', pcm.shape, pcm)
@@ -93,7 +94,9 @@ class AsrFrontendTest(tf.test.TestCase):
     mel_frontend = p.cls(p)
     _, pcm = self._GetPcm()
     pcm *= 32768
-    log_mel, _ = mel_frontend.FPropDefaultTheta(pcm)
+    outputs = mel_frontend.FPropDefaultTheta(
+        py_utils.NestedMap(src_inputs=pcm, paddings=tf.zeros_like(pcm)))
+    log_mel = outputs.src_inputs
     with self.session() as sess:
       log_mel = sess.run(log_mel)
       # log_mel ~ [batch, time, feature_size, channel]
