@@ -76,10 +76,11 @@ def AddImage(fig,
              fontsize='small',
              origin='lower',
              suppress_xticks=False,
-             suppress_yticks=False):
+             suppress_yticks=False,
+             aspect='equal'):
   """Convenience function to plot data as an image on the given axes."""
   image = axes.imshow(
-      data, cmap=cmap, origin=origin, aspect='auto', interpolation='nearest')
+      data, cmap=cmap, origin=origin, aspect=aspect, interpolation='nearest')
   if show_colorbar:
     fig.colorbar(image)
   if clim is not None:
