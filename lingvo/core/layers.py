@@ -1334,7 +1334,7 @@ class PoolingLayer(quant_utils.QuantizableLayer):
 
 
 class EmbeddingLayer(base_layer.BaseLayer):
-  """Embedding layer, with batch normalization and relu activation."""
+  """Embedding layer."""
 
   @classmethod
   def Params(cls):
