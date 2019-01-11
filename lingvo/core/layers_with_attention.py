@@ -529,6 +529,8 @@ class MergerLayer(base_layer.BaseLayer):
   - mean: Takes the mean of input tensors.
   - concat: Concatenates the input tensors over the last dimension.
   - sum: Sum up all the input tensors.
+  - weighted_sum: Use learnt weights to combine input tensors.
+  - gated_avg: Learnt input dependent gates are used to average tensors.
 
   This class is expected to be called by multi-source/multi-column models.
   """
@@ -554,12 +556,14 @@ class MergerLayer(base_layer.BaseLayer):
         layers.ProjectionLayer.Params().Set(
             batch_norm=False, weight_norm=True, has_bias=True),
         'Configs template for the projection layer.')
+    p.Define('gated_avg_tpl', layers.GatedAverageLayer.Params(),
+             'Configs template for the gated average layer.')
     p.Define('num_sources', 0, 'If merger_op=weighted_sum, then must specify '
              'num of sources.')
     return p
 
   # Merging operation keys supported by this layer.
-  MERGER_OPS = ['mean', 'atten', 'concat', 'sum', 'weighted_sum']
+  MERGER_OPS = ['mean', 'atten', 'concat', 'sum', 'weighted_sum', 'gated_avg']
 
   @base_layer.initializer
   def __init__(self, params):
@@ -605,6 +609,15 @@ class MergerLayer(base_layer.BaseLayer):
           collections=[self.__class__.__name__ + '_vars'])
       with tf.variable_scope(p.name):
         _, self._sum_weight = py_utils.CreateVariable('sum_weight', pw)
+
+    if p.merger_op == 'gated_avg':
+      assert p.num_sources > 0, ('For merger_op=gated_avg, must specify '
+                                 'num_sources > 0.')
+      params = p.gated_avg_tpl.Copy()
+      params.name = 'g_avg_merger'
+      params.num_nodes = p.source_dim
+      params.num_inputs = p.num_sources
+      self.CreateChild('gated_average', params)
 
   def FProp(self, theta, inputs, query_vec=None):
     """Combines the list of input tensors into a single tensor.
@@ -692,6 +705,9 @@ class MergerLayer(base_layer.BaseLayer):
                                 tf.shape(t2)[:-1]) for t1, t2 in tensor_pairs
       ]):
         output = tf.concat(inputs, axis=-1)
+
+    elif p.merger_op == 'gated_avg':
+      output = self.gated_average.FProp(theta.gated_average, inputs)
 
     else:
       raise ValueError('Unrecognized merge op!')

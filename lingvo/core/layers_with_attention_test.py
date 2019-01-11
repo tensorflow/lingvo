@@ -708,6 +708,40 @@ class LayersWithAttentionTest(tf.test.TestCase):
       self.assertEqual(actual_ctx.shape, (batch, depth))
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
+  def testMergerLayerGatedAvg(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(505837249)
+      depth = 4
+      batch = 2
+      n_sources = 3
+
+      inp_1 = np.asarray([[0.0, 0.0, 0.0, 0.0], [-1.0, -1.0, 1.0, 1.0]],
+                         dtype=np.float32)
+      inp_2 = np.asarray([[1.0, 1.0, 1.0, 1.0], [-1.0, -1.0, 1.0, 1.0]],
+                         dtype=np.float32)
+      inp_3 = np.asarray([[-1.0, -1.0, -1.0, -1.0], [-1.0, -1.0, 1.0, 1.0]],
+                         dtype=np.float32)
+      p = layers_with_attention.MergerLayer.Params()
+      p.name = 'merger_layer'
+      p.merger_op = 'gated_avg'
+      p.source_dim = depth
+      p.num_sources = n_sources
+      merger = p.cls(p)
+
+      ctx = merger.FProp(merger.theta, [inp_1, inp_2, inp_3])
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run(ctx)
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [ 0.365041,  0.365041,  0.365041,  0.365041],
+          [ -1.0, -1.0, 1.0 , 1.0]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_ctx.shape, (batch, depth))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
   def testStyleLayer(self):
     with self.session(use_gpu=False) as sess:
       p = layers_with_attention.StyleLayer.Params().Set(
