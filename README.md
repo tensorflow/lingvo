@@ -70,3 +70,50 @@ In the `/tmp/mnist/log/train` directory, one will obtain:
 
 To run a more elaborate model, you'll need a cluster with GPUs. Please refer to
 `lingvo/tasks/mt/README.md` for more information.
+
+## Current models
+
+### Automatic Speech Recogition
+
+*   [asr.librispeech.Librispeech960Grapheme](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/asr/params/librispeech.py)<sup>1,2</sup>
+*   [asr.librispeech.Librispeech960Wpm](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/asr/params/librispeech.py)<sup>1,2</sup>
+
+### Image
+
+*   [image.mnist.LeNet5](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/image/params/mnist.py)<sup>3</sup>
+
+### Language Modelling
+
+*   [lm.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/lm/params/one_billion_wds.py)<sup>4</sup>
+
+### Machine Translation
+
+*   [mt.wmt14_en_de.WmtEnDeTransformerBase](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>5</sup>
+*   [mt.wmt14_en_de.WmtEnDeRNMT](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de.py)<sup>5</sup>
+*   [mt.wmtm16_en_de.WmtCaptionEnDeTransformer](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmtm16_en_de.py)<sup>5</sup>
+
+<font size="-1">
+
+\[1]: [Listen, Attend and Spell](https://arxiv.org/pdf/1508.01211.pdf). William
+Chan, Navdeep Jaitly, Quoc V. Le, and Oriol Vinyals. ICASSP 2016.
+
+\[2]: [End-to-end Continuous Speech Recognition using Attention-based Recurrent
+NN: First Results](https://arxiv.org/pdf/1412.1602.pdf). Jan Chorowski, Dzmitry
+Bahdanau, Kyunghyun Cho, and Yoshua Bengio. arXiv 2014.
+
+\[3]:
+[Gradient-based learning applied to document recognition](http://yann.lecun.com/exdb/publis/pdf/lecun-01a.pdf).
+Yann LeCun, Leon Bottou, Yoshua Bengio, and Patrick Haffner. IEEE 1998.
+
+\[4]:
+[Exploring the Limits of Language Modeling](https://arxiv.org/pdf/1602.02410.pdf).
+Rafal Jozefowicz, Oriol Vinyals, Mike Schuster, Noam Shazeer, and Yonghui Wu.
+arXiv, 2016.
+
+\[5]: [The Best of Both Worlds: Combining Recent Advances in Neural Machine
+Translation](http://aclweb.org/anthology/P18-1008). Mia X. Chen, Orhan Firat,
+Ankur Bapna, Melvin Johnson, Wolfgang Macherey, George Foster, Llion Jones, Mike
+Schuster, Noam Shazeer, Niki Parmar, Ashish Vaswani, Jakob Uszkoreit, Lukasz
+Kaiser, Zhifeng Chen, Yonghui Wu, and Macduff Hughes. ACL 2018.
+
+</font>
