@@ -98,9 +98,7 @@ class AsrModel(base_model.BaseTask):
   def ComputePredictions(self, theta, input_batch):
     p = self.params
     input_batch_src = input_batch.src
-    if p.frontend:
-      input_batch_src = self.frontend.FPropDefaultTheta(input_batch_src)
-    encoder_outputs = self.encoder.FPropDefaultTheta(input_batch_src)
+    encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch_src)
     if p.target_key:
       tf.logging.info(
           'Using batch.additional_tgts[%s] to source '
@@ -115,6 +113,22 @@ class AsrModel(base_model.BaseTask):
     if self.params.target_key:
       tgt = input_batch.additional_tgts[self.params.target_key]
     return self.decoder.ComputeLoss(theta.decoder, predictions, tgt)
+
+  def _FrontendAndEncoderFProp(self, theta, input_batch_src):
+    """FProps through the frontend and encoder.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      input_batch_src: An input NestedMap as per `BaseAsrFrontend.FProp`.
+
+    Returns:
+      A NestedMap as from `AsrEncoder.FProp`.
+    """
+    p = self.params
+    if p.frontend:
+      input_batch_src = self.frontend.FProp(theta.frontend, input_batch_src)
+    return self.encoder.FProp(theta.encoder, input_batch_src)
 
   def _GetTopK(self, decoder_outs, tag=''):
     hyps = decoder_outs.topk_hyps
@@ -155,11 +169,8 @@ class AsrModel(base_model.BaseTask):
     """Constructs the inference graph."""
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
-      input_batch_src = input_batch.src
-      if p.frontend:
-        input_batch_src = self.frontend.FPropDefaultTheta(input_batch_src)
-      encoder_outputs = self.encoder.FPropDefaultTheta(input_batch_src)
-
+      encoder_outputs = self._FrontendAndEncoderFProp(self.theta,
+                                                      input_batch.src)
       if 'contextualizer' in self.decoder.theta:
         self.decoder.contextualizer.SetContextMap(
             input_batch.tgt, self.decoder.theta.contextualizer)

@@ -48,10 +48,13 @@ class BaseAsrFrontend(base_layer.BaseLayer):
     Args:
       theta: A NestedMap object containing weights' values of this layer and its
         children layers.
-      input_batch: A NestedMap with fields:  - 'src_inputs' - The inputs tensor,
-        compatible with model input. Expected to be of shape [batch, time, ...].
+      input_batch: A NestedMap with fields:
+
+        - 'src_inputs' - The inputs tensor,
+          compatible with model input. Expected to be of shape
+          [batch, time, ...].
         - 'paddings' - The paddings tensor. It is expected to be of shape
-        [batch, time].
+          [batch, time].
 
     Returns:
       NestedMap of encoder inputs which can be passed directly to a
@@ -64,8 +67,8 @@ class BaseAsrFrontend(base_layer.BaseLayer):
     raise NotImplementedError()
 
 
-class NoopAsrFrontend(BaseAsrFrontend):
-  """ASR frontend that does passes its input to its output."""
+class NullAsrFrontend(BaseAsrFrontend):
+  """ASR frontend that just returns its input as FProp output."""
 
   def FProp(self, theta, input_batch):
     return input_batch.DeepCopy()
@@ -172,6 +175,11 @@ class MelAsrFrontend(BaseAsrFrontend):
 
   def FProp(self, theta, input_batch):
     """Perform signal processing on a sequence of PCM data.
+
+    NOTE: This implementation does not currently support paddings, and they
+    are accepted for compatibility with the super-class.
+
+    TODO(laurenzo): Rework this to support paddings.
 
     Args:
       theta: Layer theta.
