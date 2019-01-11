@@ -123,11 +123,12 @@ def _SeqLenDim(nmap):
   Returns:
     A scalar tensor which is the size of 0-th dim of every tensors in nmap.
   """
-  xs = nmap.Flatten()
-  assert xs, 'nmap is empty.'
-  with tf.control_dependencies(
-      [py_utils.assert_same_dim0(xs, msg='recurrent._SeqLen')]):
-    return tf.shape(xs[0])[0]
+  keys, values = zip(*nmap.FlattenItems())
+  assert values, 'nmap is empty.'
+  with tf.control_dependencies([
+      py_utils.assert_same_dim0(values, msg='recurrent._SeqLen: %s' % (keys,)),
+  ]):
+    return tf.shape(values[0])[0]
 
 
 def _FlattenPadding(padding):
