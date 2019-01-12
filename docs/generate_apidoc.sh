@@ -17,7 +17,7 @@
 set -e
 
 # Run this from inside docker.
-bazel build -c opt lingvo:trainer lingvo/core/ops:hyps_py_pb2
+bazel build -c opt lingvo:trainer lingvo/core/ops:hyps_py_pb2 2>&1
 cp -f bazel-bin/lingvo/core/ops/x_ops.so lingvo/core/ops
 cp -f bazel-genfiles/lingvo/core/ops/hyps_pb2.py lingvo/core/ops
 cp -f bazel-genfiles/lingvo/core/inference_graph_pb2.py lingvo/core
