@@ -35,6 +35,16 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
+// An interface to iterate sequentially a set of record (Rope).
+class RecordIterator {
+ public:
+  virtual ~RecordIterator() {}
+
+  // Get the next record. If EOF, returns false. Otherwise returns true and
+  // fills in 'key' and 'value'.
+  virtual bool Next(string* key, Rope* value) = 0;
+};
+
 // RecordYielder defines an interface that should be used for producing value
 // records from files in a random order. Most users should use
 // BasicRecordYielder and BasicRecordYielder::New (see example below).

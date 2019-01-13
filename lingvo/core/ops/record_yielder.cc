@@ -23,6 +23,7 @@ limitations under the License.
 #include "tensorflow/core/lib/io/random_inputstream.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/strings/str_util.h"
+#include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/env.h"
 #include "lingvo/core/ops/mutex.h"
 
@@ -226,6 +227,36 @@ Status BasicRecordYielder::MatchFiles(const string& patterns,
   return Status::OK();
 }
 
+RandomAccessFile* OpenOrDie(const string& filename) {
+  std::unique_ptr<RandomAccessFile> file;
+  TF_CHECK_OK(Env::Default()->NewRandomAccessFile(filename, &file));
+  return file.release();
+}
+
+class PlainTextIterator : public RecordIterator {
+ public:
+  PlainTextIterator(const string& filename)
+      : file_(OpenOrDie(filename)),
+        stream_(file_.get()),
+        buf_(&stream_, 2 << 20) {}
+
+  bool Next(string* key, Rope* value) override {
+    Status s = buf_.ReadLine(&line_);
+    if (errors::IsOutOfRange(s)) return false;
+    TF_CHECK_OK(s);
+    *key = strings::Printf("%08lld", num_++);
+    *value = line_;
+    return true;
+  }
+
+ private:
+  std::unique_ptr<RandomAccessFile> file_;
+  io::RandomAccessInputStream stream_;
+  io::BufferedInputStream buf_;
+  int64 num_ = 0;
+  string line_;
+};
+
 // Record yielder for plain text files.
 class PlainTextYielder : public BasicRecordYielder {
  public:
@@ -238,23 +269,11 @@ class PlainTextYielder : public BasicRecordYielder {
     for (const string& filename : shard->filenames) {
       if (ShouldFinish(Status::OK())) break;
       VLOG(1) << "Shard " << shard->index << " " << filename;
-      std::unique_ptr<RandomAccessFile> file;
-      shard->status = Env::Default()->NewRandomAccessFile(filename, &file);
-      if (!shard->status.ok()) {
-        break;
-      }
-      std::unique_ptr<io::RandomAccessInputStream> input_stream(
-          new io::RandomAccessInputStream(file.get()));
-      io::BufferedInputStream in(input_stream.get(), 2 << 20);
-
-      string line;
-      while (true) {
-        shard->status = in.ReadLine(&line);
-        if (errors::IsOutOfRange(shard->status)) {
-          shard->status = Status::OK();
-          break;
-        }
-        values.emplace_back(line);
+      PlainTextIterator iter(filename);
+      string key;
+      Rope val;
+      while (iter.Next(&key, &val)) {
+        values.emplace_back(val);
         if (values.size() >= kRecords && Add(&values)) {
           shard->status = errors::Aborted("stopped");
           break;
@@ -266,6 +285,32 @@ class PlainTextYielder : public BasicRecordYielder {
       Add(&values);
     }
     shard->done.Notify();
+  }
+};
+
+class TFRecordIterator : public RecordIterator {
+ public:
+  TFRecordIterator(const string& filename)
+      : file_(OpenOrDie(filename)), reader_(file_.get(), ReaderOptions()) {}
+
+  bool Next(string* key, Rope* value) override {
+    Status s = reader_.ReadRecord(&record_);
+    if (errors::IsOutOfRange(s)) return false;
+    *key = strings::Printf("%08lld", num_++);
+    *value = record_;
+    return true;
+  }
+
+ private:
+  std::unique_ptr<RandomAccessFile> file_;
+  io::SequentialRecordReader reader_;
+  int64 num_ = 0;
+  string record_;
+
+  io::RecordReaderOptions ReaderOptions() {
+    io::RecordReaderOptions opts;
+    opts.buffer_size = 2LL << 20;  // 2MB.
+    return opts;
   }
 };
 
@@ -281,22 +326,11 @@ class TFRecordYielder : public BasicRecordYielder {
     for (const string& filename : shard->filenames) {
       if (ShouldFinish(Status::OK())) break;
       VLOG(1) << "Shard " << shard->index << " " << filename;
-      std::unique_ptr<RandomAccessFile> file;
-      shard->status = Env::Default()->NewRandomAccessFile(filename, &file);
-      if (!shard->status.ok()) {
-        break;
-      }
-      io::RecordReaderOptions opts;
-      opts.buffer_size = 2 << 20;
-      io::SequentialRecordReader reader(file.get());
-      string record;
-      while (true) {
-        shard->status = reader.ReadRecord(&record);
-        if (errors::IsOutOfRange(shard->status)) {
-          shard->status = Status::OK();
-          break;
-        }
-        values.emplace_back(record);
+      TFRecordIterator iter(filename);
+      string key;
+      Rope val;
+      while (iter.Next(&key, &val)) {
+        values.emplace_back(val);
         if (values.size() >= kRecords && Add(&values)) {
           shard->status = errors::Aborted("stopped");
           break;
