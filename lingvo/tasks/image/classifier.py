@@ -238,7 +238,7 @@ class ModelV2(BaseClassifier):
     with tf.colocate_with(act):
       # Avg pool
       act = tf.reduce_mean(act, axis=[1, 2])
-      tf.logging.info("{}'s deivce: {}".format(act, act.device))
+      tf.logging.info("{}'s device: {}".format(act, act.device))
       # Softmax
       labels = tf.to_int64(input_batch.label)
       xent = self.softmax.FProp(
