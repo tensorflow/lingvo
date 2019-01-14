@@ -15,13 +15,14 @@
 # ==============================================================================
 
 set -e
+OUTDIR=/tmp/lingvo_apidoc
 
 # Run this from inside docker.
 bazel build -c opt lingvo:trainer lingvo/core/ops:hyps_py_pb2 2>&1
 cp -f bazel-bin/lingvo/core/ops/x_ops.so lingvo/core/ops
 cp -f bazel-genfiles/lingvo/core/ops/hyps_pb2.py lingvo/core/ops
 cp -f bazel-genfiles/lingvo/core/inference_graph_pb2.py lingvo/core
-rm -f docs/apidoc/lingvo.*.rst
-sphinx-apidoc -o docs/apidoc -efPM --implicit-namespaces lingvo/ $(find . -name '*_test.py')
-(cd docs/apidoc && PYTHONPATH=../.. sphinx-build -b html -WT --keep-going -j auto . /tmp/lingvo_apidoc)
+sphinx-apidoc -o "$OUTDIR" -efPM --implicit-namespaces lingvo/ $(find . -name '*_test.py')
+cp docs/apidoc/{conf.py,index.rst} "$OUTDIR"
+(export PYTHONPATH="$(pwd)" && cd "$OUTDIR" && sphinx-build -b html -WT --keep-going -j auto . build)
 rm -f lingvo/core/inference_graph_pb2.py lingvo/core/ops/{x_ops.so,hyps_pb2.py}
