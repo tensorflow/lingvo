@@ -77,7 +77,7 @@ def AddImage(fig,
              origin='lower',
              suppress_xticks=False,
              suppress_yticks=False,
-             aspect='equal'):
+             aspect='auto'):
   """Convenience function to plot data as an image on the given axes."""
   image = axes.imshow(
       data, cmap=cmap, origin=origin, aspect=aspect, interpolation='nearest')
