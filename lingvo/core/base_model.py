@@ -296,11 +296,23 @@ class BaseTask(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
-  def ProcessFPropResults(self, sess, global_step, metrics, per_example):
-    """Called once for each train loop on each worker/TPU.
+  def FilterPerExampleTensors(self, per_example):
+    """Return the per-example tensors ProcessFPropResults needs.
 
-    Note that this method may be called from many threads at once,
-    and that global_step may not be monotonically increasing.
+    By default we don't send any per-example tensors to ProcessFPropResults
+    because some may be expensive to compute. Implement this method to let
+    some of them pass through.
+
+    Args:
+      per_example: A dict of tensors returned as per-example tensors from FProp.
+
+    Returns:
+      A dict containing a subset of the key/value pairs in per_example.
+    """
+    return {}
+
+  def ProcessFPropResults(self, sess, global_step, metrics, per_example):
+    """Called once for each train loop.
 
     BaseModel.ProcessFPropResults is also called on each loop, so you
     can put your implementation wherever it is most convenient for you.
@@ -418,6 +430,7 @@ class BaseTask(base_layer.BaseLayer):
     # Generates summaries.
     for name, (value, weight) in six.iteritems(metrics):
       self.AddEvalMetric(name, value, weight)
+    per_example = self.FilterPerExampleTensors(per_example)
     for name, value in six.iteritems(per_example):
       self.AddPerExampleTensor(name, value)
     # Loss.
@@ -773,7 +786,7 @@ class BaseTask(base_layer.BaseLayer):
     self._eval_metrics[name] = (value, weight)
 
   def AddPerExampleTensor(self, name, value):
-    if name in self._eval_metrics:
+    if name in self._per_example:
       raise ValueError('Metric %s has already been defined.' % name)
     self._per_example[name] = value
 
@@ -1079,24 +1092,22 @@ class BaseModel(base_layer.BaseLayer):
           [task.total_examples for task in self.tasks])
     return self._total_examples_sum
 
-  def ProcessFPropResults(self, sess, global_step, metrics,
-                          per_example_tensors):
-    """Called once for each train loop on each worker/TPU.
-
-    Note that this method may be called from many threads at once,
-    and that global_step may not be monotonically increasing.
+  def ProcessFPropResults(self, sess, global_step, metrics, per_example):
+    """Called once for each train loop.
 
     BaseTask.ProcessFPropResults is also called on each loop, so you
     can put your implementation wherever it is most convenient for you.
+
+    Be sure to implement BaseTask.FilterPerExampleTensors if you plan to use any
+    per-example tensors in this method.
 
     Args:
       sess: a session.
       global_step: approximate number of model training steps.
       metrics: the metrics dict returned by FPropTower.
-      per_example_tensors: the per_example dict returned by FPropTower.
+      per_example: the per_example dict returned by FPropTower.
     """
-    del sess, global_step, metrics, per_example_tensors
-    return
+    pass
 
 
 class SingleTaskModel(BaseModel):
