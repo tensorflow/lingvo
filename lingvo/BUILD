@@ -159,6 +159,7 @@ py_test(
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
+        "//lingvo/core:trainer_test_utils",
         "//lingvo/tasks/image:input_generator",
         "//lingvo/tasks/image/params:mnist",
         "//lingvo/tasks/lm/params:one_billion_wds",

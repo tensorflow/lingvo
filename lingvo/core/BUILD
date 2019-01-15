@@ -726,6 +726,19 @@ py_test(
 )
 
 py_library(
+    name = "trainer_test_utils",
+    srcs = ["trainer_test_utils.py"],
+    deps = [
+        ":base_input_generator",
+        ":base_layer",
+        ":base_model",
+        ":py_utils",
+        # Implicit tensorflow dependency.
+        "//lingvo/core:optimizer",
+    ],
+)
+
+py_library(
     name = "wpm_encoder",
     srcs = ["wpm_encoder.py"],
     deps = [

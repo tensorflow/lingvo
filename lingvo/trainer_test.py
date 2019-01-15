@@ -23,7 +23,7 @@ import random
 import re
 import shutil
 
-from six.moves import zip
+import numpy as np
 import tensorflow as tf
 
 from lingvo import base_trial
@@ -33,6 +33,7 @@ from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
+from lingvo.core import trainer_test_utils
 from lingvo.tasks.image.input_generator import FakeMnistData
 import lingvo.tasks.image.params.mnist  # pylint: disable=unused-import
 import lingvo.tasks.lm.params.one_billion_wds  # pylint: disable=unused-import
@@ -252,6 +253,87 @@ class TrainerWithTrialTest(TrainerTest):
     self.assertTrue(self._HasFile(dev_files, 'score'))
     self.assertTrue(
         self._HasLine(self._GetMatchedFileName(dev_files, 'score'), 'log_pplx'))
+
+
+class ProcessFPropResultsTest(BaseTrainerTest):
+
+  def testIdentityRegressionModel(self):
+    logdir = os.path.join(tf.test.get_temp_dir(),
+                          'identity_regression_test' + str(random.random()))
+    FLAGS.logdir = logdir
+
+    steps = 100
+    cfg = trainer_test_utils.IdentityRegressionModel.Params()
+    cfg.cluster.task = 0
+    cfg.cluster.mode = 'sync'
+    cfg.cluster.job = 'trainer_client'
+    cfg.cluster.worker.name = '/job:local'
+    cfg.cluster.worker.replicas = 1
+    cfg.cluster.worker.gpus_per_replica = 0
+    cfg.cluster.ps.name = '/job:local'
+    cfg.cluster.ps.replicas = 1
+    cfg.cluster.ps.gpus_per_replica = 0
+    cfg.train.max_steps = steps
+    cfg.task.train.learning_rate = 0.025
+
+    runners = [self._CreateController(cfg), self._CreateTrainer(cfg)]
+
+    runner_manager = trainer.RunnerManager(cfg.name)
+    runner_manager.StartRunners(runners)
+    train = runners[1]
+
+    # ProcessFPropResults should have been called <steps> times on the task
+    # and <steps> times on the model.
+
+    # There are always 2 samples in the batch.
+    expected_samples_in_batch = [(2, 1.0) for _ in range(steps)]
+
+    self.assertAllEqual(
+        expected_samples_in_batch,
+        [m['num_samples_in_batch'] for m in train._model.metrics])
+    self.assertAllEqual(
+        expected_samples_in_batch,
+        [m['num_samples_in_batch'] for m in train._model._task.metrics])
+
+    # Global steps should increment by 1 for each batch.
+    expected_global_steps = [i + 1 for i in range(steps)]
+    self.assertAllEqual(expected_global_steps, train._model.global_steps)
+    self.assertAllEqual(expected_global_steps, train._model._task.global_steps)
+
+    # The CountingInputGenerator makes [2,2] inputs that increment for each
+    # batch, like:
+    #   [[0, 1], [2, 3]],
+    #   [[4, 5], [6, 7]],
+    #   ...
+    expected_input_tensors = [{
+        'input': np.array([[4 * i, 4 * i + 1], [4 * i + 2, 4 * i + 3]])
+    } for i in range(steps)]
+
+    def keep_input_tensors(tensors):
+      return [{'input': d['input']} for d in tensors]
+
+    self.assertAllClose(
+        expected_input_tensors,
+        keep_input_tensors(train._model.result_per_example_tensors))
+    self.assertAllClose(
+        expected_input_tensors,
+        keep_input_tensors(train._model._task.result_per_example_tensors))
+
+    # This model is training parameters m and b such that:
+    #    m * (input[0] + input[1]) + b = (input[0] + input[1])
+    # So we expect m = 1 and b = 0 after training.
+
+    # m is more stable so that's the one we test with a tight tolerance.
+    self.assertNear(
+        1.0, train._model._task.result_per_example_tensors[-1]['m'][0], 0.1)
+    self.assertNear(1.0, train._model.result_per_example_tensors[-1]['m'][0],
+                    0.1)
+
+    # b isn't so stable but shouldn't be too crazy in size.
+    self.assertNear(
+        0.0, train._model._task.result_per_example_tensors[-1]['b'][0], 10.0)
+    self.assertNear(0.0, train._model.result_per_example_tensors[-1]['b'][0],
+                    10.0)
 
 
 if __name__ == '__main__':
