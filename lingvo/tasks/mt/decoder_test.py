@@ -575,6 +575,8 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     src_time = 5
     p = self._DecoderParams(dtype=dtype)
     p.beam_search.num_hyps_per_beam = 2
+    p.beam_search.coverage_penalty = 0
+    p.beam_search.length_normalization = 0
     dec = decoder.TransformerDecoder(p)
     src_enc, src_enc_padding, _ = self._Inputs(dtype=dtype)
     decode = dec.BeamSearchDecode(src_enc, src_enc_padding)
@@ -606,9 +608,8 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
                          [14, 2, 0, 0, 0], [6, 2, 0, 0, 0], [6, 6, 2, 0, 0],
                          [0, 0, 0, 0, 0], [0, 0, 0, 0, 0]]
     expected_topk_lens = [1, 2, 1, 2, 2, 3, 0, 0]
-    expected_topk_scores = [[-2.03276896,
-                             -3.56309867], [-2.03811574, -3.5735178],
-                            [-4.40967178, -6.06508398], [0., 0.]]
+    expected_topk_scores = [[-2.226787, -4.215915], [-2.232645, -4.228243],
+                            [-5.217594, -7.671792], [0., 0.]]
 
     self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
