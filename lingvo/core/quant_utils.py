@@ -812,8 +812,6 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
     # Currently fq is either on (1.0) or off (-1.0). Progressive quantization
     # may later occupy 0..1.0.
     new_fq_ratio = tf.where(global_step < quant_start_step, -1.0, 1.0)
-    summary_utils.scalar('clip_ratio', new_clip_ratio)
-    summary_utils.scalar('fq_ratio', new_fq_ratio)
     return tf.group(
         self.vars.clip_ratio.assign(new_clip_ratio),
         self.vars.fq_ratio.assign(new_fq_ratio))
