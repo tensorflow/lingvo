@@ -390,7 +390,13 @@ class AsrModel(base_model.BaseTask):
       audio = tf.expand_dims(audio, axis=0)
       input_batch_src = py_utils.NestedMap(
           src_inputs=audio, paddings=tf.zeros_like(audio))
-      input_batch_src = self.frontend.FPropDefaultTheta(input_batch_src)
+      input_batch_src = frontend.FPropDefaultTheta(input_batch_src)
+
+      # Undo default stacking, if specified.
+      input_batch_src.src_inputs = tf.reshape(input_batch_src.src_inputs,
+                                              [1, -1, p.input.frame_size, 1])
+      input_batch_src.paddings = tf.zeros(
+          shape=[1, tf.shape(input_batch_src.src_inputs)[1]])
 
       encoder_outputs = self.encoder.FPropDefaultTheta(input_batch_src)
       decoder_outputs = self.decoder.BeamSearchDecode(encoder_outputs)

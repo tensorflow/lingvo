@@ -195,9 +195,11 @@ py_library(
 py_test(
     name = "model_test",
     srcs = ["model_test.py"],
+    data = ["//lingvo/tools/testdata:audio_data"],
     shard_count = 15,
     deps = [
         ":decoder",
+        ":input_generator",
         ":model",
         ":model_test_input_generator",
         # Implicit numpy dependency.
@@ -208,6 +210,7 @@ py_test(
         "//lingvo/core:lr_schedule",
         "//lingvo/core:py_utils",
         "//lingvo/core:summary_utils",
+        "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
     ],
 )

@@ -31,8 +31,10 @@ from lingvo.core import cluster_factory
 from lingvo.core import lr_schedule
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
+from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tasks.asr import decoder
+from lingvo.tasks.asr import input_generator
 from lingvo.tasks.asr import model
 from lingvo.tasks.asr import model_test_input_generator as tig
 
@@ -389,6 +391,64 @@ class AsrModelTest(tf.test.TestCase):
     res1, res2 = Run(1), Run(2)
     self.assertAllClose(res1[0], res2[0])
     self.assertAllEqual(res1[1], res2[1])
+
+  def testInference(self):
+
+    def _CreateModelParamsForTest():
+      p = model.AsrModel.Params()
+      p.name = 'test_config'
+
+      # Encoder params.
+      ep = p.encoder
+      ep.input_shape = [None, None, 80, 1]
+      ep.lstm_cell_size = 16
+      ep.num_lstm_layers = 2
+      ep.conv_filter_shapes = [(3, 3, 1, 32), (3, 3, 32, 32)]
+      ep.conv_filter_strides = [(2, 2), (2, 2)]
+      ep.num_conv_lstm_layers = 0
+      # Initialize decoder params.
+      dp = p.decoder
+      dp.rnn_cell_dim = 16
+      dp.rnn_layers = 2
+      dp.source_dim = ep.lstm_cell_size * 2
+      # Use functional while based unrolling.
+      dp.use_while_loop_based_unrolling = False
+
+      p.input = input_generator.AsrInput.Params()
+      ip = p.input
+      ip.frame_size = 80
+      ip.append_eos_frame = True
+      ip.pad_to_max_seq_length = False
+
+      p.is_eval = True
+      return p
+
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      p = _CreateModelParamsForTest()
+      mdl = p.cls(p)
+      subgraphs = mdl.Inference()
+      self.assertTrue('default' in subgraphs)
+
+      fetches, feeds = subgraphs['default']
+      self.assertTrue('wav' in feeds)
+      for name in ['hypotheses', 'scores', 'src_frames', 'encoder_frames']:
+        self.assertTrue(name in fetches)
+
+      with open(
+          test_helper.test_src_dir_path('tools/testdata/gan_or_vae.16k.wav'),
+          'r') as f:
+        wav = f.read()
+      sess.run(tf.global_variables_initializer())
+      fetches = sess.run(fetches, {feeds['wav']: wav})
+
+      self.assertAllEqual((1, p.decoder.beam_search.num_hyps_per_beam),
+                          fetches['hypotheses'].shape)
+      self.assertAllEqual((1, p.decoder.beam_search.num_hyps_per_beam),
+                          fetches['scores'].shape)
+      self.assertAllEqual((1, 315, p.encoder.input_shape[2], 1),
+                          fetches['src_frames'].shape)
+      self.assertAllEqual((81, 1, 2 * p.encoder.lstm_cell_size),
+                          fetches['encoder_frames'].shape)
 
 
 if __name__ == '__main__':
