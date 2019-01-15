@@ -23,6 +23,7 @@ limitations under the License.
 #include "tensorflow/core/lib/io/random_inputstream.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/strings/str_util.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/env.h"
 #include "lingvo/core/ops/mutex.h"
@@ -34,7 +35,7 @@ namespace {
 
 struct Factory {
   Mutex mu;
-  std::unordered_map<string, BasicRecordYielder::FactoryMethod> methods;
+  std::unordered_map<string, RecordIterator::FactoryMethod> methods;
 };
 
 Factory* GetFactory() {
@@ -59,8 +60,7 @@ string GetFilePatternPrefix(const string& file_pattern) {
 
 }  // end namespace
 
-bool BasicRecordYielder::Register(const string& type_name,
-                                  FactoryMethod method) {
+bool RecordIterator::Register(const string& type_name, FactoryMethod method) {
   Factory* factory = GetFactory();
   MutexLock l(&factory->mu);
   bool ret = factory->methods.insert({type_name, std::move(method)}).second;
@@ -68,26 +68,91 @@ bool BasicRecordYielder::Register(const string& type_name,
   return ret;
 }
 
-BasicRecordYielder* BasicRecordYielder::New(Options opts) {
-  string prefix = GetFilePatternPrefix(opts.file_pattern);
-  if (!prefix.empty()) {
-    opts.file_pattern.erase(0, prefix.size() + 1);
-  }
-
+RecordIterator* RecordIterator::New(const string& type_name,
+                                    const string& filename) {
   Factory* factory = GetFactory();
   MutexLock l(&factory->mu);
-  const auto iter = factory->methods.find(prefix);
-  if (iter == factory->methods.end()) {
-    LOG(FATAL) << "Unable to create RecordYielder for format \""
-               << prefix << "\"";
+  const auto iter = factory->methods.find(type_name);
+  CHECK(iter != factory->methods.end())
+      << "Unable to create RecordIterator for format \"" << type_name << "\"";
+  return iter->second(filename);
+}
+
+RandomAccessFile* OpenOrDie(const string& filename) {
+  std::unique_ptr<RandomAccessFile> file;
+  TF_CHECK_OK(Env::Default()->NewRandomAccessFile(filename, &file));
+  return file.release();
+}
+
+class PlainTextIterator : public RecordIterator {
+ public:
+  PlainTextIterator(const string& filename)
+      : file_(OpenOrDie(filename)),
+        stream_(file_.get()),
+        buf_(&stream_, 2 << 20) {}
+
+  bool Next(string* key, Rope* value) override {
+    Status s = buf_.ReadLine(&line_);
+    if (errors::IsOutOfRange(s)) return false;
+    TF_CHECK_OK(s);
+    *key = strings::Printf("%08lld", num_++);
+    *value = line_;
+    return true;
   }
-  const BasicRecordYielder::FactoryMethod& method = iter->second;
-  BasicRecordYielder* yielder = method(opts);
+
+ private:
+  std::unique_ptr<RandomAccessFile> file_;
+  io::RandomAccessInputStream stream_;
+  io::BufferedInputStream buf_;
+  int64 num_ = 0;
+  string line_;
+};
+
+class TFRecordIterator : public RecordIterator {
+ public:
+  TFRecordIterator(const string& filename)
+      : file_(OpenOrDie(filename)), reader_(file_.get(), ReaderOptions()) {}
+
+  bool Next(string* key, Rope* value) override {
+    Status s = reader_.ReadRecord(&record_);
+    if (errors::IsOutOfRange(s)) return false;
+    *key = strings::Printf("%08lld", num_++);
+    *value = record_;
+    return true;
+  }
+
+ private:
+  std::unique_ptr<RandomAccessFile> file_;
+  io::SequentialRecordReader reader_;
+  int64 num_ = 0;
+  string record_;
+
+  io::RecordReaderOptions ReaderOptions() {
+    io::RecordReaderOptions opts;
+    opts.buffer_size = 2LL << 20;  // 2MB.
+    return opts;
+  }
+};
+
+namespace {
+
+bool register_text_iterator = RecordIterator::Register(
+    "text",
+    [](const string& filename) { return new PlainTextIterator(filename); });
+
+bool register_tf_record_iterator = RecordIterator::Register(
+    "tfrecord",
+    [](const string& filename) { return new TFRecordIterator(filename); });
+
+}  // namespace
+
+RecordYielder::~RecordYielder() {}
+
+BasicRecordYielder* BasicRecordYielder::New(Options opts) {
+  auto yielder = new BasicRecordYielder(opts);
   yielder->Start();
   return yielder;
 }
-
-RecordYielder::~RecordYielder() {}
 
 BasicRecordYielder::BasicRecordYielder(const Options& opts)
     : opts_(opts),
@@ -100,9 +165,13 @@ BasicRecordYielder::BasicRecordYielder(const Options& opts)
       buf_not_full_(this, &ME::BufNotFull),
       buf_enough_(this, &ME::BufEnough) {
   LOG(INFO) << this << " Record yielder start";
-  if (opts.seed == 0) {
+  if (opts_.seed == 0) {
     LOG(INFO) << "Randomly seed RecordYielder.";
     rnd_.seed(std::random_device{}());
+  }
+  file_type_ = GetFilePatternPrefix(opts_.file_pattern);
+  if (!file_type_.empty()) {
+    opts_.file_pattern.erase(0, file_type_.size() + 1);
   }
 }
 
@@ -215,148 +284,81 @@ bool BasicRecordYielder::Add(std::vector<Rope>* values) {
   return stop_;
 }
 
+// ParallelFilePatterns look like this
+//  <path1>/a-*-of-10;<path2>/b-*-of-10,<path3>/c-*-of-10;<path4>/d-*-of-10
+// Each "," separated pattern is a parallel file pattern.
+// In a given parallel file pattern, all the ";" separated file patterns should
+// have the same number of shards.
+// This method creates ";" separated filenames aligning the shards.
+// e,g.
+// <path1>/a-01-of-10,<path2>/b-01-of-10
+// <path1>/a-02-of-10,<path2>/b-02-of-10
+// <path3>/c-01-of-10,<path2>/d-01-of-10
+// <path3>/c-02-of-10,<path2>/d-02-of-10
+Status MatchParallelFilePattern(const string& parallel_file_pattern,
+                                std::vector<string>* filenames) {
+  std::vector<string> parallel_filenames;
+  for (const auto& file_pattern : str_util::Split(parallel_file_pattern, ';')) {
+    std::vector<string> filenames_per_pattern;
+    TF_RETURN_IF_ERROR(
+        Env::Default()->GetMatchingPaths(file_pattern, &filenames_per_pattern));
+    if (parallel_filenames.empty()) {
+      parallel_filenames.swap(filenames_per_pattern);
+      continue;
+    }
+    if (parallel_filenames.size() != filenames_per_pattern.size()) {
+      return Status(tensorflow::error::INVALID_ARGUMENT,
+                    "All file patterns in the parallel file pattern do not "
+                    "have the same number of elements.");
+    }
+    for (auto it1 = parallel_filenames.begin(),
+              it2 = filenames_per_pattern.begin();
+         it1 != parallel_filenames.end(); ++it1, ++it2) {
+      strings::StrAppend(&(*it1), ";", *it2);
+    }
+  }
+  filenames->insert(filenames->end(),
+                    std::make_move_iterator(parallel_filenames.begin()),
+                    std::make_move_iterator(parallel_filenames.end()));
+
+  return Status::OK();
+}
+
 Status BasicRecordYielder::MatchFiles(const string& patterns,
                                       std::vector<string>* filenames) {
   for (const auto& file_pattern : str_util::Split(patterns, ',')) {
     std::vector<string> files_per_glob;
-    TF_RETURN_IF_ERROR(
-        Env::Default()->GetMatchingPaths(file_pattern, &files_per_glob));
+    TF_RETURN_IF_ERROR(MatchParallelFilePattern(file_pattern, &files_per_glob));
     filenames->insert(filenames->end(), files_per_glob.begin(),
                       files_per_glob.end());
   }
   return Status::OK();
 }
 
-RandomAccessFile* OpenOrDie(const string& filename) {
-  std::unique_ptr<RandomAccessFile> file;
-  TF_CHECK_OK(Env::Default()->NewRandomAccessFile(filename, &file));
-  return file.release();
+void BasicRecordYielder::ShardLoop(Shard* shard) {
+  std::vector<Rope> values;
+  const int64 kRecords = 16;
+  for (const string& filename : shard->filenames) {
+    if (ShouldFinish(Status::OK())) break;
+    VLOG(1) << "Shard " << shard->index << " " << filename;
+    std::unique_ptr<RecordIterator> iter(
+        RecordIterator::New(file_type_, filename));
+    string key;
+    Rope val;
+    while (iter->Next(&key, &val)) {
+      values.emplace_back(val);
+      if (values.size() >= kRecords && Add(&values)) {
+        shard->status = errors::Aborted("stopped");
+        break;
+      }
+    }
+  }
+  // Adds the remaining values of this shard to buf_.
+  while (!values.empty()) {
+    Add(&values);
+  }
+  shard->done.Notify();
 }
 
-class PlainTextIterator : public RecordIterator {
- public:
-  PlainTextIterator(const string& filename)
-      : file_(OpenOrDie(filename)),
-        stream_(file_.get()),
-        buf_(&stream_, 2 << 20) {}
-
-  bool Next(string* key, Rope* value) override {
-    Status s = buf_.ReadLine(&line_);
-    if (errors::IsOutOfRange(s)) return false;
-    TF_CHECK_OK(s);
-    *key = strings::Printf("%08lld", num_++);
-    *value = line_;
-    return true;
-  }
-
- private:
-  std::unique_ptr<RandomAccessFile> file_;
-  io::RandomAccessInputStream stream_;
-  io::BufferedInputStream buf_;
-  int64 num_ = 0;
-  string line_;
-};
-
-// Record yielder for plain text files.
-class PlainTextYielder : public BasicRecordYielder {
- public:
-  explicit PlainTextYielder(const Options& opts) : BasicRecordYielder(opts) {}
-
- protected:
-  void ShardLoop(Shard* shard) override {
-    std::vector<Rope> values;
-    const int64 kRecords = 16;
-    for (const string& filename : shard->filenames) {
-      if (ShouldFinish(Status::OK())) break;
-      VLOG(1) << "Shard " << shard->index << " " << filename;
-      PlainTextIterator iter(filename);
-      string key;
-      Rope val;
-      while (iter.Next(&key, &val)) {
-        values.emplace_back(val);
-        if (values.size() >= kRecords && Add(&values)) {
-          shard->status = errors::Aborted("stopped");
-          break;
-        }
-      }
-    }
-    // Adds the remaining values of this shard to buf_.
-    while (!values.empty()) {
-      Add(&values);
-    }
-    shard->done.Notify();
-  }
-};
-
-class TFRecordIterator : public RecordIterator {
- public:
-  TFRecordIterator(const string& filename)
-      : file_(OpenOrDie(filename)), reader_(file_.get(), ReaderOptions()) {}
-
-  bool Next(string* key, Rope* value) override {
-    Status s = reader_.ReadRecord(&record_);
-    if (errors::IsOutOfRange(s)) return false;
-    *key = strings::Printf("%08lld", num_++);
-    *value = record_;
-    return true;
-  }
-
- private:
-  std::unique_ptr<RandomAccessFile> file_;
-  io::SequentialRecordReader reader_;
-  int64 num_ = 0;
-  string record_;
-
-  io::RecordReaderOptions ReaderOptions() {
-    io::RecordReaderOptions opts;
-    opts.buffer_size = 2LL << 20;  // 2MB.
-    return opts;
-  }
-};
-
-// Record yielder for tfrecord files.
-class TFRecordYielder : public BasicRecordYielder {
- public:
-  explicit TFRecordYielder(const Options& opts) : BasicRecordYielder(opts) {}
-
- protected:
-  void ShardLoop(Shard* shard) override {
-    std::vector<Rope> values;
-    const int64 kRecords = 16;
-    for (const string& filename : shard->filenames) {
-      if (ShouldFinish(Status::OK())) break;
-      VLOG(1) << "Shard " << shard->index << " " << filename;
-      TFRecordIterator iter(filename);
-      string key;
-      Rope val;
-      while (iter.Next(&key, &val)) {
-        values.emplace_back(val);
-        if (values.size() >= kRecords && Add(&values)) {
-          shard->status = errors::Aborted("stopped");
-          break;
-        }
-      }
-    }
-    // Adds the remaining values of this shard to buf_.
-    while (!values.empty()) {
-      Add(&values);
-    }
-    shard->done.Notify();
-  }
-};
-
-namespace {
-
-bool register_text_yielder = BasicRecordYielder::Register(
-    "text", [](const BasicRecordYielder::Options& opts) {
-      return new PlainTextYielder(opts);
-    });
-
-bool register_tf_record_yielder = BasicRecordYielder::Register(
-    "tfrecord", [](const BasicRecordYielder::Options& opts) {
-      return new TFRecordYielder(opts);
-    });
-
-}  // namespace
 }  // namespace lingvo
 }  // namespace tensorflow

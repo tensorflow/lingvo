@@ -43,6 +43,13 @@ class RecordIterator {
   // Get the next record. If EOF, returns false. Otherwise returns true and
   // fills in 'key' and 'value'.
   virtual bool Next(string* key, Rope* value) = 0;
+
+  // Register a method to create a RecordIterator for the 'type_name'.
+  typedef std::function<RecordIterator*(const string&)> FactoryMethod;
+  static bool Register(const string& type_name, FactoryMethod method);
+
+  // Returns a record iterator for 'filename' of 'type_name'.
+  static RecordIterator* New(const string& type_name, const string& filename);
 };
 
 // RecordYielder defines an interface that should be used for producing value
@@ -94,6 +101,8 @@ class BasicRecordYielder : public RecordYielder {
     // The set of files to yield records from.  file_pattern follows:
     // [<type name>:]<glob pattern>, where <type name> must have an
     // associated factory method through registration via New().
+    //
+    // TODO(zhifengc): Document it better the current support format.
     string file_pattern;
 
     // Random seed. It determines how data files are shuffled.
@@ -105,11 +114,6 @@ class BasicRecordYielder : public RecordYielder {
     // Uses this many concurrent iterators to iterate through files.
     int32 parallelism = 1;
   };
-
-  // Register a method to create a RecordYielder for the 'type_name'.
-  typedef std::function<BasicRecordYielder*(const BasicRecordYielder::Options&)>
-      FactoryMethod;
-  static bool Register(const string& type_name, FactoryMethod method);
 
   // Returns a record yielder according to 'opts'. A caller is responsible for
   // calling Close when this yielder is no longer required. A caller shouldn't
@@ -138,9 +142,8 @@ class BasicRecordYielder : public RecordYielder {
     Notification done;              // Notified when this shard is done.
     Status status;                  // Shard status.
   };
-  virtual void ShardLoop(Shard* shard) = 0;
-  virtual Status MatchFiles(const string& patterns,
-                            std::vector<string>* filenames);
+  void ShardLoop(Shard* shard);
+  Status MatchFiles(const string& patterns, std::vector<string>* filenames);
 
   // Returns true iff 's' indicates the yielder should stop.
   bool ShouldFinish(const Status& s);
@@ -152,6 +155,7 @@ class BasicRecordYielder : public RecordYielder {
   typedef BasicRecordYielder ME;
 
   Options opts_;
+  string file_type_;
 
   // Background threads. Owned.
   thread::ThreadPool* thread_;
