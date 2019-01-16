@@ -205,7 +205,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p.Define('atten_context_dim', 0,
              'Depth of the attention context vector output.')
     p.Define(
-        'attention_plot_font_properties', None,
+        'attention_plot_font_properties', font_manager.FontProperties(),
         'Adds font properties for the given file if set. Required '
         'for displaying east-Asian character sets on plot axes.')
     p.Define(
@@ -303,10 +303,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     else:
       self._prng_seed = py_utils.GenerateSeedFromName(p.name)
 
-    self._font_properties = None
-    if p.attention_plot_font_properties:
-      self._font_properties = font_manager.FontProperties(
-          fname=p.attention_plot_font_properties)
+    self._font_properties = font_manager.FontProperties(
+        fname=p.attention_plot_font_properties)
 
     name = p.name
     with tf.variable_scope(name):
