@@ -297,6 +297,7 @@ class LSTMCellSimple(RNNCell):
     self.TrackQTensor(
         'zero_c',
         'mixed',
+        'c_couple_invert',
         'c_input_gate',
         'c_forget_gate',
         'c_output_gate',
@@ -467,8 +468,16 @@ class LSTMCellSimple(RNNCell):
       # Sigmoid / tanh calls are not quantized under the assumption they share
       # the range with c_input_gate and c_forget_gate.
       forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
-      input_gate = fns.qmultiply(
-          1.0 - tf.sigmoid(f_g), tf.tanh(i_i), qt='c_forget_gate')
+
+      # input_gate = tanh(i_i) - tanh(i_i) * tf.sigmoid(f_g)
+      # equivalent to (but more stable in fixed point):
+      # (1.0 - sigmoid(f_g)) * tanh(i_i)
+      tanh_i_i = tf.tanh(i_i)
+      input_gate = fns.qsubtract(
+          tanh_i_i,
+          fns.qmultiply(tanh_i_i, tf.sigmoid(f_g), qt='c_couple_invert'),
+          qt='c_forget_gate')
+
       new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
     # Clip the cell states to reasonable value.
     if p.cell_value_cap is not None:
