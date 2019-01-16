@@ -34,37 +34,24 @@ class BaseDecoder(base_layer.BaseLayer):
         'multiple examples in a single sequence.')
     return p
 
-  def FProp(self, theta, src_encs, src_enc_paddings, targets, src_segment_id):
+  def FProp(self, theta, encoder_outputs, targets):
     """Decodes `targets` given encoded source.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      src_encs: source encoding, of shape [time, batch, depth].
-      src_enc_paddings: source encoding padding, of shape [time, batch].
+      encoder_outputs: a NestedMap computed by encoder.
       targets: A dict of string to tensors representing the targets one try to
         predict.
-      src_segment_id: source segment id, of shape [time, batch]. This input is
-        meant to support multiple samples in a single training sequence. The id
-        identifies the sample that the input at the corresponding time-step
-        belongs to. For example, if the two examples packed together are
-        ['good', 'day'] -> ['guten-tag'] and ['thanks'] -> ['danke'] to produce
-        ['good', 'day', 'thanks'] -> ['guten-tag', 'danke'], the source segment
-        ids would be [0, 0, 1] and target segment ids would be [0, 1]. These ids
-        are meant to enable masking computations for different examples from
-        each other. Models or layers than don't support packed inputs should
-        pass None.
 
     Returns:
       A map from metric name (a python string) to a tuple (value, weight).
       Both value and weight are scalar Tensors.
     """
-    predictions = self.ComputePredictions(theta, src_encs, src_enc_paddings,
-                                          targets, src_segment_id)
+    predictions = self.ComputePredictions(theta, encoder_outputs, targets)
     return self.ComputeLoss(theta, predictions, targets)[0]
 
-  def ComputePredictions(self, theta, src_encs, src_enc_paddings, targets,
-                         src_segment_id):
+  def ComputePredictions(self, theta, encoder_outputs, targets):
     raise NotImplementedError('Abstract method: %s' % type(self))
 
   def ComputeLoss(self, theta, predictions, targets):

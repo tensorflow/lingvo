@@ -46,9 +46,8 @@ class DecoderTestCaseBase(tf.test.TestCase):
 
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = decoder_cls(p)
-      src_enc, src_enc_padding, targets = self._Inputs(dtype=dtype)
-      loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
-                                      None)['loss']
+      encoder_outputs, targets = self._Inputs(dtype=dtype)
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
 
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
@@ -67,9 +66,8 @@ class DecoderTestCaseBase(tf.test.TestCase):
       p = self._DecoderParams(dtype=tf.float64)
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = decoder_cls(p)
-      src_enc, src_enc_padding, targets = self._Inputs(dtype=tf.float64)
-      loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
-                                      None)['loss']
+      encoder_outputs, targets = self._Inputs(dtype=tf.float64)
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
       all_vars = tf.trainable_variables()
       grads = tf.gradients(loss, all_vars)
       print('num of vars ', len(all_vars))
@@ -109,9 +107,8 @@ class DecoderTestCaseBase(tf.test.TestCase):
       p = self._DecoderParams(True)
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = decoder_cls(p)
-      src_enc, src_enc_padding, targets = self._Inputs()
-      loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
-                                      None)['loss']
+      encoder_outputs, targets = self._Inputs()
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
@@ -173,8 +170,9 @@ class DecoderTest(DecoderTestCaseBase):
         'weights': target_weights,
         'paddings': target_paddings
     })
-
-    return (src_enc, src_enc_padding, targets)
+    encoder_outputs = py_utils.NestedMap(
+        encoded=src_enc, padding=src_enc_padding, segment_id=None)
+    return encoder_outputs, targets
 
   def testDecoderFPropFixedAttentionSeed(self, dtype=tf.float64):
     with self.session(use_gpu=True):
@@ -183,9 +181,8 @@ class DecoderTest(DecoderTestCaseBase):
       p.feed_attention_context_vec_to_softmax = False
       p.attention.params_init = py_utils.WeightInit.Gaussian(0.1, 12345)
       dec = decoder.MTDecoderV1(p)
-      src_enc, src_enc_padding, targets = self._Inputs(dtype=dtype)
-      loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
-                                      None)['loss']
+      encoder_outputs, targets = self._Inputs(dtype=dtype)
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
 
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
@@ -221,8 +218,9 @@ class DecoderTest(DecoderTestCaseBase):
     p.beam_search.num_hyps_per_beam = 2
     p.rnn_cell_dim = 32
     dec = decoder.MTDecoderV1(p)
-    src_enc, src_enc_padding, _ = self._Inputs(dtype=dtype)
-    decode = dec.BeamSearchDecode(src_enc, src_enc_padding)
+    encoder_outputs, _ = self._Inputs(dtype=dtype)
+    decode = dec.BeamSearchDecode(encoder_outputs.encoded,
+                                  encoder_outputs.padding)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
     decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
@@ -267,8 +265,9 @@ class DecoderTest(DecoderTestCaseBase):
     p.rnn_cell_dim = 32
     p.feed_attention_context_vec_to_softmax = True
     dec = decoder.MTDecoderV1(p)
-    src_enc, src_enc_padding, _ = self._Inputs(dtype=dtype)
-    decode = dec.BeamSearchDecode(src_enc, src_enc_padding)
+    encoder_outputs, _ = self._Inputs(dtype=dtype)
+    decode = dec.BeamSearchDecode(encoder_outputs.encoded,
+                                  encoder_outputs.padding)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
     decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
@@ -375,7 +374,9 @@ class TransformerDecoderTestCaseBase(tf.test.TestCase):
         'weights': tgt_weights,
         'paddings': tgt_paddings
     })
-    return (src_enc, src_paddings, tgts)
+    encoder_outputs = py_utils.NestedMap(
+        encoded=src_enc, padding=src_paddings, segment_id=None)
+    return (encoder_outputs, tgts)
 
 
 class TransformerDecoderTest(TransformerDecoderTestCaseBase):
@@ -439,13 +440,14 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     src_time = 5
     src_batch = 4
     emb_dims = 4
-    _, paddings, tgts = self._Inputs(dtype)
+    encoder_outputs, tgts = self._Inputs(dtype)
     src_enc = tf.constant(
         np.random.normal(size=[src_time, src_batch, emb_dims, num_layers]),
         dtype=dtype)
     if not is_eval_mode:
       src_enc = tf.unstack(src_enc, axis=3)
-    return (src_enc, paddings, tgts)
+    encoder_outputs.encoded = src_enc
+    return (encoder_outputs, tgts)
 
   def testDecoderFPropWithPacking(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
@@ -461,12 +463,15 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
         (src_enc, paddings, tgts, src_enc_packed, src_enc_padding_packed,
          src_segment_id, target_packed) = self._testPackedInputs()
-
-        loss, _ = dec.FProp(dec.theta, src_enc, paddings, tgts, None)['loss']
-
-        loss_packed, _ = dec_packed.FProp(dec_packed.theta, src_enc_packed,
-                                          src_enc_padding_packed, target_packed,
-                                          src_segment_id)['loss']
+        encoder_outputs = py_utils.NestedMap(
+            encoded=src_enc, padding=paddings, segment_id=None)
+        loss, _ = dec.FProp(dec.theta, encoder_outputs, tgts)['loss']
+        encoder_outputs_packed = py_utils.NestedMap(
+            encoded=src_enc_packed,
+            padding=src_enc_padding_packed,
+            segment_id=src_segment_id)
+        loss_packed, _ = dec_packed.FProp(
+            dec_packed.theta, encoder_outputs_packed, target_packed)['loss']
         tf.global_variables_initializer().run()
         actual_loss, packed_loss = sess.run([loss, loss_packed])
         self.assertAlmostEqual(
@@ -477,18 +482,16 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       dec = decoder.TransformerDecoder(p)
-      src_enc, src_enc_padding, targets = self._testTransparentInputs(
-          dtype=dtype)
-      loss, _ = dec.FPropDefaultTheta(src_enc, src_enc_padding, targets,
-                                      None)['loss']
+      encoder_outputs, targets = self._testTransparentInputs(dtype=dtype)
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
       self.assertAlmostEqual(15.864315, actual_loss, delta=0.0001)
 
-  def _testExtendStep(self, sess, dec, src_enc, src_padding, tgts):
+  def _testExtendStep(self, sess, dec, encoder_outputs, tgts):
     p = self._DecoderParams()
-    l_out1 = dec._FProp(dec.theta, src_enc, src_padding, tgts, None)
+    l_out1 = dec._FProp(dec.theta, encoder_outputs, tgts)
 
     prefix_states = py_utils.NestedMap()
     for i in range(6):
@@ -500,8 +503,9 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
     l_out2 = []
     for i in range(5):
-      l_i_out, prefix_states = dec.ExtendStep(dec.theta, src_enc, src_padding,
-                                              tgts.ids[:, i], i, prefix_states)
+      l_i_out, prefix_states = dec.ExtendStep(
+          dec.theta, encoder_outputs.encoded, encoder_outputs.padding,
+          tgts.ids[:, i], i, prefix_states)
       l_out2.append(l_i_out)
 
     l_out2 = tf.stack(l_out2)
@@ -515,8 +519,8 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
-      src_enc, src_enc_padding, targets = self._Inputs(dtype=dtype)
-      self._testExtendStep(sess, dec, src_enc, src_enc_padding, targets)
+      encoder_outputs, targets = self._Inputs(dtype=dtype)
+      self._testExtendStep(sess, dec, encoder_outputs, targets)
 
   def testTransparentDecoderExtendStep(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
@@ -524,9 +528,9 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       p.is_eval = True
       dec = decoder.TransformerDecoder(p)
-      src_enc, src_enc_padding, targets = self._testTransparentInputs(
+      encoder_outputs, targets = self._testTransparentInputs(
           dtype=dtype, is_eval_mode=True)
-      self._testExtendStep(sess, dec, src_enc, src_enc_padding, targets)
+      self._testExtendStep(sess, dec, encoder_outputs, targets)
 
   def testDecoderFPropSplitBatch(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
@@ -534,9 +538,9 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
 
-      src_enc, src_paddings, targets = self._Inputs(dtype=dtype)
-      src_enc1, src_enc2 = tf.split(src_enc, 2, 1)
-      src_paddings1, src_paddings2 = tf.split(src_paddings, 2, 1)
+      encoder_outputs, targets = self._Inputs(dtype=dtype)
+      src_enc1, src_enc2 = tf.split(encoder_outputs.encoded, 2, 1)
+      src_paddings1, src_paddings2 = tf.split(encoder_outputs.padding, 2, 1)
 
       # source idx <-> target idx:
       # 0 <-> (0, 4), 1 <-> (1, 5), 2 <-> (2, 6), 3 <-> (3, 7)
@@ -554,12 +558,13 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
           'paddings': tf.concat([tgts[1]['paddings'], tgts[3]['paddings']], 0)
       })
 
-      loss, _ = dec.FPropDefaultTheta(src_enc, src_paddings, targets,
-                                      None)['loss']
-      loss1, _ = dec.FPropDefaultTheta(src_enc1, src_paddings1, targets1,
-                                       None)['loss']
-      loss2, _ = dec.FPropDefaultTheta(src_enc2, src_paddings2, targets2,
-                                       None)['loss']
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
+      encoder_outputs1 = py_utils.NestedMap(
+          encoded=src_enc1, padding=src_paddings1, segment_id=None)
+      loss1, _ = dec.FPropDefaultTheta(encoder_outputs1, targets1)['loss']
+      encoder_outputs2 = py_utils.NestedMap(
+          encoded=src_enc2, padding=src_paddings2, segment_id=None)
+      loss2, _ = dec.FPropDefaultTheta(encoder_outputs2, targets2)['loss']
 
       tf.global_variables_initializer().run()
       actual_loss, actual_loss1, actual_loss2 = sess.run([loss, loss1, loss2])
@@ -578,8 +583,9 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     p.beam_search.coverage_penalty = 0
     p.beam_search.length_normalization = 0
     dec = decoder.TransformerDecoder(p)
-    src_enc, src_enc_padding, _ = self._Inputs(dtype=dtype)
-    decode = dec.BeamSearchDecode(src_enc, src_enc_padding)
+    encoder_outputs, _ = self._Inputs(dtype=dtype)
+    decode = dec.BeamSearchDecode(encoder_outputs.encoded,
+                                  encoder_outputs.padding)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
     decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))

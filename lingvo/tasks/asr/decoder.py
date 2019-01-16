@@ -717,6 +717,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                                   additional_source_info=None):
     raise NotImplementedError('_PostBeamSearchStepCallback')
 
+  # TODO(tilarids): Can we remove this?
   def FProp(self, theta, encoder_outputs, targets):
     with tf.device(self.cluster.WorkerDeviceInModelSplit(0)):
       predictions = self.ComputePredictions(theta, encoder_outputs, targets)

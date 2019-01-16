@@ -410,25 +410,27 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       return x
 
   @py_utils.NameScopeDecorator('MTDecoderV1/ComputePredictions')
-  def ComputePredictions(self, theta, source_encs, source_paddings, targets,
-                         src_segment_id):
+  def ComputePredictions(self, theta, encoder_outputs, targets):
     """Decodes `targets` given encoded source.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      source_encs: source encoding, of shape [time, batch, depth].
-      source_paddings: source encoding's padding, of shape [time, batch].
+      encoder_outputs: a NestedMap computed by encoder. Expected to contain:
+        encoded - source encoding, of shape [time, batch, depth].
+        padding - source encoding's padding, of shape [time, batch].
+        segment_id - source segment id, of shape [time, batch].
       targets: A dict of string to tensors representing the targets one try to
         predict. Each tensor in targets is of shape [batch, time].
-      src_segment_id: source segment id, of shape [time, batch].
 
     Returns:
       A Tensor with shape [time, batch, params.softmax.input_dim].
     """
     p = self.params
+    source_paddings = encoder_outputs.padding
     time, batch = py_utils.GetShape(source_paddings, 2)
-    source_encs = py_utils.HasShape(source_encs, [time, batch, p.source_dim])
+    source_encs = py_utils.HasShape(encoder_outputs.encoded,
+                                    [time, batch, p.source_dim])
     with tf.name_scope(p.name):
       target_ids = tf.transpose(targets.ids)
       target_paddings = py_utils.HasRank(targets.paddings, 2)
@@ -456,7 +458,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
             source_paddings,
             inputs,
             target_paddings,
-            src_segment_id=src_segment_id,
+            src_segment_id=encoder_outputs.segment_id,
             segment_id=target_segment_id)
         self._AddAttenProbsSummary(source_paddings, targets, [atten_probs])
 
@@ -834,27 +836,33 @@ class TransformerDecoder(MTBaseDecoder):
       p.softmax.input_dim = p.model_dim
       self.CreateChild('softmax', p.softmax)
 
-  def _FProp(self, theta, source_encs, source_paddings, targets,
-             src_segment_id):
+  def _FProp(self, theta, encoder_outputs, targets):
     """Decodes `targets` given encoded source.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      source_encs: source encoding. When `p.is_transparent` is False, it is a
-        tensor of shape [time, batch, depth]. When `p.is_transparent` is True,
-        it is a tensor of shape [time, batch, depth, num_trans_layers] if
-        `p.is_eval` is True, and a list of `num_trans_layers` tensors of shape
-        [time, batch, depth] if `p.is_eval` is False.
-      source_paddings: source encoding's padding, of shape [time, batch].
+      encoder_outputs: a NestedMap computed by encoder. Expected to contain:
+
+        encoded - source encoding. When `p.is_transparent` is False, it is a
+                  tensor of shape [time, batch, depth]. When `p.is_transparent`
+                  is True, it is a tensor of shape
+                  [time, batch, depth, num_trans_layers] if `p.is_eval` is True,
+                  and a list of `num_trans_layers` tensors of shape
+                  [time, batch, depth] if `p.is_eval` is False.
+
+        padding - source encoding's padding, of shape [time, batch].
+        segment_id - source segment id, of shape [time, batch].
       targets: A dict of string to tensors representing the targets one try to
         predict. Each tensor in targets is of shape [batch, time].
-      src_segment_id: source segment id, of shape [time, batch].
 
     Returns:
       Output of last decoder layer, [target_time, target_batch, source_dim].
     """
     p = self.params
+    source_encs = encoder_outputs.encoded
+    source_paddings = encoder_outputs.padding
+    src_segment_id = encoder_outputs.segment_id
     time, batch = py_utils.GetShape(source_paddings, 2)
     if p.is_transparent:
       if p.is_eval:
@@ -982,25 +990,26 @@ class TransformerDecoder(MTBaseDecoder):
 
       return layer_out, out_prefix_states
 
-  def ComputePredictions(self, theta, source_encs, source_paddings, targets,
-                         src_segment_id):
+  def ComputePredictions(self, theta, encoder_outputs, targets):
     """Decodes `targets` given encoded source.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      source_encs: source encoding, of shape [time, batch, depth]. Can be [time,
-        batch, depth, num_layers] if is_transparent is set.
-      source_paddings: source encoding's padding, of shape [time, batch].
+      encoder_outputs: a NestedMap computed by encoder. Expected to contain:
+
+        encoded - source encoding, of shape [time, batch, depth]. Can be [time,
+                  batch, depth, num_layers] if is_transparent is set.
+
+        padding - source encoding's padding, of shape [time, batch].
+        segment_id - source segment id, of shape [time, batch].
       targets: A dict of string to tensors representing the targets one try to
         predict. Each tensor in targets is of shape [batch, time].
-      src_segment_id: source segment id, of shape [time, batch].
 
     Returns:
       A Tensor with shape [time, batch, params.softmax.input_dim].
     """
-    return self._FProp(theta, source_encs, source_paddings, targets,
-                       src_segment_id)
+    return self._FProp(theta, encoder_outputs, targets)
 
   def _InitBeamSearchStateCallback(self,
                                    theta,

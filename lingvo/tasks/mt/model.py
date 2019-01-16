@@ -63,9 +63,11 @@ class MTBaseModel(base_model.BaseTask):
     with self._EncoderDevice():
       src_enc, src_enc_paddings, src_segment_ids = self.enc.FProp(
           theta.enc, batch.src)
+
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_enc, padding=src_enc_paddings, segment_id=src_segment_ids)
     with self._DecoderDevice():
-      return self.dec.ComputePredictions(theta.dec, src_enc, src_enc_paddings,
-                                         batch.tgt, src_segment_ids)
+      return self.dec.ComputePredictions(theta.dec, encoder_outputs, batch.tgt)
 
   def ComputeLoss(self, theta, batch, predictions):
     with self._DecoderDevice():
