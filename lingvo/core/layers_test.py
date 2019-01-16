@@ -32,6 +32,41 @@ from lingvo.core import quant_utils
 from lingvo.core import test_utils
 
 
+class ActivationsTest(tf.test.TestCase):
+
+  def testGeluActivation(self):
+    with self.session(use_gpu=True):
+      inputs = tf.constant(
+          np.linspace(-10.0, 10.0, num=21, dtype='float32'), dtype=tf.float32)
+      grads_gelu = tf.gradients(layers.Gelu(inputs), inputs)
+      grads_relu = tf.gradients(tf.nn.relu(inputs), inputs)
+
+      self.assertEqual(0.0,
+                       layers.Gelu(tf.constant(-10.0, dtype='float32')).eval())
+      self.assertEqual(0.0,
+                       layers.Gelu(tf.constant(0.0, dtype='float32')).eval())
+      self.assertEqual(10.0,
+                       layers.Gelu(tf.constant(10.0, dtype='float32')).eval())
+      actual_grads_gelu = grads_gelu[0].eval()
+      actual_grads_relu = grads_relu[0].eval()
+
+      self.assertAllClose(actual_grads_gelu[-5:], actual_grads_relu[-5:])
+      self.assertAllClose(actual_grads_gelu[:5], actual_grads_relu[:5])
+
+      # pyformat: disable
+      # pylint: disable=bad-whitespace
+      expected_grads_gelu = [
+          -7.69459925e-22, -9.25176121e-18, -4.04182472e-14, -6.39430453e-11,
+          -3.64552299e-08, -7.13557529e-06, -5.03641320e-04, -1.19456425e-02,
+          -8.52318183e-02, -8.33154917e-02,  5.00000000e-01,  1.08331549e+00,
+          1.08523178e+00,  1.01194561e+00,  1.00050366e+00,  1.00000715e+00,
+          1.00000000e+00,  1.00000000e+00,  1.00000000e+00,  1.00000000e+00,
+          1.00000000e+00]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_grads_gelu, actual_grads_gelu)
+
+
 class BatchNormLayerTest(tf.test.TestCase):
 
   def testBatchNormLayerConstruction(self):

@@ -142,7 +142,8 @@ def SetupTransformerParams(name,
                            atten_dropout_prob=0.0,
                            relu_dropout_prob=0.0,
                            label_smoothing_uncertainty=0.1,
-                           is_transparent=False):
+                           is_transparent=False,
+                           activation='RELU'):
   """Common model setup for different transformer models.
 
   Args:
@@ -169,6 +170,7 @@ def SetupTransformerParams(name,
          applied
     is_transparent: If set, decoder layers attend to weighted combinations of
         encoder layers.
+    activation: Non-linearity for feed-forward layers.
 
   Returns:
     A Params object containing the parameters that specify a transformer model
@@ -182,11 +184,12 @@ def SetupTransformerParams(name,
   p.encoder = SetupTransformerEncoder(
       model_dim, vocab_size, num_layers, num_heads, hidden_dim,
       residual_dropout_prob, input_dropout_prob, atten_dropout_prob,
-      relu_dropout_prob, is_transparent)
+      relu_dropout_prob, is_transparent, activation)
   p.decoder = SetupTransformerDecoder(
       model_dim, vocab_size, num_layers, num_heads, hidden_dim,
       residual_dropout_prob, input_dropout_prob, atten_dropout_prob,
-      relu_dropout_prob, label_smoothing_uncertainty, is_transparent)
+      relu_dropout_prob, label_smoothing_uncertainty, is_transparent,
+      activation)
 
   p.train.Set(
       learning_rate=learning_rate,
@@ -210,7 +213,8 @@ def SetupTransformerDecoder(model_dim,
                             atten_dropout_prob=0.0,
                             relu_dropout_prob=0.0,
                             label_smoothing_uncertainty=0.1,
-                            is_transparent=False):
+                            is_transparent=False,
+                            activation='RELU'):
   """Common setup for transformer model decoder."""
   disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
   default_params_init = py_utils.WeightInit.Xavier(1.0)
@@ -255,7 +259,8 @@ def SetupTransformerDecoder(model_dim,
       residual_dropout_prob=residual_dropout_prob,
       relu_dropout_prob=relu_dropout_prob,
       params_init=default_params_init,
-      vn=disable_vn)
+      vn=disable_vn,
+      activation=activation)
 
   decoder_params.softmax.Set(
       num_classes=vocab_size,
@@ -283,7 +288,8 @@ def SetupTransformerEncoder(model_dim,
                             input_dropout_prob=0.0,
                             atten_dropout_prob=0.0,
                             relu_dropout_prob=0.0,
-                            is_transparent=False):
+                            is_transparent=False,
+                            activation='RELU'):
   """Common setup for transformer model encoder.
 
   Args:
@@ -298,6 +304,7 @@ def SetupTransformerEncoder(model_dim,
    atten_dropout_prob: used in attention layer.
    relu_dropout_prob: used in transformer feedforward layer.
    is_transparent: if set, outputs a merger of embeddings and layer outputs.
+   activation: Non-linearity for feed-forward layers.
 
   Returns:
    Encoder params.
@@ -345,7 +352,8 @@ def SetupTransformerEncoder(model_dim,
       residual_dropout_prob=residual_dropout_prob,
       relu_dropout_prob=relu_dropout_prob,
       params_init=default_params_init,
-      vn=disable_vn)
+      vn=disable_vn,
+      activation=activation)
 
   if is_transparent:
     encoder_params.transformer_stack.is_transparent = True

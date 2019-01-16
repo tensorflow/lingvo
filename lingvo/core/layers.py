@@ -33,12 +33,31 @@ from lingvo.core import quant_utils
 from lingvo.core import recurrent
 from lingvo.core import summary_utils
 
+
+def Gelu(input_tensor):
+  """Gaussian Error Linear Unit.
+
+  This is a smoother version of the RELU.
+  Original paper: https://arxiv.org/abs/1606.08415
+
+  Args:
+    input_tensor: float Tensor to perform activation.
+
+  Returns:
+    `input_tensor` with the GELU activation applied.
+  """
+  cdf = 0.5 * (
+      1.0 + tf.erf(input_tensor / tf.cast(tf.sqrt(2.0), input_tensor.dtype)))
+  return input_tensor * cdf
+
+
 # Supported activation functions.
 _ACTIVATIONS = {
     'RELU': tf.nn.relu,
     'RELU6': tf.nn.relu6,
     'SIGMOID': tf.sigmoid,
-    'TANH': tf.tanh
+    'TANH': tf.tanh,
+    'GELU': Gelu
 }
 
 # A subset of activation functions are supported by TFLite as fused activation

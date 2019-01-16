@@ -187,6 +187,36 @@ class Adam(Base):
     summary_utils.scalar('adam_lr', lr)
 
 
+class AdamW(Base):
+  """Adam with weight decay.
+
+  Wrapper for the optimizer in: Decoupled Weight Decay Regularization
+  https://arxiv.org/abs/1711.05101
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(AdamW, cls).Params()
+    p.Define('beta1', 0.9, 'Beta1 for Adam.')
+    p.Define('beta2', 0.999, 'Beta2 for Adam.')
+    p.Define('epsilon', 1e-6, 'Epsilon for Adam.')
+    p.Define('weight_decay', 1e-6, 'Weight decay multiplier.')
+    p.name = 'AdamW'
+    return p
+
+  def GetOptimizer(self, lr):
+    p = self.params
+    return tf.contrib.opt.AdamWOptimizer(
+        weight_decay=p.weight_decay,
+        learning_rate=lr,
+        beta1=p.beta1,
+        beta2=p.beta2,
+        name=p.name)
+
+  def AddSummary(self, lr, optimizer, var_grad):
+    summary_utils.scalar('adamW_lr', lr)
+
+
 class Accumulator(Base):
   """Gradient accumulator wrapper."""
 

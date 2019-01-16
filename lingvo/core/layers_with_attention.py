@@ -78,6 +78,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         '(1.0 - residual_dropout_prob).')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
+    p.Define('add_unnormalized_input', False, 'If set, uses unnormalized input '
+             'in the residual add.')
     return p
 
   @base_layer.initializer
@@ -134,6 +136,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       source_time].
     """
     p = self.params
+    unnormalized_query_vec = query_vec
     query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
     if source_vecs is None:
@@ -174,7 +177,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         per_step_source_padding=causal_padding,
         query_segment_id=query_segment_id)
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
-    h = query_vec + tf.reshape(ctx_vec, tf.shape(query_vec))
+    input_to_add = (
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+    h = input_to_add + tf.reshape(ctx_vec, tf.shape(query_vec))
     atten_prob = tf.reshape(atten_prob, [
         tf.shape(query_vec)[0],
         tf.shape(query_vec)[1],
@@ -201,6 +206,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     """
     p = self.params
     assert p.is_masked  # Must be causal attention.
+    unnormalized_query_vec = query_vec
     query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
     cached_packed_src = py_utils.NestedMap(
@@ -214,7 +220,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         theta.atten, extended_packed_src, query_vec)
 
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
-    h = query_vec + tf.reshape(ctx_vec, tf.shape(query_vec))
+    input_to_add = (
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+    h = input_to_add + tf.reshape(ctx_vec, tf.shape(query_vec))
+
     new_states = py_utils.NestedMap(
         key=extended_packed_src.source_vecs,
         value=extended_packed_src.source_contexts)
@@ -237,6 +246,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p.Define('output_dim', 0, 'Dimension of the layer output.')
     p.Define('hidden_dim', 0, 'Dimension of the hidden layer.')
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
+    p.Define('activation', 'RELU', 'Non-linearity.')
     p.Define(
         'fflayer_tpl',
         layers.FeedForwardNet.Params().Set(activation=['RELU', 'NONE']),
@@ -272,6 +282,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       params = p.fflayer_tpl.Copy()
       params.name = 'fflayer'
       params.input_dim = p.input_dim
+      params.activation = [p.activation, 'NONE']
       if p.output_dim == 0:
         params.hidden_layer_dims = [p.hidden_dim, p.input_dim]
       else:
