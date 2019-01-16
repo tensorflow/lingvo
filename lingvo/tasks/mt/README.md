@@ -53,7 +53,7 @@ bazel-bin/lingvo/trainer \
   --logdir=/tmp/wmtm16/log \
   --job=controller,trainer_client \
   --model=mt.wmtm16_en_de.WmtCaptionEnDeTransformer \
-  --logtostderr >& /user/local/google/wmtm16/log/train.log
+  --logtostderr >& /tmp/wmtm16/log/train.log
 ```
 
 This will begin training a model, providing statistics on training perplexity
