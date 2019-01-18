@@ -28,6 +28,12 @@ py_binary(
 py_binary(
     name = "wpm_encode_file",
     srcs = ["wpm_encode_file.py"],
+    deps = [":wpm_encode_file_lib"],
+)
+
+py_library(
+    name = "wpm_encode_file_lib",
+    srcs = ["wpm_encode_file.py"],
     deps = [
         # Implicit tensorflow dependency.
         "//lingvo/core:wpm_encoder",
