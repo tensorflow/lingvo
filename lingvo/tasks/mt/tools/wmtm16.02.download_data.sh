@@ -22,7 +22,8 @@ mkdir -p "${ROOT}/raw"
 # ============================================================================
 # Download WMT data.
 # From the WMT16 Multimodal website (En-De):
-wget --no-clobber --directory-prefix="${ROOT}/raw" \
-  http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/training.tar.gz \
-  http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/validation.tar.gz \
-  http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/mmt16_task1_test.tar.gz
+echo "
+http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/training.tar.gz
+http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/validation.tar.gz
+http://www.quest.dcs.shef.ac.uk/wmt16_files_mmt/mmt16_task1_test.tar.gz" \
+  | aria2c -x16 -s16 --dir="${ROOT}/raw" -i -

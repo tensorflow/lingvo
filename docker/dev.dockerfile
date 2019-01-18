@@ -19,6 +19,7 @@ ARG base_image=$cpu_base_image
 
 # Pick up some TF dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+        aria2 \
         build-essential \
         curl \
         gcc-4.8 g++-4.8 gcc-4.8-base \

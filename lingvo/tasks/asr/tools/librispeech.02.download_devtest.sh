@@ -20,5 +20,9 @@ set -eu
 
 mkdir -p "${ROOT}/raw"
 
-wget --no-clobber --directory-prefix="${ROOT}/raw" \
-  ${SOURCE}/{dev,test}-{clean,other}.tar.gz
+echo "
+${SOURCE}/dev-clean.tar.gz
+${SOURCE}/dev-other.tar.gz
+${SOURCE}/test-clean.tar.gz
+${SOURCE}/test-other.tar.gz" \
+  | aria2c -x16 -s16 --dir="${ROOT}/raw" -i -

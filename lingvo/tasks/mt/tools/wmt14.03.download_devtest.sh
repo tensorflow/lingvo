@@ -19,6 +19,7 @@ set -eu
 . ./lingvo/tasks/mt/tools/wmt14_lib.sh
 
 mkdir -p "${ROOT}/raw"
-wget --no-clobber --directory-prefix="${ROOT}/raw" \
-  http://www.statmt.org/wmt14/test-filtered.tgz \
-  http://www.statmt.org/wmt14/dev.tgz
+echo "
+http://www.statmt.org/wmt14/test-filtered.tgz
+http://www.statmt.org/wmt14/dev.tgz" \
+  | aria2c -x16 -s1 -j1 --dir="${ROOT}/raw" -i -

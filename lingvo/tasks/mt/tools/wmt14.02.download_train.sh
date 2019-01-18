@@ -22,7 +22,8 @@ mkdir -p "${ROOT}/raw"
 # ============================================================================
 # Download WMT data.
 # From the WMT14 website (En-De):
-wget --no-clobber --directory-prefix="${ROOT}/raw" \
-  http://www.statmt.org/wmt13/training-parallel-europarl-v7.tgz \
-  http://www.statmt.org/wmt13/training-parallel-commoncrawl.tgz \
-  http://www.statmt.org/wmt14/training-parallel-nc-v9.tgz
+echo "
+http://www.statmt.org/wmt13/training-parallel-europarl-v7.tgz
+http://www.statmt.org/wmt13/training-parallel-commoncrawl.tgz
+http://www.statmt.org/wmt14/training-parallel-nc-v9.tgz" \
+  | aria2c -x16 -s1 -j1 --dir="${ROOT}/raw" -i -
