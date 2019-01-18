@@ -968,7 +968,9 @@ class TransformerDecoder(MTBaseDecoder):
       # [batch, time, model_dim]
       token_embs = self.token_emb.EmbLookup(theta.token_emb, new_ids)
       # [time, model_dim]
-      posit_embs = self.position_emb.FProp(theta.position_emb, t + 1)[-1:, :]
+      posit_embs = tf.slice(
+          self.position_emb.FProp(theta.position_emb, p.target_seq_len), [t, 0],
+          [1, p.model_dim])
       input_embs = token_embs + posit_embs
 
       if p.model_dim != p.token_emb.embedding_dim:
@@ -984,7 +986,8 @@ class TransformerDecoder(MTBaseDecoder):
         layer_prefix_states = prefix_states['layer_%i' % i]
         layer_out, _, updated_prefix_states = layer.ExtendStep(
             layer_theta, layer_in, layer_prefix_states, source_encs[i],
-            source_paddings)
+            source_paddings,
+            t if p.beam_search.name == 'tpu_beam_search' else None)
         out_prefix_states['layer_%i' % i] = updated_prefix_states
         layer_in = layer_out
 
@@ -1056,20 +1059,25 @@ class TransformerDecoder(MTBaseDecoder):
     key_channels = p.model_dim
     value_channels = p.model_dim
 
+    if p.beam_search.name == 'tpu_beam_search':
+      seq_len = p.target_seq_len
+    else:
+      seq_len = 0
+
     prefix_states = py_utils.NestedMap({
         'layer_%d' % layer: py_utils.NestedMap({
             'key':
-                tf.zeros([batch_size, 0, key_channels],
+                tf.zeros([batch_size, seq_len, key_channels],
                          dtype=py_utils.FPropDtype(p)),
             'value':
-                tf.zeros([batch_size, 0, value_channels],
+                tf.zeros([batch_size, seq_len, value_channels],
                          dtype=py_utils.FPropDtype(p)),
         }) for layer in range(p.num_trans_layers)
     })
 
     return initial_results, py_utils.NestedMap({
         'prefix_states': prefix_states,
-        'time_step': 0
+        'time_step': tf.constant(0)
     })
 
   def _PreBeamSearchStepCallback(self,

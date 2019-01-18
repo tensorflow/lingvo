@@ -22,6 +22,7 @@ import numpy as np
 import tensorflow as tf
 
 from tensorflow.python.framework import function
+from tensorflow.python.ops import inplace_ops
 
 from lingvo.core import base_layer
 from lingvo.core import layers
@@ -1254,9 +1255,14 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           source_padding_replicated, source_segment_id_repl)
 
   @py_utils.NameScopeDecorator('MultiHeadedAttention/ExtendSourcePacked')
-  def ExtendSourcePacked(self, theta, new_source_vecs, new_source_contexts,
-                         new_source_paddings, new_source_segment_ids,
-                         cached_packed_src):
+  def ExtendSourcePacked(self,
+                         theta,
+                         new_source_vecs,
+                         new_source_contexts,
+                         new_source_paddings,
+                         new_source_segment_ids,
+                         cached_packed_src,
+                         t=None):
     """Extend cached source_vecs and source_contexts by one more timestep.
 
     Args:
@@ -1271,7 +1277,26 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       new_source_segment_ids: If not None, a tensor of shape [source_batch].
         source_segment_id for the new timestep.
       cached_packed_src: a `.NestedMap` object, containing already preprocessed
-        source_vecs and source_contexts for the previous t-1 steps:
+        source_vecs and source_contexts for the previous t-1 steps. To support
+        tf.while_loop on TPU (satisfying static shape requirement), instead of
+        using tf.concat to update the cached vectors, the time dimension of
+        each cached vector is fixed as the max_sequence_length and inplace
+        update op is used to update the information for each time step:
+        * source_vecs: A tensor of shape [source_batch, max_sequence_length,
+          hidden_dim]. [:, :t, :] contains valid preprocessed source_vecs in
+          the previous t - 1 timesteps, the rests are invalid data.
+        * source_contexts: A tensor of shape [source_batch, max_sequence_length,
+          hidden_dim]. [:, :t, :] contains valid preprocessed source_contexts
+          in the previous t - 1 timesteps, the rests are invalid data.
+        * source_padding: If not None, a tensor of shape [source_batch,
+          max_sequence_length, num_heads]. [:, :t, :] contains cached
+          source padding for the previous t - 1 timesteps, the rests are
+          invalid data.
+        * source_segment_id: If not None, a tensor of shape [source_batch,
+          max_sequence_length, num_heads]. [:, :t, :] contains cached
+          source segment id for the previous t - 1 timesteps, the rests are
+          invalid data.
+        When t is None (not running on TPU or the while loop is unrolled):
         * source_vecs: A tensor of shape [source_batch, t - 1, hidden_dim].
         * source_contexts: A tensor of shape [source_batch, t - 1, hidden_dim].
         * source_padding: If not None, a tensor of shape [source_batch,
@@ -1280,12 +1305,23 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         * source_segment_id: If not None, a tensor of shape
           [source_batch, t - 1, num_heads], cached source segment id for the
           previous t - 1 timesteps.
+      t: a scalar, the current time step, 0-based.
     Returns:
-      Extended cached source_vecs, source_contexts and source_paddings.
-      'extended_source_vec' is of shape [batch_size, t, num_heads * dim],
-      'extended_source_context' is of shape [batch_size, t, num_heads * dim],
-      source_padding is of shape [batch_size, t, num_heads], source_segment_id
-      is of shape [batch_size, t, num_heads].
+      Extended cached source_vecs, source_contexts, source_paddings, and
+      source_segment_ids. The time dimension of each cached state is fixed:
+      'extended_source_vec' is of shape [batch_size, max_sequence_length,
+      num_heads * dim];
+      'extended_source_context' is of shape [batch_size, max_sequence_length,
+      num_heads * dim];
+      'source_padding' is of shape [batch_size, max_sequence_length, num_heads];
+      'source_segment_id' is of shape [batch_size, max_sequence_length,
+      num_heads].
+      But only [:, :(t + 1), :] contains valid data.
+      If t is not given,
+      'extended_source_vec' is of shape [batch_size, t, num_heads * dim];
+      'extended_source_context' is of shape [batch_size, t, num_heads * dim];
+      'source_padding' is of shape [batch_size, t, num_heads];
+      'source_segment_id' is of shape [batch_size, t, num_heads].
     """
     batch_size = tf.shape(new_source_vecs)[0]
     if new_source_paddings is None:
@@ -1304,9 +1340,18 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       if cached_packed_src.get(key, None) is None:
         extended_packed_src[key] = None
       else:
-        processed = tf.reshape(processed_packed_src[key], [batch_size, 1, -1])
-        extended_packed_src[key] = tf.concat(
-            [cached_packed_src[key], processed], axis=1)
+        if t is not None:
+          cached_packed_src_trans = tf.transpose(
+              cached_packed_src[key], perm=[1, 0, 2])
+          processed = tf.reshape(processed_packed_src[key], [batch_size, -1])
+          cached_packed_src_trans = inplace_ops.alias_inplace_update(
+              cached_packed_src_trans, t, processed)
+          extended_packed_src[key] = tf.transpose(
+              cached_packed_src_trans, perm=[1, 0, 2])
+        else:
+          processed = tf.reshape(processed_packed_src[key], [batch_size, 1, -1])
+          extended_packed_src[key] = tf.concat(
+              [cached_packed_src[key], processed], axis=1)
     return extended_packed_src
 
   @py_utils.NameScopeDecorator('MultiHeadedAttention/ZeroAttentionState')
@@ -1573,7 +1618,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     name = p.name
     self._is_quantized = p.qdomain.default is not None
     assert not p.packed_input, ('Packed input is not supported yet for '
-                                'LocationsensitiveAttention.')
+                                'LocationSensitiveAttention.')
 
     if p.atten_dropout_prob != 0:
       raise NotImplementedError('dropout is not supported')

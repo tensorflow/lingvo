@@ -187,7 +187,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     ])
     return h, atten_prob
 
-  def ExtendStep(self, theta, query_vec, prefix_state):
+  def ExtendStep(self, theta, query_vec, prefix_state, t=None):
     """Extend prefix by one more time step.
 
     This function is expected to be called during fast decoding of the
@@ -199,6 +199,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       query_vec: [target_batch, dim]
       prefix_state: dict, containing tensors which are the results of previous
           attentions, used for fast decoding.
+      t: a scalar, the current time step, 0-based.
     Returns:
       A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
       representing the output from the current state, and new_state is the new
@@ -215,9 +216,25 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         source_padding=None,
         source_segment_id=None)
     extended_packed_src = self.atten.ExtendSourcePacked(
-        theta.atten, query_vec, query_vec, None, None, cached_packed_src)
+        theta.atten, query_vec, query_vec, None, None, cached_packed_src, t)
+    if t is not None:
+      source_seq_len = tf.shape(extended_packed_src.source_vecs)[1]
+      zero_padding = tf.fill([source_seq_len],
+                             tf.constant(0.0, dtype=query_vec.dtype))
+      per_step_source_padding = tf.where(
+          tf.less(tf.range(source_seq_len), tf.fill([source_seq_len], t + 1)),
+          zero_padding, tf.ones_like(zero_padding, dtype=query_vec.dtype))
+      query_batch_size = tf.shape(query_vec)[0]
+      per_step_source_padding = tf.tile(
+          tf.expand_dims(per_step_source_padding, axis=0),
+          [query_batch_size, 1])
+    else:
+      per_step_source_padding = None
     ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithCachedSource(
-        theta.atten, extended_packed_src, query_vec)
+        theta.atten,
+        extended_packed_src,
+        query_vec,
+        per_step_source_padding=per_step_source_padding)
 
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
@@ -483,7 +500,8 @@ class TransformerLayer(base_layer.BaseLayer):
                  source_vecs,
                  prefix_states,
                  aux_vecs=None,
-                 aux_paddings=None):
+                 aux_paddings=None,
+                 t=None):
     """Transformer Layer, extend one step in decoding.
 
     This function is expected to be called during fast decoding of Transformer
@@ -497,6 +515,7 @@ class TransformerLayer(base_layer.BaseLayer):
           attentions, used for fast decoding.
       aux_vecs: [aux_time, aux_batch, dim]
       aux_paddings: [aux_time, aux_batch]
+      t: a scalar, the current time step, 0-based.
     Returns:
       The attention context vector, [target_batch, source_dim]
 
@@ -514,7 +533,7 @@ class TransformerLayer(base_layer.BaseLayer):
 
     # First the self-attention layer.
     atten_vec, atten_prob, new_states = self.self_atten.ExtendStep(
-        theta.self_atten, source_vecs, prefix_states)
+        theta.self_atten, source_vecs, prefix_states, t)
 
     atten_vec = tf.expand_dims(atten_vec, axis=0)
     # Next the source attention layer.
