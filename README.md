@@ -117,3 +117,11 @@ Schuster, Noam Shazeer, Niki Parmar, Ashish Vaswani, Jakob Uszkoreit, Lukasz
 Kaiser, Zhifeng Chen, Yonghui Wu, and Macduff Hughes. ACL 2018.
 
 </font>
+
+## Citation
+
+Please cite this paper when referencing Lingvo.
+
+```
+Coming soon.
+```
