@@ -445,9 +445,9 @@ class AsrModelTest(tf.test.TestCase):
                           fetches['hypotheses'].shape)
       self.assertAllEqual((1, p.decoder.beam_search.num_hyps_per_beam),
                           fetches['scores'].shape)
-      self.assertAllEqual((1, 315, p.encoder.input_shape[2], 1),
+      self.assertAllEqual((1, 314, p.encoder.input_shape[2], 1),
                           fetches['src_frames'].shape)
-      self.assertAllEqual((81, 1, 2 * p.encoder.lstm_cell_size),
+      self.assertAllEqual((80, 1, 2 * p.encoder.lstm_cell_size),
                           fetches['encoder_frames'].shape)
 
 

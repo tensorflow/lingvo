@@ -98,9 +98,6 @@ def ExtractLogMelFeatures(wav_bytes_t):
     p.preemph = 0.97
     p.noise_scale = 0.
     p.pad_end = False
-    # Stack 3 frames and sub-sample by a factor of 3.
-    p.left_context = 2
-    p.output_stride = 3
     return p.cls(p)
 
   sample_rate, audio = DecodeWav(wav_bytes_t)

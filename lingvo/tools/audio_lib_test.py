@@ -88,9 +88,8 @@ class AudioLibTest(tf.test.TestCase):
 
     with self.session() as sess:
       log_mel = sess.run(log_mel_t)
-      # We expect 105 frames, each of which consists of three 80 dimensional
-      # stacked frames.
-      self.assertAllEqual(log_mel.shape, [1, 105, 80 * 3, 1])
+      # Expect 314, 80 dimensional channels.
+      self.assertAllEqual(log_mel.shape, [1, 314, 80, 1])
 
 
 if __name__ == '__main__':

@@ -32,8 +32,6 @@ from lingvo.tasks.asr import model
 def LibrispeechCommonAsrInputParams(is_eval):
   """Input generator params for Librispeech."""
   p = input_generator.AsrInput.Params()
-
-  # Convert the input stacked frames (80x3) into single 80 dimensional frames.
   p.frame_size = 80
   p.append_eos_frame = True
 
