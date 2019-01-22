@@ -86,52 +86,65 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 # pylint: enable=protected-access
 
 
-def Assert(condition, data, *args, **kwargs):
+def _SafeCastToSameType(a, b):
+  """Casts `a` to the type of `b` if it's safe to do so."""
+  a = tf.convert_to_tensor(a)
+  b = tf.convert_to_tensor(b)
+  if a.dtype == tf.int32 and b.dtype == tf.int64:
+    a = tf.cast(a, tf.int64)
+  if a.dtype == tf.float32 and b.dtype == tf.float64:
+    a = tf.cast(a, tf.float64)
+  return a
+
+
+def assert_true(x, *args, **kwargs):  # pylint: disable=invalid-name
+  return assert_equal(x, True, *args, **kwargs)
+
+
+def assert_equal(x, y, *args, **kwargs):  # pylint: disable=invalid-name
   if FLAGS.enable_asserts:
-    return tf.Assert(condition, data, *args, **kwargs)
+    y = _SafeCastToSameType(y, x)
+    return tf.assert_equal(x, y, *args, **kwargs)
   else:
     return tf.no_op()
 
 
-def assert_equal(*args, **kwargs):  # pylint: disable=invalid-name
+def assert_greater_equal(x, y, *args, **kwargs):  # pylint: disable=invalid-name
   if FLAGS.enable_asserts:
-    return tf.assert_equal(*args, **kwargs)
+    y = _SafeCastToSameType(y, x)
+    return tf.assert_greater_equal(x, y, *args, **kwargs)
   else:
     return tf.no_op()
 
 
-def assert_greater_equal(*args, **kwargs):  # pylint: disable=invalid-name
+def assert_greater(x, y, *args, **kwargs):  # pylint: disable=invalid-name
   if FLAGS.enable_asserts:
-    return tf.assert_greater_equal(*args, **kwargs)
+    y = _SafeCastToSameType(y, x)
+    return tf.assert_greater(x, y, *args, **kwargs)
   else:
     return tf.no_op()
 
 
-def assert_greater(*args, **kwargs):  # pylint: disable=invalid-name
+def assert_less_equal(x, y, *args, **kwargs):  # pylint: disable=invalid-name
   if FLAGS.enable_asserts:
-    return tf.assert_greater(*args, **kwargs)
+    y = _SafeCastToSameType(y, x)
+    return tf.assert_less_equal(x, y, *args, **kwargs)
   else:
     return tf.no_op()
 
 
-def assert_less_equal(*args, **kwargs):  # pylint: disable=invalid-name
+def assert_less(x, y, *args, **kwargs):  # pylint: disable=invalid-name
   if FLAGS.enable_asserts:
-    return tf.assert_less_equal(*args, **kwargs)
-  else:
-    return tf.no_op()
-
-
-def assert_less(*args, **kwargs):  # pylint: disable=invalid-name
-  if FLAGS.enable_asserts:
-    return tf.assert_less(*args, **kwargs)
+    y = _SafeCastToSameType(y, x)
+    return tf.assert_less(x, y, *args, **kwargs)
   else:
     return tf.no_op()
 
 
 def assert_between(x, l, r, *args, **kwargs):  # pylint: disable=invalid-name
   return tf.group(
-      Assert(tf.reduce_all(tf.greater_equal(x, l)), [x], *args, **kwargs),
-      Assert(tf.reduce_all(tf.less(x, r)), [x], *args, **kwargs))
+      assert_greater_equal(x, l, *args, **kwargs),
+      assert_less(x, r, *args, **kwargs))
 
 
 def assert_shape_match(*args, **kwargs):  # pylint: disable=invalid-name
@@ -2118,10 +2131,8 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
     A tensor with the same shape as x with padded values masked.
   """
   padding = with_dependencies([
-      Assert(
-          tf.reduce_all(
-              tf.logical_or(tf.equal(padding, 0.0), tf.equal(padding, 1.0))),
-          [padding])
+      assert_true(
+          tf.logical_or(tf.equal(padding, 0.0), tf.equal(padding, 1.0))),
   ], padding)
   if use_select:
     if padded is None:
