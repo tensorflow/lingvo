@@ -69,6 +69,8 @@ def _MaybeUpdateParamsFromFlags(cfg):
 class _ModelRegistryHelper(object):
   # Global dictionary mapping subclass name to registered ModelParam subclass.
   _MODEL_PARAMS = {}
+  # Global set of modules from which ModelParam subclasses have been registered.
+  _REGISTERED_MODULES = set()
 
   @classmethod
   def _ClassPathPrefix(cls):
@@ -111,9 +113,17 @@ class _ModelRegistryHelper(object):
   def _RegisterModel(cls, wrapper_cls, src_cls):
     """Registers a ModelParams subclass in the global registry."""
     key = cls._ModelParamsClassKey(src_cls)
+    module = src_cls.__module__
     if key in cls._MODEL_PARAMS:
       raise ValueError('Duplicate model registered for key {}: {}.{}'.format(
-          key, src_cls.__module__, src_cls.__name__))
+          key, module, src_cls.__name__))
+
+    tf.logging.debug('Registering model %s', key)
+    # Log less frequently (once per module) but at a higher verbosity level.
+    if module not in cls._REGISTERED_MODULES:
+      tf.logging.info('Registering models from module: %s', module)
+      cls._REGISTERED_MODULES.add(module)
+
     # Decorate param methods to add source info metadata.
     cls._MODEL_PARAMS[key] = wrapper_cls
     return key
@@ -166,7 +176,10 @@ class _ModelRegistryHelper(object):
   @staticmethod
   def GetAllRegisteredClasses():
     """Returns global registry map from model names to their param classes."""
-    return _ModelRegistryHelper._MODEL_PARAMS
+    all_params = _ModelRegistryHelper._MODEL_PARAMS
+    if not all_params:
+      tf.logging.warning('No classes registered.')
+    return all_params
 
   @classmethod
   def GetClass(cls, class_key):
