@@ -208,10 +208,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         'attention_plot_font_properties', font_manager.FontProperties(),
         'Adds font properties for the given file if set. Required '
         'for displaying east-Asian character sets on plot axes.')
-    p.Define(
-        'first_rnn_input_dim', 0,
-        'The input dim to the first RNN layer. If 0, it is '
-        'assumed to be p.emb_dim')
     p.Define('rnn_layers', 1, 'Number of rnn layers.')
     p.Define(
         'residual_start', 0,
@@ -326,10 +322,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       p.fusion.base_model_logits_dim = p.softmax.input_dim
       self.CreateChild('fusion', p.fusion)
 
-      first_rnn_input_dim = p.first_rnn_input_dim
-      if not first_rnn_input_dim:
-        first_rnn_input_dim = self.fusion.FusedEmbDim(p.emb_dim)
-
       params_rnn_cells = []
       for i in range(p.rnn_layers):
         rnn_cell_params = p.rnn_cell_tpl.Copy()
@@ -338,8 +330,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         decoder_utils.SetRnnCellNodes(p, rnn_cell_params)
         if i == 0:
           rnn_cell_params.name = 'rnn_cell'
-          rnn_cell_params.num_input_nodes = (
-              first_rnn_input_dim + atten_context_dim)
+          rnn_cell_params.num_input_nodes = p.emb_dim + atten_context_dim
         else:
           rnn_cell_params.name = 'rnn_cell_%d' % i
           rnn_cell_params.num_input_nodes = p.rnn_cell_dim + atten_context_dim
@@ -987,19 +978,12 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         cur_target_info = self.TargetsToBeFedAtCurrentDecodeStep(
             time, theta, old_decoder_step_state, target_info_tas, seq_out_tas)
 
-        lm_output, fusion_states = self.fusion.FPropLm(
-            theta.fusion, old_decoder_step_state.fusion_states,
-            cur_target_info.id, cur_target_info.padding)
-
-        fused_emb, fusion_states = self.fusion.FuseEmb(
-            theta.fusion, fusion_states, lm_output, cur_target_info.emb)
-        cur_target_info = self.OverrideEmbedding(cur_target_info, fused_emb)
-
         step_outs, decoder_step_state = self.SingleDecodeStep(
             theta, packed_src, cur_target_info, old_decoder_step_state)
 
-        step_outs, decoder_step_state.fusion_states = self.fusion.FuseOutput(
-            theta.fusion, fusion_states, lm_output, step_outs)
+        step_outs, decoder_step_state.fusion_states = self.fusion.FProp(
+            theta.fusion, old_decoder_step_state.fusion_states, step_outs,
+            cur_target_info.id, cur_target_info.padding)
 
         # Compute logits.
         xent_loss = self.softmax.FProp(
@@ -1068,13 +1052,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
           misc=self.CreateTargetInfoMisc(targets),
       )
 
-      lm_output, state0.fusion_states = self.fusion.FPropLm(
-          theta.fusion, state0.fusion_states, inputs.id, inputs.padding,
-          inputs.misc)
-
-      inputs.emb, state0.fusion_states = self.fusion.FuseEmb(
-          theta.fusion, state0.fusion_states, lm_output, inputs.emb)
-
       # If the theta in the recurrent loop contains fusion related variables,
       # it will allocate a large amount of memory even though it is not being
       # used and exceed current TPU HBM limit. Thus remove fusion theta from
@@ -1117,8 +1094,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
             axis=-1)
       else:
         step_out = accumulated_states.step_outs
-      softmax_input, state0.fusion_states = self.fusion.FuseOutput(
-          theta.fusion, state0.fusion_states, lm_output, step_out)
+      softmax_input, state0.fusion_states = self.fusion.FProp(
+          theta.fusion, state0.fusion_states, step_out, inputs.id,
+          inputs.padding, inputs.misc)
       # TODO(syzhang): understand why we have to construct softmax outside the
       # recurrent loop; otherwise, the BProp numbers don't match.
       xent_loss = self.softmax.FProp(
@@ -1251,16 +1229,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         emb=emb,
         padding=padding,
         misc=misc)
-
-  def OverrideEmbedding(self, target_info, new_emb):
-    """Replaces target_info.emb with new_emb and returns the result tuple."""
-    return AsrDecoderBase.TargetInfo(
-        id=target_info.id,
-        label=target_info.label,
-        weight=target_info.weight,
-        emb=new_emb,
-        padding=target_info.padding,
-        misc=target_info.misc)
 
   def PostStepDecoderStateUpdate(self, decoder_step_state, logits=None):
     """Update decoder states and logits after SingleDecodeStep.
@@ -1557,14 +1525,6 @@ class AsrDecoder(AsrDecoderBase):
         padding=step_paddings,
         misc=py_utils.NestedMap())
 
-    lm_output, fusion_states = self.fusion.FPropLm(
-        theta.fusion, prev_fusion_states, cur_target_info.id,
-        cur_target_info.padding)
-
-    fused_emb, fusion_states = self.fusion.FuseEmb(
-        theta.fusion, fusion_states, lm_output, cur_target_info.emb)
-    cur_target_info = self.OverrideEmbedding(cur_target_info, fused_emb)
-
     packed_src = self._InitAttention(
         theta, py_utils.NestedMap(encoded=source_encs, padding=source_paddings))
     step_out, new_decoder_step_state = self.SingleDecodeStep(
@@ -1592,8 +1552,9 @@ class AsrDecoder(AsrDecoderBase):
       softmax_input, _ = tf.split(
           step_out, [p.rnn_cell_dim, atten_context_dim], axis=-1)
 
-    softmax_input, fusion_states = self.fusion.FuseOutput(
-        theta.fusion, fusion_states, lm_output, softmax_input)
+    softmax_input, fusion_states = self.fusion.FProp(
+        theta.fusion, prev_fusion_states, softmax_input, cur_target_info.id,
+        cur_target_info.padding)
 
     xent_loss = self.softmax.FProp(
         theta.softmax,

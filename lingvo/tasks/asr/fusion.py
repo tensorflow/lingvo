@@ -58,7 +58,7 @@ class FusionBase(base_layer.BaseLayer):
     state0.lm_states = self.lm.zero_state(batch_size)
     return state0
 
-  def FPropLm(self, theta, state0, ids, paddings, misc=None):
+  def _FPropLm(self, theta, state0, ids, paddings, misc=None):
     """LM FProp.
 
     Works for single step or entire seq.
@@ -101,11 +101,7 @@ class FusionBase(base_layer.BaseLayer):
 
     return lm_output, state1
 
-  def _ModifyLmBeforeFProp(self, theta, state0, ids, paddings, misc=None):
-    """Perform any LM modifications before LM FProp (no-op by default)."""
-    del theta, state0, ids, paddings, misc
-
-  def FuseOutput(self, theta, state0, lm_output, am_output):
+  def FProp(self, theta, state0, am_output, ids, paddings, misc=None):
     """Real fusion logic happens here.
 
     Works for single step or for the entire sequence.
@@ -114,10 +110,14 @@ class FusionBase(base_layer.BaseLayer):
       theta: A NestedMap object containing weights for the layer and its
         children.
       state0: A NestedMap of states (specific to the layer).
-      lm_output: A NestedMap containing lm output.
       am_output: The output from the speech model. 'am_output' can have shape
         [batch_size, base_model_logits_dim] for a single step unrolling or
         [seq_len, batch_size, base_model_logits_dim] for the entire sequence.
+      ids: Target ids, of shape [batch_size] for single step unrolling or
+        [batch_size, base_model_logits_dim] for the entire sequence.
+      paddings: Target paddings, of the same shape as 'ids'.
+      misc: NestedMap of miscellaneous items, which might be needed during
+        training.
 
     Returns:
       (fused_output, state1), with:
@@ -126,39 +126,13 @@ class FusionBase(base_layer.BaseLayer):
         then the fused_output should have shape [batch_size, dim]; if
         am_output is 3-D, then the shape should be [seq_len, batch_size, dim].
       - state1: a NestedMap of updated states (specific to the layer).
-
-    Raises:
-      NotImplementedError: If method is not implemented.
     """
-    del theta, state0, lm_output, am_output
+    del theta, state0, am_output, ids, paddings
     raise NotImplementedError('Must be implemented by sub-classes.')
 
-  def FusedEmbDim(self, input_emb_dim):
-    return input_emb_dim
-
-  def FuseEmb(self, theta, state0, lm_output, emb):
-    """Fuse LM output with input embedding.
-
-    Args:
-      theta: A NestedMap object containing weights for the layer and its
-        children.
-      state0: A NestedMap of states (specific to the layer).
-      lm_output: a NestedMap containing lm output.
-      emb: the output from the AM embedding layer. 'emb' can have shape
-        [batch_size, base_model_logits_dim] for a single step unrolling or
-        [seq_len, batch_size, base_model_logits_dim] for the entire sequence.
-
-    Returns:
-      A tuple (output, state1) which is a tensor containing the fused result
-      (output) and the updated states (state1), respectively. If emb is 2-D,
-      then the fused output should have shape [batch_size, dim]; if emb is 3D,
-      then the fused output should have shape [seq_len, batch_size, dim].
-
-    Raises:
-      NotImplementedError: If method is not implemented.
-    """
-    del theta, state0, lm_output, emb
-    raise NotImplementedError('Must be implemented by sub-classes.')
+  def _ModifyLmBeforeFProp(self, theta, state0, ids, paddings, misc=None):
+    """Perform any LM modifications before LM FProp (no-op by default)."""
+    del theta, state0, ids, paddings, misc
 
   def ComputeLogitsWithLM(self, state, logits, is_eval=False):
     """Compute resulting logits based on the fusion method.
@@ -194,12 +168,8 @@ class FusionBase(base_layer.BaseLayer):
 class NullFusion(FusionBase):
   """A trivial fusion layer which does nothing."""
 
-  def FuseEmb(self, theta, state0, lm_output, emb):
-    del theta, lm_output
-    return emb, state0
-
-  def FuseOutput(self, theta, state0, lm_output, am_output):
-    del theta, lm_output
+  def FProp(self, theta, state0, am_output, ids, paddings, misc=None):
+    del theta, ids, paddings
     return am_output, state0
 
   def ComputeLogitsWithLM(self, state, logits, is_eval=False):
