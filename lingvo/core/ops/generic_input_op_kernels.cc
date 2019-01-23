@@ -102,6 +102,11 @@ class GenericInputProcessor : public RecordProcessor {
     // processing each individual record using multiple threads
     // (tf_compute).
     FunctionLibraryRuntime::Options opts;
+    // Create a step container with for operations that need access
+    // to a resource container name but will arrange for cleanup itself.
+    ScopedStepContainer step_container(step_id_counter_.fetch_add(1),
+                                       [](const string&) {});
+    opts.step_container = &step_container;
     opts.runner = ThreadLocalRunner::PerThread().runner();
 
     // The input is a single scalar string tensor.
@@ -261,6 +266,8 @@ class GenericInputProcessor : public RecordProcessor {
   std::unique_ptr<ProcessFunctionLibraryRuntime> pflr_;
   FunctionLibraryRuntime* flib_ = nullptr;  // Not owned.
   FunctionLibraryRuntime::Handle handle_;
+  std::atomic_int_fast64_t step_id_counter_;
+
   int num_merger_threads_ = -1;
   thread::ThreadPool* merger_ = nullptr;
   Runner merger_runner_;
