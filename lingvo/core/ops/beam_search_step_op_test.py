@@ -69,7 +69,7 @@ class BeamSearchOpTest(tf.test.TestCase):
            prev_hyps,
            done_hyps,
            atten_probs, [],
-           i, [],
+           i,
            eos_id=eos_id,
            beam_size=beam_size,
            ensure_full_beam=ensure_full_beam,
@@ -445,7 +445,7 @@ class BeamSearchOpTest(tf.test.TestCase):
            in_prev_hyps,
            in_done_hyps,
            in_atten_probs, [],
-           0, [],
+           0,
            eos_id=2,
            beam_size=3.0,
            num_hyps_per_beam=num_hyps_per_beam)
@@ -460,7 +460,7 @@ class BeamSearchOpTest(tf.test.TestCase):
           out_prev_hyps_0,
           out_done_hyps_0,
           out_atten_probs_0, [],
-          1, [],
+          1,
           eos_id=2,
           beam_size=3.0,
           num_hyps_per_beam=num_hyps_per_beam)

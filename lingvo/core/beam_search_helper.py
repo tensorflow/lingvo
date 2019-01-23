@@ -182,7 +182,6 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'The maximum difference between best hyp and the worst in a beam.'
         ' This allows to prune our search when none of the active hyp is'
         ' close enough to the current best.')
-    p.Define('lm_log_probs_weight', 0.0, 'deprecated, will be removed.')
     p.Define('target_sos_id', 1, 'Id of the start of sentence token.')
     p.Define('target_eos_id', 2, 'Id of the end of sentence token.')
     p.Define(
@@ -283,7 +282,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
          in_done_hyps,
          in_atten_probs,
          bs_results.is_last_chunk if self._model_uses_eoc_id else [],
-         cur_step, [],
+         cur_step,
          eoc_id=p.target_eoc_id,
          eos_id=p.target_eos_id,
          beam_size=p.beam_size,

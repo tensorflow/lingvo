@@ -106,7 +106,6 @@ REGISTER_OP("BeamSearchStep")
     .Input("in_atten_probs: float32")
     .Input("is_last_chunk: bool")
     .Input("cur_step: int32")
-    .Input("lm_log_probs: float32")
     .Output("out_best_scores: float32")
     .Output("out_cumulative_scores: float32")
     .Output("out_scores: float32")
@@ -120,7 +119,6 @@ REGISTER_OP("BeamSearchStep")
     .Attr("beam_size: float")
     .Attr("num_hyps_per_beam: int")
     .Attr("valid_eos_max_logit_delta: float = 5.0")
-    .Attr("lm_weight: float = 0.0")
     .Attr("merge_paths: bool = false")
     .Attr("allow_empty_terminated_hyp: bool = true")
     .Attr("ensure_full_beam: bool = false")
@@ -186,11 +184,6 @@ in_prev_hyps: As explained above.
 in_done_hyps: As explained above.
 in_atten_probs: As explained above.
 cur_step: Current step id.
-lm_log_probs: A matrix of shape [b * k, vocab_size], where b is the number of
-    active beams, and k is the number of hyps in each beam. Local scores for the
-    current timestep according to a language model.  These scores will be used
-    to adjust scores of the top k hyps if lm_weight is nonzero (see
-    `lm_weight` below).
 out_best_scores:
     Updated best scores for each of the beams.
 out_cumulative_scores:
@@ -216,16 +209,6 @@ num_hyps_per_beam: Number of hyps in a beam.
 valid_eos_max_logit_delta: We allow </s> to terminate a hyp only if its logit
     is no more than `valid_eos_max_logit_delta` away from the logit of the best
     candidate.
-lm_weight: A scalar specifying how much weight to place on `lm_log_probs` when
-    determining the scores of the top k hyps.  If lm_weight is zero, the local
-    score of each hyp is the score of the chosen word according to `scores`.
-    Otherwise, the local score is a linear combination of the chosen word
-    according to `scores` and `lm_log_probs`, with:
-    effective score = scores + (lm_log_probs * lm_weight).
-    Note that this rescoring is done only after the top k hyps have been chosen
-    using `scores` alone, such that `lm_log_probs` do not actually change what
-    the top k hyps are, in a given step.  Global score remains the sum of local
-    scores.
 merge_paths: If true, hyps which are identical when epsilons are removed will
     be combined into a single hyp.  The probability for that combined hyp will
     be the sum of the probabilities of the component hyps.  This can only be
