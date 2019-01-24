@@ -45,7 +45,8 @@ class BeamSearchOpTest(tf.test.TestCase):
                              init_atten_probs,
                              atten_probs,
                              beam_size=3.0,
-                             ensure_full_beam=False):
+                             ensure_full_beam=False,
+                             force_eos_in_last_step=False):
     eos_id = 2
     num_hyps_per_beam = b_size / num_beams
 
@@ -74,7 +75,8 @@ class BeamSearchOpTest(tf.test.TestCase):
            beam_size=beam_size,
            ensure_full_beam=ensure_full_beam,
            num_hyps_per_beam=num_hyps_per_beam,
-           valid_eos_max_logit_delta=0.1)
+           valid_eos_max_logit_delta=0.1,
+           force_eos_in_last_step=force_eos_in_last_step)
 
     with self.session(use_gpu=False) as sess:
       (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
@@ -86,15 +88,32 @@ class BeamSearchOpTest(tf.test.TestCase):
     return (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
             atten_probs, done, scores, atten_probs)
 
-  def _testBeamSearchOpHelper(
-      self, b_size, num_beams, seq_len, init_best_score, probs,
-      init_atten_probs, atten_probs, best_scores_expected, cum_scores_expected,
-      scores_expected, hyps_expected, prev_hyps_expected, atten_probs_expected):
+  def _testBeamSearchOpHelper(self,
+                              b_size,
+                              num_beams,
+                              seq_len,
+                              init_best_score,
+                              probs,
+                              init_atten_probs,
+                              atten_probs,
+                              best_scores_expected,
+                              cum_scores_expected,
+                              scores_expected,
+                              hyps_expected,
+                              prev_hyps_expected,
+                              atten_probs_expected,
+                              force_eos_in_last_step=False):
 
     (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
      atten_probs, done, scores, atten_probs) = self._runBeamSearchOpHelper(
-         b_size, num_beams, seq_len, init_best_score, probs, init_atten_probs,
-         atten_probs)
+         b_size,
+         num_beams,
+         seq_len,
+         init_best_score,
+         probs,
+         init_atten_probs,
+         atten_probs,
+         force_eos_in_last_step=force_eos_in_last_step)
 
     tf.logging.info(np.array_repr(best_scores))
     tf.logging.info(np.array_repr(cumulative_scores))
@@ -360,6 +379,101 @@ class BeamSearchOpTest(tf.test.TestCase):
     self._SameHyp(expected_for_beam_0, done_hyps[2, 0])
     self._SameHyp(expected_for_beam_1, done_hyps[2, 1])
 
+  def test_three_steps_force_eos(self):
+    b_size = 2
+    num_beams = 1
+    seq_len = 3
+
+    probs = [
+        np.log([[0.6, 0.4, 0.0000001], [0.6, 0.4, 0.0000001]]),
+        np.log([[0.55, 0.45, 0.0000001], [0.05, 0.95, 0.0000001]]),
+        # EOS probability is still very low, so unless it is forced it will
+        # not be in the beam.
+        np.log([[0.45, 0.44, 0.01], [0.5, 0.5, 0.01]]),
+    ]
+
+    # Set expected values
+    cum_scores_expected = np.log([0.4 * 0.95 * 0.45, 0.4 * 0.95 * 0.44])
+    scores_expected = [
+        np.log([0.6, 0.4]),
+        np.log([0.95, 0.55]),
+        np.log([0.45, 0.44])
+    ]
+    hyps_expected = [[0, 1], [1, 0], [0, 1]]
+    prev_hyps_expected = [[0, 0], [1, 0], [0, 0]]
+
+    # If force EOS is false, the we get empty hyps after beam search.
+    done_hyps = self._testBeamSearchOpHelper(
+        b_size,
+        num_beams,
+        seq_len,
+        _MIN_SCORE,
+        probs,
+        init_atten_probs=tf.zeros([b_size, 0]),
+        atten_probs=np.zeros([seq_len, b_size, 0]),
+        best_scores_expected=[_MIN_SCORE],
+        cum_scores_expected=cum_scores_expected,
+        scores_expected=scores_expected,
+        hyps_expected=hyps_expected,
+        prev_hyps_expected=prev_hyps_expected,
+        atten_probs_expected=np.zeros([seq_len, b_size, 0]),
+        force_eos_in_last_step=False)
+    np.testing.assert_array_equal([['0', '0'], ['0', '0'], ['0', '0']],
+                                  done_hyps)
+
+    # If force eos is true, we get valid results as in test_three_step_eos,
+    # but with lower probabilities (because of lower eos probs).
+    done_hyps = self._testBeamSearchOpHelper(
+        b_size,
+        num_beams,
+        seq_len,
+        _MIN_SCORE,
+        probs,
+        init_atten_probs=tf.zeros([b_size, 0]),
+        atten_probs=np.zeros([seq_len, b_size, 0]),
+        best_scores_expected=np.log([0.4 * 0.95 * 0.01]),
+        cum_scores_expected=cum_scores_expected,
+        scores_expected=scores_expected,
+        hyps_expected=hyps_expected,
+        prev_hyps_expected=prev_hyps_expected,
+        atten_probs_expected=np.zeros([seq_len, b_size, 0]),
+        force_eos_in_last_step=True)
+
+    expected_for_beam_0 = """
+      beam_id: 0
+      ids: 1
+      ids: 1
+      ids: 2
+      scores: -0.916290700436  # = log 0.4
+      scores: -0.0512933060527 # = log 0.95
+      scores: -4.605170185988  # = log 0.01
+      atten_vecs {
+      }
+      atten_vecs {
+      }
+      atten_vecs {
+      }
+      """
+
+    expected_for_beam_1 = """
+      beam_id: 0
+      ids: 0
+      ids: 0
+      ids: 2
+      scores: -0.510825574398  # = log 0.6
+      scores: -0.597836971283  # = log 0.55
+      scores: -4.605170185988  # = log 0.01
+      atten_vecs {
+      }
+      atten_vecs {
+      }
+      atten_vecs {
+      }
+      """
+
+    self._SameHyp(expected_for_beam_0, done_hyps[2, 0])
+    self._SameHyp(expected_for_beam_1, done_hyps[2, 1])
+
   def _testBeamSearchStoppingHelper(self, beam_size, ensure_full_beam):
     b_size = 2
     num_beams = 1
@@ -400,7 +514,6 @@ class BeamSearchOpTest(tf.test.TestCase):
     # beam size.
     all_done = self._testBeamSearchStoppingHelper(0.1, True)
     self.assertEqual(False, all_done)
-
 
   def _SameHyp(self, expected_hyp_str, real_serialized_hyp):
     hyp1 = hyps_pb2.Hypothesis()

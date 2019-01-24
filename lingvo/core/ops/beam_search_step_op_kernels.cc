@@ -103,8 +103,8 @@ bool all_less_than(const float* p, float threshold) {
 void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       const int32 k, const int32 m, const int32 eos_id,
                       const int32 eoc_id, const int32 num_beams,
-                      const float valid_eos_max_logit_delta,
-                      bool is_first_step, const Tensor& is_last_chunk,
+                      const float valid_eos_max_logit_delta, bool is_first_step,
+                      bool is_last_decoder_step, const Tensor& is_last_chunk,
                       bool merge_paths, bool allow_empty_terminated_hyp,
                       std::vector<bool>* eos_in_topk, std::vector<Hyp>* top_k,
                       std::vector<Hyp>* extra_m, std::vector<Hyp>* eos_hyps,
@@ -146,8 +146,10 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
           // +1 to make sure that at least top-k hypotheses survive even with
           // the special treatment for eos.  +2 if we are also using eoc.
           const int topk_size = eoc_id >= 0 ? k + 2 : k + 1;
-          TopK<Hyp, HigherScore, ExtractGlobalScore, InsertHypWithEpsilonDedupe>
-              topk(topk_size, epsilon_id_for_path_merging);
+          TopK<Hyp, HigherScoreWithEos, ExtractGlobalScore,
+               InsertHypWithEpsilonDedupe>
+              topk(topk_size, epsilon_id_for_path_merging, eos_id,
+                   is_last_decoder_step);
           float bottom_of_topk = -INFINITY;
           int32 id = 0;
           const float current_global_score = hyps[hyp_id].global_score;
@@ -179,10 +181,11 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
           for (; id != num_ids; ++id) {
             const float score = scores_matrix(hyp_id, id);
             const float global_score = current_global_score + score;
-            if (global_score >= bottom_of_topk)
+            if (global_score >= bottom_of_topk) {
               bottom_of_topk =
                   topk.Add({hyps[hyp_id].beam_id, hyp_id, id, score,
                             global_score, hyps[hyp_id].prev_ids});
+            }
           }
 
           auto entries = topk.Get();
@@ -201,7 +204,8 @@ void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                 VLOG(3) << "EOS hyp score=" << e.global_score
                         << " toks=" << debug::IdsToStr(e.prev_ids);
                 // We move terminated hyps off of the beam.
-                if (e.global_score > eos_score_threshold) {
+                if (is_last_decoder_step ||
+                    (e.global_score > eos_score_threshold)) {
                   (*eos_in_topk)[hyp_id] = true;
                   (*eos_hyps)[hyp_id] = e;
                   (*terminal_syms)[hyp_id] = eos_id;
@@ -261,6 +265,8 @@ class BeamSearchStepOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("allow_empty_terminated_hyp",
                                      &allow_empty_terminated_hyp_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("ensure_full_beam", &ensure_full_beam_));
+    OP_REQUIRES_OK(
+        ctx, ctx->GetAttr("force_eos_in_last_step", &force_eos_in_last_step_));
 
     CHECK_GE(eos_id_, 0);
     CHECK_GT(beam_size_, 0.0);
@@ -528,11 +534,13 @@ class BeamSearchStepOp : public OpKernel {
     std::vector<Hyp> eos_hyps;
     std::vector<bool> eos_in_topk;
     std::vector<int32> terminal_syms;
+    const bool is_last_decoder_step =
+        (t == (in_hyps.dim_size(0) - 1)) && force_eos_in_last_step_;
     ComputeTopKPlusM(hyps, scores, num_hyps_per_beam_, 0, eos_id_, eoc_id_,
                      num_beams, valid_eos_max_logit_delta_, t == 0,
-                     is_last_chunk, merge_paths_, allow_empty_terminated_hyp_,
-                     &eos_in_topk, &top_k_hyps, &extra_m_hyps, &eos_hyps,
-                     &terminal_syms);
+                     is_last_decoder_step, is_last_chunk, merge_paths_,
+                     allow_empty_terminated_hyp_, &eos_in_topk, &top_k_hyps,
+                     &extra_m_hyps, &eos_hyps, &terminal_syms);
 
     Tensor* out_best_scores = NULL;
     Tensor* out_cumulative_scores = NULL;
@@ -636,6 +644,7 @@ class BeamSearchStepOp : public OpKernel {
   bool merge_paths_ = false;
   bool allow_empty_terminated_hyp_ = true;
   bool ensure_full_beam_ = false;
+  bool force_eos_in_last_step_ = false;
 };
 
 REGISTER_KERNEL_BUILDER(Name("BeamSearchStep").Device(DEVICE_CPU),

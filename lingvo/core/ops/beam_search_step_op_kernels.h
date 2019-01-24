@@ -54,6 +54,35 @@ struct HigherScore {
   }
 };
 
+// Similar to HigherScore, but optionally return Hyps with eos_id in it
+// as the one with the higher score.
+struct HigherScoreWithEos {
+  int eos_id_;
+  // Determines whether or not to prioritize Hyps with eos_id. If False,
+  // this will behave exactly like HigherScore.
+  bool include_eos_;
+
+  HigherScoreWithEos(int eos_id, bool include_eos)
+      : eos_id_(eos_id), include_eos_(include_eos) {}
+
+  bool operator()(const Hyp& x, const Hyp& y) const {
+    // We only compare hyps belonging to the same beams.
+    CHECK_EQ(x.beam_id, y.beam_id);
+    // Note that we revert to HigherScore's behavior when _both_ paths contain
+    // eos_id_ as the word_id.
+    if (!(x.word_id == eos_id_ && y.word_id == eos_id_)) {
+      if (x.word_id == eos_id_ && include_eos_) return true;
+      if (y.word_id == eos_id_ && include_eos_) return false;
+    }
+    // The following behavior is the same as that of HigherScore's.
+    if (x.global_score > y.global_score) return true;
+    if (x.global_score < y.global_score) return false;
+    if (x.word_id < y.word_id) return true;
+    if (x.word_id > y.word_id) return false;
+    return x.hyp_id < y.hyp_id;
+  }
+};
+
 struct BetterTerminatedHyp {
   bool operator()(const Hypothesis& x, const Hypothesis& y) const {
     // We only compare hyps belonging to the same beams.
@@ -141,6 +170,13 @@ class TopK {
  public:
   explicit TopK(int k, int epsilon_id)
       : k_(k), comp_(), extract_(), insert_(epsilon_id), selected_(false) {}
+  // eos_id and inlclude_eos flag will be passed on to the Comparator.
+  explicit TopK(int k, int epsilon_id, int eos_id, bool include_eos)
+      : k_(k),
+        comp_(Comp(eos_id, include_eos)),
+        extract_(),
+        insert_(epsilon_id),
+        selected_(false) {}
 
   using U = typename std::result_of<Extract(T)>::type;
 
@@ -194,8 +230,8 @@ class TopK {
 void ComputeTopKPlusM(const std::vector<Hyp>& hyps, const Tensor& scores,
                       const int32 k, const int32 m, const int32 eos_id,
                       const int32 eoc_id, const int32 num_beams,
-                      const float valid_eos_max_logit_delta,
-                      bool is_first_step, const Tensor& is_last_chunk,
+                      const float valid_eos_max_logit_delta, bool is_first_step,
+                      bool is_last_decoder_step, const Tensor& is_last_chunk,
                       bool merge_paths, bool allow_empty_terminated_hyp,
                       std::vector<bool>* eos_in_topk, std::vector<Hyp>* top_k,
                       std::vector<Hyp>* extra_m, std::vector<Hyp>* eos_hyps,

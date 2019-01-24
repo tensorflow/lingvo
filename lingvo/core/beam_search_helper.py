@@ -188,7 +188,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'target_eoc_id', -1,
         'Id of the end of chunk token. Used by neural transducer only.'
         ' Set this id to a non-negative value only for NT.')
-    p.Define('target_seq_len', 0, 'Maximum allowed target seq length.')
+    p.Define(
+        'target_seq_len', 0, 'Maximum allowed target seq length. Note '
+        'that decoding terminates if an end of sentence token '
+        'is not emitted after target_seq_len decode steps.')
     p.Define(
         'merge_paths', False, 'If true, hyps which are identical when '
         'epsilons are removed will be combined into a single hyp.  The '
@@ -212,6 +215,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'also terminate if we have run for target_seq_len steps.  Generally '
         'this should be False unless beam search is being run as part of '
         'minimum word error rate training.')
+    p.Define(
+        'force_eos_in_last_step', False,
+        'For all active hyps that are still on the beam after target_seq_len '
+        'steps, return partial hyps with EOS set as the last token.')
     p.name = 'beam_search'
     return p
 
@@ -245,10 +252,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
           current search step.
       core_bs_states: A tuple of core beam search states. This list is
           maintained by this helper class.
-      other_states: A `.NestedMap` of other beam search states. This `.NestedMap`
-          is managed and updated by the client. It is expected that each of its
-          member tensors are of rank >= 1. t[i, ...] is the state of the i-th
-          hyp at the beginning of this search step.
+      other_states: A `.NestedMap` of other beam search states.
+          This `.NestedMap` is managed and updated by the client. It is
+          expected that each of its member tensors are of rank >= 1. t[i, ...]
+          is the state of the i-th hyp at the beginning of this search step.
       num_hyps_per_beam: Num of hyps to keep per beam.
       pre_beam_search_step_callback: The `PreBeamSearchStepCallback` callback.
           See class header comments for more details.
@@ -290,7 +297,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
          valid_eos_max_logit_delta=p.valid_eos_max_logit_delta,
          merge_paths=p.merge_paths,
          allow_empty_terminated_hyp=p.allow_empty_terminated_hyp,
-         ensure_full_beam=p.ensure_full_beam)
+         ensure_full_beam=p.ensure_full_beam,
+         force_eos_in_last_step=p.force_eos_in_last_step)
 
     new_step_ids = tf.reshape(out_hyps[cur_step, :], tf.shape(step_ids))
     new_step_ids.set_shape(step_ids.get_shape())

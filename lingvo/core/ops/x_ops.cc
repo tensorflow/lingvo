@@ -122,6 +122,7 @@ REGISTER_OP("BeamSearchStep")
     .Attr("merge_paths: bool = false")
     .Attr("allow_empty_terminated_hyp: bool = true")
     .Attr("ensure_full_beam: bool = false")
+    .Attr("force_eos_in_last_step: bool = false")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(2));
       c->set_output(1, c->input(3));
@@ -225,6 +226,11 @@ ensure_full_beam: If True, we will not set the all_done output to True until we
      score within 'beam_size' of the best terminated hyp.  If False, only the
      second condition must be satisfied.  Generally this should be False unless
      beam search is being run as part of minimum word error rate training.
+force_eos_in_last_step: If true, then if decode does not terminate even after
+    (max - 1) steps, eos symbol is injected into the result and partial
+    hypotheses (with a valid eos symbol in the end) are returned. all_done
+    is set to true for these partials. If false, which is the default behavior,
+    empty hypothesis are returned and all_done is set to false at termination.
 )doc");
 
 REGISTER_OP("TopKTerminatedHyps")
