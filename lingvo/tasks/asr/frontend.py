@@ -18,12 +18,38 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import math
 
 import tensorflow as tf
 
 from lingvo.core import base_layer
 from lingvo.core import py_utils
+
+
+# AsrFrontendConfig which defines characteristics of the frontend that may
+# be relevant to interfacing code which needs to reason about inputs and
+# outputs.
+# Fields:
+#   is_null: Whether this is the NullAsrFrontend.
+#   src_type: Interpretation of the src_inputs. Can be one of 'none' or 'pcm'.
+#   src_pcm_scale: If src_type is 'pcm', then this is the scale of each sample.
+#     If normalized, this should be 1.0. If unnormalized from int16, then it
+#     should be 32768.0.
+#   src_pcm_sample_rate: Sample rate of the expected src PCM frames.
+#   output_dim: Dimension of the output. Typically the number of mel bands
+#     or equiv. May be -1 for unknown.
+#   input_frame_ratio: Approximate ratio of the number of
+#     input_frames / output_frames. Intended to be multiplied by output frames
+#     (i.e. as part of bucket_bounds to arrive at input frames to the frontend).
+AsrFrontendConfig = collections.namedtuple('AsrFrontendConfig', [
+    'is_null',
+    'src_type',
+    'src_pcm_scale',
+    'src_pcm_sample_rate',
+    'output_dim',
+    'input_frame_ratio',
+])
 
 
 def _NextPowerOfTwo(i):
@@ -38,6 +64,16 @@ class BaseAsrFrontend(base_layer.BaseLayer):
   dataset. In such cases, it would be typical for the input to consist of
   waveform data in some form.
   """
+
+  @property
+  def config(self):
+    """Returns the AsrFrontendConfig namedtuple for this instance."""
+    return self.GetConfigFromParams(self.params)
+
+  @staticmethod
+  def GetConfigFromParams(params):
+    """Returns an AsrFrontendConfig namedtuple with vital config settings."""
+    raise NotImplementedError()
 
   def FProp(self, theta, input_batch):
     """Generates ASR features for a batch.
@@ -70,6 +106,17 @@ class BaseAsrFrontend(base_layer.BaseLayer):
 class NullAsrFrontend(BaseAsrFrontend):
   """ASR frontend that just returns its input as FProp output."""
 
+  @staticmethod
+  def GetConfigFromParams(params):
+    """Returns an AsrFrontendConfig namedtuple with vital config settings."""
+    return AsrFrontendConfig(
+        is_null=True,
+        src_type='none',
+        src_pcm_sample_rate=-1,
+        src_pcm_scale=1.0,
+        output_dim=-1,
+        input_frame_ratio=1.0)
+
   def FProp(self, theta, input_batch):
     return input_batch.DeepCopy()
 
@@ -85,6 +132,24 @@ class MelAsrFrontend(BaseAsrFrontend):
 
   Also, if stack_left_context > 0, this will further apply:
       `FrameStack -> SubSample(stack_left_context + 1)`
+
+  The FProp input to this layer can either have rank 3 or rank 4 shape:
+      [batch_size, timestep, packet_size, channel_count]
+      [batch_size, timestep * packet_size, channel_count]
+
+  For compatibility with existing code, 2D [batch_size, timestep] mono shapes
+  are also supported.
+
+  In the common case, the packet_size is 1. The 4D variant is accepted for
+  glueless interface to input generators that frame their input samples in
+  some way. The external framing choice does not influence the operation of
+  this instance, but it is accepted.
+
+  TODO(laurenzo): Refactor call sites to uniformly use the 4D variant and
+  eliminate fallback logic in this class.
+
+  Only 1 channel is currently supported.
+  TODO(laurenzo): Refactor this class to operate on multi-channel inputs.
   """
 
   @classmethod
@@ -92,6 +157,7 @@ class MelAsrFrontend(BaseAsrFrontend):
     p = super(MelAsrFrontend, cls).Params()
     p.name = 'frontend'
     p.Define('sample_rate', 16000.0, 'Sample rate in Hz')
+    p.Define('channel_count', 1, 'Number of channels.')
     p.Define('frame_size_ms', 25.0,
              'Amount of data grabbed for each frame during analysis')
     p.Define('frame_step_ms', 10.0, 'Number of ms to jump between frames')
@@ -122,10 +188,24 @@ class MelAsrFrontend(BaseAsrFrontend):
     p.Define('stack_left_context', 0, 'Number of left context frames to stack.')
     return p
 
+  @staticmethod
+  def GetConfigFromParams(params):
+    """Returns an AsrFrontendConfig namedtuple with vital config settings."""
+    subsample_factor = params.num_bins * (params.stack_left_context + 1)
+    frame_step = round(params.sample_rate * params.frame_step_ms / 1000.0)
+    return AsrFrontendConfig(
+        is_null=False,
+        src_type='pcm',
+        src_pcm_scale=32768.0,
+        src_pcm_sample_rate=16000.0,
+        output_dim=subsample_factor,
+        input_frame_ratio=frame_step * subsample_factor)
+
   @base_layer.initializer
   def __init__(self, params):
     super(MelAsrFrontend, self).__init__(params)
     p = self.params
+    assert p.channel_count == 1, 'Only 1 channel currently supported.'
     # Make sure key params are in floating point.
     p.sample_rate = float(p.sample_rate)
     p.frame_step_ms = float(p.frame_step_ms)
@@ -171,6 +251,51 @@ class MelAsrFrontend(BaseAsrFrontend):
   def window_frame_step(self):
     return self._frame_step
 
+  def _RemoveChannelDim(self, pcm_audio_data):
+    if pcm_audio_data.shape.rank == 3:
+      pcm_audio_data = tf.squeeze(pcm_audio_data, 2)
+      assert pcm_audio_data.shape.rank == 2, (
+          'MelAsrFrontend only supports one channel')
+    return pcm_audio_data
+
+  def _ReshapeToMono2D(self, pcm_audio_data, paddings):
+    """Reshapes a 3D or 4D input to 2D.
+
+    Since the input to FProp can be 3D or 4D (see class comments), this will
+    collapse it back to a 2D, mono shape for internal processing.
+
+    Args:
+      pcm_audio_data: 2D, 3D or 4D audio input. See class comments. Must have a
+        rank.
+      paddings: Original paddings shaped to the first two dims of
+        pcm_audio_data.
+
+    Returns:
+      Tuple of 2D [batch_size, timestep] mono audio data, new paddings.
+    """
+    shape = py_utils.GetShape(pcm_audio_data)
+    rank = len(shape)
+    if rank == 2:
+      return pcm_audio_data, paddings
+    elif rank == 3:
+      # [batch, time, channel]
+      with tf.control_dependencies([tf.assert_equal(shape[2], 1)]):
+        return tf.squeeze(pcm_audio_data, axis=2), paddings
+    elif rank == 4:
+      # [batch, time, packet, channel]
+      batch_size, orig_time, orig_packet_size, channel = shape
+      time = orig_time * orig_packet_size
+      with tf.control_dependencies([tf.assert_equal(channel, 1)]):
+        pcm_audio_data = tf.reshape(pcm_audio_data, (batch_size, time))
+        # Transform paddings into the new time base with a padding per time
+        # step vs per packet by duplicating each packet.
+        paddings = tf.reshape(
+            tf.tile(tf.expand_dims(paddings, axis=2), [1, 1, orig_packet_size]),
+            (batch_size, time))
+        return pcm_audio_data, paddings
+    else:
+      raise ValueError('Illegal pcm_audio_data shape')
+
   def FProp(self, theta, input_batch):
     """Perform signal processing on a sequence of PCM data.
 
@@ -184,7 +309,8 @@ class MelAsrFrontend(BaseAsrFrontend):
       input_batch: PCM input map:
 
         - 'src_inputs': int16 or float32 tensor of PCM audio data, scaled to
-          +/-32768 (versus [-1..1)!). Shaped: [batch, frame_count].
+          +/-32768 (versus [-1..1)!). See class comments for supported input
+          shapes.
         - 'paddings': per frame 0/1 paddings. Shaped: [batch, frame].
     Returns:
       NestedMap of encoder inputs which can be passed directly to a
@@ -195,8 +321,9 @@ class MelAsrFrontend(BaseAsrFrontend):
         - 'paddings': a 0/1 tensor of shape [batch, time].
     """
     p = self.params
-    pcm_audio_data = input_batch.src_inputs
-    pcm_audio_paddings = input_batch.paddings
+    pcm_audio_data, pcm_audio_paddings = self._ReshapeToMono2D(
+        input_batch.src_inputs, input_batch.paddings)
+
     batch_size = py_utils.GetShape(pcm_audio_data)[0]
     mel_spectrogram, mel_spectrogram_paddings = self._FPropChunk(
         theta, pcm_audio_data, pcm_audio_paddings)
@@ -223,7 +350,7 @@ class MelAsrFrontend(BaseAsrFrontend):
           mel_spectrogram[:, 0:(stack_size) * stacked_frame_dim, :],
           [batch_size, stacked_frame_dim, stack_size * p.num_bins])
       # After stacking paddings, pad if any source frame was padded.
-      # Staks into [batch_size, stacked_frame_dim, stack_size] like the
+      # Stacks into [batch_size, stacked_frame_dim, stack_size] like the
       # spectrogram stacking above, and then reduces the stack_size dim
       # to the max (effectively, making padding = 1.0 if any of the pre-stacked
       # frames were 1.0). Final shape is [batch_size, stacked_frame_dim].
