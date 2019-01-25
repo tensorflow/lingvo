@@ -51,6 +51,9 @@ hyps_from_beam_search_outs = gen_x_ops.hyps_from_beam_search_outs
 
 cached_call = gen_x_ops.cached_call
 
+vocab_token_to_id = gen_x_ops.vocab_token_to_id
+vocab_id_to_token = gen_x_ops.vocab_id_to_token
+token_in_vocab = gen_x_ops.token_in_vocab
 ascii_to_token_id = gen_x_ops.ascii_to_token_id
 str_to_vocab_tokens = gen_x_ops.str_to_vocab_tokens
 id_to_ascii = gen_x_ops.id_to_ascii

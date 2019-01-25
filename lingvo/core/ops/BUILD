@@ -76,6 +76,15 @@ lingvo_cc_library(
     hdrs = ["simple_vocab.h"],
 )
 
+py_test(
+    name = "simple_vocab_test",
+    srcs = ["simple_vocab_test.py"],
+    deps = [
+        ":py_x_ops",
+        # Implicit tensorflow dependency.
+    ],
+)
+
 lingvo_cc_library(
     name = "record",
     srcs = [

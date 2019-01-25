@@ -35,6 +35,7 @@ class Vocab {
   ~Vocab() {}
 
   Status Load(const string& vocab_filename, bool load_token_ids = false);
+  Status Load(const std::vector<string>& lines, bool load_token_ids = false);
 
   int32 sos_id() const { return sos_id_; }
   int32 eos_id() const { return eos_id_; }
@@ -56,7 +57,7 @@ class Vocab {
     return unk_id_;
   }
 
-  void GreedyMatchStringToTokenId(StringPiece text, int* token_id,
+  void GreedyMatchStringToTokenId(StringPiece text, int32* token_id,
                                   int* token_size) const {
     // This finds the longest prefix of the "text" in the given list of tokens
     // and returns the ID of the found token (if nothing found, unk_id_ is
@@ -65,12 +66,12 @@ class Vocab {
     *token_id = unk_id_;
     *token_size = 1;  // For <unk>, the input is of length 1 char, but output is
                       // <unk> (length of 5).
-    for (int32 i = 0; i < id_to_token_.size(); ++i) {
-      if (str_util::StartsWith(text, id_to_token_.at(i))) {
+    for (const auto kv : id_to_token_) {
+      if (str_util::StartsWith(text, kv.second)) {
         // Find the longest matching token.
-        if (*token_id == unk_id_ || *token_size < id_to_token_.at(i).size()) {
-          *token_id = i;
-          *token_size = id_to_token_.at(i).size();
+        if (*token_id == unk_id_ || *token_size < kv.second.size()) {
+          *token_id = kv.first;
+          *token_size = kv.second.size();
         }
       }
     }
@@ -85,11 +86,12 @@ class Vocab {
     return ids;
   }
 
-  const string& IdToToken(const int32 id) const {
-    if ((0 <= id) && (id < id_to_token_.size())) {
-      return id_to_token_.at(id);
+  const string IdToToken(const int32 id) const {
+    const auto it = id_to_token_.find(id);
+    if (it != id_to_token_.end()) {
+      return it->second;
     } else {
-      return id_to_token_.at(unk_id_);
+      return unk_token();
     }
   }
 
@@ -109,7 +111,7 @@ class Vocab {
   int32 sow_id_ = -1;
   int32 eow_id_ = -1;
   bool use_upper_token_symbols_ = false;
-  std::vector<string> id_to_token_;
+  std::unordered_map<int32, string> id_to_token_;
   std::unordered_map<string, int32> token_to_id_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(Vocab);

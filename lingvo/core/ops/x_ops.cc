@@ -369,6 +369,60 @@ output: A list of output tensors whose types are T.
 f: A function that returns a list of tensors (T).
 )doc");
 
+REGISTER_OP("VocabTokenToId")
+    .Input("token: string")
+    .Output("id: int32")
+    .Attr("vocab: list(string)")
+    .Attr("load_token_ids_from_vocab: bool = false")
+    .SetIsStateful()
+    .SetShapeFn(shape_inference::UnchangedShape)
+    .Doc(R"doc(
+Looks up the token in the vocab and return its id.
+
+token: A scalar or list of strings.
+id: A scalar or list of ints.
+vocab: A list of strings.
+load_token_ids_from_vocab: Whether token ids are present in vocab (i.e. vocab
+    contains two colums, one for IDs and one for words).  If false, line numbers
+    are used.
+)doc");
+
+REGISTER_OP("VocabIdToToken")
+    .Input("id: int32")
+    .Output("token: string")
+    .Attr("vocab: list(string)")
+    .Attr("load_token_ids_from_vocab: bool = false")
+    .SetIsStateful()
+    .SetShapeFn(shape_inference::UnchangedShape)
+    .Doc(R"doc(
+Looks up the token at the given id from a vocab.
+
+id: A scalar or list of ints.
+token: A scalar or list of strings.
+vocab: A list of strings.
+load_token_ids_from_vocab: Whether token ids are present in vocab (i.e. vocab
+    contains two colums, one for IDs and one for words).  If false, line numbers
+    are used.
+)doc");
+
+REGISTER_OP("TokenInVocab")
+    .Input("token: string")
+    .Output("result: bool")
+    .Attr("vocab: list(string)")
+    .Attr("load_token_ids_from_vocab: bool = false")
+    .SetIsStateful()
+    .SetShapeFn(shape_inference::UnchangedShape)
+    .Doc(R"doc(
+Checks whether the provided token is in the vocab.
+
+token: A scalar or list of strings.
+result: A scalar or list of bools.
+vocab: A list of strings.
+load_token_ids_from_vocab: Whether token ids are present in vocab (i.e. vocab
+    contains two colums, one for IDs and one for words).  If false, line numbers
+    are used.
+)doc");
+
 REGISTER_OP("AsciiToTokenId")
     .Input("labels: string")
     .Output("token_ids: int32")

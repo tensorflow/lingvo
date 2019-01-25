@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "lingvo/core/ops/simple_vocab.h"
 
+#include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/platform/env.h"
 #include "tensorflow/core/platform/logging.h"
@@ -69,21 +71,30 @@ Status Vocab::Load(const string& vocab_glob, bool load_token_ids) {
   string content;
   TF_RETURN_IF_ERROR(
       ReadFileToString(Env::Default(), vocab_filename, &content));
+
+  return Load(str_util::Split(content, '\n'), load_token_ids);
+}
+
+Status Vocab::Load(const std::vector<string>& lines, bool load_token_ids) {
   id_to_token_.clear();
   token_to_id_.clear();
-  for (StringPiece line : str_util::Split(content, '\n')) {
+  int32 next_id = 0;
+  for (StringPiece line : lines) {
     if (line.empty()) continue;
     const std::vector<string> parts = str_util::Split(line, '\t');
     CHECK_GE(parts.size(), 1);
     const string tok = parts[0];
-    VLOG(2) << "Vocab " << id_to_token_.size() << " " << tok;
     if (!load_token_ids) {
-      token_to_id_[tok] = id_to_token_.size();
+      token_to_id_[tok] = next_id;
+      id_to_token_[next_id] = tok;
+      next_id++;
     } else {
       CHECK_GE(parts.size(), 2);
-      token_to_id_[tok] = std::stoi(parts[1]);
+      const int32 id = std::stoi(parts[1]);
+      token_to_id_[tok] = id;
+      id_to_token_[id] = tok;
     }
-    id_to_token_.push_back(tok);
+    VLOG(2) << "Vocab " << token_to_id_[tok] << " " << tok;
   }
   use_upper_token_symbols_ = false;
   std::vector<string> expected_tokens = {kSosToken, kEosToken, kUnkToken};
@@ -97,15 +108,13 @@ Status Vocab::Load(const string& vocab_glob, bool load_token_ids) {
 
   for (const auto& token : expected_tokens) {
     if (token_to_id_.find(token) == token_to_id_.end()) {
-      return errors::InvalidArgument(
-          token, " is not found in the vocab file: ", vocab_filename);
+      return errors::InvalidArgument(token, " is not found in the vocab.");
     }
   }
   for (const auto& token : unexpected_tokens) {
     if (token_to_id_.find(token) != token_to_id_.end()) {
-      return errors::InvalidArgument(
-          "Invalid token ", token,
-          " is found in the vocab file: ", vocab_filename);
+      return errors::InvalidArgument("Invalid token ", token,
+                                     " is found in the vocab.");
     }
   }
   unk_id_ = -1;
@@ -133,6 +142,115 @@ const char* Vocab::sow_token() const { return kSowToken; }
 
 const char* Vocab::eow_token() const { return kEowToken; }
 
-}  // namespace lingvo
+namespace {
 
+class VocabTokenToIdOp : public OpKernel {
+ public:
+  explicit VocabTokenToIdOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
+    std::vector<string> vocab;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("vocab", &vocab));
+    bool load_token_ids_from_vocab;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("load_token_ids_from_vocab",
+                                     &load_token_ids_from_vocab));
+    OP_REQUIRES_OK(ctx, vocab_.Load(vocab, load_token_ids_from_vocab));
+  }
+
+  void Compute(OpKernelContext* ctx) override {
+    const Tensor* token;
+    OP_REQUIRES_OK(ctx, ctx->input("token", &token));
+    Tensor* id;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output("id", token->shape(), &id));
+    if (token->dims() == 0) {
+      id->scalar<int32>()() = vocab_.TokenToId(token->scalar<string>()());
+    } else {
+      OP_REQUIRES(
+          ctx, token->dims() == 1,
+          errors::InvalidArgument("Input must be a scalar or 1D tensor."));
+      for (int i = 0; i < token->dim_size(0); i++) {
+        id->vec<int32>()(i) = vocab_.TokenToId(token->vec<string>()(i));
+      }
+    }
+  }
+
+ private:
+  Vocab vocab_;
+};
+
+REGISTER_KERNEL_BUILDER(Name("VocabTokenToId").Device(DEVICE_CPU),
+                        VocabTokenToIdOp);
+
+class VocabIdToTokenOp : public OpKernel {
+ public:
+  explicit VocabIdToTokenOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
+    std::vector<string> vocab;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("vocab", &vocab));
+    bool load_token_ids_from_vocab;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("load_token_ids_from_vocab",
+                                     &load_token_ids_from_vocab));
+    OP_REQUIRES_OK(ctx, vocab_.Load(vocab, load_token_ids_from_vocab));
+  }
+
+  void Compute(OpKernelContext* ctx) override {
+    const Tensor* id;
+    OP_REQUIRES_OK(ctx, ctx->input("id", &id));
+    Tensor* token;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output("token", id->shape(), &token));
+    if (id->dims() == 0) {
+      token->scalar<string>()() = vocab_.IdToToken(id->scalar<int32>()());
+    } else {
+      OP_REQUIRES(
+          ctx, id->dims() == 1,
+          errors::InvalidArgument("Input must be a scalar or 1D tensor."));
+      for (int i = 0; i < id->dim_size(0); i++) {
+        token->vec<string>()(i) = vocab_.IdToToken(id->vec<int32>()(i));
+      }
+    }
+  }
+
+ private:
+  Vocab vocab_;
+};
+
+REGISTER_KERNEL_BUILDER(Name("VocabIdToToken").Device(DEVICE_CPU),
+                        VocabIdToTokenOp);
+
+class TokenInVocabOp : public OpKernel {
+ public:
+  explicit TokenInVocabOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
+    std::vector<string> vocab;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("vocab", &vocab));
+    bool load_token_ids_from_vocab;
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("load_token_ids_from_vocab",
+                                     &load_token_ids_from_vocab));
+    OP_REQUIRES_OK(ctx, vocab_.Load(vocab, load_token_ids_from_vocab));
+  }
+
+  void Compute(OpKernelContext* ctx) override {
+    const Tensor* token;
+    OP_REQUIRES_OK(ctx, ctx->input("token", &token));
+    Tensor* result;
+    OP_REQUIRES_OK(ctx,
+                   ctx->allocate_output("result", token->shape(), &result));
+    if (token->dims() == 0) {
+      result->scalar<bool>()() = vocab_.InVocab(token->scalar<string>()());
+    } else {
+      OP_REQUIRES(
+          ctx, token->dims() == 1,
+          errors::InvalidArgument("Input must be a scalar or 1D tensor."));
+      for (int i = 0; i < token->dim_size(0); i++) {
+        result->vec<bool>()(i) = vocab_.InVocab(token->vec<string>()(i));
+      }
+    }
+  }
+
+ private:
+  Vocab vocab_;
+};
+
+REGISTER_KERNEL_BUILDER(Name("TokenInVocab").Device(DEVICE_CPU),
+                        TokenInVocabOp);
+
+}  // namespace
+
+}  // namespace lingvo
 }  // namespace tensorflow
