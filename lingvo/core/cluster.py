@@ -420,7 +420,7 @@ class _LeastLoadedPlacer(VarPlacer):
     self._var_space_pq = [(0, d) for d in var_devices]
 
   def _AssignVar(self, var_op):
-    size = tf.DType(var_op.get_attr('dtype')).size
+    size = var_op.get_attr('dtype').size
     shape = tf.TensorShape(var_op.get_attr('shape'))
     assert self._var_space_pq, ('No ps devices to use.')
     allocated, device = heapq.heappop(self._var_space_pq)
