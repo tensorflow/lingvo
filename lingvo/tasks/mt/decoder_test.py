@@ -496,9 +496,10 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     prefix_states = py_utils.NestedMap()
     for i in range(6):
       layer_i_states = py_utils.NestedMap()
-      # the middle dim is for num of transformer layers. Here's 0 as placeholder
-      layer_i_states.key = tf.zeros([self.tgt_batch, 0, p.model_dim])
-      layer_i_states.value = tf.zeros([self.tgt_batch, 0, p.model_dim])
+      # The first dim is for the decode step (sequence length).
+      # Here's 0 as placeholder
+      layer_i_states.key = tf.zeros([0, self.tgt_batch, p.model_dim])
+      layer_i_states.value = tf.zeros([0, self.tgt_batch, p.model_dim])
       prefix_states['layer_%i' % i] = layer_i_states
 
     l_out2 = []

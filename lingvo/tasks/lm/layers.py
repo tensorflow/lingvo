@@ -819,8 +819,8 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
     p = self.params
     return py_utils.NestedMap({
         'layer_%d' % layer: py_utils.NestedMap({
-            'key': tf.zeros([batch_size, 0, p.model_dim]),
-            'value': tf.zeros([batch_size, 0, p.model_dim]),
+            'key': tf.zeros([0, batch_size, p.model_dim]),
+            'value': tf.zeros([0, batch_size, p.model_dim]),
         }) for layer in range(p.num_trans_layers)
     })
 
@@ -852,7 +852,7 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
           The updated prefix states including step t.
     """
 
-    _, prefix_len = py_utils.GetShape(state0['layer_0'].key, 2)
+    prefix_len, _ = py_utils.GetShape(state0['layer_0'].key, 2)
     # [1, model_dim]
     posit_embs = self.position_emb.FProp(theta.position_emb,
                                          prefix_len + 1)[-1:, :]

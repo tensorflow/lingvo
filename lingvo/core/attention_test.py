@@ -603,12 +603,12 @@ class AttentionTest(tf.test.TestCase):
       packed_src1 = atten.InitForSourcePacked(
           theta, source_vecs, source_contexts, source_padding, source_seg_id)
       cached_src = py_utils.NestedMap(
-          source_vecs=tf.zeros([3, 0, 4], dtype=packed_src1.source_vecs.dtype),
-          source_contexts=tf.zeros([3, 0, 6],
+          source_vecs=tf.zeros([0, 3, 4], dtype=packed_src1.source_vecs.dtype),
+          source_contexts=tf.zeros([0, 3, 6],
                                    dtype=packed_src1.source_contexts.dtype),
-          source_padding=tf.zeros([3, 0, 2],
+          source_padding=tf.zeros([0, 3, 2],
                                   dtype=packed_src1.source_padding.dtype),
-          source_segment_id=tf.zeros([3, 0, 2],
+          source_segment_id=tf.zeros([0, 3, 2],
                                      dtype=packed_src1.source_segment_id.dtype))
       for i in range(6):
         cached_src = atten.ExtendSourcePacked(
@@ -681,8 +681,8 @@ class AttentionTest(tf.test.TestCase):
       packed_src1 = atten.InitForSourcePacked(atten.theta, source_vecs,
                                               source_contexts, source_padding)
       cached_src = py_utils.NestedMap(
-          source_vecs=tf.zeros([3, 0, 4], dtype=packed_src1.source_vecs.dtype),
-          source_contexts=tf.zeros([3, 0, 6],
+          source_vecs=tf.zeros([0, 3, 4], dtype=packed_src1.source_vecs.dtype),
+          source_contexts=tf.zeros([0, 3, 6],
                                    dtype=packed_src1.source_contexts.dtype),
           source_padding=None,
           source_seg_id=None)

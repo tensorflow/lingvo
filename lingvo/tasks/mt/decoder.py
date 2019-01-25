@@ -797,6 +797,7 @@ class TransformerDecoder(MTBaseDecoder):
     p.target_seq_len = 300
     p.beam_search.length_normalization = 0.5
     p.beam_search.coverage_penalty = 0.0
+    p.beam_search.batch_major_state = False
 
     return p
 
@@ -1067,10 +1068,10 @@ class TransformerDecoder(MTBaseDecoder):
     prefix_states = py_utils.NestedMap({
         'layer_%d' % layer: py_utils.NestedMap({
             'key':
-                tf.zeros([batch_size, seq_len, key_channels],
+                tf.zeros([seq_len, batch_size, key_channels],
                          dtype=py_utils.FPropDtype(p)),
             'value':
-                tf.zeros([batch_size, seq_len, value_channels],
+                tf.zeros([seq_len, batch_size, value_channels],
                          dtype=py_utils.FPropDtype(p)),
         }) for layer in range(p.num_trans_layers)
     })

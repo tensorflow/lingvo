@@ -219,6 +219,11 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'force_eos_in_last_step', False,
         'For all active hyps that are still on the beam after target_seq_len '
         'steps, return partial hyps with EOS set as the last token.')
+    p.Define(
+        'batch_major_state', True, 'If True, we use batch as the major '
+        'dimension of the hyp states. Otherwise, timing becomes the major '
+        'dimension, and the gathers are performed along the second-to-major '
+        'dimension.')
     p.name = 'beam_search'
     return p
 
@@ -310,9 +315,13 @@ class BeamSearchHelper(base_layer.BaseLayer):
                      out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs)
 
     def ReOrderHyps(x_in):
+      """Reorders x_in based on prev hyp ids."""
       if (isinstance(x_in, tf.Tensor) and x_in.shape.ndims and
           x_in.shape.ndims > 0):
-        x_out = tf.gather(x_in, old_hyp_ids)
+        if x_in.shape.ndims > 2 and not p.batch_major_state:
+          x_out = tf.gather(x_in, old_hyp_ids, axis=1)
+        else:
+          x_out = tf.gather(x_in, old_hyp_ids)
         x_out.set_shape(x_in.get_shape())
         return x_out
       else:

@@ -218,7 +218,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     extended_packed_src = self.atten.ExtendSourcePacked(
         theta.atten, query_vec, query_vec, None, None, cached_packed_src, t)
     if t is not None:
-      source_seq_len = tf.shape(extended_packed_src.source_vecs)[1]
+      source_seq_len = tf.shape(extended_packed_src.source_vecs)[0]
       zero_padding = tf.fill([source_seq_len],
                              tf.constant(0.0, dtype=query_vec.dtype))
       per_step_source_padding = tf.where(

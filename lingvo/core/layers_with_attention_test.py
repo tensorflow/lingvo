@@ -279,8 +279,8 @@ class LayersWithAttentionTest(tf.test.TestCase):
       ctx1, probs1 = x_atten.FPropDefaultTheta(source_vecs, source_padding)
       ctx2 = []
       probs2 = []
-      cached_source_vecs = tf.zeros([2, 0, 4])
-      cached_source_contexts = tf.zeros([2, 0, 4])
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
       prefix_states = py_utils.NestedMap(
           key=cached_source_vecs, value=cached_source_contexts)
       for i in range(5):
@@ -504,8 +504,8 @@ class LayersWithAttentionTest(tf.test.TestCase):
 
       h2 = []
       probs2 = []
-      cached_source_vecs = tf.zeros([2, 0, 4])
-      cached_source_contexts = tf.zeros([2, 0, 4])
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
       prefix_states = py_utils.NestedMap(
           key=cached_source_vecs, value=cached_source_contexts)
       for i in range(5):

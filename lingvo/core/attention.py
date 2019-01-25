@@ -1282,46 +1282,45 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         using tf.concat to update the cached vectors, the time dimension of
         each cached vector is fixed as the max_sequence_length and inplace
         update op is used to update the information for each time step:
-        * source_vecs: A tensor of shape [source_batch, max_sequence_length,
-          hidden_dim]. [:, :t, :] contains valid preprocessed source_vecs in
+        * source_vecs: A tensor of shape [max_sequence_length, source_batch,
+          hidden_dim]. [:t, :, :] contains valid preprocessed source_vecs in
           the previous t - 1 timesteps, the rests are invalid data.
-        * source_contexts: A tensor of shape [source_batch, max_sequence_length,
-          hidden_dim]. [:, :t, :] contains valid preprocessed source_contexts
+        * source_contexts: A tensor of shape [max_sequence_length, source_batch,
+          hidden_dim]. [:t, :, :] contains valid preprocessed source_contexts
           in the previous t - 1 timesteps, the rests are invalid data.
-        * source_padding: If not None, a tensor of shape [source_batch,
-          max_sequence_length, num_heads]. [:, :t, :] contains cached
+        * source_padding: If not None, a tensor of shape [max_sequence_length,
+          source_batch, num_heads]. [:t, :, :] contains cached
           source padding for the previous t - 1 timesteps, the rests are
           invalid data.
-        * source_segment_id: If not None, a tensor of shape [source_batch,
-          max_sequence_length, num_heads]. [:, :t, :] contains cached
-          source segment id for the previous t - 1 timesteps, the rests are
-          invalid data.
-        When t is None (not running on TPU or the while loop is unrolled):
-        * source_vecs: A tensor of shape [source_batch, t - 1, hidden_dim].
-        * source_contexts: A tensor of shape [source_batch, t - 1, hidden_dim].
-        * source_padding: If not None, a tensor of shape [source_batch,
-          t - 1, num_heads], cached source padding for the previous t - 1
-          timesteps.
         * source_segment_id: If not None, a tensor of shape
-          [source_batch, t - 1, num_heads], cached source segment id for the
+          [max_sequence_length, source_batch, num_heads]. [:t, :, :] contains
+          cached source segment id for the previous t - 1 timesteps, the rests
+          are invalid data.
+        When t is None (not running on TPU or the while loop is unrolled):
+        * source_vecs: A tensor of shape [t - 1, source_batch, hidden_dim].
+        * source_contexts: A tensor of shape [t - 1, source_batch, hidden_dim].
+        * source_padding: If not None, a tensor of shape [t - 1, source_batch,
+          num_heads], cached source padding for the previous t - 1 timesteps.
+        * source_segment_id: If not None, a tensor of shape
+          [t - 1, source_batch, num_heads], cached source segment id for the
           previous t - 1 timesteps.
       t: a scalar, the current time step, 0-based.
     Returns:
       Extended cached source_vecs, source_contexts, source_paddings, and
       source_segment_ids. The time dimension of each cached state is fixed:
-      'extended_source_vec' is of shape [batch_size, max_sequence_length,
+      'extended_source_vec' is of shape [max_sequence_length, batch_size,
       num_heads * dim];
-      'extended_source_context' is of shape [batch_size, max_sequence_length,
+      'extended_source_context' is of shape [max_sequence_length, batch_size,
       num_heads * dim];
-      'source_padding' is of shape [batch_size, max_sequence_length, num_heads];
-      'source_segment_id' is of shape [batch_size, max_sequence_length,
+      'source_padding' is of shape [max_sequence_length, batch_size, num_heads];
+      'source_segment_id' is of shape [max_sequence_length, batch_size,
       num_heads].
-      But only [:, :(t + 1), :] contains valid data.
+      But only [:(t + 1), :, :] contains valid data.
       If t is not given,
-      'extended_source_vec' is of shape [batch_size, t, num_heads * dim];
-      'extended_source_context' is of shape [batch_size, t, num_heads * dim];
-      'source_padding' is of shape [batch_size, t, num_heads];
-      'source_segment_id' is of shape [batch_size, t, num_heads].
+      'extended_source_vec' is of shape [t, batch_size, num_heads * dim];
+      'extended_source_context' is of shape [t, batch_size, num_heads * dim];
+      'source_padding' is of shape [t, batch_size, num_heads];
+      'source_segment_id' is of shape [t, batch_size, num_heads].
     """
     batch_size = tf.shape(new_source_vecs)[0]
     if new_source_paddings is None:
@@ -1341,17 +1340,13 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         extended_packed_src[key] = None
       else:
         if t is not None:
-          cached_packed_src_trans = tf.transpose(
-              cached_packed_src[key], perm=[1, 0, 2])
           processed = tf.reshape(processed_packed_src[key], [batch_size, -1])
-          cached_packed_src_trans = inplace_ops.alias_inplace_update(
-              cached_packed_src_trans, t, processed)
-          extended_packed_src[key] = tf.transpose(
-              cached_packed_src_trans, perm=[1, 0, 2])
+          extended_packed_src[key] = inplace_ops.alias_inplace_update(
+              cached_packed_src[key], t, processed)
         else:
-          processed = tf.reshape(processed_packed_src[key], [batch_size, 1, -1])
+          processed = tf.reshape(processed_packed_src[key], [1, batch_size, -1])
           extended_packed_src[key] = tf.concat(
-              [cached_packed_src[key], processed], axis=1)
+              [cached_packed_src[key], processed], axis=0)
     return extended_packed_src
 
   @py_utils.NameScopeDecorator('MultiHeadedAttention/ZeroAttentionState')
@@ -1506,22 +1501,19 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     concated_source_contexts = cached_src.source_contexts
     source_padding = cached_src.source_padding
     source_segment_id = cached_src.source_segment_id
-    batch_size = tf.shape(concated_source_vecs)[0]
-    src_seq_len = tf.shape(concated_source_vecs)[1]
+    batch_size = tf.shape(concated_source_vecs)[1]
+    src_seq_len = tf.shape(concated_source_vecs)[0]
     num_heads = p.num_attention_heads
     packed_src = py_utils.NestedMap()
     packed_src.source_vecs = tf.reshape(
-        tf.transpose(concated_source_vecs, [1, 0, 2]),
-        [src_seq_len, batch_size * num_heads, -1])
+        concated_source_vecs, [src_seq_len, batch_size * num_heads, -1])
     # TODO(yonghui): Rewrite the following with just one transpose.
     packed_src.source_contexts = tf.transpose(
-        tf.reshape(
-            tf.transpose(concated_source_contexts, [1, 0, 2]),
-            [src_seq_len, batch_size * num_heads, -1]), [1, 0, 2])
+        tf.reshape(concated_source_contexts,
+                   [src_seq_len, batch_size * num_heads, -1]), [1, 0, 2])
     if source_padding is not None:
       packed_src.source_padding = tf.reshape(
-          tf.transpose(source_padding, [1, 0, 2]),
-          [src_seq_len, batch_size * num_heads])
+          source_padding, [src_seq_len, batch_size * num_heads])
     else:
       packed_src.source_padding = tf.zeros(
           [src_seq_len, batch_size * num_heads], dtype=py_utils.FPropDtype(p))
@@ -1531,8 +1523,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           dtype=packed_src.source_padding.dtype)
     else:
       packed_src.source_segment_id = tf.reshape(
-          tf.transpose(source_segment_id, [1, 0, 2]),
-          [src_seq_len, batch_size * num_heads])
+          source_segment_id, [src_seq_len, batch_size * num_heads])
     return packed_src
 
   @py_utils.NameScopeDecorator(
