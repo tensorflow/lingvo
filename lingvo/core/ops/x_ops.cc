@@ -510,6 +510,10 @@ REGISTER_OP("NgramIdToToken")
     .Input("token_ids: int32")
     .Input("seq_lengths: int32")
     .Output("sequences: string")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      c->set_output(0, c->input(1));
+      return Status::OK();
+    })
     .Attr("ngram_vocab_filepath: string")
     .Attr("ngram_separator: string = \"\"")
     .Doc(R"doc(
