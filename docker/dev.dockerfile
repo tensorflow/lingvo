@@ -71,7 +71,7 @@ RUN jupyter serverextension enable --py jupyter_http_over_ws
 
 # The latest tf-nightly-gpu requires CUDA 10 compatible nvidia drivers (410.xx).
 # Use a corresponding base_image and tf-nightly-gpu==1.13.0.dev2018121 for CUDA 9.
-RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")==1.13.0.dev20190103
+RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
 
 ARG bazel_version=0.17.2
 # This is to install bazel, for development purposes.
