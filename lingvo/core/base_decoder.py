@@ -89,13 +89,12 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p.target_sequence_sampler.target_eos_id = p.target_eos_id
     self.CreateChild('target_sequence_sampler', p.target_sequence_sampler)
 
-  def BeamSearchDecode(self, src_encs, src_enc_paddings):
+  def BeamSearchDecode(self, encoder_outputs):
     # pylint: disable=line-too-long
     """Performs beam search based decoding.
 
     Args:
-      src_encs: source encoding, of shape [time, batch, depth].
-      src_enc_paddings: source encoding padding, of shape [time, batch].
+      encoder_outputs: the outputs of the encoder.
     returns:
       `.BeamSearchDecodeOutput`, A namedtuple whose elements are tensors.
     """

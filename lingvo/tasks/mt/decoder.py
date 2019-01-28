@@ -486,14 +486,13 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         return xs
 
   @py_utils.NameScopeDecorator('MTDecoderV1/InitDecoder')
-  def _InitDecoder(self, theta, source_encs, source_paddings, num_hyps):
+  def _InitDecoder(self, theta, encoder_outputs, num_hyps):
     """Returns initial decoder states.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
           its children layers.
-      source_encs: source encoding, of shape [time, batch, depth].
-      source_paddings: source encoding's padding, of shape [time, batch].
+      encoder_outputs: a NestedMap computed by encoder.
       num_hyps: Scalar Tensor of type int, Number of hypothesis maintained in
           beam search, equal to beam_size * num_hyps_per_beam.
 
@@ -501,6 +500,10 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       Tuple of initial model states.
     """
     p = self.params
+    source_paddings = encoder_outputs.padding
+    time, batch = py_utils.GetShape(source_paddings, 2)
+    source_encs = py_utils.HasShape(encoder_outputs.encoded,
+                                    [time, batch, p.source_dim])
     rnn_states = [self._rnn_attn.zero_state(num_hyps)]
     for layer in self.frnn:
       rnn_states.append(layer.rnn_cell.zero_state(num_hyps))
@@ -597,20 +600,15 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     """
     self._atten.SetInitializationSourceState(new_init_state)
 
-  def _InitBeamSearchStateCallback(self,
-                                   theta,
-                                   source_encs,
-                                   source_paddings,
-                                   num_hyps_per_beam,
-                                   additional_source_info=None):
+  def _InitBeamSearchStateCallback(self, theta, encoder_outputs,
+                                   num_hyps_per_beam):
     """Returns initial beams search states.
 
     Args:
-      source_encs: A tensor of shape [src_len, src_batch, source_dim].
-      source_paddings: A tensor of shape [src_len, src_batch].
+      theta: a NestedMap of parameters.
+      encoder_outputs: a NestedMap computed by encoder.
       num_hyps_per_beam: An int, number hyps to keep for source sentence.
-      additional_source_info: a `.NestedMap` of tensors containing extra context
-          information about the source that may be useful for decoding.
+
     Returns:
       A tuple (initial_results, states).
         initial_results: a `.NestedMap` of initial results.
@@ -624,14 +622,16 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
           atten_states:
             Initial attention state.
     """
-    # additional_source_info is currently not used.
-    del additional_source_info
-    num_beams = py_utils.GetShape(source_encs)[1]
+    p = self.params
+    num_beams = py_utils.GetShape(encoder_outputs.padding)[1]
     num_hyps = num_beams * num_hyps_per_beam
     rnn_states, init_atten_context, atten_probs, atten_states = (
-        self._InitDecoder(theta, source_encs, source_paddings, num_hyps))
+        self._InitDecoder(theta, encoder_outputs, num_hyps))
 
-    initial_results = py_utils.NestedMap({'atten_probs': atten_probs})
+    initial_results = py_utils.NestedMap(
+        log_probs=tf.zeros([num_hyps, p.softmax.num_classes],
+                           dtype=py_utils.FPropDtype(p)),
+        atten_probs=atten_probs)
 
     return initial_results, py_utils.NestedMap({
         'rnn_states': rnn_states,
@@ -641,25 +641,17 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     })
 
   @py_utils.NameScopeDecorator('MTDecoderV1/PreBeamSearchStepCallback')
-  def _PreBeamSearchStepCallback(self,
-                                 theta,
-                                 source_encs,
-                                 source_paddings,
-                                 step_ids,
-                                 states,
-                                 num_hyps_per_beam,
-                                 additional_source_info=None):
+  def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
+                                 num_hyps_per_beam):
     """Returns logits for sampling ids and the next model states.
 
     Args:
-      source_encs: A tensor of shape [src_len, src_batch, source_dim].
-      source_paddings: A tensor of shape [src_len, src_batch].
+      theta: a NestedMap of parameters.
+      encoder_outputs: a NestedMap computed by encoder.
       step_ids: A tensor of shape [tgt_batch, 1].
       states: A `.NestedMap` of tensors representing states that the clients
           would like to keep track of for each of the active hyps.
       num_hyps_per_beam: Beam size.
-      additional_source_info: a `.NestedMap` of tensors containing extra context
-          information about the source that may be useful for decoding.
     Returns:
       A tuple (results, out_states).
       results: A `.NestedMap` of beam search results.
@@ -677,8 +669,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
           Updates attention states.
     """
     p = self.params
-    # additional_source_info is currently not used.
-    del additional_source_info
 
     prev_rnn_states = states['rnn_states']
     prev_atten_context = states['atten_context']
@@ -714,38 +704,25 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
     return bs_results, new_states
 
-  def _PostBeamSearchStepCallback(self,
-                                  theta,
-                                  source_encs,
-                                  source_paddings,
-                                  new_step_ids,
-                                  states,
-                                  additional_source_info=None):
+  def _PostBeamSearchStepCallback(self, theta, encoder_outputs, new_step_ids,
+                                  states):
     # There is nothing to do here.
     return states
 
-  def BeamSearchDecode(self,
-                       source_encs,
-                       source_paddings,
-                       num_hyps_per_beam_override=0,
-                       additional_source_info=None):
+  def BeamSearchDecode(self, encoder_outputs, num_hyps_per_beam_override=0):
     """Performs beam-search based decoding.
 
     Args:
-      source_encs: source encoding, of shape [time, batch, depth].
-      source_paddings: source encoding's padding, of shape [time, batch].
+      encoder_outputs: a NestedMap computed by encoder.
       num_hyps_per_beam_override: If set to a value <= 0, this parameter is
         ignored. If set to a value > 0, then this value will be used to
         override `p.num_hyps_per_beam`.
-      additional_source_info: a `.NestedMap` of tensors containing extra context
-          information about the source that may be useful for decoding.
 
     Returns:
       BeamSearchDecodeOutput, a namedtuple containing the decode results.
     """
-    del additional_source_info  # Unused.
     return self.beam_search.BeamSearchDecode(
-        self.theta, source_encs, source_paddings, num_hyps_per_beam_override,
+        self.theta, encoder_outputs, num_hyps_per_beam_override,
         self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
         self._PostBeamSearchStepCallback)
 
@@ -932,8 +909,7 @@ class TransformerDecoder(MTBaseDecoder):
 
       return layer_out
 
-  def ExtendStep(self, theta, source_encs, source_paddings, new_ids,
-                 t, prefix_states):
+  def ExtendStep(self, theta, encoder_outputs, new_ids, t, prefix_states):
     """Extend prefix as represented by `prefix_states` by one more step.
 
     This function is expected to be called during fast decoding of Transformer
@@ -942,9 +918,11 @@ class TransformerDecoder(MTBaseDecoder):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      source_encs: source encoding, of shape [time, batch, depth]. Can be [time,
-        bs, depth, num_trans_layers] if is_transparent is set.
-      source_paddings: source encoding's padding, of shape [time, batch].
+      encoder_outputs: a NestedMap computed by encoder, containing:
+
+        - encoded: source encoding, of shape [time, batch, depth]. Can be [time,
+          bs, depth, num_trans_layers] if is_transparent is set.
+        - padding: source encoding's padding, of shape [time, batch].
       new_ids: new input ids, of shape [batch].
       t: a scalar, the current time step, 0-based.
       prefix_states: a `.NestedMap` representing the prefix that has already
@@ -956,13 +934,16 @@ class TransformerDecoder(MTBaseDecoder):
       `prefix_states` is the update prefix states.
     """
     p = self.params
+    source_paddings = encoder_outputs.padding
     time, batch = py_utils.GetShape(source_paddings, 2)
     if p.is_transparent:
       source_encs = py_utils.HasShape(
-          source_encs, [time, batch, p.source_dim, p.num_trans_layers])
+          encoder_outputs.encoded,
+          [time, batch, p.source_dim, p.num_trans_layers])
       source_encs = tf.unstack(source_encs, axis=3)
     else:
-      source_encs = py_utils.HasShape(source_encs, [time, batch, p.source_dim])
+      source_encs = py_utils.HasShape(encoder_outputs.encoded,
+                                      [time, batch, p.source_dim])
       source_encs = [source_encs] * p.num_trans_layers
     with tf.name_scope(p.name):
       # Embedding layer
@@ -1015,23 +996,15 @@ class TransformerDecoder(MTBaseDecoder):
     """
     return self._FProp(theta, encoder_outputs, targets)
 
-  def _InitBeamSearchStateCallback(self,
-                                   theta,
-                                   source_encs,
-                                   source_paddings,
-                                   num_hyps_per_beam,
-                                   additional_source_info=None):
+  def _InitBeamSearchStateCallback(self, theta, encoder_outputs,
+                                   num_hyps_per_beam):
     """Returns initial beams search states.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      source_encs: A tensor of shape [src_len, src_batch, source_dim].
-          Can be [time, batch, depth, num_layers] if is_transparent is set.
-      source_paddings: A tensor of shape [src_len, src_batch].
+      encoder_outputs: a NestedMap computed by encoder.
       num_hyps_per_beam: An int, number hyps to keep for source sentence.
-      additional_source_info: a `.NestedMap` of tensors containing extra context
-          information about the source that may be useful for decoding.
     Returns:
       A tuple (initial_results, states).
         initial_results: a `.NestedMap` of initial results.
@@ -1046,15 +1019,17 @@ class TransformerDecoder(MTBaseDecoder):
             Initial empty list of decoded ids. [num_hyps, 0].
     """
     p = self.params
-    # additional_source_info is currently not used.
-    del additional_source_info
 
+    source_encs = encoder_outputs.encoded
     num_hyps = py_utils.GetShape(source_encs)[1] * num_hyps_per_beam
     source_len = py_utils.GetShape(source_encs)[0]
 
     # Dummy attention probs
     atten_probs = tf.ones([num_hyps, source_len]) / tf.to_float(source_len)
-    initial_results = py_utils.NestedMap({'atten_probs': atten_probs})
+    initial_results = py_utils.NestedMap(
+        log_probs=tf.zeros([num_hyps, p.softmax.num_classes],
+                           dtype=py_utils.FPropDtype(p)),
+        atten_probs=atten_probs)
 
     batch_size = num_hyps
     key_channels = p.model_dim
@@ -1081,28 +1056,18 @@ class TransformerDecoder(MTBaseDecoder):
         'time_step': tf.constant(0)
     })
 
-  def _PreBeamSearchStepCallback(self,
-                                 theta,
-                                 source_encs,
-                                 source_paddings,
-                                 step_ids,
-                                 states,
-                                 num_hyps_per_beam,
-                                 additional_source_info=None):
+  def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
+                                 num_hyps_per_beam):
     """Returns logits for sampling ids and the next model states.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      source_encs: A tensor of shape [src_len, src_batch, source_dim].
-          Can be [time, batch, depth, num_layers] if is_transparent is set.
-      source_paddings: A tensor of shape [src_len, src_batch].
+      encoder_outputs: a NestedMap computed by encoder.
       step_ids: A tensor of shape [tgt_batch, 1].
       states: A `.NestedMap` of tensors representing states that the clients
           would like to keep track of for each of the active hyps.
       num_hyps_per_beam: Beam size.
-      additional_source_info: a `.NestedMap` of tensors containing extra context
-          information about the source that may be useful for decoding.
     Returns:
       A tuple (results, out_states).
         results: A `.NestedMap` of beam search results.
@@ -1120,17 +1085,16 @@ class TransformerDecoder(MTBaseDecoder):
              Updated list of decoded ids. [num_hyps, Num of decoded ids].
     """
     p = self.params
-    # additional_source_info is currently not used.
-    del additional_source_info
 
     target_time = states.time_step
     prefix_states = states.prefix_states
 
     new_states = states.Pack(states.Flatten())
 
-    layer_out, updated_prefix_states = self.ExtendStep(
-        theta, source_encs, source_paddings, tf.squeeze(step_ids, 1),
-        target_time, prefix_states)
+    layer_out, updated_prefix_states = self.ExtendStep(theta, encoder_outputs,
+                                                       tf.squeeze(step_ids, 1),
+                                                       target_time,
+                                                       prefix_states)
 
     new_states.prefix_states = updated_prefix_states
     new_states.time_step = target_time + 1
@@ -1139,7 +1103,7 @@ class TransformerDecoder(MTBaseDecoder):
     logits = self.softmax.Logits(theta.softmax, [softmax_input])
 
     num_hyps = py_utils.GetShape(step_ids)[0]
-    source_len = py_utils.GetShape(source_encs)[0]
+    source_len = py_utils.GetShape(encoder_outputs.padding)[0]
     # [time * batch, num_classes] -> [time, batch, num_classes]
     logits = tf.reshape(logits, (-1, num_hyps, p.softmax.num_classes))
     # [time, batch, num_classes] -> [batch, time, num_classes]
@@ -1158,21 +1122,13 @@ class TransformerDecoder(MTBaseDecoder):
 
     return bs_results, new_states
 
-  def _PostBeamSearchStepCallback(self,
-                                  theta,
-                                  source_encs,
-                                  source_paddings,
-                                  new_step_ids,
-                                  states,
-                                  additional_source_info=None):
+  def _PostBeamSearchStepCallback(self, theta, encoder_outputs, new_step_ids,
+                                  states):
     # There is nothing to do here.
     return states
 
-  def BeamSearchDecode(self,
-                       source_encs,
-                       source_paddings,
-                       num_hyps_per_beam_override=0):
+  def BeamSearchDecode(self, encoder_outputs, num_hyps_per_beam_override=0):
     return self.beam_search.BeamSearchDecode(
-        self.theta, source_encs, source_paddings, num_hyps_per_beam_override,
+        self.theta, encoder_outputs, num_hyps_per_beam_override,
         self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
         self._PostBeamSearchStepCallback)

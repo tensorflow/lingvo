@@ -83,7 +83,8 @@ class MTBaseModel(base_model.BaseTask):
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
       src_enc, src_enc_paddings, _ = self.enc.FPropDefaultTheta(input_batch.src)
-      decoder_outs = self.dec.BeamSearchDecode(src_enc, src_enc_paddings)
+      decoder_outs = self.dec.BeamSearchDecode(
+          py_utils.NestedMap(encoded=src_enc, padding=src_enc_paddings))
 
       topk_hyps = decoder_outs.topk_hyps
       topk_ids = decoder_outs.topk_ids

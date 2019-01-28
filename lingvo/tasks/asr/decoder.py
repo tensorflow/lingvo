@@ -653,9 +653,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       BeamSearchDecodeOutput, a namedtuple containing the decode results
     """
     return self.beam_search.BeamSearchDecode(
-        self.theta, encoder_outputs.encoded, encoder_outputs.padding,
-        num_hyps_per_beam_override, self._InitBeamSearchStateCallback,
-        self._PreBeamSearchStepCallback, self._PostBeamSearchStepCallback)
+        self.theta, encoder_outputs, num_hyps_per_beam_override,
+        self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
+        self._PostBeamSearchStepCallback)
 
   def SampleTargetSequences(self, theta, encoder_outputs, random_seed):
     """Performs target sequence sampling.
@@ -675,35 +675,19 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         a padded timestep.
     """
     return self.target_sequence_sampler.Sample(
-        theta, encoder_outputs.encoded, encoder_outputs.padding, random_seed,
-        self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
-        self._PostBeamSearchStepCallback)
+        theta, encoder_outputs, random_seed, self._InitBeamSearchStateCallback,
+        self._PreBeamSearchStepCallback, self._PostBeamSearchStepCallback)
 
-  def _InitBeamSearchStateCallback(self,
-                                   theta,
-                                   source_encs,
-                                   source_paddings,
-                                   num_hyps_per_beam,
-                                   additional_source_info=None):
+  def _InitBeamSearchStateCallback(self, theta, encoder_outputs,
+                                   num_hyps_per_beam):
     raise NotImplementedError('_InitBeamSearchStateCallback')
 
-  def _PreBeamSearchStepCallback(self,
-                                 theta,
-                                 source_encs,
-                                 source_paddings,
-                                 step_ids,
-                                 states,
-                                 num_hyps_per_beam,
-                                 additional_source_info=None):
+  def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
+                                 num_hyps_per_beam):
     raise NotImplementedError('_PreBeamSearchStepCallback')
 
-  def _PostBeamSearchStepCallback(self,
-                                  theta,
-                                  source_encs,
-                                  source_paddings,
-                                  new_step_ids,
-                                  states,
-                                  additional_source_info=None):
+  def _PostBeamSearchStepCallback(self, theta, encoder_outputs, new_step_ids,
+                                  states):
     raise NotImplementedError('_PostBeamSearchStepCallback')
 
   # TODO(tilarids): Can we remove this?
@@ -1445,20 +1429,14 @@ class AsrDecoder(AsrDecoderBase):
     """
     return atten_probs
 
-  def _InitBeamSearchStateCallback(self,
-                                   theta,
-                                   source_encs,
-                                   source_paddings,
-                                   num_hyps_per_beam,
-                                   additional_source_info=None):
-    # additional_source_info is currently not used.
+  def _InitBeamSearchStateCallback(self, theta, encoder_outputs,
+                                   num_hyps_per_beam):
     p = self.params
-    del additional_source_info
-    num_hyps = self._GetNumHypsForBeamSearch(source_encs, num_hyps_per_beam)
-    (rnn_states, atten_context, atten_probs, atten_states, fusion_states,
-     misc_states, packed_src) = self.InitDecoder(
-         theta, py_utils.NestedMap(
-             encoded=source_encs, padding=source_paddings), num_hyps)
+    num_hyps = self._GetNumHypsForBeamSearch(encoder_outputs.encoded,
+                                             num_hyps_per_beam)
+    (rnn_states, atten_context, atten_probs, atten_states,
+     fusion_states, misc_states, packed_src) = self.InitDecoder(
+         theta, encoder_outputs, num_hyps)
     # Throw away packed_src. We re-compute it in _PreBeamSearchStepCallback
     # because we cannot pass 'packed_src' through 'states'. beam_search_helper
     # assumes that all Tensors in 'states' have 'target_batch' as the first
@@ -1487,17 +1465,9 @@ class AsrDecoder(AsrDecoderBase):
     })
     return initial_results, other_states
 
-  def _PreBeamSearchStepCallback(self,
-                                 theta,
-                                 source_encs,
-                                 source_paddings,
-                                 step_ids,
-                                 states,
-                                 num_hyps_per_beam,
-                                 additional_source_info=None):
+  def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
+                                 num_hyps_per_beam):
     p = self.params
-    # additional_source_info is currently not used.
-    del additional_source_info
     fake_step_labels = tf.identity(step_ids)
     step_paddings = tf.zeros(tf.shape(step_ids), dtype=p.dtype)
     step_weights = tf.ones(tf.shape(step_ids), dtype=p.dtype)
@@ -1525,8 +1495,7 @@ class AsrDecoder(AsrDecoderBase):
         padding=step_paddings,
         misc=py_utils.NestedMap())
 
-    packed_src = self._InitAttention(
-        theta, py_utils.NestedMap(encoded=source_encs, padding=source_paddings))
+    packed_src = self._InitAttention(theta, encoder_outputs)
     step_out, new_decoder_step_state = self.SingleDecodeStep(
         theta,
         packed_src,
@@ -1588,12 +1557,7 @@ class AsrDecoder(AsrDecoderBase):
     })
     return bs_results, new_states
 
-  def _PostBeamSearchStepCallback(self,
-                                  theta,
-                                  source_encs,
-                                  source_paddings,
-                                  new_step_ids,
-                                  states,
-                                  additional_source_info=None):
-    del source_encs, source_paddings, new_step_ids, additional_source_info
+  def _PostBeamSearchStepCallback(self, theta, encoder_outputs, new_step_ids,
+                                  states):
+    del encoder_outputs, new_step_ids
     return states

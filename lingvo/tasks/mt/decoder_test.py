@@ -219,8 +219,7 @@ class DecoderTest(DecoderTestCaseBase):
     p.rnn_cell_dim = 32
     dec = decoder.MTDecoderV1(p)
     encoder_outputs, _ = self._Inputs(dtype=dtype)
-    decode = dec.BeamSearchDecode(encoder_outputs.encoded,
-                                  encoder_outputs.padding)
+    decode = dec.BeamSearchDecode(encoder_outputs)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
     decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
@@ -266,8 +265,7 @@ class DecoderTest(DecoderTestCaseBase):
     p.feed_attention_context_vec_to_softmax = True
     dec = decoder.MTDecoderV1(p)
     encoder_outputs, _ = self._Inputs(dtype=dtype)
-    decode = dec.BeamSearchDecode(encoder_outputs.encoded,
-                                  encoder_outputs.padding)
+    decode = dec.BeamSearchDecode(encoder_outputs)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
     decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
@@ -504,9 +502,8 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
     l_out2 = []
     for i in range(5):
-      l_i_out, prefix_states = dec.ExtendStep(
-          dec.theta, encoder_outputs.encoded, encoder_outputs.padding,
-          tgts.ids[:, i], i, prefix_states)
+      l_i_out, prefix_states = dec.ExtendStep(dec.theta, encoder_outputs,
+                                              tgts.ids[:, i], i, prefix_states)
       l_out2.append(l_i_out)
 
     l_out2 = tf.stack(l_out2)
@@ -585,8 +582,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     p.beam_search.length_normalization = 0
     dec = decoder.TransformerDecoder(p)
     encoder_outputs, _ = self._Inputs(dtype=dtype)
-    decode = dec.BeamSearchDecode(encoder_outputs.encoded,
-                                  encoder_outputs.padding)
+    decode = dec.BeamSearchDecode(encoder_outputs)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
     decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))

@@ -65,7 +65,8 @@ class TransformerModel(mt_model.TransformerModel):
 
       src_input_map = py_utils.NestedMap(ids=src_ids, paddings=src_paddings)
       src_enc, src_enc_paddings, _ = self.enc.FPropDefaultTheta(src_input_map)
-      decoder_outs = self.dec.BeamSearchDecode(src_enc, src_enc_paddings)
+      decoder_outs = self.dec.BeamSearchDecode(
+          py_utils.NestedMap(encoded=src_enc, padding=src_enc_paddings))
 
       topk_hyps = decoder_outs.topk_hyps
       topk_ids = decoder_outs.topk_ids

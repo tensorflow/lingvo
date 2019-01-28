@@ -79,22 +79,17 @@ class BeamSearchHelper(base_layer.BaseLayer):
 
   .. code-block:: none
 
-      def InitBeamSearchState(theta,
-                              source_encs,
-                              source_paddings,
-                              num_hyps_per_beam,
-                              additional_source_info):
+      def InitBeamSearchState(theta, encoder_outputs, num_hyps_per_beam):
         Args:
           theta: A NestedMap object containing weights' values of this
               layer and its children layers.
-          source_encs: A tensor of shape [src_len, src_batch, source_dim].
-          source_paddings: A tensor of shape [src_len, src_batch].
+          encoder_outputs: A NestedMap computed by encoder.
           num_hyps_per_beam: An int, number hyps to keep for source sentence.
-          additional_source_info: a `.NestedMap` of tensors containing extra
-              information about the source that may be useful for decoding.
         Returns:
           initial_results: a `.NestedMap` of initial results. It should contain
               the following tensors at the minimum.
+                  log_probs: The initial log probs for each of the tokens in
+                      the target vocab, of shape [tgt_batch, vocab_size].
                   atten_probs: The initial attention probs, of shape [tgt_batch,
                       src_len].
           states: a `.NestedMap` of tensors representing states that the client
@@ -106,22 +101,17 @@ class BeamSearchHelper(base_layer.BaseLayer):
   .. code-block:: none
 
       def PreBeamSearchStepCallback(theta,
-                                    source_encs,
-                                    source_paddings,
+                                    encoder_outputs,
                                     step_ids,
                                     in_states,
-                                    num_hyps_per_beam,
-                                    additional_source_info):
+                                    num_hyps_per_beam):
         Args:
           theta: A NestedMap object containing weights' values of this
               layer and its children layers.
-          source_encs: A tensor of shape [src_len, src_batch, source_dim].
-          source_paddings: A tensor of shape [src_len, src_batch].
+          encoder_outputs: A NestedMap computed by encoder.
           step_ids: A tensor of shape [tgt_batch, 1].
           in_states: A `.NestedMap` of tensors representing states that the
               clients would like to keep track of for each of the active hyps.
-          additional_source_info: a `.NestedMap` of tensors containing extra
-              information about the source that may be useful for decoding.
         Returns:
           results: A `.NestedMap` of beam search results. It should contain
               the 'atten_probs' and 'log_probs' tensors at the minimal.
@@ -142,20 +132,15 @@ class BeamSearchHelper(base_layer.BaseLayer):
   .. code-block:: none
 
       def PostBeamSearchStepCallback(theta,
-                                     source_encs,
-                                     source_paddings,
+                                     encoder_outputs,
                                      new_step_ids,
-                                     other_states,
-                                     additional_source_info):
+                                     other_states):
         Args:
           theta: A NestedMap object containing weights' values of this
               layer and its children layers.
-          source_encs: The same as above.
-          source_paddings: The same as above.
+          encoder_outputs: A NestedMap computed by encoder.
           new_step_ids: Token ids for the next beam search step.
           other_states: A `.NestedMap`.
-          additional_source_info: a `.NestedMap` of tensors containing extra
-              information about the source that may be useful for decoding.
         Returns:
           final_states, A `.NestedMap`.
   """
@@ -233,10 +218,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
     p = self.params
     self._model_uses_eoc_id = p.target_eoc_id >= 0
 
-  def _BeamSearchStep(self, theta, source_encs, source_paddings, cur_step,
-                      step_ids, core_bs_states, other_states, num_hyps_per_beam,
+  def _BeamSearchStep(self, theta, encoder_outputs, cur_step, step_ids,
+                      core_bs_states, other_states, num_hyps_per_beam,
                       pre_beam_search_step_callback,
-                      post_beam_search_step_callback, additional_source_info):
+                      post_beam_search_step_callback):
     """Extend beam search hyps for one step.
 
       | num_beams = Number of source sequences to be decoded.
@@ -246,12 +231,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
       | tgt_seq_len = Maximum allowed time steps in the target sequence.
 
     Args:
-      theta: A NestedMap object containing weights' values of the decoder
+      theta: A `.NestedMap` object containing weights' values of the decoder
           layer and its children layers.
-      source_encs: A tensor of the shape [time, batch, depth]. The encoding of
-          the source.
-      source_paddings: A tensor of the shape [time, batch]. Padding state of
-          the source.
+      encoder_outputs: A `.NestedMap` containing encoder outputs to be passed
+        to the callbacks.
       cur_step: A scalar int tensor, the current time step, 0-based.
       step_ids: An int tensor of shape [num_hyps, 1]. The input ids to the
           current search step.
@@ -266,8 +249,6 @@ class BeamSearchHelper(base_layer.BaseLayer):
           See class header comments for more details.
       post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.
           See class header comments for more details.
-      additional_source_info: a `.NestedMap` of tensors containing extra context
-          information about the source that may be useful for decoding.
     Returns:
       A tuple of following elements for the next beam search step,
       (next step, all_done, step_ids, core_bs_states, other_states)
@@ -275,8 +256,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
     p = self.params
 
     bs_results, other_states = pre_beam_search_step_callback(
-        theta, source_encs, source_paddings, step_ids, other_states,
-        num_hyps_per_beam, additional_source_info)
+        theta, encoder_outputs, step_ids, other_states, num_hyps_per_beam)
 
     (best_scores, cumulative_scores, in_scores, in_hyps, in_prev_hyps,
      in_done_hyps, in_atten_probs) = core_bs_states
@@ -330,33 +310,26 @@ class BeamSearchHelper(base_layer.BaseLayer):
     new_other_states = other_states.Transform(ReOrderHyps)
 
     final_other_states = post_beam_search_step_callback(
-        theta, source_encs, source_paddings, new_step_ids, new_other_states,
-        additional_source_info)
+        theta, encoder_outputs, new_step_ids, new_other_states)
 
     return (cur_step + 1, all_done, new_step_ids, new_bs_states,
             final_other_states)
 
   def BeamSearchDecode(self,
                        theta,
-                       source_encs,
-                       source_paddings,
+                       encoder_outputs,
                        num_hyps_per_beam_override=0,
                        init_beam_search_state=None,
                        pre_beam_search_step_callback=None,
                        post_beam_search_step_callback=None,
-                       additional_source_info=None,
                        max_steps=None):
     """Performs beam-search based decoding.
 
     Args:
       theta: A NestedMap object containing weights' values of the decoder
         layer and its children layers.
-      source_encs: source encoding, of shape [time, batch, depth]. In case of
-        multi-source decoding, a `.NestedMap` object containing source encoding
-        tensors, again each of shape [time, batch, depth].
-      source_paddings: source encoding's padding, of shape [time, batch]. In
-        case of multi-source decoding, A `.NestedMap` object containing source
-        padding tensors, each of shape [time, batch].
+      encoder_outputs: A NestedMap containing encoder outputs to be passed
+        to the callbacks.
       num_hyps_per_beam_override: If set to a value <= 0, this parameter is
         ignored. If set to a value > 0, then this value will be used to
         override `p.num_hyps_per_beam`.
@@ -366,8 +339,6 @@ class BeamSearchHelper(base_layer.BaseLayer):
           Please refer to the class header comments for more details.
       post_beam_search_step_callback: The `PostBeamSearchStepCallback` callback.
           Please refer to the class header comments for more details.
-      additional_source_info: a `.NestedMap` of tensors containing extra context
-          information about the source that may be useful for decoding.
       max_steps: maximum beam search steps. If None,
           use self.params.target_seq_len.
 
@@ -381,30 +352,11 @@ class BeamSearchHelper(base_layer.BaseLayer):
     if max_steps is None:
       max_steps = p.target_seq_len
 
-    # Branch to multi-source according to type.
-    is_multi_source = isinstance(source_encs, py_utils.NestedMap)
-
-    if is_multi_source:
-      num_beams = tf.shape(source_encs.Flatten()[0])[1]
-    else:
-      num_beams = tf.shape(source_encs)[1]
-
-    num_hyps = num_beams * num_hyps_per_beam
-
     initial_results, other_states = init_beam_search_state(
-        theta, source_encs, source_paddings, num_hyps_per_beam,
-        additional_source_info)
+        theta, encoder_outputs, num_hyps_per_beam)
 
-    if is_multi_source:
-      if isinstance(source_paddings, py_utils.NestedMap):
-        source_seq_lengths = tf.to_int32(
-            tf.reduce_sum(1.0 - tf.transpose(source_paddings.Flatten()[0]), 1))
-      else:
-        source_seq_lengths = tf.to_int32(
-            tf.reduce_sum(1.0 - tf.transpose(source_paddings), 1))
-    else:
-      source_seq_lengths = tf.to_int32(
-          tf.reduce_sum(1.0 - tf.transpose(source_paddings), 1))
+    num_hyps = tf.shape(initial_results.log_probs)[0]
+    num_beams = num_hyps // num_hyps_per_beam
 
     step_ids = tf.fill([num_hyps, 1],
                        tf.constant(p.target_sos_id, dtype=tf.int32))
@@ -432,11 +384,9 @@ class BeamSearchHelper(base_layer.BaseLayer):
                  other_states_list):
       (cur_step, all_done, new_step_ids, new_bs_states,
        new_other_states) = self._BeamSearchStep(
-           theta, source_encs, source_paddings,
-           cur_step, step_ids, core_bs_states,
+           theta, encoder_outputs, cur_step, step_ids, core_bs_states,
            other_states.Pack(other_states_list), num_hyps_per_beam,
-           pre_beam_search_step_callback, post_beam_search_step_callback,
-           additional_source_info)
+           pre_beam_search_step_callback, post_beam_search_step_callback)
       return (cur_step, all_done, new_step_ids, new_bs_states,
               new_other_states.Flatten())
 
@@ -457,6 +407,15 @@ class BeamSearchHelper(base_layer.BaseLayer):
     # [target_seq_len, num_beams * num_hyps_per_beam].
     final_done_hyps = final_bs_states[5]
     final_other_states = other_states.Pack(flat_final_other_states)
+
+    # TODO(rpang): avoid inspecting 'encoder_outputs'.
+    source_paddings = encoder_outputs.padding
+    if isinstance(source_paddings, py_utils.NestedMap):
+      source_seq_lengths = tf.to_int32(
+          tf.reduce_sum(1.0 - tf.transpose(source_paddings.Flatten()[0]), 1))
+    else:
+      source_seq_lengths = tf.to_int32(
+          tf.reduce_sum(1.0 - tf.transpose(source_paddings), 1))
 
     # [num_beams, num_hyps_per_beam].
     topk_hyps = py_x_ops.top_k_terminated_hyps(

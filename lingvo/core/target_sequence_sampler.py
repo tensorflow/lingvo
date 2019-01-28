@@ -54,7 +54,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     p.name = 'target_sequence_sampler'
     return p
 
-  def Sample(self, decoder_theta, source_encs, source_paddings, random_seed,
+  def Sample(self, decoder_theta, encoder_outputs, random_seed,
              init_state_callback, pre_step_callback, post_step_callback):
     """Samples target sequences, one target sequence per source sequence.
 
@@ -64,8 +64,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
       decoder_theta: A NestedMap object containing weights' values of the
         decoder layer and its children layers, to be passed to decoder
         callbacks.
-      source_encs: source encoding, to be passed to decoder callbacks.
-      source_paddings: source padding, to be passed to decoder callbacks.
+      encoder_outputs: the outputs of the encoder, to be passed to callbacks.
       random_seed: a scalar int32 tensor representing the random seed.
       init_state_callback: decoder._InitBeamSearchStateCallback.
       pre_step_callback: decoder._PreBeamSearchStepCallback.
@@ -83,16 +82,14 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     """
     p = self.params
     assert p.temperature > 0
+    # 'recurrent_theta' represents all cross-timestep information used by the
+    # recurrent loop below, including layer theta and encoder outputs.
     recurrent_theta = py_utils.NestedMap(
         theta=decoder_theta,
         random_seed=random_seed,
-        source_encs=source_encs,
-        source_paddings=source_paddings)
+        encoder_outputs=encoder_outputs)
     bs_result, bs_state = init_state_callback(
-        recurrent_theta.theta,
-        source_encs,
-        source_paddings,
-        num_hyps_per_beam=1)
+        recurrent_theta.theta, encoder_outputs, num_hyps_per_beam=1)
     batch = tf.shape(bs_result.log_probs)[0]
     recurrent_state0 = py_utils.NestedMap(
         timestep=tf.zeros(shape=[], dtype=tf.int32),
@@ -109,8 +106,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         # Compute logits and states.
         bs_result, bs_state1 = pre_step_callback(
             recurrent_theta.theta,
-            recurrent_theta.source_encs,
-            recurrent_theta.source_paddings,
+            recurrent_theta.encoder_outputs,
             tf.expand_dims(state0.ids, 1),  # [batch, 1].
             state0.bs_state,
             num_hyps_per_beam=1)
@@ -130,9 +126,9 @@ class TargetSequenceSampler(base_layer.BaseLayer):
               tf.logical_and(bs_result.is_last_chunk,
                              tf.equal(state1.ids, p.target_eoc_id)),
               tf.fill(tf.shape(state1.ids), p.target_eos_id), state1.ids)
-        state1.bs_state = post_step_callback(
-            recurrent_theta.theta, recurrent_theta.source_encs,
-            recurrent_theta.source_paddings, state1.ids, bs_state1)
+        state1.bs_state = post_step_callback(recurrent_theta.theta,
+                                             recurrent_theta.encoder_outputs,
+                                             state1.ids, bs_state1)
       return state1, py_utils.NestedMap()
 
     accumulated_states, _ = recurrent.Recurrent(recurrent_theta,

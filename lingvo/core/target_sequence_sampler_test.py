@@ -36,40 +36,30 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
       tgt_len = 7
       batch_size = 2
 
-      def InitBeamSearchCallBack(unused_theta,
-                                 unused_source_encs,
-                                 unused_source_padding,
-                                 num_hyps_per_beam,
-                                 unused_additional_source_info=None):
+      def InitBeamSearchCallBack(unused_theta, unused_encoder_outputs,
+                                 num_hyps_per_beam):
         self.assertEqual(1, num_hyps_per_beam)
         logits = tf.zeros((batch_size, vocab_size), dtype=tf.float32)
         return (py_utils.NestedMap(log_probs=logits),
                 py_utils.NestedMap(step=tf.constant(0)))
 
-      def PreBeamSearchStepCallback(unused_theta,
-                                    unused_source_encs,
-                                    unused_source_paddings,
-                                    unused_step_ids,
-                                    states,
-                                    num_hyps_per_beam,
-                                    unused_additional_source_info=None):
+      def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                    unused_step_ids, states, num_hyps_per_beam):
         self.assertEqual(1, num_hyps_per_beam)
         logits = tf.random_normal([batch_size, vocab_size], seed=8273747)
         return (py_utils.NestedMap(log_probs=logits),
                 py_utils.NestedMap(step=states.step + 1))
 
-      def PostBeamSearchStepCallback(unused_theta,
-                                     unused_source_encs,
-                                     unused_source_paddings,
-                                     unused_new_step_ids,
-                                     states,
-                                     unused_additional_source_info=None):
+      def PostBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                     unused_new_step_ids, states):
         return states
 
       src_enc = tf.random_normal([src_len, batch_size, 8], seed=982774838)
       src_enc_padding = tf.constant(
           [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
           dtype=tf.float32)
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_enc, padding=src_enc_padding)
 
       theta = py_utils.NestedMap()
       random_seed = tf.constant(123)
@@ -77,7 +67,7 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
           name='bsh', target_seq_len=tgt_len)
       seq_sampler = p.cls(p)
       decoder_output = seq_sampler.Sample(
-          theta, src_enc, src_enc_padding, random_seed, InitBeamSearchCallBack,
+          theta, encoder_outputs, random_seed, InitBeamSearchCallBack,
           PreBeamSearchStepCallback, PostBeamSearchStepCallback)
 
       ids, lens = sess.run([
@@ -95,7 +85,7 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
           name='bsh', target_seq_len=tgt_len, temperature=0.2)
       seq_sampler = p.cls(p)
       decoder_output = seq_sampler.Sample(
-          theta, src_enc, src_enc_padding, random_seed, InitBeamSearchCallBack,
+          theta, encoder_outputs, random_seed, InitBeamSearchCallBack,
           PreBeamSearchStepCallback, PostBeamSearchStepCallback)
 
       ids, lens = sess.run([
@@ -121,11 +111,8 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
           name='bsh', target_seq_len=tgt_len, target_eoc_id=0)
       seq_sampler = p.cls(p)
 
-      def InitBeamSearchCallBack(unused_theta,
-                                 unused_source_encs,
-                                 unused_source_padding,
-                                 num_hyps_per_beam,
-                                 unused_additional_source_info=None):
+      def InitBeamSearchCallBack(unused_theta, unused_encoder_outputs,
+                                 num_hyps_per_beam):
         self.assertEqual(1, num_hyps_per_beam)
         logits = tf.zeros((batch_size, vocab_size), dtype=tf.float32)
         is_last_chunk = tf.constant(False, shape=[batch_size])
@@ -136,13 +123,8 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
             src_step=tf.zeros([batch_size], dtype=tf.int32))
         return result, states
 
-      def PreBeamSearchStepCallback(unused_theta,
-                                    unused_source_encs,
-                                    unused_source_paddings,
-                                    unused_step_ids,
-                                    states,
-                                    num_hyps_per_beam,
-                                    unused_additional_source_info=None):
+      def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                    unused_step_ids, states, num_hyps_per_beam):
         self.assertEqual(1, num_hyps_per_beam)
         logits = tf.random_normal([batch_size, vocab_size], seed=8273747)
         # Make it never predict <eos>.
@@ -152,12 +134,8 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
             log_probs=logits, is_last_chunk=is_last_chunk)
         return result, states
 
-      def PostBeamSearchStepCallback(unused_theta,
-                                     unused_source_encs,
-                                     unused_source_paddings,
-                                     new_step_ids,
-                                     states,
-                                     unused_additional_source_info=None):
+      def PostBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
+                                     new_step_ids, states):
         return py_utils.NestedMap(
             step=states.step + 1,
             src_step=states.src_step + tf.cast(
@@ -167,11 +145,13 @@ class TargetSequenceSamplerTest(tf.test.TestCase):
       src_enc_padding = tf.constant(
           [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
           dtype=tf.float32)
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_enc, padding=src_enc_padding)
 
       theta = py_utils.NestedMap()
       random_seed = tf.constant(123)
       decoder_output = seq_sampler.Sample(
-          theta, src_enc, src_enc_padding, random_seed, InitBeamSearchCallBack,
+          theta, encoder_outputs, random_seed, InitBeamSearchCallBack,
           PreBeamSearchStepCallback, PostBeamSearchStepCallback)
 
       ids, lens = sess.run([
