@@ -26,19 +26,16 @@ from lingvo import model_registry
 # Import DummyModel
 from lingvo import model_registry_test
 # pylint: enable=unused-import
-from lingvo.core import base_model
 from lingvo.core import base_input_generator
+from lingvo.core import base_model
 from lingvo.core import base_model_params
 
 
-class ModelsTest(tf.test.TestCase):
+class BaseModelsTest(tf.test.TestCase):
+  """Base model test class which does not define any test methods of its own."""
 
-  def testGetModelParamsClass(self):
-    cls = model_registry.GetClass('test.DummyModel')
-    self.assertTrue(issubclass(cls, base_model_params.SingleTaskModelParams))
-
-  def _testOneModelParams(self, name):
-    cls = model_registry.GetClass(name)
+  def _testOneModelParams(self, registry, name):
+    cls = registry.GetClass(name)
     p = cls.Model()
     self.assertTrue(issubclass(p.cls, base_model.BaseModel))
     self.assertTrue(p.model is not None)
@@ -63,14 +60,27 @@ class ModelsTest(tf.test.TestCase):
               issubclass(v.cls, base_input_generator.BaseInputGenerator),
               'Error in %s' % dataset)
 
+  @classmethod
+  def CreateTestMethodsForAllRegisteredModels(cls, registry):
+    """Programmatically defines test methods for each registered model."""
+    model_names = registry.GetAllRegisteredClasses().keys()
+    for model_name in sorted(model_names):
 
-# Programmatically define test methods for each model in the global registry.
-for model_name in sorted(model_registry.GetAllRegisteredClasses().keys()):
+      def test(self, name=model_name):
+        self._testOneModelParams(registry, name)
 
-  def test(self, name=model_name):
-    self._testOneModelParams(name)
+      setattr(cls, 'testModelParams_%s' % model_name, test)
 
-  setattr(ModelsTest, 'testModelParams_%s' % model_name, test)
+
+class ModelsTest(BaseModelsTest):
+
+  def testGetModelParamsClass(self):
+    cls = model_registry.GetClass('test.DummyModel')
+    self.assertTrue(issubclass(cls, base_model_params.SingleTaskModelParams))
+
+
+ModelsTest.CreateTestMethodsForAllRegisteredModels(model_registry)
+
 
 if __name__ == '__main__':
   tf.test.main()
