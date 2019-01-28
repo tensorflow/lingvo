@@ -743,6 +743,7 @@ py_library(
     srcs = ["wpm_encoder.py"],
     deps = [
         # Implicit tensorflow dependency.
+        "//lingvo/core/ops:py_x_ops",
     ],
 )
 
@@ -775,10 +776,10 @@ py_test(
         "//lingvo/tasks/mt:wpm_ende",
     ],
     deps = [
+        ":test_helper",
         ":tokenizers",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:test_helper",
     ],
 )
 

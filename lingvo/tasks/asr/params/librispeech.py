@@ -275,7 +275,6 @@ class Librispeech960Wpm(Librispeech960Base):
     params.tokenizer = tokenizers.WpmTokenizer.Params()
     tokp = params.tokenizer
     tokp.vocab_filepath = cls.WPM_SYMBOL_TABLE_FILEPATH
-    tokp.lowercase = True
     tokp.vocab_size = cls.WPM_VOCAB_SIZE
     tokp.append_eos = True
     tokp.target_unk_id = 0

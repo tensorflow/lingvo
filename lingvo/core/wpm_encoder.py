@@ -29,17 +29,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
 import sys
 
 import tensorflow as tf
 
+from lingvo.core.ops import py_x_ops
+
 # Must be a large ID.
-NO_TOKEN = sys.maxsize
+NO_TOKEN = 1 << 31 - 1
 NO_TOKEN_STRING = '<unk>'
 
 SENTENCE_START_STRING = '<s>'
 SENTENCE_END_STRING = '</s>'
+
+BOW_STR = '▁'
 
 
 class WpmEncoder(object):
@@ -52,111 +55,133 @@ class WpmEncoder(object):
       merge_prob: the probability of merging tokens while encoding.
     """
     # Load vocabulary file.
-    self._piece2id = {}
     self._pieces = []
     with tf.gfile.Open(wpm_filepath, 'r') as f:
-      pid = 0
       for line in f.readlines():
         line = line.decode('utf-8')
         piece = line.strip().split('\t')[0]
-        tf.logging.vlog(6, 'voc: %s -> %d', piece, pid)
-        self._piece2id[piece] = pid
-        pid += 1
-        self._pieces += [piece]
-    assert self._StringToToken(NO_TOKEN_STRING) != NO_TOKEN
+        self._pieces.append(piece)
     self._merge_prob = merge_prob
 
-  def _TokenToString(self, token, safe=False):
-    if token == NO_TOKEN:
-      if safe:
-        return NO_TOKEN_STRING
-      else:
-        assert token != NO_TOKEN
-    return self._pieces[token]
-
-  def _TokensToString(self, tokens, sep=' ', safe=False):
-    return sep.join([self._TokenToString(t, safe) for t in tokens])
+  def _TokenToString(self, token):
+    return py_x_ops.vocab_id_to_token(token, vocab=self._pieces)
 
   def _StringToToken(self, tokstr):
-    if tokstr in self._piece2id:
-      return self._piece2id[tokstr]
-    return NO_TOKEN
+    return tf.where(
+        py_x_ops.token_in_vocab(tokstr, vocab=self._pieces),
+        py_x_ops.vocab_token_to_id(tokstr, vocab=self._pieces),
+        tf.broadcast_to(NO_TOKEN, tf.shape(tokstr)))
 
-  def _MergeTokens(self, token1, token2):
+  def _MergeTokens(self, tokens):
     return self._StringToToken(
-        self._TokenToString(token1) + self._TokenToString(token2))
-
-  def _IsAllNull(self, candidates):
-    return len(candidates) == candidates.count(NO_TOKEN)
-
-  def _ShouldMerge(self):
-    return np.random.uniform() < self._merge_prob
+        self._TokenToString(tokens[0]) + self._TokenToString(tokens[1]))
 
   def _EncodeToIds(self, word):
-    if not isinstance(word, unicode):
-      word = word.decode('utf-8')
-    # First, match entire words. That will work to shortcut exception words
-    # such as <S>, even if there is no path to merge hierarchically. To wit,
-    # in this case, either '<S' or 'S>' must be present.
-    if word in self._piece2id:
-      return [self._piece2id[word]]
-    # Henceforth,
+    # Below:
     #   * a token is a wordpiece ID.
     #   * the tokens array will be merged in-place.
     #   * the candidates array is an array of size len(tokens) - 1.
     #     It contains the token for the merged wordpiece, if it exists,
     #     -1 otherwise. For instance, candidate[3] = id(token[3] + token[4]).
     # First, split into basic UTF-8 characters (letters).
-    tokens = [self._StringToToken(letter) for letter in word]
-    for t in range(len(tokens)):
-      if tokens[t] == NO_TOKEN:
+    chars = tf.strings.unicode_split(word, 'UTF-8')
+    tokens = self._StringToToken(chars)
+    tokens = tf.where(
+        tf.equal(tokens, NO_TOKEN),
         # Unseen character.
-        tokens[t] = self._StringToToken(NO_TOKEN_STRING)
+        tf.broadcast_to(self.unk_id, tf.shape(tokens)),
+        tokens)
     # Create initial candidate list.
-    candidates = []
-    for i in range(len(tokens) - 1):
-      merged = self._MergeTokens(tokens[i], tokens[i + 1])
-      candidates += [merged]
-    # Merge in the reverse binary tree until no more merges are possible, or
-    # we decide to abort the process early, according to merge_prob.
-    while not self._IsAllNull(candidates) and self._ShouldMerge():
-      best_id = np.argmin(candidates)
+    candidates = tf.map_fn(
+        self._MergeTokens, (tokens[:-1], tokens[1:]), dtype=tokens.dtype)
+
+    def _ShouldMerge(unused_tokens, candidates):
+      """Merge until not possible, or we abort early according to merge_prob."""
+      return tf.logical_and(
+          tf.reduce_any(tf.not_equal(candidates, NO_TOKEN)),
+          tf.random.uniform([]) < self._merge_prob)
+
+    def _MergeOneToken(tokens, i):
+      return tf.expand_dims(
+          self._MergeTokens((tokens[i], tokens[i + 1])), axis=-1)
+
+    def _MergeCandidates(tokens, candidates):
+      """Merge in the reverse binary tree."""
+      best_id = tf.argmin(candidates, output_type=tf.int32)
       # Perform the merge at position best_id.
-      tokens = tokens[:best_id] + [candidates[best_id]] + tokens[best_id + 2:]
-      # Recompute the merge candidates to the right:
-      if best_id < len(tokens) - 1:
-        candidates[best_id] = self._MergeTokens(tokens[best_id],
-                                                tokens[best_id + 1])
-      else:
-        candidates.pop()
-      # Recompute the merge candidates to the left:
-      if best_id > 0:
-        candidates[best_id - 1] = self._MergeTokens(tokens[best_id - 1],
-                                                    tokens[best_id])
-      candidates = candidates[:best_id + 1] + candidates[best_id + 2:]
-      assert len(tokens) == len(candidates) + 1
-    return tokens
+      tokens = tf.concat(
+          [tokens[:best_id], [candidates[best_id]], tokens[best_id + 2:]],
+          axis=0)
+      # Recompute the merge candidates.
+      # Only the neighbors of best_id need to be recomputed.
+      empty = tf.zeros([0], dtype=candidates.dtype)
 
-  def EncodeWord(self, word):
-    return [self._TokenToString(t) for t in self._EncodeToIds(word)]
+      def _MergeLeft():
+        return tf.concat(
+            [candidates[:best_id - 1],
+             _MergeOneToken(tokens, best_id - 1)],
+            axis=0)
 
-  def EncodeToStringAndIds(self, word):
-    return [(self._TokenToString(t), t) for t in self._EncodeToIds(word)]
+      left_candidates = tf.cond(tf.equal(best_id, 0), lambda: empty, _MergeLeft)
+
+      def _MergeRight():
+        return tf.concat(
+            [_MergeOneToken(tokens, best_id), candidates[best_id + 2:]], axis=0)
+
+      right_candidates = tf.cond(
+          tf.greater_equal(best_id,
+                           tf.size(tokens) - 1), lambda: empty, _MergeRight)
+
+      candidates = tf.concat([left_candidates, right_candidates], axis=0)
+      return tokens, candidates
+
+    return tf.while_loop(
+        _ShouldMerge,
+        _MergeCandidates, (tokens, candidates),
+        parallel_iterations=1,
+        back_prop=False)[0]
 
   def Encode(self, text):
-    """Assumes that the text is utf-8 decoded."""
-    words = text.split(' ')
-    encoded_words = []
-    for w in words:
-      encoded_words += self.EncodeWord(w)
-    return ' '.join(encoded_words)
+    """Converts string `text` to integer ids and the encoded string.
+
+    Encoding includes prefixing the beginning-of-word token to each word.
+
+    Returns:
+      ids: the encoded integer ids.
+      tokens: the encoded string.
+    """
+    words = tf.sparse.to_dense(tf.strings.split([text]), default_value='')[0]
+    num_words = tf.size(words)
+    ids_ta = tf.TensorArray(tf.int32, 0, dynamic_size=True)
+
+    def _WordsToIds(i, words, ids_ta):
+      encoded_ids = self._EncodeToIds(BOW_STR + words[i])
+      ids_ta = ids_ta.scatter(
+          tf.range(ids_ta.size(),
+                   ids_ta.size() + tf.size(encoded_ids)), encoded_ids)
+      return i + 1, words, ids_ta
+
+    _, _, ids_ta = tf.while_loop(
+        lambda i, *_: i < num_words,
+        _WordsToIds,
+        loop_vars=(tf.constant(0, tf.int32), words, ids_ta),
+        parallel_iterations=30,
+        back_prop=False)
+
+    ids = ids_ta.stack()
+    return ids, self._TokenToString(ids)
 
   def Decode(self, ids):
-    return [self._TokenToString(i) for i in ids]
+    txt = tf.strings.reduce_join(self._TokenToString(ids))
+    txt = tf.strings.regex_replace(txt, BOW_STR, ' ')
+    # Note that this strips spaces from the end of the input as well.
+    # We assume no inputs rely on the existence of trailing whitespace.
+    txt = tf.strings.strip(txt)
+    return txt
 
   @property
   def sentence_start_id(self):
-    return self._piece2id[SENTENCE_START_STRING]
+    return self._pieces.index(SENTENCE_START_STRING)
 
   @property
   def sentence_start_string(self):
@@ -164,7 +189,7 @@ class WpmEncoder(object):
 
   @property
   def sentence_end_id(self):
-    return self._piece2id[SENTENCE_END_STRING]
+    return self._pieces.index(SENTENCE_END_STRING)
 
   @property
   def sentence_end_string(self):
@@ -172,4 +197,4 @@ class WpmEncoder(object):
 
   @property
   def unk_id(self):
-    return self._piece2id[NO_TOKEN_STRING]
+    return self._pieces.index(NO_TOKEN_STRING)

@@ -52,7 +52,10 @@ class WpmEncoderTest(tf.test.TestCase):
           'o-',
           'o.',
           'fo',
-          '▁\\',
+          'ø',  # \xC3\xB8
+          'ö',  # \xC3\xB6
+          '\\',
+          '▁',
       ]
       f.write('\n'.join(contents))
     return outpath
@@ -62,21 +65,44 @@ class WpmEncoderTest(tf.test.TestCase):
     self._enc = wpm_encoder.WpmEncoder(voc)
 
   def testDitto(self):
-    encoded = self._enc.Encode('Ditto')
-    self.assertEqual('D itt o', encoded)
+    with tf.Session():
+      ids, strs = self._enc.Encode('Ditto')
+      self.assertEqual('▁ D itt o',
+                       tf.strings.reduce_join(strs, separator=' ').eval())
+      self.assertEqual('Ditto', self._enc.Decode(ids).eval())
+      ids, strs = self._enc.Encode('Ditto Ditto')
+      self.assertEqual('▁ D itt o ▁ D itt o',
+                       tf.strings.reduce_join(strs, separator=' ').eval())
+      self.assertEqual('Ditto Ditto', self._enc.Decode(ids).eval())
 
   def testMergeProb(self):
     voc = self._CreateVocab()
     enc = wpm_encoder.WpmEncoder(voc, merge_prob=0.)
-    self.assertEqual('D i t t o', enc.Encode('Ditto'))
+    with tf.Session():
+      ids, strs = enc.Encode('Ditto')
+      self.assertEqual('▁ D i t t o',
+                       tf.strings.reduce_join(strs, separator=' ').eval())
+      self.assertEqual('Ditto', self._enc.Decode(ids).eval())
+
+  def testEmpty(self):
+    with tf.Session():
+      ids, strs = self._enc.Encode('')
+      self.assertEqual('', tf.strings.reduce_join(strs, separator=' ').eval())
+      self.assertEqual('', self._enc.Decode(ids).eval())
 
   def testWithBackslash(self):
-    encoded = self._enc.Encode('▁\\')
-    self.assertEqual('▁\\'.decode('utf-8'), encoded)
+    with tf.Session():
+      ids, strs = self._enc.Encode('\\')
+      self.assertEqual('▁ \\',
+                       tf.strings.reduce_join(strs, separator=' ').eval())
+      self.assertEqual('\\', self._enc.Decode(ids).eval())
 
-  def testWithSpecialTokens(self):
-    encoded = self._enc.Encode('<s>'.decode('utf-8'))
-    self.assertEqual('<s>', encoded)
+  def testWithUnicode(self):
+    with tf.Session():
+      ids, strs = self._enc.Encode('føö')
+      self.assertEqual('▁ f ø ö',
+                       tf.strings.reduce_join(strs, separator=' ').eval())
+      self.assertEqual('føö', self._enc.Decode(ids).eval())
 
 
 if __name__ == '__main__':

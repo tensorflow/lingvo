@@ -244,15 +244,12 @@ class WpmTokenizer(BaseTokenizer):
         'vocab_filepath', None,
         'Specifies a filepath to the WPM vocab. The vocab is sorted by '
         'descending merge score.')
-    p.Define('lowercase', False, 'Lowercase all text as a preprocessing step.')
     p.Define(
         'merge_prob', 1.,
         'Probability of merging WPMs. If less than 1, then decomposition '
         'of words into wordpieces will no longer be deterministic, and '
         'result in longer ID sequences. At 0, it will be graphemes.')
     return p
-
-  BOW_STR = b'\xe2\x96\x81'.decode('utf-8')
 
   @base_layer.initializer
   def __init__(self, params):
@@ -263,25 +260,19 @@ class WpmTokenizer(BaseTokenizer):
     assert p.target_sos_id == self._wpm_encoder.sentence_start_id
     assert p.target_eos_id == self._wpm_encoder.sentence_end_id
 
-  def _PadOrTruncate(self, x, desired_len, pad_value):
-    if len(x) > desired_len:
-      return x[:desired_len]
-    pad_len = desired_len - len(x)
-    return x + [pad_value] * pad_len
-
-  def _PostProcessIds(self, parsed_token_ids, desired_length, append_eos):
-    """Post-process token ids.
+  def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
+    """Takes a tensor of strings and returns id/padding tensors.
 
     This generates `token_ids`, `target_ids`, and `paddings` in the format that
     is expected for tokenizers. This performs padding to a fixed length and
     appends the end-of-sentence token as appropriate.
 
     Args:
-      parsed_token_ids: a list of vectors of token ids. The vectors have
-        variable length.
-      desired_length: a python integer. The second dimension of the returned
-        arrays. All sequences are padded or truncated to that length.
+      strs: a string Tensor.
+      max_length: a python integer. The second dimension of the returned arrays.
+        All sequences are padded or truncated to that length.
       append_eos: a python bool. See `BaseTokenizer` for explanation.
+      languages: A vector of strings with the same length as `strs`.
 
     Returns:
       token_ids: a tensor of sequences of WPM ids starting with SOS. Sequences
@@ -292,69 +283,65 @@ class WpmTokenizer(BaseTokenizer):
       paddings: a tensor of floats indicating, at each position, whether
         the corresponding position is padded.
     """
+    p = self.params
     if append_eos is None:
-      append_eos = self.params.append_eos
-    token_ids, target_ids, paddings = [], [], []
-    for ids in parsed_token_ids:
-      ids = list(ids)  # It was a tuple.
+      append_eos = p.append_eos
+
+    batch_size = py_utils.GetShape(strs)[0]
+    token_ids_ta = tf.TensorArray(tf.int32, batch_size)
+    target_ids_ta = tf.TensorArray(tf.int32, batch_size)
+    paddings_ta = tf.TensorArray(tf.float32, batch_size)
+
+    def _TokenizeOneSentence(i, strs, token_ids_ta, target_ids_ta, paddings_ta):
+      """Tokenizes a single sentence."""
+      ids, _ = self._wpm_encoder.Encode(strs[i])
+
       if append_eos:
-        ids += [self.eos_id]
+        ids = tf.concat([ids, [self.eos_id]], axis=0)
+
       # This truncates after the eos is added, so some sentences might
       # not have </s> at the end.
-      token_ids += [
-          self._PadOrTruncate([self.sos_id] + ids, desired_length, self.eos_id)
-      ]
-      target_ids += [self._PadOrTruncate(ids, desired_length, self.eos_id)]
-      paddings += [self._PadOrTruncate([0.] * len(ids), desired_length, 1.)]
-    token_ids = np.matrix(token_ids)
-    target_ids = np.matrix(target_ids)
-    paddings = np.matrix(paddings, dtype=np.float32)
-    assert token_ids.shape == target_ids.shape, (
-        'Shapes mismatch: %s vs %s' % (token_ids.shape, target_ids.shape))
-    assert token_ids.shape == paddings.shape, (
-        'Shapes mismatch: %s vs %s' % (token_ids.shape, paddings.shape))
-    assert token_ids.shape[1] == desired_length, (
-        'Length mismatch: %s vs %s' % (token_ids.shape[1], desired_length))
-    return [token_ids, target_ids, paddings]
+      token_ids_ta = token_ids_ta.write(
+          i,
+          py_utils.PadOrTrimTo(
+              tf.concat([[self.sos_id], ids], axis=0), [max_length],
+              self.eos_id))
+      target_ids_ta = target_ids_ta.write(
+          i, py_utils.PadOrTrimTo(ids, [max_length], self.eos_id))
+      paddings_ta = paddings_ta.write(
+          i,
+          py_utils.PadOrTrimTo(
+              tf.zeros_like(ids, dtype=tf.float32), [max_length], 1.))
 
-  def _WpmEncode(self, batch_strs, max_length, append_eos):
-    """By word so that merge_prob is applied correctly."""
-    token_ids = []
-    for sentence in batch_strs:
-      if sentence:
-        if self.params.lowercase:
-          sentence = sentence.lower()
-        words = sentence.split(' ')
-        sent_ids = []
-        for w in words:
-          w = self.BOW_STR + w
-          _, encoded_ids = zip(*self._wpm_encoder.EncodeToStringAndIds(w))
-          sent_ids += encoded_ids
-        token_ids += [sent_ids]
-      else:
-        token_ids += [[]]
-    return self._PostProcessIds(token_ids, max_length, append_eos)
+      return i + 1, strs, token_ids_ta, target_ids_ta, paddings_ta
 
-  def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
-    """Takes a tensor of strings and returns id/padding tensors."""
-    ids, labels, paddings = tf.py_func(self._WpmEncode,
-                                       [strs, max_length, append_eos],
-                                       [tf.int64, tf.int64, tf.float32])
-    return [tf.to_int32(ids), tf.to_int32(labels), paddings]
+    _, _, token_ids_ta, target_ids_ta, paddings_ta = tf.while_loop(
+        lambda i, *_: i < batch_size,
+        _TokenizeOneSentence,
+        loop_vars=(tf.constant(0, tf.int32), strs, token_ids_ta, target_ids_ta,
+                   paddings_ta),
+        parallel_iterations=30,
+        back_prop=False)
 
-  def _WpmDecode(self, ids, lengths):
-    """Takes numpy integer matrices and returns vectors of strings."""
-    assert len(ids) == len(lengths)
-    strs = []
-    for k in range(len(ids)):
-      i = ids[k][:lengths[k]]
-      wpm_str = self._wpm_encoder.Decode(i)
-      txt = ''.join(wpm_str).replace(self.BOW_STR, ' ')
-      # Remove the first space that's inserted in front of each word.
-      txt = txt.lstrip(' ')
-      strs += [txt]
-    return [strs]
+    token_ids = token_ids_ta.stack()
+    target_ids = target_ids_ta.stack()
+    paddings = paddings_ta.stack()
+
+    if not p.pad_to_max_length:
+      maxlen = tf.to_int32(tf.reduce_max(tf.reduce_sum(1.0 - paddings, axis=1)))
+      token_ids = token_ids[:, :maxlen]
+      target_ids = target_ids[:, :maxlen]
+      paddings = paddings[:, :maxlen]
+
+    return token_ids, target_ids, paddings
 
   def IdsToStrings(self, ids, lens):
-    """Takes id tensors and returns vector of `tf.string`."""
-    return tf.py_func(self._WpmDecode, [ids, lens], tf.string)
+    """Takes integer matrices and returns vectors of strings."""
+    ids = py_utils.with_dependencies([py_utils.assert_same_dim0([ids, lens])],
+                                     ids)
+    return tf.map_fn(
+        lambda inputs: self._wpm_encoder.Decode(inputs[0][:inputs[1]]),
+        (ids, lens),
+        dtype=tf.string,
+        parallel_iterations=30,
+        back_prop=False)

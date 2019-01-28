@@ -35,16 +35,10 @@ tf.flags.DEFINE_integer('num_shards', -1, 'Total number of shards.')
 tf.flags.DEFINE_integer('shard_id', -1, 'This shard id (0-based).')
 tf.flags.DEFINE_integer(
     'max_len', 0,
-    'Drop sentence if src/tgt tokens exceeds max length, including <s> and </s> tags. Only use during training. A value of 0 does not filter'
-)
+    'Drop sentence if src/tgt tokens exceed max length, counting <s> and </s>. '
+    'Only use during training. A value of 0 does not filter.')
 
 FLAGS = tf.flags.FLAGS
-
-BOW_STR = '\xe2\x96\x81'.decode('utf-8')
-
-
-def _ReplaceSpaces(text):
-  return BOW_STR + text.replace(u' ', BOW_STR)
 
 
 def _MakeBytesFeature(unicode_array):
@@ -67,23 +61,15 @@ def _AssertTextFormat(text):
   assert not text.endswith('</S>')
 
 
-def _MakeTfExample(enc, source_text, target_text):
-  # By convention:
-  # * source always ends in </s>, never starts with <s>.
-  # * target never ends in </s>, always starts with <s>.
-  _AssertTextFormat(source_text)
-  _AssertTextFormat(target_text)
-  source_text = _ReplaceSpaces(source_text)
-  src_s, src_i = zip(*enc.EncodeToStringAndIds(source_text))
-  src_s = list(src_s) + [enc.sentence_end_string]
+def _MakeTfExample(enc, src_i, src_s, tgt_i, tgt_s):
+  """Creates TfExample from the encoded results."""
   src_i = list(src_i) + [enc.sentence_end_id]
+  src_s = list(src_s) + [enc.sentence_end_string]
   if FLAGS.max_len > 0 and len(src_i) > FLAGS.max_len:
     return None
-  target_text = _ReplaceSpaces(target_text)
-  tgt_s, tgt_i = zip(*enc.EncodeToStringAndIds(target_text))
-  tgt_s = [enc.sentence_start_string] + list(tgt_s)
   tgt_l = list(tgt_i) + [enc.sentence_end_id]
   tgt_i = [enc.sentence_start_id] + list(tgt_i)
+  tgt_s = [enc.sentence_start_string] + list(tgt_s)
   if FLAGS.max_len > 0 and len(tgt_i) > FLAGS.max_len:
     return None
   feature = {
@@ -100,7 +86,7 @@ def _MakeTfExample(enc, source_text, target_text):
   return tf.train.Example(features=tf.train.Features(feature=feature))
 
 
-def _Prepropcess(text):
+def _Preprocess(text):
   if not isinstance(text, unicode):
     text = text.decode('utf-8')
   text = text.strip()
@@ -109,7 +95,12 @@ def _Prepropcess(text):
 
 
 def _RunEncoding():
+  sess = tf.Session()
   enc = wpm_encoder.WpmEncoder(FLAGS.wpm_filepath)
+  src_txt_placeholder = tf.placeholder(tf.string, [])
+  src_encode_op = enc.Encode(src_txt_placeholder)
+  tgt_txt_placeholder = tf.placeholder(tf.string, [])
+  tgt_encode_op = enc.Encode(tgt_txt_placeholder)
   pairs = zip(
       FLAGS.source_filepaths.split(','), FLAGS.target_filepaths.split(','))
   with tf.python_io.TFRecordWriter(FLAGS.output_filepath) as outf:
@@ -123,15 +114,23 @@ def _RunEncoding():
               tf.logging.info('Watermark[%d]: %d', FLAGS.shard_id, n)
             if n % FLAGS.num_shards != FLAGS.shard_id:
               continue
-            source_text = _Prepropcess(textp[0])
-            target_text = _Prepropcess(textp[1])
-            # tf.logging.vlog(5, 'Source: %s', source_text)
-            # tf.logging.vlog(5, 'Target: %s', target_text)
-            ex = _MakeTfExample(enc, _Prepropcess(source_text),
-                                _Prepropcess(target_text))
+            source_text = _Preprocess(textp[0])
+            target_text = _Preprocess(textp[1])
+            # By convention:
+            # * source always ends in </s>, never starts with <s>.
+            # * target never ends in </s>, always starts with <s>.
+            _AssertTextFormat(source_text)
+            _AssertTextFormat(target_text)
+            ((src_i, src_s), (tgt_i, tgt_s)) = sess.run(
+                [src_encode_op, tgt_encode_op],
+                feed_dict={
+                    src_txt_placeholder: source_text,
+                    tgt_txt_placeholder: target_text
+                },
+            )
+            ex = _MakeTfExample(enc, src_i, src_s, tgt_i, tgt_s)
             if not ex:  # Too long.
               continue
-            # tf.logging.vlog(5, 'Ex: %s', ex)
             encoded = ex.SerializeToString()
             outf.write(encoded)
 
