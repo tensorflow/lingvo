@@ -4,9 +4,15 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
+filegroup(
+    name = "brown_corpus_wpm_data",
+    srcs = glob(include = ["brown_corpus_wpm.*"]),
+)
+
 py_library(
     name = "codelab",
     srcs = ["codelab.py"],
+    data = [":brown_corpus_wpm_data"],
     deps = [
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",

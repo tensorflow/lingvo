@@ -40,8 +40,9 @@ class PunctuatorModelTest(tf.test.TestCase):
   def _InputParams(self):
     p = input_generator.PunctuatorInput.Params()
     input_file = test_helper.test_src_dir_path('tasks/lm/testdata/lm1b_100.txt')
-    p.tokenizer.token_vocab_filepath = test_helper.test_src_dir_path(
-        'tasks/punctuator/testdata/test_vocab.txt')
+    p.tokenizer.vocab_filepath = test_helper.test_src_dir_path(
+        'tasks/punctuator/params/brown_corpus_wpm.16000.vocab')
+    p.tokenizer.vocab_size = 16000
     p.file_pattern = 'text:' + input_file
     p.file_random_seed = 31415
     p.file_parallelism = 1
@@ -121,8 +122,8 @@ class PunctuatorModelTest(tf.test.TestCase):
         vals += [sess.run((loss, logp))]
 
       print('actual vals = %s' % np.array_repr(np.array(vals)))
-      expected_vals = [[371.166443, 10.382278], [415.23645, 10.380911],
-                       [415.485352, 10.387134]]
+      expected_vals = [[326.690796, 10.371137], [306.014648, 10.373378],
+                       [280.316833, 10.382105]]
       self.assertAllClose(vals, expected_vals)
 
   def testBProp(self):
@@ -140,8 +141,8 @@ class PunctuatorModelTest(tf.test.TestCase):
       for _ in range(3):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
       print('BProp actual vals = ', vals)
-      expected_vals = [[371.166443, 10.382278], [415.046509, 10.376163],
-                       [415.138428, 10.378461]]
+      expected_vals = [[326.690796, 10.371137], [305.959412, 10.371506],
+                       [280.219208, 10.378489]]
       self.assertAllClose(vals, expected_vals)
 
   def testFPropEvalMode(self):
@@ -158,8 +159,8 @@ class PunctuatorModelTest(tf.test.TestCase):
       for _ in range(3):
         vals += [sess.run((loss, logp))]
       print('actual vals = ', vals)
-      expected_vals = [[371.166443, 10.382278], [415.23645, 10.380911],
-                       [415.485352, 10.387134]]
+      expected_vals = [[326.690796, 10.371137], [306.014648, 10.373378],
+                       [280.316833, 10.382105]]
       self.assertAllClose(vals, expected_vals)
 
   def testInference(self):

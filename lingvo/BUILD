@@ -169,12 +169,14 @@ py_test(
 lingvo_py_binary(
     name = "ipython_kernel",
     srcs = ["ipython_kernel.py"],
+    data = [
+        "//lingvo/tasks/punctuator/tools:download_brown_corpus",
+    ],
     deps = [
         ":model_imports",  # build_cleaner: keep
         ":trainer_lib",  # build_cleaner: keep
         "//lingvo/core:predictor",  # build_cleaner: keep
         "//lingvo/core/ops:hyps_py_pb2",  # build_cleaner: keep
-        "//lingvo/tasks/punctuator/tools:download_brown_corpus_lib",  # build_cleaner: keep
     ],
 )
 

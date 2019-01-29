@@ -19,6 +19,7 @@ from __future__ import print_function
 
 import math
 import os
+import tensorflow as tf
 
 from lingvo import model_registry
 from lingvo.core import base_model_params
@@ -39,29 +40,22 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
   # Generated using
   # lingvo/tasks/punctuator/tools:download_brown_corpus.
   _DATADIR = '/tmp/punctuator_data'
-  _VOCAB_FILE = os.path.join(_DATADIR, 'grapheme.txt')
+  _VOCAB_FILE = tf.resource_loader.get_path_to_datafile(
+      'brown_corpus_wpm.16000.vocab')
   # _VOCAB_SIZE needs to be a multiple of 16 because we use a sharded softmax
   # with 16 shards.
-  _VOCAB_SIZE = 96
+  _VOCAB_SIZE = 16000
 
   @classmethod
   def Train(cls):
     p = input_generator.PunctuatorInput.Params()
     p.file_pattern = 'text:' + os.path.join(cls._DATADIR, 'train.txt')
     p.file_random_seed = 0  # Do not use a fixed seed.
-    p.file_parallelism = 16  # How many parallel input reading threads to run.
-    # Note, for training, we prefer to use big file_buffer_size (as long as all
-    # fits in RAM), to more thoroughly randomize the training examples. when the
-    # file_buffer_size too small, we run the risk of sequentially going over the
-    # example as they are stored which may not be random (e.g.
-    # maybe alphabetically ordered).
-    p.file_buffer_size = 10000000
-    p.tokenizer.token_vocab_filepath = cls._VOCAB_FILE
-    p.tokenizer.vocab_size = cls._VOCAB_SIZE
+    p.file_parallelism = 1  # We only have a single input file.
 
     # The bucket upper bound specifies how to split the input into buckets. We
     # train on sequences up to maximum bucket size and discard longer examples.
-    p.bucket_upper_bound = [51, 91, 130, 200, 600]
+    p.bucket_upper_bound = [10, 20, 30, 60, 120]
 
     # The bucket batch limit determines how many examples are there in each
     # batch during training. We reduce the batch size for the buckets that
@@ -71,7 +65,16 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
     # language. Larger models may warrant smaller batches in order to fit in
     # memory, for example; and ideographical languages like Chinese may benefit
     # from more buckets.
-    p.bucket_batch_limit = [128] * 2 + [64] * 2 + [16]
+    p.bucket_batch_limit = [512, 256, 160, 80, 40]
+
+    p.tokenizer.vocab_filepath = cls._VOCAB_FILE
+    p.tokenizer.vocab_size = cls._VOCAB_SIZE
+    p.tokenizer.pad_to_max_length = False
+
+    # Set the tokenizer max length slightly longer than the largest bucket to
+    # discard examples that are longer than we allow.
+    p.source_max_length = p.bucket_upper_bound[-1] + 2
+    p.target_max_length = p.bucket_upper_bound[-1] + 2
     return p
 
   # There is also a Dev method for dev set params, but we don't have a dev set.
@@ -80,15 +83,22 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
     p = input_generator.PunctuatorInput.Params()
     p.file_pattern = 'text:' + os.path.join(cls._DATADIR, 'test.txt')
     p.file_random_seed = 27182818  # Fix random seed for testing.
+    # The following two parameters are important if there's more than one input
+    # file. For this codelab it doesn't actually matter.
     p.file_parallelism = 1  # Avoid randomness in testing.
     # In order to make exactly one pass over the dev/test sets, we set buffer
     # size to 1. Greater numbers may cause inaccurate dev/test scores.
     p.file_buffer_size = 1
-    p.tokenizer.token_vocab_filepath = cls._VOCAB_FILE
-    p.tokenizer.vocab_size = cls._VOCAB_SIZE
 
-    p.bucket_upper_bound = [50, 91, 197, 600]
-    p.bucket_batch_limit = [128, 128, 64, 16]
+    p.bucket_upper_bound = [10, 20, 30, 60, 120, 200]
+    p.bucket_batch_limit = [16] * 4 + [4] * 2
+
+    p.tokenizer.vocab_filepath = cls._VOCAB_FILE
+    p.tokenizer.vocab_size = cls._VOCAB_SIZE
+    p.tokenizer.pad_to_max_length = False
+
+    p.source_max_length = p.bucket_upper_bound[-1] + 2
+    p.target_max_length = p.bucket_upper_bound[-1] + 2
     return p
 
   @classmethod
@@ -96,11 +106,11 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
     p = model.TransformerModel.Params()
     p.name = 'punctuator_transformer'
 
-    model_dim = 64
+    model_dim = 512
     vocab_size = cls._VOCAB_SIZE
-    num_layers = 2
-    num_heads = 2
-    hidden_dim = 128
+    num_layers = 6
+    num_heads = 8
+    hidden_dim = 2048
     residual_dropout_prob = 0.1
     input_dropout_prob = 0.1
 
@@ -119,5 +129,5 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
     tp.clip_gradient_norm_to_value = 0.0
     tp.grad_norm_to_clip_to_zero = 0.0
     tp.lr_schedule = lr_schedule.TransformerLearningRateSchedule.Params().Set(
-        warmup_steps=2000, worker_replicas=1, model_dim=model_dim)
+        warmup_steps=40000, worker_replicas=1, model_dim=model_dim)
     return p

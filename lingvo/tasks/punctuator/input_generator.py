@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Language model input generator."""
+"""Punctuator input generator."""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -35,10 +35,7 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
   def Params(cls):
     """Defaults params for PunctuatorInput."""
     p = super(PunctuatorInput, cls).Params()
-    p.tokenizer = tokenizers.VocabFileTokenizer.Params()
-    p.tokenizer.tokens_delimiter = ''  # Split each character to a token.
-    p.source_max_length = 600
-    p.target_max_length = 600
+    p.tokenizer = tokenizers.WpmTokenizer.Params()
     return p
 
   def _ProcessLine(self, line):
@@ -58,7 +55,8 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
     # Tokenize the input into integer ids.
     # tgt_ids has the start-of-sentence token prepended, and tgt_labels has the
     # end-of-sentence token appended.
-    tgt_ids, tgt_labels, tgt_paddings = self.StringsToIds([line])
+    tgt_ids, tgt_labels, tgt_paddings = self.StringsToIds(
+        tf.convert_to_tensor([line]))
 
     def Normalize(line):
       # Lowercase and remove punctuation.
@@ -68,8 +66,8 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
       return line
 
     normalized_line = tf.py_func(Normalize, [line], tf.string, stateful=False)
-    _, src_labels, src_paddings = self.StringsToIds([normalized_line],
-                                                    is_source=True)
+    _, src_labels, src_paddings = self.StringsToIds(
+        tf.convert_to_tensor([normalized_line]), is_source=True)
     # The model expects the source without a start-of-sentence token.
     src_ids = src_labels
 

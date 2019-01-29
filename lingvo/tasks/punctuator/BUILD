@@ -28,7 +28,7 @@ py_test(
     srcs = ["input_generator_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
-        "//lingvo/tasks/punctuator/testdata:test_vocab",
+        "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
     deps = [
         ":input_generator",
@@ -53,7 +53,7 @@ py_test(
     srcs = ["model_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
-        "//lingvo/tasks/punctuator/testdata:test_vocab",
+        "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
     shard_count = 4,
     deps = [
