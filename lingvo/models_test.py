@@ -26,53 +26,11 @@ from lingvo import model_registry
 # Import DummyModel
 from lingvo import model_registry_test
 # pylint: enable=unused-import
-from lingvo.core import base_input_generator
-from lingvo.core import base_model
+from lingvo import models_test_helper
 from lingvo.core import base_model_params
 
 
-class BaseModelsTest(tf.test.TestCase):
-  """Base model test class which does not define any test methods of its own."""
-
-  def _testOneModelParams(self, registry, name):
-    cls = registry.GetClass(name)
-    p = cls.Model()
-    self.assertTrue(issubclass(p.cls, base_model.BaseModel))
-    self.assertTrue(p.model is not None)
-    for dataset in ('Train', 'Dev', 'Test'):
-      input_p = cls.GetDatasetParams(dataset)
-      if issubclass(p.cls, base_model.SingleTaskModel):
-        self.assertTrue(
-            issubclass(input_p.cls, base_input_generator.BaseInputGenerator),
-            'Error in %s' % dataset)
-        if (dataset != 'Train') and issubclass(
-            input_p.cls, base_input_generator.BaseSequenceInputGenerator) and (
-                input_p.num_samples != 0):
-          self.assertEquals(
-              input_p.num_batcher_threads, 1,
-              'num_batcher_threads too large in %s. Decoder '
-              'or eval runs over this set might not span '
-              'exactly one epoch.' % dataset)
-      else:
-        self.assertTrue(issubclass(p.cls, base_model.MultiTaskModel))
-        for _, v in input_p.IterParams():
-          self.assertTrue(
-              issubclass(v.cls, base_input_generator.BaseInputGenerator),
-              'Error in %s' % dataset)
-
-  @classmethod
-  def CreateTestMethodsForAllRegisteredModels(cls, registry):
-    """Programmatically defines test methods for each registered model."""
-    model_names = registry.GetAllRegisteredClasses().keys()
-    for model_name in sorted(model_names):
-
-      def test(self, name=model_name):
-        self._testOneModelParams(registry, name)
-
-      setattr(cls, 'testModelParams_%s' % model_name, test)
-
-
-class ModelsTest(BaseModelsTest):
+class ModelsTest(models_test_helper.BaseModelsTest):
 
   def testGetModelParamsClass(self):
     cls = model_registry.GetClass('test.DummyModel')

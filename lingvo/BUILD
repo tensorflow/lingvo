@@ -71,6 +71,17 @@ py_test(
     ],
 )
 
+py_library(
+    name = "models_test_helper",
+    testonly = 1,
+    srcs = ["models_test_helper.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_input_generator",
+        "//lingvo/core:base_model",
+    ],
+)
+
 py_test(
     name = "models_test",
     srcs = ["models_test.py"],
@@ -78,9 +89,8 @@ py_test(
         ":model_imports",
         ":model_registry",
         ":model_registry_test",
+        ":models_test_helper",
         # Implicit tensorflow dependency.
-        "//lingvo/core:base_input_generator",
-        "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
     ],
 )
