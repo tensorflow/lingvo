@@ -118,7 +118,9 @@ Kaiser, Zhifeng Chen, Yonghui Wu, and Macduff Hughes. ACL 2018.
 
 </font>
 
-## Citation
+## References
+
+*   [API Docs](https://tensorflow.github.io/lingvo/)
 
 Please cite this paper when referencing Lingvo.
 
