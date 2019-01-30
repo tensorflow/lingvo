@@ -372,9 +372,9 @@ class _Recurrent(object):
     #    state1 = cell_fn(theta, state0, inputs)
     fwd_sig = [self._theta, self._state, self._inputs]
 
-    compiled = py_utils.use_tpu()
+    compiled = py_utils.use_xla()
     noinline = not compiled
-    dev_t_type = tf.int32 if py_utils.use_tpu() else tf.int64
+    dev_t_type = tf.int32 if compiled else tf.int64
 
     @function.Defun(*_Dtypes(fwd_sig))
     def Fwd(*args):
@@ -546,7 +546,7 @@ class _Recurrent(object):
         acc_state = _EmptyAcc(slen_dim, state0)
       acc_extras = _EmptyAcc(slen_dim, extras)
 
-      if py_utils.use_tpu():
+      if compiled:
         dev_t = tf.to_int32(pad_begin)
       else:
         dev_t = tf.to_int64(pad_begin)
@@ -752,7 +752,7 @@ class _Recurrent(object):
       pad_begin, pad_end = _SeqPaddingLength(inputs)
       start = _SeqLenDim(inputs) - pad_end - 1
 
-      if py_utils.use_tpu():
+      if compiled:
         dev_t = tf.to_int32(start)
       else:
         dev_t = tf.to_int64(start)
