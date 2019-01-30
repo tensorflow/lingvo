@@ -245,6 +245,7 @@ class ParamsTest(tf.test.TestCase):
     outer.Define('dtype2', tf.int32, '')
     outer.Define('seqlen', [10, inner, 30], '')
     outer.Define('tuple', (1, None), '')
+    outer.Define('list_of_params', [inner.Copy()], '')
     outer.Define('class', TestClass1, '')
     outer.Define('plain_dict', {'a': 10}, '')
     outer.Define('complex_dict', {'a': 10, 'b': inner}, '')
@@ -262,6 +263,8 @@ dtype2 : int32
 foo : 1
 inner.bar : 2.71
 inner.baz : 'hello'
+list_of_params[0].bar : 2.71
+list_of_params[0].baz : 'hello'
 optional_bool : NoneType
 plain_dict : {'a': 10}
 seqlen : [10, {'bar': 2.71, 'baz': 'hello'}, 30]
@@ -275,6 +278,7 @@ tuple : (1, 'NoneType')
         inner.baz : 'world'
         # foo : 123
         optional_bool : true
+        list_of_params[0].bar : 2.72
         seqlen : [1, 2.0, '3', [4]]
         plain_dict : {'x': 0.3}
         class : type/__main__/TestClass2
@@ -293,6 +297,8 @@ dtype2 : float32
 foo : 1
 inner.bar : 2.71
 inner.baz : 'world'
+list_of_params[0].bar : 2.72
+list_of_params[0].baz : 'hello'
 optional_bool : True
 plain_dict : {'x': 0.3}
 seqlen : [1, 2.0, '3', [4]]

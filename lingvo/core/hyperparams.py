@@ -254,8 +254,14 @@ class Params(object):
     for i, part in enumerate(parts[:-1]):
       # Get the value (nested Params object) associated with name 'part'.
       try:
+        is_list = re.match(r'^(.+)\[(.+)\]$', part)
+        if is_list:
+          part = is_list.group(1)
+          list_index = int(is_list.group(2))
         # pylint: disable=protected-access
         curr = curr._params[part].Get()
+        if is_list:
+          curr = curr[list_index]
       except KeyError:
         raise AttributeError('.'.join(parts[:i + 1]))
       assert isinstance(curr, Params), (
@@ -380,18 +386,23 @@ class Params(object):
       return type(val).__name__
 
     def Traverse(p, prefix, kv):
-      for key, val in p.IterParams():
-        if isinstance(val, Params):
-          Traverse(val, prefix + key + '.', kv)
-        elif isinstance(val, (six.string_types, six.text_type)):
-          kv[prefix + key] = _QuoteString(val)
-        else:
-          kv[prefix + key] = str(GetRepr(val))
+      """Traverses 'p' and inserts key-value pairs to 'kv'."""
+      if isinstance(p, Params):
+        for key, val in p.IterParams():
+          Traverse(val, prefix + '.' + key, kv)
+      elif (isinstance(p, (list, tuple)) and
+            all(isinstance(x, Params) for x in p)):
+        for i, val in enumerate(p):
+          Traverse(val, '%s[%d]' % (prefix, i), kv)
+      elif isinstance(p, (six.string_types, six.text_type)):
+        kv[prefix] = _QuoteString(p)
+      else:
+        kv[prefix] = str(GetRepr(p))
 
     Traverse(self, '', kv)
     ret = ''
     for (k, v) in sorted(kv.items()):
-      ret += k + ' : ' + v + '\n'
+      ret += k[1:] + ' : ' + v + '\n'
     return ret
 
   def FromText(self, text):
