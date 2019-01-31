@@ -234,6 +234,23 @@ class LinearModelTpuParams(base_model_params.SingleTaskModelParams):
     return p
 
 
+@model_registry.RegisterSingleTaskModel
+class LinearModelTpuParamsWithEma(base_model_params.SingleTaskModelParams):
+
+  @classmethod
+  def Test(cls):
+    p = base_input_generator.BaseSequenceInputGenerator.Params()
+    p.name = 'input'
+    return p
+
+  @classmethod
+  def Task(cls):
+    p = LinearModelTpu.Params()
+    p.name = 'testing'
+    p.train.ema_decay = 0.99
+    return p
+
+
 class InferenceGraphExporterLinearModelTest(tf.test.TestCase):
 
   def testExport(self):
@@ -246,6 +263,21 @@ class InferenceGraphExporterLinearModelTest(tf.test.TestCase):
   def testTpuBfloat16OverrideExport(self):
     """Test that we can export with tf.bfloat16 dtype."""
     params = model_registry.GetParams('test.LinearModelTpuParams', 'Test')
+    inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
+        params,
+        subgraph_filter=['tpu'],
+        device_options=inference_graph_exporter.InferenceDeviceOptions(
+            device='tpu',
+            retain_device_placement=True,
+            var_options='ON_DEVICE',
+            gen_init_op=True,
+            dtype_override=tf.bfloat16))
+    self.assertIn('tpu', inference_graph.subgraphs)
+
+  def testTpuBfloat16OverrideExportWithEma(self):
+    """Test that we can export with tf.bfloat16 dtype."""
+    params = model_registry.GetParams('test.LinearModelTpuParamsWithEma',
+                                      'Test')
     inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
         params,
         subgraph_filter=['tpu'],

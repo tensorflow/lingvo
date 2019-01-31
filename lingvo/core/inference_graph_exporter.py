@@ -105,32 +105,12 @@ def _GetVarName(v):
   return v.name[:-len(':0')]
 
 
-def GetVariablesWithBfloat16Overrides(variables_to_load):
-  """Returns a dictionary containing overrides to load variables as bf16."""
-  saver_dict = {}
-  for v in variables_to_load:
-    var_name = _GetVarName(v)
-    if v.dtype == tf.bfloat16:
-      # TODO(rohananil): Add support for PartitionedVariables if there is
-      # demand.
-      savable = bfloat16_variables.Bfloat16VariableSaveable(
-          v, tf.float32, '', var_name)
-      saver_dict[var_name] = savable
-    else:
-      saver_dict[var_name] = v
-  return saver_dict
-
-
-def GetAllVariables(variables_to_load):
-  """Returns a dictionary contain a mapping between name: variable."""
-  if any([isinstance(v, six.string_types) for v in variables_to_load]):
-    return variables_to_load
-
-  saver_dict = {}
-  for v in variables_to_load:
-    var_name = _GetVarName(v)
-    saver_dict[var_name] = v
-  return saver_dict
+def _MakeVariableDictionary(variables):
+  """Returns a dictionary with name -> tf.Variable() mapping."""
+  vars_dict = {}
+  for v in variables:
+    vars_dict[_GetVarName(v)] = v
+  return vars_dict
 
 
 def IsTpu(device_options):
@@ -376,14 +356,17 @@ class InferenceGraphExporter(object):
           FLAGS.enable_asserts = False
         mdl = model_cfg.cls(model_cfg)
         FLAGS.enable_asserts = old_enable_asserts
-        variables_to_load = (
-            tf.global_variables()
+        variables_to_restore = (
+            _MakeVariableDictionary(tf.global_variables())
             if not mdl.ema else mdl.ema.variables_to_restore())
 
         if bfloat16_override:
-          saver_var_spec = GetVariablesWithBfloat16Overrides(variables_to_load)
+          saver_var_spec = (
+              bfloat16_variables
+              .get_saver_spec_for_variables_with_bf16_overrides(
+                  variables_to_restore))
         else:
-          saver_var_spec = GetAllVariables(variables_to_load)
+          saver_var_spec = variables_to_restore
 
         saver = tf.train.Saver(saver_var_spec)
         tf.variables_initializer(
