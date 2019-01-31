@@ -198,6 +198,7 @@ class Controller(base_runner.BaseRunner):
         self._uninitialized = tf.report_uninitialized_variables(self._vars)
         self._initialize_all = tf.global_variables_initializer()
         self.initialize_tables = tf.tables_initializer()
+        self._initialize_local_vars = tf.local_variables_initializer()
         self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
         self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
 
@@ -230,6 +231,8 @@ class Controller(base_runner.BaseRunner):
 
       # This initializes local tables
       sess.run(self.initialize_tables)
+      # This initializes local variables.
+      sess.run(self._initialize_local_vars)
 
       # TODO(zhifengc): Moves these options into params.
       tp = self.params.train
@@ -381,6 +384,7 @@ class Trainer(base_runner.BaseRunner):
         self._params = self._model.params
         self._model.ConstructFPropBPropGraph()
       self.initialize_tables = tf.tables_initializer()
+      self._initialize_local_vars = tf.local_variables_initializer()
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
       tf.logging.info('Trainer number of enqueue ops: %d',
@@ -437,6 +441,8 @@ class Trainer(base_runner.BaseRunner):
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
       sess.run(self.initialize_tables)
+      # This initializes local variables.
+      sess.run(self._initialize_local_vars)
       global_step = None
 
       @py_utils.Retry(retry_value=(tf.errors.FailedPreconditionError,))
@@ -626,6 +632,7 @@ class TrainerTpu(base_runner.BaseRunner):
                                outfeed_dequeue_op]
 
       self.initialize_tables = tf.tables_initializer()
+      self._initialize_local_vars = tf.local_variables_initializer()
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
       tf.logging.info('Trainer number of enqueue ops: %d',
@@ -741,6 +748,7 @@ class TrainerTpu(base_runner.BaseRunner):
       return
     with tf.container(self._container_id), self._GetSession() as sess:
       sess.run(self.initialize_tables)
+      sess.run(self._initialize_local_vars)
       sess.run(
           tf.contrib.tpu.initialize_system(embedding_config=None, job=None))
       if FLAGS.run_locally == 'tpu':
@@ -810,6 +818,7 @@ class Evaler(base_runner.BaseRunner):
         self._model_task = self._model.GetTask(self._model_task_name)
         self._saver = self._GetSaver()
       self.initialize_tables = tf.tables_initializer()
+      self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for eval models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not self.enqueue_ops
@@ -828,6 +837,8 @@ class Evaler(base_runner.BaseRunner):
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
       sess.run(self.initialize_tables)
+      # This initializes local variables.
+      sess.run(self._initialize_local_vars)
       path = None
       while True:
         path = self._FindNewCheckpoint(path, sess)
@@ -844,6 +855,8 @@ class Evaler(base_runner.BaseRunner):
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
       sess.run(self.initialize_tables)
+      # This initializes local variables.
+      sess.run(self._initialize_local_vars)
       path = tf.train.latest_checkpoint(self._train_dir)
       if not path:
         tf.logging.info('No checkpoint available.')
@@ -969,6 +982,7 @@ class Decoder(base_runner.BaseRunner):
         self._saver = self._GetSaver()
         self._summary_op = tf.summary.merge_all()
       self.initialize_tables = tf.tables_initializer()
+      self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for decoder models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not self.enqueue_ops
@@ -987,6 +1001,8 @@ class Decoder(base_runner.BaseRunner):
         self._container_id), self._GetSession(inline=False) as sess:
       # This initializes local tables
       sess.run(self.initialize_tables)
+      # This initializes local variables.
+      sess.run(self._initialize_local_vars)
 
       path = None
       while True:
@@ -1073,6 +1089,8 @@ class Decoder(base_runner.BaseRunner):
     with tf.container(self._container_id), self._GetSession() as sess:
       # This initializes local tables
       sess.run(self.initialize_tables)
+      # This initializes local variables.
+      sess.run(self._initialize_local_vars)
       path = tf.train.latest_checkpoint(self._train_dir)
       if not path:
         tf.logging.info('No checkpoint available.')
