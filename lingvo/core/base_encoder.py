@@ -54,10 +54,10 @@ class BaseEncoder(base_layer.BaseLayer):
         pass None.
 
     Returns:
-      (outputs, out_paddings, src_segment_ids) triple.
-      `outputs` is of the shape [time, batch, depth], and `out_paddings` is of
-      the shape [time, batch, 1]. src_segment_ids should have the shape
-      [time, batch] if packed inputs are supported by the model (and all
-      layers), or None otherwise.
+      A NestedMap, usually containing:
+        * `encoded` - feature tensor of the shape [time, batch, depth]
+        * `padding` - 0/1 tensor of the shape [time, batch, 1].
+        * `segment_id` - (optional) present and have the shape [time, batch]
+          if packed inputs are supported by the model (and all layers).
     """
     raise NotImplementedError('Abstract method')

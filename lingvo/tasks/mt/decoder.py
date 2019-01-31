@@ -179,7 +179,6 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
   def _TruncateTargetSequence(self, targets):
     """Truncate padded time steps from all sequences."""
     # The following tensors are all in the [batch, time] shape.
-    p = self.params
     # Let's make a copy of targets.
     targets = targets.Pack(targets.Flatten())
     target_ids = targets.ids
@@ -419,7 +418,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       encoder_outputs: a NestedMap computed by encoder. Expected to contain:
         encoded - source encoding, of shape [time, batch, depth].
         padding - source encoding's padding, of shape [time, batch].
-        segment_id - source segment id, of shape [time, batch].
+        segment_id - (optional) source segment id, of shape [time, batch].
       targets: A dict of string to tensors representing the targets one try to
         predict. Each tensor in targets is of shape [batch, time].
 
@@ -458,7 +457,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
             source_paddings,
             inputs,
             target_paddings,
-            src_segment_id=encoder_outputs.segment_id,
+            src_segment_id=getattr(encoder_outputs, 'segment_id', None),
             segment_id=target_segment_id)
         self._AddAttenProbsSummary(source_paddings, targets, [atten_probs])
 
@@ -840,7 +839,7 @@ class TransformerDecoder(MTBaseDecoder):
     p = self.params
     source_encs = encoder_outputs.encoded
     source_paddings = encoder_outputs.padding
-    src_segment_id = encoder_outputs.segment_id
+    src_segment_id = getattr(encoder_outputs, 'segment_id', None)
     time, batch = py_utils.GetShape(source_paddings, 2)
     if p.is_transparent:
       if p.is_eval:

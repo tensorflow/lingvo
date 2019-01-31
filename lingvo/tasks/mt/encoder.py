@@ -159,11 +159,11 @@ class MTEncoderV1(base_encoder.BaseEncoder):
         - paddings: The paddings tensor. Expected shape [batch, time].
 
     Returns:
-      (outputs, out_paddings, src_segment_id) tuple.
-      `outputs` is of the shape [time, batch, depth], and `out_paddings` is of
-      the shape [time, batch]. `src_segment_id` should have the shape
-      [time, batch] if packed inputs are supported by the model (and all
-      layers), or None otherwise.
+      A NestedMap containing:
+        - encoded: The encoded features, a tensor of shape [time, batch, depth]
+        - padding: of shape [time, batch]
+        - segment_id: [time, batch] if packed inputs are supported by the model
+            (and all layers), or None otherwise.
     """
     p = self.params
     src_segment_id = None
@@ -200,7 +200,8 @@ class MTEncoderV1(base_encoder.BaseEncoder):
           # QuantizedLSTMCell with the same cc_schedule so that the RNN layer
           # output is within clipping range.
           xs = ys
-      return xs, tf.squeeze(ps, [2]), src_segment_id
+      return py_utils.NestedMap(
+          encoded=xs, padding=tf.squeeze(ps, [2]), segment_id=src_segment_id)
 
 
 class MTEncoderUniRNN(base_encoder.BaseEncoder):
@@ -325,7 +326,8 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
         xs = self.transparent_merger.FProp(theta.transparent_merger,
                                            outputs_list)
 
-      return xs, tf.squeeze(ps, [2]), src_segment_id
+      return py_utils.NestedMap(
+          encoded=xs, padding=tf.squeeze(ps, [2]), segment_id=src_segment_id)
 
 
 class MTEncoderBiRNN(base_encoder.BaseEncoder):
@@ -491,7 +493,8 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
       if src_segment_id is not None:
         src_segment_id = tf.squeeze(src_segment_id, [2])
 
-      return xs, tf.squeeze(ps, [2]), src_segment_id
+      return py_utils.NestedMap(
+          encoded=xs, padding=tf.squeeze(ps, [2]), segment_id=src_segment_id)
 
 
 class TransformerEncoder(base_encoder.BaseEncoder):
@@ -577,12 +580,13 @@ class TransformerEncoder(base_encoder.BaseEncoder):
         - paddings: The paddings tensor. Expected shape [batch, time].
 
     Returns:
-      (outputs, out_paddings, src_segment_id) tuple. `outputs` is of the shape
-      [time, batch, depth], and `out_paddings` has shape [time, batch].
-      `outputs` can be a list of output tensors if is_transparent is set in
-      transformer_stack. `src_segment_id` should have the shape [time, batch]
-      if packed inputs are supported by the model (and all layers), or None
-      otherwise.
+      A NestedMap containing:
+        - encoded: The encoded features, either a tensor of shape [time, batch,
+            depth], or a list of tensors if is_transparent is set in
+            transformer_stack.
+        - padding: of shape [time, batch]
+        - segment_id: [time, batch] if packed inputs are supported by the model
+            (and all layers), or None otherwise.
     """
     p = self.params
     with tf.name_scope(p.name):
@@ -642,5 +646,7 @@ class TransformerEncoder(base_encoder.BaseEncoder):
       # [time, batch, dim]
       transformer_input = tf.transpose(input_embs, [1, 0, 2])
 
-    return self.transformer_stack.FProp(
+    encoded, padding, segment_id = self.transformer_stack.FProp(
         theta.transformer_stack, transformer_input, paddings, src_segment_id)
+    return py_utils.NestedMap(
+        encoded=encoded, padding=padding, segment_id=segment_id)
