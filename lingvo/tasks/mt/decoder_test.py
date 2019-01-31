@@ -38,6 +38,59 @@ _TF_RANDOM_SEED = 8372749040
 
 class DecoderTestCaseBase(tf.test.TestCase):
 
+  def _Inputs(self, dtype=tf.float32):
+    np.random.seed(_NUMPY_RANDOM_SEED)
+    src_seq_len = 5
+    # batch = 2
+    src_enc = tf.constant(
+        np.random.normal(size=[src_seq_len, 2, 4]), dtype=dtype)
+    src_enc_padding = tf.constant(
+        [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+        dtype=dtype)
+    # batch = 4, time = 3.
+    target_ids = tf.transpose(
+        tf.constant([[0, 1, 2, 3], [0, 5, 6, 7], [0, 10, 11, 12]],
+                    dtype=tf.int32))
+    target_labels = tf.transpose(
+        tf.constant([[1, 2, 3, 4], [5, 6, 7, 8], [10, 11, 12, 13]],
+                    dtype=tf.int32))
+    target_paddings = tf.transpose(
+        tf.constant([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]], dtype=dtype))
+    target_weights = 1.0 - target_paddings
+    targets = py_utils.NestedMap({
+        'ids': target_ids,
+        'labels': target_labels,
+        'weights': target_weights,
+        'paddings': target_paddings
+    })
+    encoder_outputs = py_utils.NestedMap(
+        encoded=src_enc, padding=src_enc_padding, segment_id=None)
+    return encoder_outputs, targets
+
+  def _DecoderParams(self,
+                     per_word_avg_loss=False,
+                     dtype=tf.float32,
+                     decoder_cls=decoder.MTDecoderV1):
+    p = decoder_cls.Params()
+    p.name = 'decoder'
+    p.source_dim = 4
+    p.emb.vocab_size = 16
+    p.emb.embedding_dim = 4
+    p.emb.max_num_shards = 1
+    p.rnn_cell_dim = 4
+    p.rnn_layers = 3
+    p.attention.hidden_dim = 2
+    p.softmax.num_classes = 16
+    p.softmax.num_shards = 1
+    p.per_word_avg_loss = per_word_avg_loss
+    p.dtype = dtype
+    p.target_seq_len = 5
+
+    for lp in base_layer.RecursiveFindLayerParams(p):
+      lp.dtype = dtype
+
+    return p
+
   def _DecoderFPropHelper(self, decoder_cls, dtype,
                           feed_att_context_to_softmax):
     with self.session(use_gpu=True):
@@ -120,59 +173,9 @@ class DecoderTestCaseBase(tf.test.TestCase):
 
 class DecoderTest(DecoderTestCaseBase):
 
-  def _DecoderParams(self, per_word_avg_loss=False, dtype=tf.float32):
-    p = decoder.MTDecoderV1.Params()
-    p.name = 'decoder'
-    p.source_dim = 4
-    p.emb.vocab_size = 16
-    p.emb.embedding_dim = 4
-    p.emb.max_num_shards = 1
-    p.rnn_cell_dim = 4
-    p.rnn_layers = 3
-    p.attention.hidden_dim = 2
-    p.softmax.num_classes = 16
-    p.softmax.num_shards = 1
-    p.per_word_avg_loss = per_word_avg_loss
-    p.dtype = dtype
-    p.target_seq_len = 5
-
-    for lp in base_layer.RecursiveFindLayerParams(p):
-      lp.dtype = dtype
-
-    return p
-
   def testDecoderConstruction(self):
     p = self._DecoderParams()
     _ = decoder.MTDecoderV1(p)
-
-  def _Inputs(self, dtype=tf.float32):
-    np.random.seed(_NUMPY_RANDOM_SEED)
-    src_seq_len = 5
-    # batch = 2
-    src_enc = tf.constant(
-        np.random.normal(size=[src_seq_len, 2, 4]), dtype=dtype)
-    src_enc_padding = tf.constant(
-        [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
-        dtype=dtype)
-    # batch = 4, time = 3.
-    target_ids = tf.transpose(
-        tf.constant(
-            [[0, 1, 2, 3], [0, 5, 6, 7], [0, 10, 11, 12]], dtype=tf.int32))
-    target_labels = tf.transpose(
-        tf.constant(
-            [[1, 2, 3, 4], [5, 6, 7, 8], [10, 11, 12, 13]], dtype=tf.int32))
-    target_paddings = tf.transpose(
-        tf.constant([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]], dtype=dtype))
-    target_weights = 1.0 - target_paddings
-    targets = py_utils.NestedMap({
-        'ids': target_ids,
-        'labels': target_labels,
-        'weights': target_weights,
-        'paddings': target_paddings
-    })
-    encoder_outputs = py_utils.NestedMap(
-        encoded=src_enc, padding=src_enc_padding, segment_id=None)
-    return encoder_outputs, targets
 
   def testDecoderFPropFixedAttentionSeed(self, dtype=tf.float64):
     with self.session(use_gpu=True):
