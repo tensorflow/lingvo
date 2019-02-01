@@ -3084,3 +3084,41 @@ class GatedAverageLayer(base_layer.BaseLayer):
     gated_sum = tf.reduce_sum(xmg * inputs, axis=1)
 
     return tf.reshape(gated_sum, input_shape)
+
+
+class LHUCLayer(base_layer.BaseLayer):
+  """`Learning Hidden Unit Contribution (LHUC)` layer.
+
+  This paper proposes to use LHUC layer for NMT adaptation:
+      http://aclweb.org/anthology/N18-2080
+
+  During base model training, LHUC layer is fixed to 1.0 (no-op in
+  multiplication). During adaptation, only LHUC layer is trained, and all other
+  parameters in the model are frozen.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(LHUCLayer, cls).Params()
+    p.Define('input_dim', 0, 'Dimension of the input and output.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(LHUCLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.input_dim > 0
+
+    pc = py_utils.WeightParams(
+        shape=[p.input_dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=self._VariableCollections())
+    with tf.variable_scope(p.name):
+      self.CreateVariable('w', pc)
+
+  def FProp(self, theta, inp):
+    """Add learnt gate for adaptation."""
+    out = 2.0 * tf.sigmoid(theta.w) * inp
+    return out

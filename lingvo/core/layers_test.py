@@ -3139,5 +3139,34 @@ class GatedAverageLayerTest(tf.test.TestCase):
       self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
 
 
+class LHUCLayerTest(tf.test.TestCase):
+
+  def testLHUCLayer(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(505837249)
+      depth = 4
+      batch = 2
+
+      inp = np.asarray([[1.0, 1.0, 1.0, 1.0], [-1.0, -1.0, -1.0, -1.0]],
+                       dtype=np.float32)
+      p = layers.LHUCLayer.Params()
+      p.name = 'lhuc_layer'
+      p.input_dim = depth
+      p.random_seed = 505837249
+      lhuc = p.cls(p)
+
+      lhuc = lhuc.FProp(lhuc.theta, inp)
+      tf.global_variables_initializer().run()
+      actual_avg = sess.run(lhuc)
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_avg = [[1.0, 1.0, 1.0, 1.0], [-1.0, -1.0, -1.0, -1.0]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_avg.shape, (batch, depth))
+      self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
+
+
 if __name__ == '__main__':
   tf.test.main()
