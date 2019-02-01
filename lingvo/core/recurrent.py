@@ -374,7 +374,7 @@ class _Recurrent(object):
 
     compiled = py_utils.use_xla()
     noinline = not compiled
-    dev_t_type = tf.int32 if compiled else tf.int64
+    t_type = tf.int32 if compiled else tf.int64
 
     @function.Defun(*_Dtypes(fwd_sig))
     def Fwd(*args):
@@ -387,8 +387,7 @@ class _Recurrent(object):
     # Wraps cell_fn in a TF Function as a for-loop's body.
     #
     # The loop state is composed of:
-    #  t: The loop variable. Timestep id.
-    #  dev_t: The loop variable mirrored on the device.
+    #  t: The loop variable on the device. Timestep id.
     #  theta: the recurrent net's weights.
     #  state0: the previous recurrent state.
     #  inputs: inputs to the recurrent net. inputs[t, :] are for the timestep t.
@@ -399,22 +398,25 @@ class _Recurrent(object):
         self._theta, self._state, self._inputs, self._state, self._extras
     ]
 
-    @function.Defun(tf.int32, dev_t_type, *_Dtypes(fwdloop_sig))
-    def ForwardLoopBody(*args):
+    @function.Defun(t_type, t_type, *_Dtypes(fwdloop_sig))
+    def ForwardLoopCond(t, limit, *unused_args):
+      """The condition of forward loop."""
+      return t < limit
+
+    @function.Defun(t_type, t_type, *_Dtypes(fwdloop_sig))
+    def ForwardLoopBody(t, limit, *args):
       """The body of forward loop."""
-      t, dev_t = args[0], args[1]
-      (theta, state0, inputs, acc_state, acc_extras) = _Pack(
-          args[2:], fwdloop_sig)
+      (theta, state0, inputs, acc_state, acc_extras) = _Pack(args, fwdloop_sig)
       inputs_t = _Index(inputs, t)  # external input at time step t.
       state1, extras = _Pack(
           Fwd(*_Flatten([theta, state0, inputs_t])),
           [self._state, self._extras])
       # Saves state1 and extras in their accumulators.
       if not self._unused_acc_state:
-        acc_state = _Update(acc_state, state1, dev_t)
-      acc_extras = _Update(acc_extras, extras, dev_t)
+        acc_state = _Update(acc_state, state1, t)
+      acc_extras = _Update(acc_extras, extras, t)
 
-      return [tf.add(dev_t, 1)] + _Flatten(
+      return [tf.add(t, 1), limit] + _Flatten(
           [theta, state1, inputs, acc_state, acc_extras])
 
     def Grad(op, *args):
@@ -452,9 +454,9 @@ class _Recurrent(object):
 
       Args:
         op: The forward operation.
-        *args: Args to the forward operation (includes implicit captures).
+        *args: Args to the backward operation (includes implicit captures).
       Returns:
-        Tuple of derivitives.
+        Tuple of derivatives.
       Raises:
         ValueError: on argument mismatch issues.
       """
@@ -499,7 +501,7 @@ class _Recurrent(object):
           ])
       # acc_state and acc_extras are computed by the Forward pass and
       # needed by the Backward pass.
-      acc_state, _, acc_extras = _Pack([x for x in op.outputs],
+      acc_state, _, acc_extras = _Pack([x for x in op.outputs[1:]],
                                        [self._state, self._state, self._extras])
 
       # Forward computes acc_state, the final state and
@@ -507,7 +509,7 @@ class _Recurrent(object):
       # final loss. Because acc_extras are not exposed by Compute(),
       # it has no gradients w.r.t. the final loss (i.e., by
       # construction, it must be zeros).
-      d_acc_state, d_state1, _ = _Pack(args,
+      d_acc_state, d_state1, _ = _Pack(args[1:],
                                        [self._state, self._state, self._extras])
 
       if self._unused_acc_state:
@@ -515,15 +517,17 @@ class _Recurrent(object):
         state0 = state0.Transform(tf.reduce_sum)
         d_state1 = d_state1.Transform(tf.reduce_sum)
 
-      return Backward(*_Flatten([
-          theta,
-          state0,
-          inputs,
-          acc_state,
-          acc_extras,
-          d_acc_state,
-          d_state1,
-      ]))
+      return Backward(
+          op.outputs[0],
+          *_Flatten([
+              theta,
+              state0,
+              inputs,
+              acc_state,
+              acc_extras,
+              d_acc_state,
+              d_state1,
+          ]))
 
     # Forward calls ForwardLoopBody n times. Each time computes one
     # time step of the recurrent net.
@@ -538,6 +542,7 @@ class _Recurrent(object):
       # The sequence length.
       pad_begin, pad_end = _SeqPaddingLength(inputs)
       slen_dim = _SeqLenDim(inputs)
+      limit = slen_dim - pad_end
 
       # Creates accumulators for state0 and extras.
       if self._unused_acc_state:
@@ -547,22 +552,22 @@ class _Recurrent(object):
       acc_extras = _EmptyAcc(slen_dim, extras)
 
       if compiled:
-        dev_t = tf.to_int32(pad_begin)
+        t = tf.to_int32(pad_begin)
+        limit = tf.to_int32(limit)
       else:
-        dev_t = tf.to_int64(pad_begin)
-      run = functional_ops.For(
-          start=pad_begin,
-          limit=slen_dim - pad_end,
-          delta=1,
-          inputs=[dev_t] + _Flatten(
-              [theta, state0, inputs, acc_state, acc_extras]),
-          body=ForwardLoopBody,
-          rewrite_with_while=compiled)
+        t = tf.to_int64(pad_begin)
+        limit = tf.to_int64(limit)
+
+      run = functional_ops.While(
+          [t, limit] + _Flatten([theta, state0, inputs, acc_state, acc_extras]),
+          cond=ForwardLoopCond,
+          body=ForwardLoopBody)
+      t = run[0]
       _, state1, _, acc_state, acc_extras = _Pack(
-          run[1:],
+          run[2:],
           [self._theta, self._state, self._inputs, self._state, self._extras])
 
-      return _Flatten([acc_state, state1, acc_extras])
+      return [t] + _Flatten([acc_state, state1, acc_extras])
 
     # The per-step backward computes:
     #    d_theta, d_state0, d_inputs = cell_grad(
@@ -624,9 +629,8 @@ class _Recurrent(object):
     # for-loop's body for the Backward pass.
     #
     # The loop state is composed of:
-    #  t: The loop variable. Timestep id.
+    #  t: The loop variable on the device. Timestep id.
     #  state0: the initial state for the entire backward loop.
-    #  dev_t: The loop variable mirrored on the device.
     #  theta: the recurrent net's weights.
     #  inputs: inputs to the recurrent net. inputs[t, :] are for the timestep t.
     #  acc_state: Each timestep's computed new state was stashed into
@@ -655,10 +659,14 @@ class _Recurrent(object):
         self._implicit_captures,
     ]
 
-    @function.Defun(tf.int32, dev_t_type, *_Dtypes(bakloop_sig))
-    def BackwardLoopBody(*args):
+    @function.Defun(t_type, t_type, *_Dtypes(bakloop_sig))
+    def BackwardLoopCond(t, limit, *unused_args):
+      """Backward loop condition function."""
+      return t >= limit
+
+    @function.Defun(t_type, t_type, *_Dtypes(bakloop_sig))
+    def BackwardLoopBody(t, limit, *args):
       """Backward loop body function."""
-      t, dev_t = args[0], args[1]
       (
           theta,
           orig_state0,
@@ -670,14 +678,14 @@ class _Recurrent(object):
           d_state1,
           d_inputs,
           d_acc_state,
-          d_captured) = (
-              _Pack(args[2:], bakloop_sig))
+          d_captured) = _Pack(args, bakloop_sig)
 
       # The input recurrent state for time step t is previous time step's
       # output, or the original state0 when on time step 0.
-      state_from_acc = _Index(acc_state, tf.maximum(0, t - 1))
+      state_from_acc = _Index(acc_state,
+                              tf.maximum(tf.constant(0, t.dtype), t - 1))
       state0 = functional_ops.If(
-          tf.equal(t, tf.constant(0, tf.int32)),
+          tf.equal(t, tf.constant(0, t.dtype)),
           _Flatten([state_from_acc, orig_state0]), ReturnOrigState0,
           ReturnAccState)
       state0 = orig_state0.Pack(state0)
@@ -696,7 +704,7 @@ class _Recurrent(object):
         # XLA IF op requires the same shape for if and else branches.
         d_state0 = d_state0.Transform(tf.reduce_sum)
       d_theta = _Add(d_theta, d_theta_t)
-      d_inputs = _Update(d_inputs, d_inputs_t, dev_t)
+      d_inputs = _Update(d_inputs, d_inputs_t, t)
       d_captured = _Add(d_captured, d_captured_t)
 
       # Make sure this function didn't capture anything different than the
@@ -705,7 +713,7 @@ class _Recurrent(object):
       _AssertSameTensors(function.get_extra_inputs(),
                          self._implicit_captures.Flatten())
 
-      return [tf.subtract(dev_t, 1)] + _Flatten([
+      return [tf.subtract(t, 1), limit] + _Flatten([
           theta,
           orig_state0,
           inputs,
@@ -732,8 +740,8 @@ class _Recurrent(object):
         self._state,
     ]
 
-    @function.Defun(*_Dtypes(backward_sig), noinline=noinline)
-    def Backward(*args):
+    @function.Defun(t_type, *_Dtypes(backward_sig), noinline=noinline)
+    def Backward(start, *args):
       """Backward pass for the recurrent net."""
       # theta, state0, inputs are Forward's inputs.
       # acc_state is the accumulated 1st output of Forward.
@@ -749,18 +757,15 @@ class _Recurrent(object):
       d_captured = _EmptyLike(self._implicit_captures)
 
       # The sequence length.
-      pad_begin, pad_end = _SeqPaddingLength(inputs)
-      start = _SeqLenDim(inputs) - pad_end - 1
+      pad_begin, _ = _SeqPaddingLength(inputs)
+      limit = pad_begin
 
       if compiled:
-        dev_t = tf.to_int32(start)
+        limit = tf.to_int32(limit)
       else:
-        dev_t = tf.to_int64(start)
-      run = functional_ops.For(
-          start=start,
-          limit=pad_begin - 1,
-          delta=-1,
-          inputs=[dev_t] + _Flatten([
+        limit = tf.to_int64(limit)
+      run = functional_ops.While(
+          [start - 1, limit] + _Flatten([
               theta,
               state0,
               inputs,
@@ -772,11 +777,11 @@ class _Recurrent(object):
               d_acc_state,
               d_captured,
           ]),
-          body=BackwardLoopBody,
-          rewrite_with_while=compiled)
+          cond=BackwardLoopCond,
+          body=BackwardLoopBody)
 
       (theta, state0, inputs, acc_state, acc_extras, d_theta, d_state0,
-       d_inputs, d_acc_state, d_captured) = _Pack(run[1:], bakloop_sig)
+       d_inputs, d_acc_state, d_captured) = _Pack(run[2:], bakloop_sig)
 
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the
@@ -792,10 +797,9 @@ class _Recurrent(object):
     self._forward = Forward
 
   def Compute(self):
-    return _Pack(
-        self._forward(
-            *_Flatten([self._theta, self._state, self._inputs, self._extras])),
-        [self._state, self._state, self._extras])[:2]
+    run = self._forward(
+        *_Flatten([self._theta, self._state, self._inputs, self._extras]))
+    return _Pack(run[1:], [self._state, self._state, self._extras])[:2]
 
 
 def _GetCellGrad(cell_fn, cell_grad, implicit_captures=None):
