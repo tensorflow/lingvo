@@ -59,6 +59,8 @@ class TransformerStack(base_layer.BaseLayer):
         'Merger op for layer outputs.')
     p.Define('packed_input', False,
              'If True, assumes multiple training samples per input.')
+    p.Define('has_aux_attention', False,
+             'Allows encoder layers to attend auxiliary inputs.')
     p.transformer_tpl.tr_atten_tpl.num_attention_heads = 8
     p.transformer_tpl.tr_fflayer_tpl.hidden_dim = 8192
     return p
@@ -76,6 +78,7 @@ class TransformerStack(base_layer.BaseLayer):
         params.name = 'trans_%d' % (i)
         params.source_dim = p.model_dim
         params.packed_input = p.packed_input
+        params.has_aux_atten = p.has_aux_attention
         transformer_layer_params.append(params)
 
       self.CreateChildren('trans', transformer_layer_params)
@@ -99,7 +102,14 @@ class TransformerStack(base_layer.BaseLayer):
           transparent_params.append(transparent_param)
         self.CreateChildren('transparent_merger', transparent_params)
 
-  def FProp(self, theta, transformer_input, paddings, src_segment_id=None):
+  def FProp(self,
+            theta,
+            transformer_input,
+            paddings,
+            src_segment_id=None,
+            aux_vecs=None,
+            aux_paddings=None,
+            aux_segment_id=None):
     """Transforms source sequence of Tensors with Transformers layers.
 
     Args:
@@ -111,6 +121,12 @@ class TransformerStack(base_layer.BaseLayer):
          [time, batch] shape.
       src_segment_id: A sequence of ints indicating segment ids of
          [time, batch] shape.
+      aux_vecs: A sequence of input Tensors of [aux_time, batch, dim] shape, as
+          context for the cross-attention layer.
+      aux_paddings: A sequence of 0s and 1s indicating input paddings of
+         [aux_time, batch] shape.
+      aux_segment_id: A sequence of ints indicating segment ids of
+         [aux_time, batch] shape.
 
     Returns:
       (outputs, out_paddings, segment_ids) tuple. `outputs` is of the shape
@@ -134,7 +150,10 @@ class TransformerStack(base_layer.BaseLayer):
             theta.trans[i],
             transformer_input,
             paddings,
-            source_segment_id=src_segment_id)
+            aux_vecs=aux_vecs,
+            aux_paddings=aux_paddings,
+            source_segment_id=src_segment_id,
+            aux_segment_id=aux_segment_id)
         transformer_input = transformer_output
         outputs_list.append(transformer_output)
 
