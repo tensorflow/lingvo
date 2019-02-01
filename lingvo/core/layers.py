@@ -2462,9 +2462,12 @@ class LayerNorm(base_layer.BaseLayer):
         [py_utils.assert_equal(tf.shape(inputs)[-1], p.input_dim)], inputs)
 
     @function.Defun(
-        *[py_utils.FPropDtype(p)] * 3, noinline=not py_utils.use_tpu())
+        *[py_utils.FPropDtype(p)] * 3,
+        noinline=not py_utils.use_tpu(),
+        shape_func=lambda op: [op.inputs[0].shape])
     def Normalize(x, scale, bias):
-      x_shape = tf.shape(x)
+      """Normalize `x` w/ `scale` and `bias` gain/shift."""
+      x_shape = py_utils.GetShape(x)
       inner_dim = x_shape[-1]
       x_reshaped = tf.reshape(x, [-1, inner_dim])
       mean = tf.reduce_mean(x_reshaped, axis=[1], keepdims=True)
