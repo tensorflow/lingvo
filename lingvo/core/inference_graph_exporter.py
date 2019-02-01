@@ -278,6 +278,8 @@ class InferenceGraphExporter(object):
              subgraph_filter=None):
     """Exports a InferenceGraph proto with piecewise subgraphs.
 
+    Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.
+
     Args:
       model_cfg: a Params instance as returned by
         model_registry.GetParams(modelname, 'Test') or model_params.Model().
@@ -301,6 +303,10 @@ class InferenceGraphExporter(object):
       ValueError: if the model does not support the listed subgraphs.
     """
     assert issubclass(model_cfg.cls, base_model.BaseModel)
+
+    # Disable assertions unless user explicitly enables it.
+    if FLAGS['enable_asserts'].using_default_value:
+      FLAGS.enable_asserts = False
 
     # TODO(laurenzo): Work out how much we need to specify here in terms of
     # cluster configuration.
