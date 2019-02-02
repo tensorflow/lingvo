@@ -317,6 +317,7 @@ class _Recurrent(object):
   def __init__(self,
                cell_fn,
                cell_grad,
+               stop_fn,
                theta,
                state0,
                inputs,
@@ -326,11 +327,13 @@ class _Recurrent(object):
     """RNN helper class.
 
     Args:
-      cell_fn: A python function, which computes:
+      cell_fn: A python function which computes:
          state1, extras = cell_fn(theta, state0, inputs[t, :])
       cell_grad: A python function which computes:
          dtheta, dstate0, dinputs[t, :] = cell_grad(
            theta, state0, inputs[t, :], extras, dstate1)
+      stop_fn: A python function which computes:
+        should_stop = stop_fn(t, theta, state0)
       theta: weights. A `.NestedMap`.
       state0: initial state. A `.NestedMap`.
       inputs: inputs. A `.NestedMap`.
@@ -351,6 +354,7 @@ class _Recurrent(object):
     self._inputs = inputs
     self._cell_fn = cell_fn
     self._cell_grad = cell_grad
+    self._stop_fn = stop_fn
     self._extras = extras
     self._implicit_captures = implicit_captures
     self._unused_acc_state = unused_acc_state
@@ -399,14 +403,20 @@ class _Recurrent(object):
     ]
 
     @function.Defun(t_type, t_type, *_Dtypes(fwdloop_sig))
-    def ForwardLoopCond(t, limit, *unused_args):
+    def ForwardLoopCond(t, limit, *args):
       """The condition of forward loop."""
-      return t < limit
+      should_continue = t < limit
+      if self._stop_fn:
+        theta, state0, _, _, _ = _Pack(args, fwdloop_sig)
+        should_continue = tf.logical_and(
+            should_continue,
+            tf.reduce_any(tf.logical_not(self._stop_fn(t, theta, state0))))
+      return should_continue
 
     @function.Defun(t_type, t_type, *_Dtypes(fwdloop_sig))
     def ForwardLoopBody(t, limit, *args):
       """The body of forward loop."""
-      (theta, state0, inputs, acc_state, acc_extras) = _Pack(args, fwdloop_sig)
+      theta, state0, inputs, acc_state, acc_extras = _Pack(args, fwdloop_sig)
       inputs_t = _Index(inputs, t)  # external input at time step t.
       state1, extras = _Pack(
           Fwd(*_Flatten([theta, state0, inputs_t])),
@@ -978,6 +988,7 @@ def Recurrent(theta,
               inputs,
               cell_fn,
               cell_grad=None,
+              stop_fn=None,
               extras=None,
               check_stateful_ops=False,
               accumulator_layer=None,
@@ -1015,7 +1026,7 @@ def Recurrent(theta,
     theta: weights. A `.NestedMap`.
     state0: initial state. A `.NestedMap`.
     inputs: inputs. A `.NestedMap`.
-    cell_fn: A python function, which computes::
+    cell_fn: A python function which computes::
 
         state1, extras = cell_fn(theta, state0, inputs[t, :])
 
@@ -1027,6 +1038,11 @@ def Recurrent(theta,
       If there are no captured tensors in `cell_fn`, `dcaptured` can be returned
       as None. Captured tensors with custom `cell_grad` is currently unsupported
       so this return value is reserved for future expansion.
+    stop_fn: If not None, a python function which computes::
+
+        should_stop = stop_fn(t, theta, state0)
+
+      The function determines whether the recurrent loop should terminate.
     extras: A `.NestedMap` of Tensors. The 2nd return value of every
       invocation of `cell_fn` is a `.NestedMap` with matching keys and shapes
       of `extras`.
@@ -1104,6 +1120,7 @@ def Recurrent(theta,
   acc_state, final_state = _Recurrent(
       cell_fn=cell_fn,
       cell_grad=cell_grad,
+      stop_fn=stop_fn,
       theta=theta,
       state0=new_state0(),
       inputs=inputs,

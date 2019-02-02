@@ -69,6 +69,13 @@ def _ReferenceStaticUnroll(theta, state0, inputs, cell_fn):
   return state0.Pack(acc_state), state1
 
 
+def _Poly(theta, state, inputs):
+  next_state = py_utils.NestedMap()
+  next_state.value = state.value + inputs.coeff * state.x_power
+  next_state.x_power = state.x_power * theta.x
+  return next_state, py_utils.NestedMap()
+
+
 class RecurrentTest(tf.test.TestCase):
 
   def testBasic(self):
@@ -83,15 +90,9 @@ class RecurrentTest(tf.test.TestCase):
       inputs = py_utils.NestedMap()
       inputs.coeff = tf.constant([1., 2., 3.])
 
-      def Poly(theta, state, inputs):
-        next_state = py_utils.NestedMap()
-        next_state.value = state.value + inputs.coeff * state.x_power
-        next_state.x_power = state.x_power * theta.x
-        return next_state, py_utils.NestedMap()
-
       # x = 2
       # 1 + 2*x + 3*x^2
-      ret = recurrent.Recurrent(theta, state, inputs, Poly)
+      ret = recurrent.Recurrent(theta, state, inputs, _Poly)
 
       acc, state = sess.run(ret)
       self.assertAllClose(acc.value, [1., 5., 17.])
@@ -116,6 +117,139 @@ class RecurrentTest(tf.test.TestCase):
       # 4 + 6*x
       self.assertAllClose(dx_val, 16.)
       self.assertAllClose(d_coeff_val, [3., 4., 4.])
+
+  def testTimeBasedStopFn(self):
+
+    with self.session() as sess:
+
+      def StopFn(t, unused_theta, unused_state):
+        # This stops after 3 iterations.
+        return t >= 3
+
+      theta = py_utils.NestedMap()
+      theta.x = tf.constant(2.0)
+      state = py_utils.NestedMap()
+      state.value = tf.constant(0.0)
+      state.x_power = tf.constant(1.0)
+      inputs = py_utils.NestedMap()
+      inputs.coeff = tf.constant([1., 2., 3., 4.])
+
+      # x = 2
+      # 1 + 2*x + 3*x^2
+      ret = recurrent.Recurrent(theta, state, inputs, _Poly, stop_fn=StopFn)
+
+      acc, state = sess.run(ret)
+      self.assertAllClose([1., 5., 17., 0.], acc.value)
+      self.assertAllClose([2., 4., 8., 0.], acc.x_power)
+      self.assertAllClose(17., state.value)
+      self.assertAllClose(8., state.x_power)
+
+      y = ret[1].value
+      dx, d_coeff = tf.gradients(ys=[y], xs=[theta.x, inputs.coeff])
+      dx_val, d_coeff_val = sess.run([dx, d_coeff])
+
+      # 2 + 6*x
+      self.assertAllClose(14., dx_val)
+      self.assertAllClose([1., 2., 4., 0.], d_coeff_val)
+
+      # acc = [1, 1+2x, 1+2x+3x^2]
+      # sum(acc) = 3 + 4x + 3x^2
+      acc = ret[0].value
+      dx, d_coeff = tf.gradients(
+          ys=[tf.reduce_sum(acc)], xs=[theta.x, inputs.coeff])
+      dx_val, d_coeff_val = sess.run([dx, d_coeff])
+      # 4 + 6*x
+      self.assertAllClose(16., dx_val)
+      self.assertAllClose([3., 4., 4., 0.], d_coeff_val)
+
+  def testStateBasedStopFn(self):
+
+    with self.session() as sess:
+
+      def StopFn(unused_t, unused_theta, state):
+        # This stops after 3 iterations.
+        return state.value >= 15.
+
+      theta = py_utils.NestedMap()
+      theta.x = tf.constant(2.0)
+      state = py_utils.NestedMap()
+      state.value = tf.constant(0.0)
+      state.x_power = tf.constant(1.0)
+      inputs = py_utils.NestedMap()
+      inputs.coeff = tf.constant([1., 2., 3., 4.])
+
+      # x = 2
+      # 1 + 2*x + 3*x^2
+      ret = recurrent.Recurrent(theta, state, inputs, _Poly, stop_fn=StopFn)
+
+      acc, state = sess.run(ret)
+      self.assertAllClose([1., 5., 17., 0.], acc.value)
+      self.assertAllClose([2., 4., 8., 0.], acc.x_power)
+      self.assertAllClose(17., state.value)
+      self.assertAllClose(8., state.x_power)
+
+      y = ret[1].value
+      dx, d_coeff = tf.gradients(ys=[y], xs=[theta.x, inputs.coeff])
+      dx_val, d_coeff_val = sess.run([dx, d_coeff])
+
+      # 2 + 6*x
+      self.assertAllClose(14., dx_val)
+      self.assertAllClose([1., 2., 4., 0.], d_coeff_val)
+
+      # acc = [1, 1+2x, 1+2x+3x^2]
+      # sum(acc) = 3 + 4x + 3x^2
+      acc = ret[0].value
+      dx, d_coeff = tf.gradients(
+          ys=[tf.reduce_sum(acc)], xs=[theta.x, inputs.coeff])
+      dx_val, d_coeff_val = sess.run([dx, d_coeff])
+      # 4 + 6*x
+      self.assertAllClose(16., dx_val)
+      self.assertAllClose([3., 4., 4., 0.], d_coeff_val)
+
+  def testStopFnNotTriggeredBeforeEOS(self):
+
+    with self.session() as sess:
+
+      def StopFn(t, unused_theta, unused_state):
+        # The input sequence is only length 4, so this is never true.
+        # However, the Recurrent call should still terminate after iteration 4.
+        return t >= 5
+
+      theta = py_utils.NestedMap()
+      theta.x = tf.constant(2.0)
+      state = py_utils.NestedMap()
+      state.value = tf.constant(0.0)
+      state.x_power = tf.constant(1.0)
+      inputs = py_utils.NestedMap()
+      inputs.coeff = tf.constant([1., 2., 3., 4.])
+
+      # x = 2
+      # 1 + 2*x + 3*x^2 + 4*x^3
+      ret = recurrent.Recurrent(theta, state, inputs, _Poly, stop_fn=StopFn)
+
+      acc, state = sess.run(ret)
+      self.assertAllClose([1., 5., 17., 49.], acc.value)
+      self.assertAllClose([2., 4., 8., 16.], acc.x_power)
+      self.assertAllClose(49., state.value)
+      self.assertAllClose(16., state.x_power)
+
+      y = ret[1].value
+      dx, d_coeff = tf.gradients(ys=[y], xs=[theta.x, inputs.coeff])
+      dx_val, d_coeff_val = sess.run([dx, d_coeff])
+
+      # 2 + 6*x + 12*x^2
+      self.assertAllClose(62., dx_val)
+      self.assertAllClose([1., 2., 4., 8.], d_coeff_val)
+
+      # acc = [1, 1+2x, 1+2x+3x^2, 1+2x+3x^2+4x^3]
+      # sum(acc) = 4 + 6x + 6x^2 + 4x^3
+      acc = ret[0].value
+      dx, d_coeff = tf.gradients(
+          ys=[tf.reduce_sum(acc)], xs=[theta.x, inputs.coeff])
+      dx_val, d_coeff_val = sess.run([dx, d_coeff])
+      # 6 + 12*x + 12*x^2
+      self.assertAllClose(78., dx_val)
+      self.assertAllClose([4., 6., 8., 8.], d_coeff_val)
 
   def testCapture(self):
 
@@ -328,7 +462,7 @@ class RecurrentTest(tf.test.TestCase):
   def ElmanOutGrad(dout):
     return py_utils.NestedMap(h=dout.x, padding=dout.padding)
 
-  def _testElmanHelper(self, seqlen, use_grad):
+  def _testElmanHelper(self, seqlen, use_grad, stop_fn=None):
     with self.session() as sess:
       tf.set_random_seed(342462)
 
@@ -350,6 +484,9 @@ class RecurrentTest(tf.test.TestCase):
         inp.x = inputs.x[i, :]
         s, _ = self.Elman(theta, s, inp)
         out += [s.h]
+        if stop_fn and stop_fn(i + 1, theta, s):
+          out += [tf.zeros_like(out[-1]) for _ in range(seqlen - i - 1)]
+          break
       acc0, final0 = tf.stack(out), s.h
       loss0 = tf.reduce_sum(acc0) + tf.reduce_sum(final0)
       (dw0, db0, dh0,
@@ -361,7 +498,8 @@ class RecurrentTest(tf.test.TestCase):
           state0=state0,
           inputs=inputs,
           cell_fn=self.Elman,
-          cell_grad=self.ElmanGrad if use_grad else None)
+          cell_grad=self.ElmanGrad if use_grad else None,
+          stop_fn=stop_fn)
       acc1, final1 = acc1.h, final1.h
       loss1 = tf.reduce_sum(acc1) + tf.reduce_sum(final1)
       (dw1, db1, dh1,
@@ -383,6 +521,12 @@ class RecurrentTest(tf.test.TestCase):
     self._testElmanHelper(1, True)
     self._testElmanHelper(7, False)
     self._testElmanHelper(7, True)
+
+    def StopFn(t, unused_theta, unused_state):
+      return t >= 4
+
+    self._testElmanHelper(7, False, StopFn)
+    self._testElmanHelper(7, True, StopFn)
 
 
 if __name__ == '__main__':
