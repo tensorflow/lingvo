@@ -54,10 +54,15 @@ class BaseModelsTest(tf.test.TestCase):
               'Error in %s' % dataset)
 
   @classmethod
-  def CreateTestMethodsForAllRegisteredModels(cls, registry):
+  def CreateTestMethodsForAllRegisteredModels(cls,
+                                              registry,
+                                              task_prefix_filter=''):
     """Programmatically defines test methods for each registered model."""
     model_names = registry.GetAllRegisteredClasses().keys()
     for model_name in sorted(model_names):
+      if task_prefix_filter and not model_name.startswith(task_prefix_filter):
+        tf.logging.info('Skipping tests for registered model: %s', model_name)
+        continue
 
       def test(self, name=model_name):
         self._testOneModelParams(registry, name)  # pylint: disable=protected-access
