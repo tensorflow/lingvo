@@ -284,6 +284,35 @@ bool BasicRecordYielder::Add(std::vector<Rope>* values) {
   return stop_;
 }
 
+// A sharded file pattern looks like /path/name@100, which is expanded to
+// a glob pattern /path/name-?????-of-00100 by this function. The number of
+// shards shouldn't exceed 5 digits.
+Status MaybeExpandShardedFilePattern(const string& file_pattern,
+                                     string* expanded) {
+  const auto pos = file_pattern.find('@');
+  if (pos == string::npos) {  // not a sharded file pattern
+    *expanded = file_pattern;
+    return Status::OK();
+  }
+
+  const string prefix = file_pattern.substr(0, pos);
+  const string suffix = file_pattern.substr(pos + 1);
+
+  uint32 num_shards = 0;
+  if (!strings::safe_strtou32(suffix, &num_shards)) {
+    return errors::InvalidArgument(
+        strings::StrCat("Invalid sharded file pattern: ", file_pattern));
+  }
+  if (num_shards > 99999) {
+    return errors::InvalidArgument(strings::StrCat(
+        "The number of shards should not exceed 5 digits: ", num_shards));
+  }
+
+  *expanded =
+      strings::Printf("%s-\?\?\?\?\?-of-%05d", prefix.c_str(), num_shards);
+  return Status::OK();
+}
+
 // ParallelFilePatterns look like this
 //  <path1>/a-*-of-10;<path2>/b-*-of-10,<path3>/c-*-of-10;<path4>/d-*-of-10
 // Each "," separated pattern is a parallel file pattern.
@@ -299,9 +328,12 @@ Status MatchParallelFilePattern(const string& parallel_file_pattern,
                                 std::vector<string>* filenames) {
   std::vector<string> parallel_filenames;
   for (const auto& file_pattern : str_util::Split(parallel_file_pattern, ';')) {
-    std::vector<string> filenames_per_pattern;
+    string expanded_file_pattern;
     TF_RETURN_IF_ERROR(
-        Env::Default()->GetMatchingPaths(file_pattern, &filenames_per_pattern));
+        MaybeExpandShardedFilePattern(file_pattern, &expanded_file_pattern));
+    std::vector<string> filenames_per_pattern;
+    TF_RETURN_IF_ERROR(Env::Default()->GetMatchingPaths(
+        expanded_file_pattern, &filenames_per_pattern));
     if (parallel_filenames.empty()) {
       parallel_filenames.swap(filenames_per_pattern);
       continue;

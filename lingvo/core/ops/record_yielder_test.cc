@@ -91,6 +91,20 @@ void GenerateTfRecordTestData(const string& prefix, int n, int m) {
   }
 }
 
+void GenerateShardedTfRecordTestData(const string& prefix, int n, int m) {
+  for (int i = 0; i < n; ++i) {
+    std::unique_ptr<WritableFile> file;
+    const string filename =
+        strings::Printf("%s-%05d-of-%05d", prefix.c_str(), i, n);
+    TF_CHECK_OK(Env::Default()->NewWritableFile(
+        io::JoinPath("/tmp", filename), &file));
+    io::RecordWriter writer(file.get());
+    for (int j = 0; j < m; ++j) {
+      TF_CHECK_OK(writer.WriteRecord(strings::Printf("%010d", m * i + j)));
+    }
+  }
+}
+
 TEST(RecordYielderTest, TfRecordYielderBasicTest) {
   const int N = 10;
   const int M = 1000;
@@ -216,6 +230,36 @@ TEST(RecordYielder, MatchFilesFromMultiplePatterns) {
   }
   auto new_end = std::unique(epoch.begin(), epoch.end());
   // If we iterated through both shards (rather than 1 shard twice), there
+  // should be no duplicates, and we should be at the end of the first epoch.
+  EXPECT_EQ(new_end, epoch.end());
+  // End of the 1st epoch | start of the 2nd epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
+  TF_CHECK_OK(yielder->Yield(&v));
+  // End of the 2st epoch | start of the 3nd epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
+  yielder->Close();
+}
+
+TEST(RecordYielder, MatchShardedFilePattern) {
+  const int num_shards = 16;
+  const int records_per_shard = 8;
+  GenerateShardedTfRecordTestData("sharded_data", num_shards,
+                                  records_per_shard);
+
+  BasicRecordYielder::Options opts;
+  opts.file_pattern = strings::StrCat(
+      "tfrecord:", io::JoinPath("/tmp", "sharded_data@16"));
+  opts.bufsize = records_per_shard;
+  opts.parallelism = 1;
+  std::vector<Rope> epoch;
+  auto yielder = BasicRecordYielder::New(opts);
+  Rope v;
+  for (int i = 0; i < num_shards * records_per_shard; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v));
+    epoch.emplace_back(string(v));
+  }
+  auto new_end = std::unique(epoch.begin(), epoch.end());
+  // If we iterated through all shards (rather than 1 shard twice), there
   // should be no duplicates, and we should be at the end of the first epoch.
   EXPECT_EQ(new_end, epoch.end());
   // End of the 1st epoch | start of the 2nd epoch.
