@@ -158,8 +158,8 @@ class AsrModel(base_model.BaseTask):
 
     return norm_wer_errors, norm_wer_words
 
-  def AddAdditionalDecoderMetricsToGraph(self, topk_hyps, filtered_hyps,
-                                         filtered_refs):
+  def AddAdditionalDecoderMetricsToGraph(
+      self, topk_hyps, filtered_hyps, filtered_refs, input_batch, decoder_outs):
     """Returns a dict of metrics which should be computed from decoded hyps."""
     # The base class implementation returns an empty dictionary. Sub-classes can
     # provide their own implementation.
@@ -214,8 +214,8 @@ class AsrModel(base_model.BaseTask):
       }
 
       ret_dict.update(
-          self.AddAdditionalDecoderMetricsToGraph(topk, filtered_hyps,
-                                                  filtered_refs))
+          self.AddAdditionalDecoderMetricsToGraph(
+              topk, filtered_hyps, filtered_refs, input_batch, decoder_outs))
       return ret_dict
 
   def CreateAdditionalDecoderMetrics(self):
