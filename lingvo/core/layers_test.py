@@ -3168,5 +3168,35 @@ class LHUCLayerTest(tf.test.TestCase):
       self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
 
 
+class ResidualAdapterLayerTest(tf.test.TestCase):
+
+  def testResidualAdapterLayer(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(505837249)
+      depth = 4
+      batch = 2
+
+      inp = np.asarray([[1.0, 1.0, 1.0, 1.0], [-1.0, -1.0, -1.0, -1.0]],
+                       dtype=np.float32)
+      p = layers.ResidualAdapterLayer.Params()
+      p.name = 'resadap_layer'
+      p.input_dim = depth
+      p.bottleneck_dim = 2
+      p.random_seed = 505837249
+      resadap = p.cls(p)
+
+      resadap = resadap.FProp(resadap.theta, inp)
+      tf.global_variables_initializer().run()
+      actual_avg = sess.run(resadap)
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_avg = [[1.0, 1.0, 1.0, 1.0], [-1.0, -1.0, -1.0, -1.0]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_avg.shape, (batch, depth))
+      self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
+
+
 if __name__ == '__main__':
   tf.test.main()

@@ -3122,3 +3122,60 @@ class LHUCLayer(base_layer.BaseLayer):
     """Add learnt gate for adaptation."""
     out = 2.0 * tf.sigmoid(theta.w) * inp
     return out
+
+
+class ResidualAdapterLayer(base_layer.BaseLayer):
+  """Residual Adapter layer for NLP tasks.
+
+  This paper proposes using residual adapters for fine-tuning new tasks on BERT.
+  https://arxiv.org/pdf/1902.00751.pdf
+
+  During adaptation, residual adapter layers can be added to a pre-trained
+  model and trained, while all other parameters are frozen.
+  In terms of operations, the layer is identical to a vanilla Transformer
+  feedforward layer. Separate implementation is meant to distinguish function.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(ResidualAdapterLayer, cls).Params()
+    p.Define('input_dim', 0, 'Dimension of the input to the adapter.')
+    p.Define('bottleneck_dim', 0, 'Dimension of the feedforward inner layer.')
+    p.Define('ln_tpl', LayerNorm.Params(), 'Layer norm default params.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(ResidualAdapterLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+
+    with tf.variable_scope(p.name):
+      bottleneck_params = FeedForwardNet.Params().Set(
+          name='bottleneck',
+          activation=['RELU', 'NONE'],
+          input_dim=p.input_dim,
+          hidden_layer_dims=[p.bottleneck_dim, p.input_dim])
+      self.CreateChild('bottleneck', bottleneck_params)
+
+      params = p.ln_tpl.Copy()
+      params.name = 'adapter_ln'
+      params.input_dim = p.input_dim
+      self.CreateChild('layer_norm', params)
+
+  def FProp(self, theta, x, paddings=None):
+    """Fprop for Residual Adapter.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      x: [..., input_dim].
+      paddings: padding applied to the features.
+
+    Returns:
+      layer_out - [..., input_dim].
+    """
+    normalized_x = self.layer_norm.FProp(theta.layer_norm, x)
+    bottleneck_x = self.bottleneck.FProp(theta.bottleneck, normalized_x,
+                                         paddings)
+    return x + bottleneck_x
