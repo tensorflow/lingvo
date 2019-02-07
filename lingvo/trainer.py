@@ -683,12 +683,20 @@ class TrainerTpu(base_runner.BaseRunner):
       Returns:
         i+1 (new index) plus post-write tf.TensorArray handles.
       """
-      # outfeed_dequeue_tuple returns len(per_example_tensors) ops.
-      outfeed_devices = [
-          tf.contrib.tpu.outfeed_dequeue_tuple(
-              tensor_types, tensor_shapes, device_ordinal=ordinal)
-          for ordinal in range(num_devices)
-      ]
+      # Outfeed ops execute on each JF node, so they must be located on the
+      # nodes.
+      outfeed_devices = []
+      device_assignment = py_utils.GetTpuDeviceAssignment()
+      assert device_assignment
+      for replica in xrange(device_assignment.num_replicas):
+        for core in xrange(device_assignment.num_cores_per_replica):
+          with tf.device(device_assignment.host_device(replica, core)):
+            outfeed_devices.append(
+                tf.contrib.tpu.outfeed_dequeue_tuple(
+                    tensor_types,
+                    tensor_shapes,
+                    device_ordinal=device_assignment.tpu_ordinal(replica,
+                                                                 core)))
       offset = i * num_devices
       output_arrays = list(input_arrays)
       # Each output_array holds a different per-example tensor. We get results
