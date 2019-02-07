@@ -166,12 +166,16 @@ class TransformerStack(base_layer.BaseLayer):
       # to avoid excessive memory usage during training (which was prohibiting
       # training on TPUs), and simplify the beam search interface.
       if p.is_transparent:
-        transformer_output = []
-        for i in range(p.num_transparent_outputs):
-          merged_outputs = self.transparent_merger[i].FProp(
-              theta.transparent_merger[i], outputs_list)
-          transformer_output.append(merged_outputs)
-        if p.is_eval:
-          transformer_output = tf.stack(transformer_output, 3)
+        if p.num_transparent_outputs == 1:
+          transformer_output = self.transparent_merger[0].FProp(
+              theta.transparent_merger[0], outputs_list)
+        else:
+          transformer_output = []
+          for i in range(p.num_transparent_outputs):
+            merged_outputs = self.transparent_merger[i].FProp(
+                theta.transparent_merger[i], outputs_list)
+            transformer_output.append(merged_outputs)
+          if p.is_eval:
+            transformer_output = tf.stack(transformer_output, 3)
 
       return transformer_output, paddings, src_segment_id

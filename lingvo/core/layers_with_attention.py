@@ -56,6 +56,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super(TransformerAttentionLayer, cls).Params()
     p.Define('source_dim', 0, 'Dimension of the transformer block input.')
+    p.Define('atten_hidden_dim', 0, 'Dimension of the attention hidden dim.')
     p.Define('num_attention_heads', 8, 'Number of attention heads.')
     p.Define('is_masked', False, 'If set, uses masked MultiHededAttention.')
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
@@ -89,13 +90,16 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     assert p.name
     assert p.source_dim
 
+    if not p.atten_hidden_dim:
+      p.atten_hidden_dim = p.source_dim
+
     with tf.variable_scope(p.name):
       # Initialize multi-headed attention
       params = p.atten_tpl.Copy()
       params.name = 'multihead_atten'
       params.source_dim = p.source_dim
       params.query_dim = p.source_dim
-      params.hidden_dim = p.source_dim
+      params.hidden_dim = p.atten_hidden_dim
       params.context_dim = p.source_dim
       params.ctx_post_proj_dim = p.source_dim
       params.num_attention_heads = p.num_attention_heads
