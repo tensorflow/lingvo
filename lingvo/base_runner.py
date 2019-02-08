@@ -168,10 +168,15 @@ class BaseRunner(object):
 
   @py_utils.Retry(initial_delay_sec=300, max_delay_sec=300)
   def _FindNewCheckpoint(self, prev_path, sess):
+    """Returns the path to a new checkpoint, or raises RuntimeError."""
     if self._trial.ShouldStop() or self._ShouldStop(sess, 0):
       return None
     path = tf.train.latest_checkpoint(self._train_dir)
-    if not path or (path == prev_path):
+    if not path:
+      msg = 'No check point is found in %s' % self._train_dir
+      tf.logging.info('%s', msg)
+      raise RuntimeError(msg)
+    if path == prev_path:
       msg = 'No new check point is found: %s' % path
       tf.logging.info('%s', msg)
       raise RuntimeError(msg)
