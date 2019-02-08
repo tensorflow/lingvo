@@ -206,7 +206,14 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
       ret.additional_tgts[p.target_key] = py_utils.NestedMap(
           self._Targets(p.target_key_target_shape))
     ret.sample_ids = self.SampleIds()
-    return ret
+
+    # Cast floating point tensors to the fprop dtype (default: float32).
+    def _CastFloats(v):
+      if v is None:
+        return None
+      return tf.cast(v, py_utils.FPropDtype(p)) if v.dtype.is_floating else v
+
+    return ret.Transform(_CastFloats)
 
   def _GetSourceInputsAndLabels(self, data_source):
     p = self.params
