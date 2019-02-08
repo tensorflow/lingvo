@@ -102,10 +102,17 @@ class GenericInputProcessor : public RecordProcessor {
     // processing each individual record using multiple threads
     // (tf_compute).
     FunctionLibraryRuntime::Options opts;
-    // Create a step container with for operations that need access
-    // to a resource container name but will arrange for cleanup itself.
-    ScopedStepContainer step_container(step_id_counter_.fetch_add(1),
-                                       [](const string&) {});
+    // Create a step container that uses resource manager to cleanup state
+    // after the step is complete.
+    ScopedStepContainer step_container(
+        step_id_counter_.fetch_add(1),
+        [this](const string& name) {
+          auto status = flib_->device()->resource_manager()->Cleanup(name);
+          if (!status.ok()) {
+            LOG(ERROR) << "Error cleaning up resources:" << status;
+          }
+        },
+        "GenericInputProcessor");
     opts.step_container = &step_container;
     opts.runner = ThreadLocalRunner::PerThread().runner();
 
