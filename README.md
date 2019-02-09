@@ -11,18 +11,35 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 ### Docker
 
-The docker files in the `docker` directory provide a blueprint of how to install
-and run the software in multiple configurations.
+The easiest way to get started is to use the provided
+[Docker script](docker/dev.dockerfile). If instead you want to install it
+directly on your machine, skip to the section below.
 
-### Installation
+First,
+[install docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/). Then,
+the following commands should give you a working shell with Lingvo installed.
+
+```shell
+LINGVO_DIR="/tmp/lingvo"  # (change to the cloned lingvo directory, e.g. "$HOME/lingvo")
+LINGVO_DEVICE="gpu"  # (Leave empty to build and run CPU only docker)
+sudo docker build --tag tensorflow:lingvo $(test "$LINGVO_DEVICE" = "gpu" && echo "--build-arg base_image=nvidia/cuda:10.0-cudnn7-runtime-ubuntu16.04") - < lingvo/docker/dev.dockerfile
+sudo docker run --rm $(test "$LINGVO_DEVICE" = "gpu" && echo "--runtime=nvidia") -it -v ${LINGVO_DIR}:/tmp/lingvo -v ${HOME}/.gitconfig:/home/${USER}/.gitconfig:ro -p 6006:6006 -p 8888:8888 --name lingvo tensorflow:lingvo bash
+bazel test -c opt //lingvo:trainer_test //lingvo:models_test
+```
+
+### Installing directly
+
+This is an alternative to using Docker as described in the section above.
 
 The prerequisites are:
 
 *   a TensorFlow [installation](https://www.tensorflow.org/install/) (for now
     tf-nightly is required),
-*   a `C++` compiler (only g++ 4.8 is officially supported),
-*   the bazel build system, and
-*   the protobuf package.
+*   a `C++` compiler (only g++ 4.8 is officially supported), and
+*   the bazel build system.
+
+Refer to [docker/dev.dockerfile](docker/dev.dockerfile) for more specific
+details.
 
 ### Running the MNIST image model
 
