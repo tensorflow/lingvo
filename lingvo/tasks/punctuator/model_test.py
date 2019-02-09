@@ -20,10 +20,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from lingvo.core import py_utils
 from lingvo.core import test_helper
-from lingvo.tasks.mt import decoder
-from lingvo.tasks.mt import encoder
 from lingvo.tasks.punctuator import model
 from lingvo.tasks.punctuator import input_generator
 
@@ -33,8 +30,7 @@ _TF_RANDOM_SEED = 93820986
 class PunctuatorModelTest(tf.test.TestCase):
   """Tests for the Punctuator model.
 
-  Overriding parameters and inheriting
-  tests from TransformerModelTest.
+  Overriding parameters and inheriting tests from RNMTModelTest.
   """
 
   def _InputParams(self):
@@ -52,46 +48,10 @@ class PunctuatorModelTest(tf.test.TestCase):
     p.target_max_length = 40
     return p
 
-  def _EncoderParams(self):
-    p = encoder.TransformerEncoder.Params()
-    p.name = 'encoder'
-    p.random_seed = 1234
-    p.model_dim = 4
-    p.token_emb.embedding_dim = 4
-    p.token_emb.max_num_shards = 1
-    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim(
-        seed=p.random_seed)
-    p.position_emb.embedding_dim = 4
-    p.transformer_stack.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
-    p.transformer_stack.transformer_tpl.tr_fflayer_tpl.hidden_dim = 5
-    return p
-
-  def _DecoderParams(self):
-    p = decoder.TransformerDecoder.Params()
-    p.name = 'decoder'
-    p.random_seed = 1234
-    p.source_dim = 4
-    p.model_dim = 4
-    p.token_emb.embedding_dim = 4
-    p.token_emb.max_num_shards = 1
-    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim(
-        seed=p.random_seed)
-    p.position_emb.embedding_dim = 4
-    p.trans_tpl.source_dim = 4
-    p.trans_tpl.tr_atten_tpl.source_dim = 4
-    p.trans_tpl.tr_atten_tpl.num_attention_heads = 2
-    p.trans_tpl.tr_fflayer_tpl.input_dim = 4
-    p.trans_tpl.tr_fflayer_tpl.hidden_dim = 8
-    p.softmax.num_shards = 1
-    p.target_seq_len = 5
-    return p
-
   def _testParams(self):
-    p = model.TransformerModel.Params()
+    p = model.RNMTModel.Params()
     p.name = 'test_mdl'
     p.input = self._InputParams()
-    p.encoder = self._EncoderParams()
-    p.decoder = self._DecoderParams()
     p.train.learning_rate = 2e-4
     return p
 
@@ -102,7 +62,7 @@ class PunctuatorModelTest(tf.test.TestCase):
       print('vars = ', mdl.vars)
       flatten_vars = mdl.vars.Flatten()
       print('vars flattened = ', flatten_vars)
-      self.assertEqual(len(flatten_vars), 238)
+      self.assertEqual(len(flatten_vars), 115)
 
       # Should match tf.trainable_variables().
       self.assertEqual(len(tf.trainable_variables()), len(flatten_vars))
@@ -122,8 +82,8 @@ class PunctuatorModelTest(tf.test.TestCase):
         vals += [sess.run((loss, logp))]
 
       print('actual vals = %s' % np.array_repr(np.array(vals)))
-      expected_vals = [[326.690796, 10.371137], [306.014648, 10.373378],
-                       [280.316833, 10.382105]]
+      expected_vals = [[326.767578, 10.373574], [306.010498, 10.373238],
+                       [280.089264, 10.373676]]
       self.assertAllClose(vals, expected_vals)
 
   def testBProp(self):
@@ -141,8 +101,8 @@ class PunctuatorModelTest(tf.test.TestCase):
       for _ in range(3):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
       print('BProp actual vals = ', vals)
-      expected_vals = [[326.690796, 10.371137], [305.959412, 10.371506],
-                       [280.219208, 10.378489]]
+      expected_vals = [[326.767578, 10.373574], [305.863251, 10.368246],
+                       [279.644745, 10.357213]]
       self.assertAllClose(vals, expected_vals)
 
   def testFPropEvalMode(self):
@@ -159,8 +119,8 @@ class PunctuatorModelTest(tf.test.TestCase):
       for _ in range(3):
         vals += [sess.run((loss, logp))]
       print('actual vals = ', vals)
-      expected_vals = [[326.690796, 10.371137], [306.014648, 10.373378],
-                       [280.316833, 10.382105]]
+      expected_vals = [[326.767578, 10.373574], [306.010498, 10.373238],
+                       [280.089264, 10.373676]]
       self.assertAllClose(vals, expected_vals)
 
   def testInference(self):

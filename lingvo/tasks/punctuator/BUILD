@@ -5,11 +5,6 @@ package(
 
 licenses(["notice"])  # Apache 2.0
 
-load(
-    "//lingvo:lingvo.bzl",
-    "lingvo_cuda_py_test",
-)
-
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
@@ -42,7 +37,6 @@ py_library(
     srcs = ["model.py"],
     deps = [
         # Implicit tensorflow dependency.
-        "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         "//lingvo/tasks/mt:model",
     ],
@@ -61,9 +55,6 @@ py_test(
         ":model",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
-        "//lingvo/tasks/mt:decoder",
-        "//lingvo/tasks/mt:encoder",
     ],
 )

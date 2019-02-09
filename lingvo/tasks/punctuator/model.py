@@ -20,20 +20,12 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.tasks.mt import model as mt_model
 
 
-class TransformerModel(mt_model.TransformerModel):
-  """Transformer model."""
-
-  def CreateDecoderMetrics(self):
-    decoder_metrics = {
-        'num_samples_in_batch': metrics.AverageMetric(),
-        'corpus_bleu': metrics.CorpusBleuMetric(separator_type=None),
-    }
-    return decoder_metrics
+class RNMTModel(mt_model.RNMTModel):
+  """The MT model with an inference graph for punctuator."""
 
   def Inference(self):
     """Constructs the inference subgraphs.
@@ -52,17 +44,6 @@ class TransformerModel(mt_model.TransformerModel):
       _, src_ids, src_paddings = self.input_generator.StringsToIds(
           src_strings, is_source=True)
 
-      # Truncate paddings at the end.
-      max_seq_length = tf.to_int32(
-          tf.reduce_max(tf.reduce_sum(1.0 - src_paddings, 1)))
-      src_paddings = py_utils.with_dependencies([
-          py_utils.assert_equal(
-              tf.constant(True, tf.bool),
-              tf.reduce_all(src_paddings[:, max_seq_length:] > 0.5))
-      ], src_paddings)
-      src_ids = src_ids[:, :max_seq_length]
-      src_paddings = src_paddings[:, :max_seq_length]
-
       src_input_map = py_utils.NestedMap(ids=src_ids, paddings=src_paddings)
       encoder_outputs = self.enc.FPropDefaultTheta(src_input_map)
       decoder_outs = self.dec.BeamSearchDecode(encoder_outputs)
@@ -71,6 +52,7 @@ class TransformerModel(mt_model.TransformerModel):
       topk_ids = decoder_outs.topk_ids
       topk_lens = decoder_outs.topk_lens
 
+      # topk_lens - 1 to remove the EOS id.
       topk_decoded = self.input_generator.IdsToStrings(topk_ids, topk_lens - 1)
       topk_decoded = tf.reshape(topk_decoded, tf.shape(topk_hyps))
 

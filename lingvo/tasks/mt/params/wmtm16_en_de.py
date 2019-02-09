@@ -23,6 +23,7 @@ import os
 from lingvo import model_registry
 from lingvo.core import base_model_params
 from lingvo.tasks.mt import input_generator
+from lingvo.tasks.mt import model
 from lingvo.tasks.mt.params import base_config
 
 
@@ -87,6 +88,7 @@ class WmtCaptionEnDeTransformer(base_model_params.SingleTaskModelParams):
   @classmethod
   def Task(cls):
     p = base_config.SetupTransformerParams(
+        model.TransformerModel.Params(),
         name='wmt14_en_de_transformer_base',
         vocab_size=cls.VOCAB_SIZE,
         model_dim=256,

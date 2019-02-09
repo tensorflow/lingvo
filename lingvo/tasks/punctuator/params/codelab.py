@@ -23,19 +23,15 @@ import tensorflow as tf
 
 from lingvo import model_registry
 from lingvo.core import base_model_params
-from lingvo.core import lr_schedule
-from lingvo.core import optimizer
 from lingvo.tasks.mt.params import base_config
 from lingvo.tasks.punctuator import input_generator
 from lingvo.tasks.punctuator import model
 
 
-# This decorator registers the model in the Lingvo model registry.
-# This file is lingvo/tasks/punctuator/params/codelab.py,
-# so the model will be registered as punctuator.codelab.TransformerModel.
-@model_registry.RegisterSingleTaskModel
-class TransformerModel(base_model_params.SingleTaskModelParams):
-  """A transformer model for the punctuator task."""
+# This base class defines parameters for the input generator for a specific
+# dataset. Specific network architectures will be implemented in subclasses.
+class BrownCorpusWPM(base_model_params.SingleTaskModelParams):
+  """Brown Corpus data with a Word-Piece Model tokenizer."""
 
   # Generated using
   # lingvo/tasks/punctuator/tools:download_brown_corpus.
@@ -101,33 +97,33 @@ class TransformerModel(base_model_params.SingleTaskModelParams):
     p.target_max_length = p.bucket_upper_bound[-1] + 2
     return p
 
+
+# This decorator registers the model in the Lingvo model registry.
+# This file is lingvo/tasks/punctuator/params/codelab.py,
+# so the model will be registered as punctuator.codelab.RNMTModel.
+@model_registry.RegisterSingleTaskModel
+class RNMTModel(BrownCorpusWPM):
+
   @classmethod
   def Task(cls):
-    p = model.TransformerModel.Params()
-    p.name = 'punctuator_transformer'
-
-    model_dim = 512
-    vocab_size = cls._VOCAB_SIZE
-    num_layers = 6
-    num_heads = 8
-    hidden_dim = 2048
-    residual_dropout_prob = 0.1
-    input_dropout_prob = 0.1
-
-    # Transformer encoder and decoder setup, delegated to
-    # lingvo/tasks/mt/params/base_config.py.
-    p.encoder = base_config.SetupTransformerEncoder(
-        model_dim, vocab_size, num_layers, num_heads, hidden_dim,
-        residual_dropout_prob, input_dropout_prob)
-    p.decoder = base_config.SetupTransformerDecoder(
-        model_dim, vocab_size, num_layers, num_heads, hidden_dim,
-        residual_dropout_prob, input_dropout_prob)
-
-    tp = p.train
-    tp.learning_rate = 3.0
-    tp.optimizer = optimizer.Adam.ParamsB()
-    tp.clip_gradient_norm_to_value = 0.0
-    tp.grad_norm_to_clip_to_zero = 0.0
-    tp.lr_schedule = lr_schedule.TransformerLearningRateSchedule.Params().Set(
-        warmup_steps=40000, worker_replicas=1, model_dim=model_dim)
-    return p
+    return base_config.SetupRNMTParams(
+        model.RNMTModel.Params(),
+        name='punctuator_rnmt',
+        vocab_size=cls._VOCAB_SIZE,
+        embedding_dim=1024,
+        hidden_dim=1024,
+        num_heads=4,
+        num_encoder_layers=6,
+        num_decoder_layers=8,
+        learning_rate=1e-4,
+        l2_regularizer_weight=1e-5,
+        lr_warmup_steps=500,
+        lr_decay_start=400000,
+        lr_decay_end=1200000,
+        lr_min=0.5,
+        ls_uncertainty=0.1,
+        atten_dropout_prob=0.3,
+        residual_dropout_prob=0.3,
+        adam_beta2=0.98,
+        adam_epsilon=1e-6,
+    )

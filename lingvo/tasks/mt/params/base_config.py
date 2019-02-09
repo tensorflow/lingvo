@@ -30,7 +30,6 @@ from lingvo.core import rnn_layers
 from lingvo.tasks.mt import decoder
 from lingvo.tasks.mt import encoder
 from lingvo.tasks.mt import input_generator
-from lingvo.tasks.mt import model
 
 
 def InitTrainDatasetParams(vocab_size=None, params=None):
@@ -129,7 +128,8 @@ def InitTransformerTrainBuckets(params):
   return params
 
 
-def SetupTransformerParams(name,
+def SetupTransformerParams(p,
+                           name,
                            vocab_size,
                            model_dim,
                            hidden_dim,
@@ -147,6 +147,7 @@ def SetupTransformerParams(name,
   """Common model setup for different transformer models.
 
   Args:
+    p: The initial params object to modify.
     name: An identifier for an instance of a transformer model.
     vocab_size: an integer representing the size of the vocabulary, probably
          16000 or 32000.
@@ -177,7 +178,6 @@ def SetupTransformerParams(name,
     (Vaswani 2017)
 
   """
-  p = model.TransformerModel.Params()
   p.name = name
 
   # Transformer encoder and decoder setup
@@ -361,7 +361,8 @@ def SetupTransformerEncoder(model_dim,
   return encoder_params
 
 
-def SetupRNMTParams(name,
+def SetupRNMTParams(p,
+                    name,
                     vocab_size,
                     embedding_dim,
                     hidden_dim,
@@ -385,6 +386,7 @@ def SetupRNMTParams(name,
   """Creates RNMT+ params common to all datasets.
 
   Args:
+    p: The initial params object to modify.
     name: A descriptive name for your model.
     vocab_size: size of the vocabulary. Probably 32000 or 16000.
     embedding_dim: Dimension of token embeddings.
@@ -415,7 +417,6 @@ def SetupRNMTParams(name,
   # TODO(orhanf): add transparent connections.
   del is_transparent
 
-  p = model.RNMTModel.Params()
   p.name = name
 
   default_params_init = py_utils.WeightInit.Uniform(0.04)

@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import itertools
 import os
 import random
 import string
@@ -137,13 +136,6 @@ def main(_):
     for line in sentences[int(len(sentences) * 0.95):]:
       f.write("%s\n" % line)
 
-  with open(os.path.join(FLAGS.outdir, "grapheme.txt"), "w") as f:
-    characters = set([char for sentence in sentences for char in sentence])
-    next_id = 0
-    symbols = itertools.chain(["<unk>", "<s>", "</s>"], sorted(characters))
-    for symbol in symbols:
-      f.write("%s\t%d\n" % (symbol, next_id))
-      next_id += 1
   tf.logging.info("All done.")
 
 
