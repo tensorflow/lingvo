@@ -1045,6 +1045,7 @@ class Decoder(base_runner.BaseRunner):
     start_time = time.time()
     while num_examples_metric.total_value < samples_per_summary:
       tf.logging.info('Fetching dec_output.')
+      fetch_start = time.time()
       run_options = config_pb2.RunOptions(
           report_tensor_allocations_upon_oom=False)
       if self._summary_op is None:
@@ -1054,12 +1055,17 @@ class Decoder(base_runner.BaseRunner):
         dec_out, summary = sess.run([self._dec_output, self._summary_op],
                                     options=run_options)
         self._summary_writer.add_summary(summary, global_step)
-      tf.logging.info('Done fetching.')
+      post_process_start = time.time()
+      tf.logging.info(
+          'Done fetching (%f seconds)' % (post_process_start - fetch_start))
       decode_out = self._model_task.PostProcessDecodeOut(dec_out, dec_metrics)
       if decode_out:
         buffered_decode_out.extend(decode_out)
-      tf.logging.info('Total examples done: %d/%d',
-                      num_examples_metric.total_value, samples_per_summary)
+      tf.logging.info(
+          'Total examples done: %d/%d '
+          '(%f seconds decode postprocess)', num_examples_metric.total_value,
+          samples_per_summary,
+          time.time() - post_process_start)
 
     summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
     elapsed_secs = time.time() - start_time
