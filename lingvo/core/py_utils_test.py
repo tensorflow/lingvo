@@ -240,6 +240,30 @@ class PyUtilsTest(tf.test.TestCase):
       v1_v = all_vars[0].eval()
       self.assertAllClose(v1_v_expted, v1_v.tolist())
 
+  def testGeoMeanXavier(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.set_random_seed(1618)
+      methods = [py_utils.WeightInit.GeoMeanXavier]
+      dtypes = [tf.float32, tf.float16, tf.complex64]
+      shapes = [[2, 3]]
+      all_vars = []
+      for i, (m, dt, sp) in enumerate(
+          itertools.product(methods, dtypes, shapes)):
+        pc = py_utils.WeightParams(sp, m(), dt)
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+
+      v1_v_expted = [[1.062019, -0.969037, 0.804257],
+                     [-0.692724, 0.233301, -1.016615]]
+      v3_v_expted = [[
+          0.151534 - 0.065029j, 0.696214 + 0.017434j, -0.507220 - 0.371455j
+      ], [0.525114 + 0.475238j, 0.746481 - 0.05456j, 0.028896 + 0.476672j]]
+
+      tf.global_variables_initializer().run()
+      v1_v = all_vars[0].eval()
+      v3_v = all_vars[2].eval()
+      self.assertAllClose(v1_v_expted, v1_v.tolist())
+      self.assertAllClose(v3_v_expted, v3_v.tolist())
+
   def testCheckNumerics(self):
     xv = [[1, 2], [3, 4]]
     yv = [10] * 4

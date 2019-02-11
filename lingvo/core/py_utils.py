@@ -683,6 +683,11 @@ class WeightInit(object):
     return WeightInit._Params('xavier', scale, seed)
 
   @staticmethod
+  def GeoMeanXavier(scale=1.0, seed=None):
+    """A variant of Xavier (x = sqrt(3. / sqrt(in * out)); [-x, x])."""
+    return WeightInit._Params('geo_mean_xavier', scale, seed)
+
+  @staticmethod
   def Constant(scale=1.0):
     """scale."""
     return WeightInit._Params('constant', scale, 0)
@@ -944,7 +949,7 @@ def CreateVariable(name,
         mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
   elif method in ['constant']:
     v_init = tf.constant_initializer(value=scale, dtype=init_dtype)
-  elif method in ['xavier']:
+  elif method in ['xavier', 'geo_mean_xavier']:
     # pylint: disable=unused-argument
     def XavierUniform(shape, dtype, partition_info):
       """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
@@ -963,7 +968,10 @@ def CreateVariable(name,
           receptive_field_size *= s
         fan_in = shape[-2] * receptive_field_size
         fan_out = shape[-1] * receptive_field_size
-      limit = math.sqrt(6. / (fan_in + fan_out))
+      if method == 'xavier':
+        limit = math.sqrt(6. / (fan_in + fan_out))
+      elif method == 'geo_mean_xavier':
+        limit = math.sqrt(3. / math.sqrt(fan_in * fan_out))
       return scale * tf.random_uniform(shape, -limit, limit, dtype, seed)
 
     # pylint: enable=unused-argument
