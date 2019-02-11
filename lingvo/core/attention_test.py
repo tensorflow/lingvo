@@ -34,6 +34,14 @@ from lingvo.core import test_utils
 class AttentionTest(tf.test.TestCase):
   """Test attention models."""
 
+  def _CheckStaticShapes(self, atten_vec, atten_prob, target_batch_size,
+                         source_length, context_dim):
+    """Static shape must be set correctly for RNN beam search compatibility."""
+    self.assertIsNotNone(atten_prob.shape.ndims)
+    self.assertEqual((target_batch_size, source_length), atten_prob.shape)
+    self.assertIsNotNone(atten_vec.shape.ndims)
+    self.assertEqual((target_batch_size, context_dim), atten_vec.shape)
+
   def _AdditiveAttentionInputs(self, packed_inputs=False, tgt_bs=6):
     np.random.seed(12345)
     source_vecs = tf.constant(np.random.rand(6, 3, 4), dtype=tf.float32)
@@ -73,6 +81,13 @@ class AttentionTest(tf.test.TestCase):
                                 source_padding)
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec)
+
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
 
       # TODO(yonghui): add atten.vars for the variables attention model
       # declares.
@@ -144,6 +159,13 @@ class AttentionTest(tf.test.TestCase):
 
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
 
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
       print(['packed additive attention prob_out', np.array_repr(prob_out)])
       print([
           'packed additive attention atten_vec_out',
@@ -197,6 +219,13 @@ class AttentionTest(tf.test.TestCase):
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec, step_state=step_state)
 
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
       atten_vars = tf.get_collection('AdditiveAttention_vars')
       self.assertEqual(3, len(atten_vars))
 
@@ -248,6 +277,13 @@ class AttentionTest(tf.test.TestCase):
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec)
 
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
       self.assertEqual(3, len(atten.vars.Flatten()))
 
     with self.session(use_gpu=True, graph=g) as sess:
@@ -292,6 +328,13 @@ class AttentionTest(tf.test.TestCase):
                                 source_padding)
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec)
+
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
 
       atten_vars = tf.get_collection('AdditiveAttention_vars')
       self.assertEqual(3, len(atten_vars))
@@ -366,6 +409,13 @@ class AttentionTest(tf.test.TestCase):
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec)
 
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
       # TODO(yonghui): add atten.vars for the variables attention model
       # declares.
       atten_vars = tf.get_collection('AdditiveAttention_vars')
@@ -412,6 +462,13 @@ class AttentionTest(tf.test.TestCase):
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec)
 
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
       atten_vars = tf.get_collection('AdditiveAttention_vars')
       self.assertEqual(3, len(atten_vars))
 
@@ -451,6 +508,7 @@ class AttentionTest(tf.test.TestCase):
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
   def _DotProductAttention(self, packed_inputs=False):
+    # TODO(colincherry): Dead code?
     with self.session(use_gpu=True) as sess:
       np.random.seed(12345)
       # source_vecs_p, source_contexts_p, source_padding_p, query_vec_p are used
@@ -736,6 +794,14 @@ class AttentionTest(tf.test.TestCase):
       tf.global_variables_initializer().run()
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec)
+
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       self.assertAllClose([
@@ -953,6 +1019,14 @@ class AttentionTest(tf.test.TestCase):
       tf.global_variables_initializer().run()
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec)
+
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=params.ctx_post_proj_dim)
+
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       self.assertAllClose([
@@ -1007,6 +1081,14 @@ class AttentionTest(tf.test.TestCase):
                                 source_padding, source_seg_id)
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec, query_segment_id=query_seg_id)
+
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
       tf.global_variables_initializer().run()
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))

@@ -486,6 +486,7 @@ class AdditiveAttention(BaseAttentionLayer):
       probs = AttenProbs(concated_source_vecs, source_padding,
                          query_vec_reshaped, v, per_step_source_padding,
                          source_segment_id, query_segment_id)
+      probs.set_shape(per_step_source_padding.shape)
 
       # Apply dropout to weights if applicable.
       if not p.is_eval:
@@ -570,6 +571,7 @@ class AdditiveAttention(BaseAttentionLayer):
       probs = AttenProbs(concated_source_vecs, source_padding, query_vec, v,
                          per_step_source_padding, source_segment_id,
                          query_segment_id)
+      probs.set_shape(per_step_source_padding.shape)
 
       # contexts[i, :] is a weighted (probs[i, :]) average of
       # concated_source_vecs[i, :, :].
@@ -878,6 +880,7 @@ class DotProductAttention(BaseAttentionLayer):
       returned_probs = AttenProbs(
           per_dim_scale, source_padding, concated_source_vecs, query_vec,
           per_step_source_padding, source_segment_id, query_segment_id)
+      returned_probs.set_shape(per_step_source_padding.shape)
 
       # => [n, source_batch, time].
       probs = tf.reshape(returned_probs, [n, source_batch, -1])
