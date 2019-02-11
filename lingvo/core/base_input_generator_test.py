@@ -56,7 +56,7 @@ class BaseExampleInputGeneratorTest(tf.test.TestCase):
 
   def testTfRecordFile(self):
 
-    class ToyInputGenerator(base_input_generator.BaseExampleInputGenerator):
+    class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):
 
       def GetFeatureSpec(self):
         return {'audio': tf.FixedLenFeature([48000], tf.float32)}
@@ -64,32 +64,7 @@ class BaseExampleInputGeneratorTest(tf.test.TestCase):
     p = ToyInputGenerator.Params()
     p.batch_size = 2
     self._tmpdir, p.input_files = _CreateFakeTFRecordFiles()
-    p.file_type = 'tfrecord'
-    p.randomize_order = False
-    p.parallel_readers = 1
-    ig = p.cls(p)
-    with self.session(graph=tf.get_default_graph()) as sess:
-      inputs = ig.InputBatch()
-      eval_inputs = sess.run(inputs)
-      input_shapes = eval_inputs.Transform(lambda t: t.shape)
-      self.assertEqual(input_shapes.audio, (2, 48000))
-
-  def testFactoryClass(self):
-
-    class ToyInputGenerator(base_input_generator.BaseExampleInputGenerator):
-
-      def GetFeatureSpec(self):
-        return {'audio': tf.FixedLenFeature([48000], tf.float32)}
-
-    class FileTypeFactory(object):
-
-      def __call__(self, files):
-        return tf.data.TFRecordDataset(files)
-
-    p = ToyInputGenerator.Params()
-    p.batch_size = 2
-    self._tmpdir, p.input_files = _CreateFakeTFRecordFiles()
-    p.file_type = FileTypeFactory
+    p.dataset_type = tf.data.TFRecordDataset
     p.randomize_order = False
     p.parallel_readers = 1
     ig = p.cls(p)

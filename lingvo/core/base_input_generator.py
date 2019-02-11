@@ -32,44 +32,6 @@ from lingvo.core import tokenizers
 from lingvo.core.ops import py_x_ops
 
 
-_TFDATA_DATASET_CTORS = {
-    'tfrecord': tf.data.TFRecordDataset,
-    'textline': tf.data.TextLineDataset,
-    'csv': tf.contrib.data.CsvDataset,
-}
-
-
-def _LookupTfDataDatasetCtor(factory_type):
-  """Looks up a tf.data dataset constructor by factory_type.
-
-  Args:
-    factory_type: One of the well-known string type names. It can also be a
-      class, in which case, it will be instantiated and used as the constructor.
-      In this case, the class should implement __call__.
-
-  Returns:
-    A callable that takes a list of filenames (see tf.data.TFRecordDataset
-    for the convention).
-  Raises:
-    ValueError: If an unknown type.
-  """
-  if isinstance(factory_type, type):
-    factory = factory_type()
-    if not callable(factory):
-      raise ValueError('Dataset factory %r is not callable' % factory_type)
-    return factory
-
-  if factory_type == 'tfrecord':
-    return tf.data.TFRecordDataset
-  elif factory_type == 'textline':
-    return tf.data.TextLineDataset
-  elif factory_type == 'csv':
-    return tf.contrib.data.CsvDataset
-
-  raise ValueError('Unsupported tf.data dataset factory %s (known %r)' %
-                   (factory_type, _TFDATA_DATASET_CTORS))
-
-
 class BaseInputGenerator(base_layer.BaseLayer):
   """The base input generator."""
 
@@ -643,18 +605,18 @@ class BaseTinyDatasetInput(BaseInputGenerator):
     return raw
 
 
-class BaseExampleInputGenerator(BaseInputGenerator):
+class BaseDataExampleInputGenerator(BaseInputGenerator):
   """Base class for input generators that read Feature protos via tf.data."""
 
   @classmethod
   def Params(cls):
-    p = super(BaseExampleInputGenerator, cls).Params()
+    p = super(BaseDataExampleInputGenerator, cls).Params()
     p.Define('input_files', None, 'Delimited glob of input files.')
     p.Define(
-        'file_type', None,
-        'The file type. Can be one of "tfrecord" or a class that implements '
-        '__call__ and takes a list of filenames (note that other file types '
-        'are not valid for reading examples).')
+        'dataset_type', None,
+        'A dataset class constructor such as tf.data.TFRecordDatatset. '
+        'The class constructor must take a list of filenames and produce an '
+        'object that extends tf.data.Dataset.')
     p.Define('randomize_order', True, 'Whether to randomize the order.')
     p.Define('parallel_readers', 1, 'Number of parallel reader threads.')
     p.Define('num_examples', -1, 'Number of examples (-1 for unlimited).')
@@ -663,12 +625,12 @@ class BaseExampleInputGenerator(BaseInputGenerator):
     return p
 
   def __init__(self, params):
-    super(BaseExampleInputGenerator, self).__init__(params)
+    super(BaseDataExampleInputGenerator, self).__init__(params)
     p = params
     assert p.input_files, (
         'input_files is required for a tf.data example input generator')
-    assert p.file_type, (
-        'file_type is required for a tf.data example input generator')
+    assert p.dataset_type, (
+        'dataset_type is required for a tf.data example input generator')
 
   def GetFeatureSpec(self):
     """Subclasses must implement and return a feature spec.
@@ -710,7 +672,7 @@ class BaseExampleInputGenerator(BaseInputGenerator):
       features = py_utils.NestedMap(tf.parse_example(record, feature_spec))
       return self.PostProcessBatch(features)
 
-    dataset_factory = _LookupTfDataDatasetCtor(p.file_type)
+    dataset_factory = p.dataset_type
     dataset = (
         tf.data.Dataset.list_files(
             p.input_files, shuffle=bool(p.randomize_order)).apply(
