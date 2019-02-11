@@ -1083,10 +1083,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
           inputs.padding, inputs.misc)
       # TODO(syzhang): understand why we have to construct softmax outside the
       # recurrent loop; otherwise, the BProp numbers don't match.
-      xent_loss = self.softmax.FProp(
-          theta.softmax, [softmax_input],
-          class_weights=inputs.weight,
-          class_ids=inputs.label)
+      seq_logits = self._ComputeLogits(theta, softmax_input)
       # TODO(syzhang): supports AddAdditionalDecoderSummaries().
       atten_states = accumulated_states.atten_states
       if isinstance(atten_states, py_utils.NestedMap):
@@ -1109,7 +1106,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
           additional_atten_probs=additional_atten_probs,
           target_alignments=getattr(targets, 'alignments', None))
       # seq_logits: [time, batch, num_classes].
-      seq_logits = xent_loss.logits
       adjusted_logits = self.fusion.ComputeLogitsWithLM(state0.fusion_states,
                                                         seq_logits)
       predictions = py_utils.NestedMap(
@@ -1124,6 +1120,19 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       predictions.attention = attention_map.Transform(
           lambda x: tf.transpose(x, [1, 0, 2]))
       return predictions
+
+  def _ComputeLogits(self, theta, softmax_input):
+    if isinstance(self.softmax, layers.ConvSoftmax):
+      return self.softmax.Logits(theta.softmax, softmax_input)
+    else:
+      # SoftmaxLayer.Logits() may not support 3-D inputs. So use FProp() with
+      # fake labels.
+      xent_loss = self.softmax.FProp(
+          theta.softmax, [softmax_input],
+          class_weights=tf.ones(
+              shape=tf.shape(softmax_input)[:-1], dtype=softmax_input.dtype),
+          class_ids=tf.ones(shape=tf.shape(softmax_input)[:-1], dtype=tf.int32))
+      return xent_loss.logits
 
   def SingleDecodeStep(self,
                        theta,
@@ -1468,9 +1477,7 @@ class AsrDecoder(AsrDecoderBase):
   def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
                                  num_hyps_per_beam):
     p = self.params
-    fake_step_labels = tf.identity(step_ids)
     step_paddings = tf.zeros(tf.shape(step_ids), dtype=p.dtype)
-    step_weights = tf.ones(tf.shape(step_ids), dtype=p.dtype)
     embs = self.emb.EmbLookup(theta.emb, tf.reshape(step_ids, [-1]))
     prev_rnn_states = states.rnn_states
     prev_atten_states = states.all_atten_states.atten_states
@@ -1525,15 +1532,9 @@ class AsrDecoder(AsrDecoderBase):
         theta.fusion, prev_fusion_states, softmax_input, cur_target_info.id,
         cur_target_info.padding)
 
-    xent_loss = self.softmax.FProp(
-        theta.softmax,
-        [softmax_input],
-        class_weights=step_weights,
-        class_ids=fake_step_labels,
-    )
-
+    logits = self._ComputeLogits(theta, softmax_input)
     logits = self.fusion.ComputeLogitsWithLM(
-        fusion_states, xent_loss.logits, is_eval=True)
+        fusion_states, logits, is_eval=True)
     if p.use_unnormalized_logits_as_log_probs:
       log_probs = logits
     else:

@@ -2523,6 +2523,56 @@ class SoftmaxLayerTest(tf.test.TestCase):
     self._RunSimpleFullSoftmaxGradientChecker(3, 4, 5, 2)
 
 
+class SoftmaxLayerLogitsTest(tf.test.TestCase):
+  """Testing SoftmaxLayer.Logits()."""
+
+  def _Logits(self, params, batch_size=2, seq_length=None):
+    with self.session(use_gpu=True, graph=tf.Graph()):
+      np.random.seed(12345)
+      tf.set_random_seed(1234)
+
+      params.name = 'softmax'
+      if not params.input_dim:
+        params.input_dim = 3
+      if not params.num_classes:
+        params.num_classes = 4
+      params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
+      softmax = params.cls(params)
+
+      input_dim = params.input_dim
+      if seq_length:
+        inputs = np.random.rand(batch_size, seq_length, input_dim)
+      else:
+        inputs = np.random.rand(batch_size, input_dim)
+      inputs = tf.constant(inputs, dtype=py_utils.FPropDtype(params))
+      logits = softmax.Logits(softmax.theta, inputs)
+
+      if seq_length:
+        logits = py_utils.HasShape(logits,
+                                   [batch_size, seq_length, params.num_classes])
+      else:
+        logits = py_utils.HasShape(logits, [batch_size, params.num_classes])
+      tf.global_variables_initializer().run()
+      return logits.eval()
+
+  def testConvSoftmaxLogits(self):
+    params = layers.ConvSoftmax.Params()
+    self.assertAllClose([[0.52536774, -0.17598523, 0.38314393, -0.36068222],
+                         [0.75792629, -0.18001975, 0.42298675, -0.35423514]],
+                        self._Logits(params))
+
+  def testSimpleFullSoftmax(self):
+    params = layers.SimpleFullSoftmax.Params()
+    self.assertAllClose([[0.52536774, -0.17598523, 0.38314393, -0.36068222],
+                         [0.75792629, -0.18001975, 0.42298675, -0.35423514]],
+                        self._Logits(params))
+
+  def testConvSoftmaxLogitsWith3DInputs(self):
+    params = layers.ConvSoftmax.Params()
+    logits = self._Logits(params, seq_length=5)
+    self.assertAllClose(6.9934864, np.sum(logits))
+
+
 class FeedForwardNetTest(tf.test.TestCase):
 
   def testFeedForwardNetConstruction(self):
