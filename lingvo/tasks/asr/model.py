@@ -175,48 +175,63 @@ class AsrModel(base_model.BaseTask):
         self.decoder.contextualizer.SetContextMap(
             input_batch.tgt, self.decoder.theta.contextualizer)
       decoder_outs = self.decoder.BeamSearchDecode(encoder_outputs)
-      topk = self._GetTopK(decoder_outs)
+      return self._ComputeDecoderMetrics(decoder_outs, input_batch)
 
-      utt_ids = input_batch.sample_ids
-      tgt = input_batch.tgt
-      if p.target_key:
-        tgt = input_batch.additional_tgts[p.target_key]
-      transcripts = self.input_generator.IdsToStrings(
-          tgt.labels,
-          tf.cast(tf.reduce_sum(1.0 - tgt.paddings, 1) - 1.0, tf.int32))
+  def _ComputeDecoderMetrics(self, decoder_outs, input_batch):
+    """Computes metrics on output from decoder.
 
-      # Filter out all isolated '<noise>' tokens.
-      noise_pattern = ' <noise> |^<noise> | <noise>$|^<noise>$'
-      filtered_refs = tf.regex_replace(transcripts, noise_pattern, ' ')
-      filtered_hyps = tf.regex_replace(topk.decoded, noise_pattern, ' ')
-      # Compute translation quality scores for all hyps.
-      filtered_refs = tf.tile(
-          tf.reshape(filtered_refs, [-1, 1]),
-          [1, p.decoder.beam_search.num_hyps_per_beam])
-      filtered_hyps = tf.reshape(filtered_hyps, [-1])
-      filtered_refs = tf.reshape(filtered_refs, [-1])
-      norm_wer_errors, norm_wer_words = self._ComputeNormalizedWER(
-          filtered_hyps, filtered_refs)
+    Args:
+      decoder_outs: A `BeamSearchDecodeOutput`, a namedtuple containing the
+        decode results.
+      input_batch:  A `NestedMap` of tensors representing the source, target,
+        and other components of the input batch.
 
-      ret_dict = {
-          'target_ids': tgt.ids,
-          'target_labels': tgt.labels,
-          'target_weights': tgt.weights,
-          'target_paddings': tgt.paddings,
-          'utt_id': utt_ids,
-          'transcripts': transcripts,
-          'topk_decoded': topk.decoded,
-          'topk_ids': topk.ids,
-          'topk_lens': topk.lens,
-          'topk_scores': topk.scores,
-          'norm_wer_errors': norm_wer_errors,
-          'norm_wer_words': norm_wer_words,
-      }
+    Returns:
+      A dict of Tensors containing decoder output and metrics.
+    """
+    p = self.params
+    topk = self._GetTopK(decoder_outs)
 
-      ret_dict.update(
-          self.AddAdditionalDecoderMetricsToGraph(
-              topk, filtered_hyps, filtered_refs, input_batch, decoder_outs))
-      return ret_dict
+    utt_ids = input_batch.sample_ids
+    tgt = input_batch.tgt
+    if p.target_key:
+      tgt = input_batch.additional_tgts[p.target_key]
+    transcripts = self.input_generator.IdsToStrings(
+        tgt.labels, tf.cast(
+            tf.reduce_sum(1.0 - tgt.paddings, 1) - 1.0, tf.int32))
+
+    # Filter out all isolated '<noise>' tokens.
+    noise_pattern = ' <noise> |^<noise> | <noise>$|^<noise>$'
+    filtered_refs = tf.regex_replace(transcripts, noise_pattern, ' ')
+    filtered_hyps = tf.regex_replace(topk.decoded, noise_pattern, ' ')
+    # Compute translation quality scores for all hyps.
+    filtered_refs = tf.tile(
+        tf.reshape(filtered_refs, [-1, 1]),
+        [1, p.decoder.beam_search.num_hyps_per_beam])
+    filtered_hyps = tf.reshape(filtered_hyps, [-1])
+    filtered_refs = tf.reshape(filtered_refs, [-1])
+    norm_wer_errors, norm_wer_words = self._ComputeNormalizedWER(
+        filtered_hyps, filtered_refs)
+
+    ret_dict = {
+        'target_ids': tgt.ids,
+        'target_labels': tgt.labels,
+        'target_weights': tgt.weights,
+        'target_paddings': tgt.paddings,
+        'utt_id': utt_ids,
+        'transcripts': transcripts,
+        'topk_decoded': topk.decoded,
+        'topk_ids': topk.ids,
+        'topk_lens': topk.lens,
+        'topk_scores': topk.scores,
+        'norm_wer_errors': norm_wer_errors,
+        'norm_wer_words': norm_wer_words,
+    }
+
+    ret_dict.update(
+        self.AddAdditionalDecoderMetricsToGraph(
+            topk, filtered_hyps, filtered_refs, input_batch, decoder_outs))
+    return ret_dict
 
   def CreateAdditionalDecoderMetrics(self):
     """Returns a dictionary of additional metrics which should be computed."""
