@@ -44,6 +44,7 @@ py_library(
 
 py_test(
     name = "model_test",
+    size = "large",
     srcs = ["model_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
