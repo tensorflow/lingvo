@@ -684,10 +684,10 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     if p.randomize_order:
       dataset = dataset.shuffle(p.randomize_shuffle_size)
     dataset = dataset.take(p.num_examples)
+    dataset = dataset.repeat()
     dataset = dataset.batch(p.batch_size, drop_remainder=True)
     dataset = dataset.map(
         ParseAndProcess, num_parallel_calls=p.parallel_readers)
-    dataset = dataset.repeat()
     iterator = dataset.make_one_shot_iterator()
     input_batch = iterator.get_next()
     return input_batch
