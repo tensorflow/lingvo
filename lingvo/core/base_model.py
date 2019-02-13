@@ -241,14 +241,16 @@ class BaseTask(base_layer.BaseLayer):
     # Create the gradient mask,
     self._per_input_gradient_mask = None
     self._shared_global_step = py_utils.GetOrCreateGlobalStep()
+    self._task_global_step = None
+    self._global_step = self._shared_global_step
     tp = p.train
-    if tp:
+    # p.train can be None if this task is the teacher/student task in a
+    # DistillationTask.
+    if tp and self.cluster.job in ('worker', 'trainer', 'trainer_client',
+                                   'controller'):
       if tp.task_global_step:
         self._task_global_step = CreateTaskGlobalStep(p, p.name)
         self._global_step = self._task_global_step
-      else:
-        self._task_global_step = None
-        self._global_step = self._shared_global_step
       if tp.grad_norm_tracker:
         with tf.variable_scope(p.name):
           self.CreateChild('grad_norm_tracker', tp.grad_norm_tracker)

@@ -1171,6 +1171,7 @@ class RunnerManager(object):
       tf.logging.warning('Exception configuring dataset %s, retrying as %s: %s',
                          dataset_name, dataset_name_retry, e)
       cfg = self.model_registry.GetParams(self._model_name, dataset_name_retry)
+      tf.logging.warning('Succeeded after retrying as %s.' % dataset_name_retry)
     self.UpdateClusterParamsFromFlags(cfg, job_name)
     return cfg
 
