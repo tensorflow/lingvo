@@ -1246,6 +1246,80 @@ class RNNCellTest(tf.test.TestCase):
       print('c_v', np.array_repr(c_v))
       return m_v, c_v
 
+  def testDoubleProjectionLSTMCell(self):
+    with self.session(
+        use_gpu=False, config=py_utils.SessionConfig(inline=False)):
+      params = rnn_cell.DoubleProjectionLSTMCell.Params()
+      params.name = 'lstm'
+      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+
+      params.vn.global_vn = False
+      params.vn.per_step_vn = False
+      params.num_input_nodes = 2
+      params.num_output_nodes = 1
+      params.num_hidden_nodes = 2
+      params.num_input_hidden_nodes = 2
+
+      lstm = params.cls(params)
+      print('lstm vars = ', lstm.vars)
+
+      # Input projection.
+      self.assertEqual(
+          lstm.theta.w_input_proj.get_shape(),
+          tf.TensorShape([
+              params.num_input_nodes + params.num_output_nodes,
+              params.num_input_hidden_nodes
+          ]))
+      # W, LN, bias for the gates.
+      for gate in ['i_i', 'i_g', 'f_g', 'o_g']:
+        self.assertEqual(
+            lstm.theta.get('wm_%s' % gate).get_shape(),
+            tf.TensorShape(
+                [params.num_input_hidden_nodes, params.num_hidden_nodes]))
+        self.assertEqual(
+            lstm.theta.get('ln_scale_%s' % gate).get_shape(),
+            tf.TensorShape([params.num_hidden_nodes]))
+        self.assertEqual(
+            lstm.theta.get('bias_%s' % gate).get_shape(),
+            tf.TensorShape([params.num_hidden_nodes]))
+      # LN and bias for 'c'.
+      self.assertEqual(lstm.theta.ln_scale_c.get_shape(),
+                       tf.TensorShape([params.num_hidden_nodes]))
+      self.assertEqual(lstm.theta.bias_c.get_shape(),
+                       tf.TensorShape([params.num_hidden_nodes]))
+      # Output projection.
+      self.assertEqual(
+          lstm.theta.w_output_proj.get_shape(),
+          tf.TensorShape([params.num_hidden_nodes, params.num_output_nodes]))
+
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      inputs = py_utils.NestedMap(
+          act=[
+              tf.constant(
+                  np.random.uniform(size=(3, params.num_input_nodes)),
+                  tf.float32)
+          ],
+          padding=tf.zeros([3, 1]))
+      state0 = py_utils.NestedMap(
+          c=tf.constant(
+              np.random.uniform(size=(3, params.num_hidden_nodes)), tf.float32),
+          m=tf.constant(
+              np.random.uniform(size=(3, params.num_output_nodes)), tf.float32))
+
+      state1, _ = lstm.FPropDefaultTheta(state0, inputs)
+
+      # Initialize all the variables, and then run one step.
+      tf.global_variables_initializer().run()
+
+      wts = tf.get_collection('DoubleProjectionLSTMCell_vars')
+      self.assertEqual(2 + 3 * 4 + 2, len(wts))
+
+      m_expected = [[-0.751002], [0.784634], [0.784634]]
+      c_expected = [[1.261887, -0.029158], [-0.00341, 1.034558],
+                    [-0.003731, 1.259534]]
+      self.assertAllClose(m_expected, state1.m.eval())
+      self.assertAllClose(c_expected, state1.c.eval())
+
   def testQuantizedLSTMCellPadding(self):
     with self.session(use_gpu=False) as sess:
       params = rnn_cell.QuantizedLSTMCell.Params()
