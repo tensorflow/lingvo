@@ -262,9 +262,10 @@ Compute the top k terminated hyps based on normalized score for each beam.
 Let "b" be the number of beams, "h" be the number hyps in each beam, "t" be the
 maximum decoding steps.
 
-in_done_hyps: A tensor of shape [t, b * h]. in_done_hyps[i, j] can be either
-    an empty string, or a serialized Hypothesis proto. The non-empty hyps in
-    in_done_hyps are terminated hyps.
+in_done_hyps: A tensor of shape [t, h * b]. Each string in in_done_hyps can be
+    either an empty string, or a serialized Hypothesis proto. If not empty,
+    in_done_hyps[t, i * num_beams + j] represents the i-th hypothesis for beam
+    j that terminates at step t.
 src_seq_lengths: A tensor of shape [b] of the src sequence lengths.
 out_topk_hyps:
     A string tensor of shape [b, k]. topk_hyps[i: ] contains
