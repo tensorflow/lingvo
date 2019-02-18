@@ -523,9 +523,9 @@ class PyUtilsTest(tf.test.TestCase):
                           var_grads_with_l2_vals.weight[0])
       self.assertAllEqual(
           l2_loss_val,
-          0.5 * 0.1 * (np.sum(np.square(var_grads_vals.weight[0])) + np.sum(
-              np.square(var_grads_vals.emb[0][2, :])) + np.sum(
-                  np.square(var_grads_vals.emb[0][5, :]))))
+          0.5 * 0.1 * (np.sum(np.square(var_grads_vals.weight[0])) +
+                       np.sum(np.square(var_grads_vals.emb[0][2, :])) +
+                       np.sum(np.square(var_grads_vals.emb[0][5, :]))))
 
       # With l2, gradients of emb and weight are adjusted.
       self.assertAllClose(
@@ -537,8 +537,8 @@ class PyUtilsTest(tf.test.TestCase):
                           [2, 5, 2, 2, 5])
       self.assertAllClose(
           var_grads_with_l2_vals.emb[1].values, var_grads_vals.emb[1].values +
-          0.1 * np.array([[1 / 3.], [1 / 2.], [1 / 3.], [1 / 3.], [1 / 2.]
-                         ]) * var_grads_vals.emb[0][[2, 5, 2, 2, 5], :])
+          0.1 * np.array([[1 / 3.], [1 / 2.], [1 / 3.], [1 / 3.], [1 / 2.]]) *
+          var_grads_vals.emb[0][[2, 5, 2, 2, 5], :])
 
   def testSkipL1Regularization(self):
     with self.session(use_gpu=False) as sess:
@@ -596,9 +596,9 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertAllEqual(var_grads_vals.weight[0],
                           var_grads_with_l1_vals.weight[0])
       self.assertAllEqual(
-          l1_loss_val, 0.1 * (np.sum(np.abs(var_grads_vals.weight[0])) + np.sum(
-              np.abs(var_grads_vals.emb[0][2, :])) + np.sum(
-                  np.abs(var_grads_vals.emb[0][5, :]))))
+          l1_loss_val, 0.1 * (np.sum(np.abs(var_grads_vals.weight[0])) +
+                              np.sum(np.abs(var_grads_vals.emb[0][2, :])) +
+                              np.sum(np.abs(var_grads_vals.emb[0][5, :]))))
 
       # With l1, gradients of emb and weight are adjusted.
       self.assertAllClose(
@@ -998,8 +998,9 @@ class NestedMapTest(tf.test.TestCase):
     x = py_utils.NestedMap(
         a='a', b='b', c=py_utils.NestedMap(d='d', e=[1, 2, 4]))
     flat_x = x.FlattenItems()
-    expected = [('a', 'a'), ('b', 'b'), ('c.d', 'd'), ('c.e', 1), ('c.e', 2),
-                ('c.e', 4)]
+    expected = [('a', 'a'), ('b', 'b'), ('c.d', 'd'), ('c.e_0', 1), ('c.e_1',
+                                                                     2),
+                ('c.e_2', 4)]
     self.assertEqual(expected, flat_x)
 
   def testFilter(self):
@@ -1010,7 +1011,23 @@ class NestedMapTest(tf.test.TestCase):
         d=py_utils.NestedMap(foo=38, bar=192, ok=[200, 300], ko=[10, 20]))
     y = x.Filter(lambda v: v > 150)
     self.assertEqual(y.FlattenItems(), [('b', 200), ('c', 300), ('d.bar', 192),
-                                        ('d.ok', 200), ('d.ok', 300)])
+                                        ('d.ok_0', 200), ('d.ok_1', 300)])
+
+  def testFilterKeyVal(self):
+    x = py_utils.NestedMap(
+        a=100,
+        b=200,
+        c=300,
+        d=py_utils.NestedMap(foo=38, bar=192, ok=[200, 300], ko=[10, 20]))
+    selected = {'a', 'd.foo', 'd.ok[1]'}
+
+    def Sel(k, v):
+      del v
+      return k in selected
+
+    y = x.FilterKeyVal(Sel)
+    self.assertEqual(y.FlattenItems(), [('a', 100), ('d.foo', 38),
+                                        ('d.ok_0', 300)])
 
   def testCopy(self):
     # This is not a copy.

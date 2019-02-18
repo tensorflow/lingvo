@@ -456,6 +456,8 @@ class NestedMap(dict):
   def FlattenItems(self):
     """Flatten the `.NestedMap` and returns <key, value> pairs in a list.
 
+    For lists, keys will be returned with `_<idx>` appended, e.g. `x.y_10.z`.
+
     Returns:
       A list of <key, value> pairs, where keys for nested entries will be
       represented in the form of `foo.bar`.
@@ -470,8 +472,8 @@ class NestedMap(dict):
         return ret
       elif isinstance(v, list):
         ret = []
-        for x in v:
-          ret += Expand(key, x)
+        for i, x in enumerate(v):
+          ret += Expand('%s_%d' % (key, i), x)
         return ret
       else:
         return [(key, v)]
@@ -500,29 +502,50 @@ class NestedMap(dict):
 
   def Filter(self, fn):
     """Returns a copy of this `.NestedMap` with entries that fn(entry) is True."""
+    return self.FilterKeyVal(lambda _, v: fn(v))
 
-    def DoFilter(v):
-      if isinstance(v, NestedMap):
-        return v.Filter(fn)
-      elif isinstance(v, list):
+  def FilterKeyVal(self, fn):
+    """Returns a copy of this `.NestedMap` with filtered by fn.
+
+    If fn(key, entry) is True, the entry is copied into the returned NestedMap.
+    Otherwise, it is not copied.
+    For lists, keys will be processed with indices, e.g. `x.y[10].z`.
+    This is different from FlattenItems.
+
+    Args:
+      fn: a callable of (string, entry)->boolean.
+
+    Returns:
+      A `.NestedMap` contains copied entries from this `'.NestedMap`.
+    """
+
+    def DoFilter(prefix, value):
+      """Recursively copy value with the filter fn applied."""
+      if isinstance(value, NestedMap):
+        ret = NestedMap()
+        for k in sorted(value.keys()):
+          v = value[k]
+          if prefix:
+            key = '%s.%s' % (prefix, k)
+          else:
+            key = k
+          filtered = DoFilter(key, v)
+          if filtered is not None:
+            ret[k] = filtered
+        return ret if len(ret) else None
+      elif isinstance(value, list):
         lst = []
-        for x in v:
-          filtered = DoFilter(x)
+        for i, x in enumerate(value):
+          filtered = DoFilter('%s[%d]' % (prefix, i), x)
           if filtered is not None:
             lst += [filtered]
         return lst if lst else None
-      elif fn(v):
-        return v
+      elif fn(prefix, value):
+        return value
       else:
         return None
 
-    ret = NestedMap()
-    for k in sorted(self.keys()):
-      filtered = DoFilter(self[k])
-      if filtered is not None:
-        ret[k] = filtered
-
-    return ret if len(ret) else None
+    return DoFilter('', self)
 
   def Pack(self, lst):
     """Returns a copy of this with each value replaced by a value in lst."""
@@ -1187,13 +1210,13 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
     session: Tensorflow session.
     all_vars: List of all the parameters in the model.
     ckpts_loading_rules: A dictionary of checkpoint path: loading rules.
-      Checkpoint path must be a path to a pretrained model, and loading rules
-      is expected to be a tuple of two lists: the first consisting of tuples
-      of strings defining (regex to match parameter names in the model to
-      override, format string to determine the corresponding var in the
-      checkpoint), and the second list consisting of a list of regexes to
-      match parameter names in the model which should not be overridden,
-      even if they match those in the loading rules.
+      Checkpoint path must be a path to a pretrained model, and loading rules is
+      expected to be a tuple of two lists. The first consisting of tuples of
+      strings defining (regex to match parameter names in the model to override,
+      format string to determine the corresponding var in the checkpoint), and
+      the second list consisting of a list of regexes to match parameter names
+      in the model which should not be overridden, even if they match those in
+      the loading rules.
 
   Raises:
     ValueError: if colliding vars exist or loading rules is not a list.
