@@ -18,6 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import types
 import unittest
 
 import numpy as np
@@ -1610,6 +1611,69 @@ class LayersTest(LayersTestBase):
       self.assertAllClose(
           np.zeros(shape=(tlen, tbatch, dims // 2)),
           atten_ctx_v[:, :, 0:dims:2])
+
+  def _testFRNNWithAttentionUseZeroAttenState(self, zero_atten_state_fn):
+    dtype = tf.float32
+    dims = 5
+    slen = 4
+    tlen = 3
+    sbatch = 2
+    tbatch = 6
+
+    with self.session(use_gpu=True) as sess:
+      p = self._CreateFRNNWithAttentionParams(
+          dtype=dtype,
+          dims=dims,
+          slen=slen,
+          sbatch=sbatch,
+          tlen=tlen,
+          tbatch=tbatch)
+      p.use_zero_atten_state = True
+      p.atten_context_dim = dims
+      frnn = p.cls(p)
+
+      # Override the ZeroAttentionState to have the desired output type
+      frnn.atten.ZeroAttentionState = types.MethodType(zero_atten_state_fn,
+                                                       frnn.atten)
+
+      src_encs = tf.constant(
+          np.random.uniform(size=[slen, sbatch, dims]), dtype)
+      src_paddings = tf.constant(np.zeros([slen, sbatch]), dtype)
+
+      inputs = tf.constant(np.random.uniform(size=(tlen, tbatch, dims)), dtype)
+      paddings = tf.constant(np.zeros([tlen, tbatch, 1]), dtype)
+
+      atten_ctx, rnn_out, atten_prob, _ = frnn.FPropDefaultTheta(
+          src_encs, src_paddings, inputs, paddings)
+
+      tf.global_variables_initializer().run()
+      atten_ctx, rnn_out, atten_prob = sess.run(
+          [atten_ctx, rnn_out, atten_prob])
+
+      # Check shapes
+      self.assertEqual(atten_ctx.shape, (tlen, tbatch, dims))
+      self.assertEqual(rnn_out.shape, (tlen, tbatch, dims))
+      self.assertEqual(atten_prob.shape, (tlen, tbatch, slen))
+
+  def testFRNNWithAttentionUseZeroAttenStateTensor(self):
+
+    def _TensorZeroAttenState(self, source_seq_length, decoder_batch_size):
+      del source_seq_length
+      p = self.params
+      zs = tf.zeros([decoder_batch_size, 1], dtype=py_utils.FPropDtype(p))
+      return zs
+
+    self._testFRNNWithAttentionUseZeroAttenState(_TensorZeroAttenState)
+
+  def testFRNNWithAttentionUseZeroAttenStateNestedMap(self):
+
+    def _NestedMapZeroAttenState(self, source_seq_length, decoder_batch_size):
+      del source_seq_length
+      p = self.params
+      zs = tf.zeros([decoder_batch_size, 1], dtype=py_utils.FPropDtype(p))
+      return py_utils.NestedMap(z=zs)
+
+    self._testFRNNWithAttentionUseZeroAttenState(_NestedMapZeroAttenState)
 
 
 if __name__ == '__main__':

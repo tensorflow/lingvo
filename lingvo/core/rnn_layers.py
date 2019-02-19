@@ -1065,12 +1065,12 @@ class FRNNWithAttention(base_layer.BaseLayer):
         global_step=py_utils.GetOrCreateGlobalStep(),
         time_step=tf.constant(0, dtype=tf.int64))
     if p.use_zero_atten_state:
-      zero_atten_context = tf.zeros(
-          [batch_size, p.atten_context_dim], dtype=src_encs.dtype)
+      zero_atten_context = tf.zeros([batch_size, p.atten_context_dim],
+                                    dtype=py_utils.FPropDtype(p))
       state0.atten = zero_atten_context
       state0.atten_state = zero_atten_state
-      state0.atten_probs = tf.zeros(
-          [batch_size, s_seq_len], dtype=zero_atten_state.dtype)
+      state0.atten_probs = tf.zeros([batch_size, s_seq_len],
+                                    dtype=py_utils.FPropDtype(p))
     else:
       state0.atten, state0.atten_probs, state0.atten_state = (
           atten.ComputeContextVectorWithSource(
