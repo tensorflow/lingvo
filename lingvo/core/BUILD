@@ -549,6 +549,7 @@ py_library(
         # Implicit six dependency.
         # Implicit tensorflow dependency.
         # Implicit tensorflow py proto dependency.
+        "//lingvo:model_imports_no_params",
     ],
 )
 
@@ -556,8 +557,13 @@ lingvo_py_binary(
     name = "predictor",
     srcs = ["predictor.py"],
     deps = [
-        ":inference_graph_exporter",
-        ":predictor_lib",
+        ":inference_graph_py_pb2",
+        ":py_utils",
+        # Implicit python proto dependency.
+        # Implicit IPython dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow py proto dependency.
         "//lingvo:model_imports",
     ],
 )

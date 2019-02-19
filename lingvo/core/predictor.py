@@ -80,6 +80,7 @@ class Predictor(object):
     if isinstance(inference_graph, six.string_types):
       tf.logging.info("Reading inference graph from %s.", inference_graph)
       inference_graph = LoadInferenceGraph(inference_graph)
+    self._inference_graph = inference_graph
     self._checkpoint = checkpoint
     self._device_type = device_type
     self._tf_master = tf_master
@@ -127,6 +128,13 @@ class Predictor(object):
       sess.run(self._graph.get_operation_by_name("tpu_init_op"))
     if self._checkpoint:
       self._saver.restore(sess, self._checkpoint)
+    else:
+      try:
+        init_op = self._graph.get_operation_by_name("init_all_variables")
+        sess.run(init_op)
+      except KeyError:
+        tf.logging.warn("No checkpoint provided and the graph has no default "
+                        "variable_init op.")
     tf.logging.info("Created new predictor session.")
     self._sess = sess
 
