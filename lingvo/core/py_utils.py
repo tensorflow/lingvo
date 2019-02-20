@@ -285,6 +285,7 @@ def GetShape(tensor, ndims=None):
     tensor: The input tensor.
     ndims: If not None, returns the shapes for the first `ndims` dimensions.
   """
+  tensor = tf.convert_to_tensor(tensor)
   shape = tf.shape(tensor)
   if ndims is None:
     ndims = tensor.shape.ndims
