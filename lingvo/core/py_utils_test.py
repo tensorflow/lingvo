@@ -30,6 +30,7 @@ from lingvo import model_registry
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
+from lingvo.core import recurrent
 from lingvo.core import test_helper
 from lingvo.tasks.image.params import mnist  # pylint: disable=unused-import
 
@@ -1342,6 +1343,45 @@ class SequencesToDebugStrings(tf.test.TestCase):
                               tf.constant([[1, 2, 3], [100, 200, 300]],
                                           dtype=tf.int32),
                               tf.constant([3, 2], dtype=tf.int32)).eval())
+
+
+class StepSeedTest(tf.test.TestCase):
+
+  def testStepSeed(self):
+    state0 = py_utils.NestedMap(
+        input=tf.constant(0, dtype=tf.int64),
+        seed_pair=tf.zeros(2, dtype=tf.int64),
+        step_seed=tf.constant(0, dtype=tf.int64),
+        global_step=py_utils.GetOrCreateGlobalStep())
+    inputs = py_utils.NestedMap(input=tf.range(10, dtype=tf.int64))
+
+    def RecurrentStep(unused_theta, state0, inputs):
+      graph = tf.get_default_graph()
+      if not graph.get_collection(tf.GraphKeys.GLOBAL_STEP):
+        graph.add_to_collection(tf.GraphKeys.GLOBAL_STEP, state0.global_step)
+      py_utils.ResetStepSeed(graph, seed=state0.step_seed)
+
+      state1 = py_utils.NestedMap()
+      state1.input = inputs.input
+      state1.seed_pair = py_utils.GetOpSeedPair()
+      state1.step_seed = graph.get_collection_ref('step_seed')[0]
+      state1.global_step = tf.train.get_global_step(graph)
+      return state1, py_utils.NestedMap()
+
+    accumulated_states, _ = recurrent.Recurrent(py_utils.NestedMap(), state0,
+                                                inputs, RecurrentStep)
+
+    with self.session() as sess:
+      sess.run(tf.global_variables_initializer())
+      accumulated_states = accumulated_states.Pack(
+          sess.run(accumulated_states.Flatten()))
+      self.assertAllEqual(np.arange(10), accumulated_states.input)
+      self.assertAllEqual(np.zeros(10), accumulated_states.global_step)
+      # The step seed in the state is actually for the **next** step.
+      self.assertAllEqual(np.arange(1, 11), accumulated_states.step_seed)
+      self.assertAllEqual(
+          np.stack((np.zeros(10), np.arange(10)), axis=1),
+          accumulated_states.seed_pair)
 
 
 if __name__ == '__main__':

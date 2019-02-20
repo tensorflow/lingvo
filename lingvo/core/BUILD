@@ -593,6 +593,7 @@ py_test(
         ":base_layer",
         ":cluster_factory",
         ":py_utils",
+        ":recurrent",
         ":test_helper",
         # Implicit numpy dependency.
         # Implicit six dependency.

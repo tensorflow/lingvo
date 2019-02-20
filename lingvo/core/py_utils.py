@@ -1813,6 +1813,9 @@ def GetOpSeedPair(op_seed=None, graph=None):
   if op_seed is not None:
     seeds += op_seed
 
+  if use_tpu():
+    seeds = tf.cast(seeds, tf.int32)
+
   return seeds
 
 
