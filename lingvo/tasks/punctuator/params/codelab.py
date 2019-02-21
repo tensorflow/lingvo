@@ -103,10 +103,11 @@ class BrownCorpusWPM(base_model_params.SingleTaskModelParams):
 # so the model will be registered as punctuator.codelab.RNMTModel.
 @model_registry.RegisterSingleTaskModel
 class RNMTModel(BrownCorpusWPM):
+  """RNMT+ Model."""
 
   @classmethod
   def Task(cls):
-    return base_config.SetupRNMTParams(
+    p = base_config.SetupRNMTParams(
         model.RNMTModel.Params(),
         name='punctuator_rnmt',
         vocab_size=cls._VOCAB_SIZE,
@@ -127,3 +128,5 @@ class RNMTModel(BrownCorpusWPM):
         adam_beta2=0.98,
         adam_epsilon=1e-6,
     )
+    p.eval.samples_per_summary = 2466
+    return p
