@@ -1758,6 +1758,10 @@ class SRUCell(RNNCell):
              'If > 0, applies ZoneOut regularization with the given prob.')
     p.Define('couple_input_forget_gates', True,
              'Whether to couple the input and forget gates.')
+    p.Define('apply_layer_norm', False, 'Apply layer norm to the variables')
+    p.Define(
+        'layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.'
+        'value is necessary only if apply_layer_norm is True')
     return p
 
   @base_layer.initializer
@@ -1793,6 +1797,33 @@ class SRUCell(RNNCell):
             dtype=p.dtype,
             collections=self._VariableCollections())
         self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
+
+      if p.apply_layer_norm:
+        f_t_ln_scale = py_utils.WeightParams(
+            shape=[self.hidden_size],
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('f_t_ln_scale', f_t_ln_scale, self.AddGlobalVN)
+        r_t_ln_scale = py_utils.WeightParams(
+            shape=[self.hidden_size],
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('r_t_ln_scale', r_t_ln_scale, self.AddGlobalVN)
+        c_t_ln_scale = py_utils.WeightParams(
+            shape=[self.hidden_size],
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('c_t_ln_scale', c_t_ln_scale, self.AddGlobalVN)
+        if not p.couple_input_forget_gates:
+          i_t_ln_scale = py_utils.WeightParams(
+              shape=[self.hidden_size],
+              init=py_utils.WeightInit.Constant(0.0),
+              dtype=p.dtype,
+              collections=self._VariableCollections())
+          self.CreateVariable('i_t_ln_scale', i_t_ln_scale, self.AddGlobalVN)
 
       # Collect some stats
       if p.couple_input_forget_gates:
@@ -1835,6 +1866,23 @@ class SRUCell(RNNCell):
   def GetOutput(self, state):
     return state.m
 
+  def LayerNorm(self, x, scale):
+    """Applies layer normalization on the last dimension of 'x'.
+
+    Args:
+      x: activation tensor, where the last dimension represents channels.
+      scale: the scale tensor of the layer normalization
+
+    Returns:
+      Layer normalized 'x', with the same shape as the input.
+    """
+    p = self.params
+    mean = tf.reduce_mean(x, axis=[1], keepdims=True)
+    centered = x - mean
+    variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
+    normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+    return normed * scale
+
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
     return py_utils.Matmul(tf.concat(inputs.act, 1), theta.wm)
@@ -1845,15 +1893,25 @@ class SRUCell(RNNCell):
     if p.couple_input_forget_gates:
       x_t2, resized, f_t, r_t = tf.split(
           value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=4, axis=1)
+      if p.apply_layer_norm:
+        f_t = self.LayerNorm(f_t, theta.f_t_ln_scale + 1.0)
       f_t = tf.nn.sigmoid(f_t)
       i_t = 1.0 - f_t
     else:
       x_t2, resized, i_t, f_t, r_t = tf.split(
           value=xmw + tf.expand_dims(theta.b, 0), num_or_size_splits=5, axis=1)
+      if p.apply_layer_norm:
+        f_t = self.LayerNorm(f_t, theta.f_t_ln_scale + 1.0)
       f_t = tf.nn.sigmoid(f_t)
+      if p.apply_layer_norm:
+        i_t = self.LayerNorm(i_t, theta.i_t_ln_scale + 1.0)
       i_t = tf.nn.sigmoid(i_t)
+    if p.apply_layer_norm:
+      r_t = self.LayerNorm(r_t, theta.r_t_ln_scale + 1.0)
     r_t = tf.nn.sigmoid(r_t)
     c_t = f_t * state0.c + i_t * x_t2
+    if p.apply_layer_norm:
+      c_t = self.LayerNorm(c_t, theta.c_t_ln_scale + 1.0)
     g_c_t = tf.nn.tanh(c_t)
     h_t = r_t * g_c_t + (1.0 - r_t) * resized
 
