@@ -260,6 +260,16 @@ class InferenceGraphExporterLinearModelTest(tf.test.TestCase):
         params, subgraph_filter=['default'])
     self.assertIn('default', inference_graph.subgraphs)
 
+  def testExportFreezeDefault(self):
+    """Test exporting frozen graph."""
+    params = model_registry.GetParams('test.LinearModelParams', 'Test')
+    inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
+        params, freeze_defaults=True, subgraph_filter=['default'])
+    self.assertIn('default', inference_graph.subgraphs)
+    # Test graphs are well-formed and importable.
+    with tf.Graph().as_default():
+      tf.import_graph_def(inference_graph.graph_def)
+
   def testTpuBfloat16OverrideExport(self):
     """Test that we can export with tf.bfloat16 dtype."""
     params = model_registry.GetParams('test.LinearModelTpuParams', 'Test')
