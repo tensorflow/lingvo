@@ -702,6 +702,11 @@ class WeightInit(object):
     return WeightInit._Params('uniform', scale, seed)
 
   @staticmethod
+  def UniformPositive(scale=1.0, seed=None):
+    """scale * tf.random_uniform(0., 1.0)."""
+    return WeightInit._Params('uniform_positive', scale, seed)
+
+  @staticmethod
   def Xavier(scale=1.0, seed=None):
     """Xavier initialization (x = sqrt(6. / (in + out)); [-x, x])."""
     return WeightInit._Params('xavier', scale, seed)
@@ -740,6 +745,14 @@ class WeightInit(object):
   def TruncatedGaussianSqrtDim(scale=1.0, seed=None):
     """scale * tf.truncated_normal(0, 1 / sqrt(dim0))."""
     return WeightInit._Params('truncated_gaussian_sqrt_dim', scale, seed)
+
+  @staticmethod
+  def KaimingUniformFanInRelu(scale=1.0, seed=None):
+    return WeightInit._Params('kaiming_uniform_fanin_relu', scale, seed)
+
+  @staticmethod
+  def KaimingUniformFanInLeakyRelu(scale=np.sqrt(5.), seed=None):
+    return WeightInit._Params('kaiming_uniform_fanin_leakyrelu', scale, seed)
 
 
 _DEFAULT_XAVIER_INIT = 1.000001
@@ -965,6 +978,9 @@ def CreateVariable(name,
   elif method in ['uniform', 'uniform_sqrt_dim']:
     v_init = tf.random_uniform_initializer(
         minval=-scale, maxval=scale, seed=seed, dtype=init_dtype)
+  elif method in ['uniform_positive']:
+    v_init = tf.random_uniform_initializer(
+        minval=0.0, maxval=scale, seed=seed, dtype=init_dtype)
   elif method in ['uniform_unit_scaling']:
     v_init = tf.uniform_unit_scaling_initializer(
         factor=scale, seed=seed, dtype=init_dtype)
@@ -1000,6 +1016,19 @@ def CreateVariable(name,
 
     # pylint: enable=unused-argument
     v_init = XavierUniform
+  elif method in [
+      'kaiming_uniform_fanin_relu', 'kaiming_uniform_fanin_leakyrelu'
+  ]:
+    fan_in = np.prod(shape[:-1])
+    if method == 'kaiming_uniform_fanin_leakyrelu':
+      # Assume the 'a' parameter is the 'scale' argument.
+      gain = np.sqrt(2. / (1 + scale**2))
+    else:
+      gain = np.sqrt(2.)
+    std_dev = gain / np.sqrt(fan_in)
+    bound = np.sqrt(3.0) * std_dev
+    v_init = tf.random_uniform_initializer(
+        minval=-bound, maxval=bound, seed=seed, dtype=init_dtype)
   else:
     assert False, 'init_type not supported.'
   if init_wrapper:

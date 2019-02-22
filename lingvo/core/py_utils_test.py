@@ -1384,5 +1384,50 @@ class StepSeedTest(tf.test.TestCase):
           accumulated_states.seed_pair)
 
 
+class WeightInitTest(tf.test.TestCase):
+
+  def testUniformPositive(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.set_random_seed(12345678)
+      pc = py_utils.WeightParams([20, 30],
+                                 py_utils.WeightInit.UniformPositive(1.0),
+                                 tf.float32)
+      var = py_utils.CreateVariable('var', pc)[0]
+      tf.global_variables_initializer().run()
+      var_v = var.eval()
+      self.assertTrue(np.all(var_v >= 0.0))
+      self.assertTrue(np.all(var_v <= 1.0))
+
+  def testKaimingUniformRelu(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      pc = py_utils.WeightParams(
+          [2, 10, 30], py_utils.WeightInit.KaimingUniformFanInRelu(1.0),
+          tf.float32)
+      var = py_utils.CreateVariable('var', pc)[0]
+      tf.global_variables_initializer().run()
+      var_v = var.eval()
+      # With Relu initialization, uniform bounds are
+      # sqrt(3) * sqrt(2) / sqrt(fan_in)
+      bound = np.sqrt(3.) * np.sqrt(2.) / np.sqrt(20)
+      self.assertTrue(np.all(var_v >= -bound))
+      self.assertTrue(np.all(var_v <= bound))
+
+  def testKaimingUniformLeakyRelu(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      pc = py_utils.WeightParams(
+          [2, 10, 30], py_utils.WeightInit.KaimingUniformFanInLeakyRelu(),
+          tf.float32)
+      var = py_utils.CreateVariable('var', pc)[0]
+      tf.global_variables_initializer().run()
+      var_v = var.eval()
+      # With LeakyRelu initialization, uniform bounds are
+      # sqrt(3) * sqrt(2 / (1 + scale**2)) / sqrt(fan_in)
+      #
+      # scale = sqrt(5) by default.
+      bound = np.sqrt(3.) * np.sqrt(2. / 6.) / np.sqrt(20)
+      self.assertTrue(np.all(var_v >= -bound))
+      self.assertTrue(np.all(var_v <= bound))
+
+
 if __name__ == '__main__':
   tf.test.main()
