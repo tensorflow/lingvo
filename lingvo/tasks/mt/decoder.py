@@ -1109,7 +1109,9 @@ class TransformerDecoder(MTBaseDecoder):
     logits = tf.transpose(logits, (1, 0, 2))
 
     # Dummy attention probs
-    atten_probs = tf.ones([num_hyps, source_len]) / tf.to_float(source_len)
+    atten_probs = (
+        tf.ones([num_hyps, source_len], dtype=py_utils.FPropDtype(p)) /
+        tf.cast(source_len, py_utils.FPropDtype(p)))
 
     # Only return logits for the last ids
     log_probs = tf.nn.log_softmax(tf.squeeze(logits, axis=1))
