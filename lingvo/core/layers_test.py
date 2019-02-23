@@ -2175,6 +2175,7 @@ class SoftmaxLayerTest(tf.test.TestCase):
       params.chunk_size = chunk_size
       params.apply_pruning = apply_pruning
       params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
+      params.random_seed = 12345678
 
       if default_qdomain is not None:
         params.qdomain.default = default_qdomain
@@ -2222,6 +2223,7 @@ class SoftmaxLayerTest(tf.test.TestCase):
     params.fprop_dtype = tf.float32
     params.num_shards = num_shards
     params.apply_pruning = apply_pruning
+    params.random_seed = 12345678
     softmax_layer = layers.SimpleFullSoftmax(params)
 
     self.assertTrue('weight_0' in softmax_layer.vars.weight_0.name)
@@ -2261,8 +2263,8 @@ class SoftmaxLayerTest(tf.test.TestCase):
         num_samples=32, seed=12345, apply_pruning=True)
     loss = xent_loss.total_xent
     log_perplexity = xent_loss.avg_xent
-    self.assertNear(loss, 8.701365, 1e-5)
-    self.assertNear(log_perplexity, 3.955166, 1e-5)
+    self.assertNear(loss, 8.681571, 1e-5)
+    self.assertNear(log_perplexity, 3.946169, 1e-5)
 
     # Sharded and Masked
     xent_loss = self._RunSimpleFullSoftmax(num_shards=2, apply_pruning=True)
@@ -2309,16 +2311,16 @@ class SoftmaxLayerTest(tf.test.TestCase):
     xent_loss = self._RunSimpleFullSoftmax(num_samples=32, seed=12345)
     loss = xent_loss.total_xent
     log_perplexity = xent_loss.avg_xent
-    self.assertNear(loss, 8.654818, 1e-5)
-    self.assertNear(log_perplexity, 3.934008, 1e-5)
+    self.assertNear(loss, 8.681571, 1e-5)
+    self.assertNear(log_perplexity, 3.946169, 1e-5)
 
   def testSimpleFullSoftmax_SampledAndSharded(self):
     xent_loss = self._RunSimpleFullSoftmax(
         num_shards=4, num_samples=32, seed=12345)
     loss = xent_loss.total_xent
     log_perplexity = xent_loss.avg_xent
-    self.assertNear(loss, 8.545459, 1e-5)
-    self.assertNear(log_perplexity, 3.884299, 1e-5)
+    self.assertNear(loss, 8.510439, 1e-5)
+    self.assertNear(log_perplexity, 3.868381, 1e-5)
 
   def testSimpleFullSoftmax_Non2D(self):
     xent_loss = self._RunSimpleFullSoftmax(

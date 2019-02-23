@@ -2176,7 +2176,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
           inputs=self._GetInputs(inputs),
           num_sampled=p.num_sampled,
           num_classes=p.num_classes,
-          partition_strategy='div')
+          partition_strategy='div',
+          seed=p.random_seed)
       # Avoid computing logits; per_example_argmax is going to be always right.
       per_example_argmax = tf.identity(class_ids)
 
