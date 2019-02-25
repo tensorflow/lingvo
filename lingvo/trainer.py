@@ -1164,14 +1164,20 @@ class RunnerManager(object):
 
   def GetParamsForDataset(self, job_name, dataset_name):
     """Returns params for job `job_name` on the dataset `dataset_name`."""
-    try:
-      cfg = self.model_registry.GetParams(self._model_name, dataset_name)
-    except AttributeError as e:
-      dataset_name_retry = dataset_name.title()
-      tf.logging.warning('Exception configuring dataset %s, retrying as %s: %s',
-                         dataset_name, dataset_name_retry, e)
-      cfg = self.model_registry.GetParams(self._model_name, dataset_name_retry)
-      tf.logging.warning('Succeeded after retrying as %s.' % dataset_name_retry)
+    cluster = cluster_factory.Current()
+    cluster.params.job = job_name
+    with cluster:
+      try:
+        cfg = self.model_registry.GetParams(self._model_name, dataset_name)
+      except AttributeError as e:
+        dataset_name_retry = dataset_name.title()
+        tf.logging.warning(
+            'Exception configuring dataset %s, retrying as %s: %s',
+            dataset_name, dataset_name_retry, e)
+        cfg = self.model_registry.GetParams(self._model_name,
+                                            dataset_name_retry)
+        tf.logging.warning(
+            'Succeeded after retrying as %s.' % dataset_name_retry)
     self.UpdateClusterParamsFromFlags(cfg, job_name)
     return cfg
 
