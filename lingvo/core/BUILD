@@ -671,6 +671,24 @@ py_test(
 )
 
 py_library(
+    name = "sendrecv",
+    srcs = ["sendrecv.py"],
+    deps = [
+        # Implicit python proto dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "sendrecv_test",
+    srcs = ["sendrecv_test.py"],
+    deps = [
+        ":sendrecv",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
     name = "summary_utils",
     srcs = ["summary_utils.py"],
     deps = [
