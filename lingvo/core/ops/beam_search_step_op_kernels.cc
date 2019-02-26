@@ -735,19 +735,20 @@ class TopKTerminatedHypsOp : public OpKernel {
                         const int src_size) const {
     int length = hypothesis.atten_vecs_size();
     Tensor cumulative_atten_prob(DT_FLOAT, {src_size});
-    cumulative_atten_prob.flat<float>().setZero();
+    auto cumulative_atten_prob_vec = cumulative_atten_prob.vec<float>();
+    cumulative_atten_prob_vec.setZero();
     for (int step = 0; step < hypothesis.atten_vecs_size(); ++step) {
       const int hyp_prob_size = hypothesis.atten_vecs(step).prob_size();
       for (int src_id = 0; src_id < src_size; ++src_id) {
         if (src_id < hyp_prob_size) {
-          cumulative_atten_prob.flat<float>()(src_id) +=
+          cumulative_atten_prob_vec(src_id) +=
               hypothesis.atten_vecs(step).prob(src_id);
         } else {
           // This can happen e.g. for RNNT model. Here we simply assume
           // atten_prob for those source positions are 0.0
           VLOG(5) << "Missing atten_prob for source position " << src_id
                   << ". Total available positions are " << hyp_prob_size << ".";
-          cumulative_atten_prob.flat<float>()(src_id) += 0.0;
+          cumulative_atten_prob_vec(src_id) += 0.0;
         }
       }
     }
@@ -755,11 +756,11 @@ class TopKTerminatedHypsOp : public OpKernel {
     // reasonably covered, it is not penalized anymore.
     Tensor penalty(DT_FLOAT, {});
     penalty.scalar<float>() =
-        (cumulative_atten_prob.flat<float>() / target_seq_length_ratio_)
+        (cumulative_atten_prob_vec / target_seq_length_ratio_)
             .cwiseMax(0.001f)
             .cwiseMin(0.5f)
             .log()
-            .sum();
+            .sum().eval();
     const float coverage_penalty = penalty.scalar<float>()();
     const float length_norm = pow(length + 5.0, length_normalization_) /
                               pow(5.0, length_normalization_);
