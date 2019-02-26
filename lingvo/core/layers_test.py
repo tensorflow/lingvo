@@ -946,6 +946,22 @@ class ConvLayerTest(tf.test.TestCase):
           np.array_repr(actual_unfolded))
     self.assertAllClose(actual_folded, actual_unfolded)
 
+  def testConv2DLayerNoPadding(self):
+    g = tf.Graph()
+    with g.as_default():
+      tf.set_random_seed(24332)
+      p = layers.Conv2DLayerNoPadding.Params().Set(
+          name='test', filter_shape=(3, 3, 3, 5), filter_stride=(2, 2))
+      l = p.cls(p)
+      x = tf.random_normal(shape=[17, 64, 64, 3])
+      y = l.FPropDefaultTheta(x)
+
+    with self.session(graph=g) as sess:
+      sess.run(tf.global_variables_initializer())
+      y_val = sess.run(y)
+
+    self.assertEqual(y_val.shape, (17, 32, 32, 5))
+
   def testConvLayerFoldedBatchNormFPropQuantized(self):
     # pyformat: disable
     # pylint: disable=bad-whitespace

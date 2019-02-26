@@ -631,10 +631,57 @@ py_test(
 )
 
 py_library(
+    name = "layers_with_gpipe",
+    srcs = ["layers_with_gpipe.py"],
+    deps = [
+        ":gpipe",
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_layer",
+        "//lingvo/core:layers_with_attention",
+        "//lingvo/core:py_utils",
+    ],
+)
+
+py_test(
+    name = "layers_with_gpipe_test",
+    srcs = ["layers_with_gpipe_test.py"],
+    shard_count = 8,
+    deps = [
+        ":layers_with_gpipe",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "gpipe",
+    srcs = ["gpipe.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_layer",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:recurrent",
+    ],
+)
+
+py_test(
+    name = "gpipe_test",
+    srcs = ["gpipe_test.py"],
+    deps = [
+        ":gpipe",
+        ":layers",
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_layer",
+        "//lingvo/core:py_utils",
+    ],
+)
+
+py_library(
     name = "recurrent",
     srcs = ["recurrent.py"],
     deps = [
         ":py_utils",
+        "//lingvo/core:sendrecv",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
@@ -649,6 +696,19 @@ py_test(
         ":test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+lingvo_cuda_py_test(
+    name = "recurrent_gpu_test",
+    srcs = ["recurrent_gpu_test.py"],
+    shard_count = 6,
+    deps = [
+        ":py_utils",
+        ":recurrent",
+        ":test_utils",
+        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )

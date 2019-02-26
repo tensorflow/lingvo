@@ -49,10 +49,15 @@ from six.moves import range
 from six.moves import zip
 import tensorflow as tf
 
+from lingvo.core import sendrecv
 from tensorflow.python.framework import function
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
 from lingvo.core import py_utils
+
+# pylint: disable=unbalanced-tuple-unpacking
+_ACCUMULATORS_ATTR_KEY = 'accumulators'
+DevicePair = collections.namedtuple('DevicePair', ['send', 'recv'])
 
 
 def _AssertIsCompatible(a, b):
@@ -1134,3 +1139,604 @@ def Recurrent(theta,
     del final_state.accumulators
 
   return acc_state, final_state
+
+
+class _Link(object):
+  """A link is a pair of channels."""
+
+  def __init__(self, t, dpair):
+    # Uses a unique name scope to name the channel.
+    with tf.name_scope('fwd') as scope:
+      self._fwd = sendrecv.Channel(t.dtype, t.shape, dpair.send, dpair.recv,
+                                   scope)
+    with tf.name_scope('bak') as scope:
+      self._bak = sendrecv.Channel(t.dtype, t.shape, dpair.recv, dpair.send,
+                                   scope)
+
+  @property
+  def fwd(self):
+    """Returns this link's forward channel."""
+    return self._fwd
+
+  @property
+  def bak(self):
+    """Returns this link's backward channel."""
+    return self._bak
+
+
+def _CreateLinks(nmap, dpair):
+  """Creates links between the send/recv devices for every tensor in nmap."""
+  return nmap.Pack([_Link(t, dpair) for t in nmap.Flatten()])
+
+
+def _Join(nmap_x, nmap_y, fn):
+  xs = nmap_x.Flatten()
+  ys = nmap_y.Flatten()
+  return [fn(x, y) for (x, y) in zip(xs, ys)]
+
+
+class _Input(object):
+  """Input layers."""
+
+  def __init__(self,
+               cell_fn,
+               cell_out,
+               cell_grad,
+               cell_out_grad,
+               theta,
+               state0,
+               accumulator_layer,
+               inputs,
+               extras,
+               out_links,
+               unused_acc_state=False):
+    self._implicit_captures = _EmptyCaptures()
+    self._state0 = state0
+    self._has_accumulators = False
+    if accumulator_layer:
+      assert _ACCUMULATORS_ATTR_KEY not in state0, (
+          'Duplicate "accumulators" key in state0.')
+      accumulator_values = accumulator_layer.GetAccumulatorValues()
+      if accumulator_values.Flatten():
+        self._state0.accumulators = accumulator_values
+        self._has_accumulators = True
+        self._implicit_captures = _ReflectOnCellFn(
+            cell_fn,
+            theta,
+            self._state0,
+            inputs,
+            accumulator_layer=accumulator_layer)
+        cell_fn = _WrapAccumulatorCellFn(accumulator_layer, cell_fn)
+    self._cell_fn = cell_fn
+    self._cell_grad = _GetCellGrad(self._cell_fn, cell_grad,
+                                   self._implicit_captures)
+    if self._has_accumulators:
+      self._cell_grad = _WrapAccumulatorCellGradFn(accumulator_layer,
+                                                   self._cell_grad)
+    self._accumulator_layer = accumulator_layer
+    self._cell_out = cell_out
+    self._cell_out_grad = cell_out_grad
+    self._theta = theta
+    self._inputs = inputs
+    self._extras = extras
+    self._out_links = out_links
+    self._unused_acc_state = unused_acc_state
+    assert self._extras is not None
+
+  def Compute(self):
+    """Compute the input layer."""
+
+    def InputFn(theta, state0, inputs):
+      state1, extras = self._cell_fn(theta, state0, inputs)
+      _AssertIsCompatible(state1, self._state0)
+      _AssertIsCompatible(extras, self._extras)
+      out = self._cell_out(state1)
+      sends = _Join(self._out_links, out, lambda l, x: l.fwd.Send(x))
+      with tf.control_dependencies(sends):
+        return state1.Transform(tf.identity), extras.Transform(tf.identity)
+
+    def InputGrad(theta, state0, inputs, extras, dstate1):
+      """Gradient function for InputFn."""
+      recv_dout = self._out_links.Transform(lambda l: l.bak.Recv())
+      dstate1 = _Add(dstate1, self._cell_out_grad(recv_dout))
+      # pylint: disable=unbalanced-tuple-unpacking
+      (dtheta, dstate0, dinputs, dcaptures) = self._cell_grad(
+          theta, state0, inputs, extras, dstate1)
+      # pylint: enable=unbalanced-tuple-unpacking
+      _AssertIsCompatible(dtheta, self._theta)
+      _AssertIsCompatible(dstate0, self._state0)
+      _AssertIsCompatible(dinputs, self._inputs)
+      if dcaptures is None:
+        # NOTE: Custom gradient fns can return None if they do not support
+        # captured tensors. The return value is reserved for the future when
+        # that may be supported.
+        dcaptures = _EmptyLike(self._implicit_captures)
+      _AssertIsCompatible(dcaptures, self._implicit_captures)
+      return dtheta, dstate0, dinputs, dcaptures
+
+    acc_state, state1 = _Recurrent(
+        cell_fn=InputFn,
+        cell_grad=InputGrad,
+        stop_fn=None,
+        theta=self._theta,
+        state0=self._state0,
+        inputs=self._inputs,
+        extras=self._extras,
+        implicit_captures=self._implicit_captures,
+        unused_acc_state=self._unused_acc_state).Compute()
+
+    if self._has_accumulators:
+      self._accumulator_layer.SetAccumulatorValues(state1.accumulators)
+      del acc_state.accumulators
+      del state1.accumulators
+    return acc_state, state1
+
+
+class _Middle(object):
+  """Middle layers."""
+
+  def __init__(self, cell_fn, cell_out, cell_grad, cell_out_grad, theta, state0,
+               accumulator_layer, in_links, padding, slen_dim, per_step_inputs,
+               extras, out_links, unused_acc_state):
+    self._implicit_captures = _EmptyCaptures()
+    self._state0 = state0
+    self._has_accumulators = False
+    if accumulator_layer:
+      assert _ACCUMULATORS_ATTR_KEY not in state0, (
+          'Duplicate "accumulators" key in state0.')
+      accumulator_values = accumulator_layer.GetAccumulatorValues()
+      if accumulator_values.Flatten():
+        self._state0.accumulators = accumulator_values
+        self._has_accumulators = True
+        self._implicit_captures = _ReflectOnCellFn(
+            cell_fn,
+            theta,
+            self._state0,
+            per_step_inputs,
+            accumulator_layer=accumulator_layer)
+        cell_fn = _WrapAccumulatorCellFn(accumulator_layer, cell_fn)
+    self._cell_fn = cell_fn
+    self._cell_grad = _GetCellGrad(self._cell_fn, cell_grad,
+                                   self._implicit_captures)
+    if self._has_accumulators:
+      self._cell_grad = _WrapAccumulatorCellGradFn(accumulator_layer,
+                                                   self._cell_grad)
+    self._accumulator_layer = accumulator_layer
+    self._cell_out = cell_out
+    self._cell_out_grad = cell_out_grad
+    self._theta = theta
+    self._in_links = in_links
+    self._padding = padding
+    self._slen_dim = slen_dim
+    self._per_step_inputs = per_step_inputs
+    self._extras = extras
+    assert self._extras is not None
+    self._out_links = out_links
+    self._unused_acc_state = unused_acc_state
+
+  def Compute(self):
+    """Compute the middle layer."""
+
+    def MiddleFn(theta, state0, inputs):
+      del inputs
+      inputs = self._in_links.Transform(lambda l: l.fwd.Recv())
+      state1, extras = self._cell_fn(theta, state0, inputs)
+      _AssertIsCompatible(state1, self._state0)
+      _AssertIsCompatible(extras, self._extras)
+      out = self._cell_out(state1)
+      sends = _Join(self._out_links, out, lambda l, x: l.fwd.Send(x))
+      with tf.control_dependencies(sends):
+        return (state1.Transform(tf.identity),
+                py_utils.NestedMap(inputs=inputs,
+                                   cell_fn_extras=extras).Transform(
+                                       tf.identity))
+
+    def MiddleGrad(theta, state0, inputs, extras, dstate1):
+      """Gradient function for MiddleFn."""
+      recv_dout = self._out_links.Transform(lambda l: l.bak.Recv())
+      dstate1 = _Add(dstate1, self._cell_out_grad(recv_dout))
+      # pylint: disable=unbalanced-tuple-unpacking
+      (dtheta, dstate0, dinputs, dcaptures) = self._cell_grad(
+          theta, state0, extras.inputs, extras.cell_fn_extras, dstate1)
+      # pylint: enable=unbalanced-tuple-unpacking
+      _AssertIsCompatible(dtheta, self._theta)
+      _AssertIsCompatible(dstate0, self._state0)
+      _AssertIsCompatible(dinputs, self._per_step_inputs)
+      if dcaptures is None:
+        # NOTE: Custom gradient fns can return None if they do not support
+        # captured tensors. The return value is reserved for the future when
+        # that may be supported.
+        dcaptures = _EmptyLike(self._implicit_captures)
+      _AssertIsCompatible(dcaptures, self._implicit_captures)
+      sends = _Join(self._in_links, dinputs, lambda l, x: l.bak.Send(x))
+      with tf.control_dependencies(sends):
+        return (dtheta.Transform(tf.identity), dstate0.Transform(tf.identity),
+                inputs.Transform(tf.zeros_like),
+                dcaptures.Transform(tf.identity))
+
+    fake_inputs = py_utils.NestedMap(
+        fake_input=tf.zeros([self._slen_dim], tf.float32))
+    if self._padding is not None:
+      fake_inputs['padding'] = self._padding
+
+    acc_state, state1 = _Recurrent(
+        cell_fn=MiddleFn,
+        cell_grad=MiddleGrad,
+        stop_fn=None,
+        theta=self._theta,
+        state0=self._state0,
+        inputs=fake_inputs,
+        extras=py_utils.NestedMap(
+            inputs=self._per_step_inputs, cell_fn_extras=self._extras),
+        implicit_captures=self._implicit_captures,
+        unused_acc_state=self._unused_acc_state).Compute()
+
+    if self._has_accumulators:
+      self._accumulator_layer.SetAccumulatorValues(state1.accumulators)
+      del acc_state.accumulators
+      del state1.accumulators
+    return acc_state, state1
+
+
+class _Output(object):
+  """Output layers."""
+
+  def __init__(self, cell_fn, cell_grad, theta, state0, accumulator_layer,
+               in_links, padding, slen_dim, per_step_inputs, extras):
+    self._implicit_captures = _EmptyCaptures()
+    self._state0 = state0
+    self._has_accumulators = False
+    if accumulator_layer:
+      assert _ACCUMULATORS_ATTR_KEY not in state0, (
+          'Duplicate "accumulators" key in state0.')
+      accumulator_values = accumulator_layer.GetAccumulatorValues()
+      if accumulator_values.Flatten():
+        self._state0.accumulators = accumulator_values
+        self._has_accumulators = True
+        self._implicit_captures = _ReflectOnCellFn(
+            cell_fn,
+            theta,
+            self._state0,
+            per_step_inputs,
+            accumulator_layer=accumulator_layer)
+        cell_fn = _WrapAccumulatorCellFn(accumulator_layer, cell_fn)
+    self._cell_fn = cell_fn
+    self._cell_grad = _GetCellGrad(self._cell_fn, cell_grad,
+                                   self._implicit_captures)
+    if self._has_accumulators:
+      self._cell_grad = _WrapAccumulatorCellGradFn(accumulator_layer,
+                                                   self._cell_grad)
+    self._accumulator_layer = accumulator_layer
+    self._theta = theta
+    self._in_links = in_links
+    self._padding = padding
+    self._slen_dim = slen_dim
+    self._per_step_inputs = per_step_inputs
+    self._extras = extras
+    assert self._extras is not None
+
+  def Compute(self):
+    """Compute the output layer."""
+
+    def OutputFn(theta, state0, inputs):
+      del inputs
+      inputs = self._in_links.Transform(lambda l: l.fwd.Recv())
+      state1, extras = self._cell_fn(theta, state0, inputs)
+      _AssertIsCompatible(state1, self._state0)
+      _AssertIsCompatible(extras, self._extras)
+      return state1, py_utils.NestedMap(inputs=inputs, cell_fn_extras=extras)
+
+    def OutputGrad(theta, state0, inputs, extras, dstate1):
+      """Gradient function for OutputFn."""
+      # pylint: disable=unbalanced-tuple-unpacking
+      (dtheta, dstate0, dinputs, dcaptures) = self._cell_grad(
+          theta, state0, extras.inputs, extras.cell_fn_extras, dstate1)
+      # pylint: enable=unbalanced-tuple-unpacking
+      _AssertIsCompatible(dtheta, self._theta)
+      _AssertIsCompatible(dstate0, self._state0)
+      _AssertIsCompatible(dinputs, self._per_step_inputs)
+      if dcaptures is None:
+        # NOTE: Custom gradient fns can return None if they do not support
+        # captured tensors. The return value is reserved for the future when
+        # that may be supported.
+        dcaptures = _EmptyLike(self._implicit_captures)
+      _AssertIsCompatible(dcaptures, self._implicit_captures)
+      sends = _Join(self._in_links, dinputs, lambda l, x: l.bak.Send(x))
+      with tf.control_dependencies(sends):
+        return (dtheta.Transform(tf.identity), dstate0.Transform(tf.identity),
+                inputs.Transform(tf.zeros_like),
+                dcaptures.Transform(tf.identity))
+
+    fake_inputs = py_utils.NestedMap(
+        fake_input=tf.zeros([self._slen_dim], tf.float32))
+    if self._padding is not None:
+      fake_inputs['padding'] = self._padding
+
+    acc_state, state1 = _Recurrent(
+        cell_fn=OutputFn,
+        cell_grad=OutputGrad,
+        stop_fn=None,
+        theta=self._theta,
+        state0=self._state0,
+        inputs=fake_inputs,
+        extras=py_utils.NestedMap(
+            inputs=self._per_step_inputs, cell_fn_extras=self._extras),
+        implicit_captures=self._implicit_captures,
+        unused_acc_state=False).Compute()
+
+    if self._has_accumulators:
+      self._accumulator_layer.SetAccumulatorValues(state1.accumulators)
+      del acc_state.accumulators
+      del state1.accumulators
+    return acc_state, state1
+
+
+def _DependsOn(xs, ys):
+  """Every x in xs should depend on every y in ys via a data edge."""
+
+  # TODO(zhifengc): Using the following ops is likely more robust because
+  # algebra simplifier may remove s - s, t + 0, etc.
+  #   nil: list -> 0
+  #   first: x, list -> x
+  #
+  # If we have nil & first, we can write
+  #   zero = nil(_Flatten(ys))
+  #   return [x.Transform(lambda t: first(t, zero)) for x in xs]
+  def MakeZero(x):
+    s = tf.reduce_sum(x)
+    return tf.cast(s - s, tf.float32)
+
+  def SumToZero(nmap_list):
+    return tf.add_n([MakeZero(x) for x in _Flatten(nmap_list)])
+
+  ys_zero = SumToZero(ys)
+  return [x.Transform(lambda t: t + tf.cast(ys_zero, t.dtype)) for x in xs]
+
+
+def StackedRecurrent(devices,
+                     cell_fns,
+                     cell_grads,
+                     cell_outs,
+                     cell_out_grads,
+                     thetas,
+                     init_states,
+                     inputs,
+                     accumulator_layers=None,
+                     unused_acc_state=False):
+  """Computes stacked recurrent neural nets placed on various devices.
+
+  Conceptually, StackedRecurrent() computes the following::
+
+    for (device, cell_fn, cell_out, cell_grad, theta, state0) in zip(
+      (devices, cell_fns, cell_outs, cell_grads, thetas, init_states):
+        with tf.device(device):
+          state1, _ = Recurrent(theta, state0, inputs, cell_fn, cell_grad)
+          outputs = cell_out(state1)
+          inputs = outputs  # Next layer's input is this layer's output
+    return outputs
+
+  The only difference is that StackedRecurrent implements a model parallelism
+  so that all layers computation can happen concurrently.
+
+  Args:
+    devices: A list of N tensorflow device names.
+    cell_fns: If a list of N recurrent cell function, cell_fns[i] must meet the
+      same requirement as Recurrent() requires its cell_fn argument.  Otherwise,
+      applies to all layers.
+    cell_grads: If a list of N recurrent cell gradient function, cell_grads[i]
+      must meet the same requirement as Recurrent() requires its cell_grad
+      argument.  Otherwise, applies to all layers.
+    cell_outs: If a list of N function, cell_outs[i] takes the state computed by
+      cell_fns[i] and returns the input for the next layer. These functions are
+      expected to be simple and just do renaming of fields.  Otherwise, applies
+      to all layers.
+    cell_out_grads: If a list of N function, cell_out_grads[i] is often the
+      reverse of cell_outs[i]. Otherwise, applies to all layers.
+    thetas: A list of N weights NestedMap. thetas[i] must meet the same
+      requirement as Recurrent() requires its theta argument.
+    init_states: A list of N initial state NestedMap. init_states[i] must meet
+      the same requirement as Recurrent() requires its state0 argument.
+    inputs: Inputs to the 1st layer of the stacked recurrent neural nets.  A
+      NestedMap.
+    accumulator_layers: A list of layers whose accumulators will be managed such
+      that they carry to the output state in `FProp` and are disabled for
+      gradients. Uses the state key `accumulators`.  Default to None where no
+      accumulator values will be carried.
+    unused_acc_state: If True, we shink all the layer's acc_state to [num_ts]
+      except the last layer(_Output).
+
+  Returns:
+    A tuple of:
+      The last layer's output (accumulated states).
+      The list of final state NestedMap. One for each layer.
+  """
+  num_layers = len(devices)
+  assert num_layers
+
+  def _MakeList(fns):
+    if not isinstance(fns, (list, tuple)):
+      return [fns] * num_layers
+    else:
+      assert num_layers == len(fns)
+      return fns
+
+  cell_fns = _MakeList(cell_fns)
+  cell_grads = _MakeList(cell_grads)
+  cell_outs = _MakeList(cell_outs)
+  cell_out_grads = _MakeList(cell_out_grads)
+  accumulator_layers = accumulator_layers or [None] * num_layers
+  assert num_layers == len(thetas)
+  assert all(isinstance(x, py_utils.NestedMap) for x in thetas)
+  assert num_layers == len(init_states)
+  assert all(isinstance(x, py_utils.NestedMap) for x in init_states)
+  assert isinstance(inputs, py_utils.NestedMap)
+
+  if py_utils.use_tpu():
+    # If this error happens, the number of splits must be increased (e.g.
+    # worker_split_size in trainer/tpu.sh), or the number of rnn layers
+    # decreased.
+    # TODO(cwhipkey): lift this restriction by grouping layers by device and
+    # having a device handle a contiguous run of layers, and have them loop
+    # over the layers in the cell fns.
+    assert len(devices) == len(set(devices)), (
+        'StackedRecurrent must provide a different device for each layer '
+        'when run on TPU. devices passed were: %s' % str(devices))
+
+  if num_layers == 1:
+    # Simple case, just use Recurrent() directly.
+    with tf.device(devices[0]):
+      acc_states, final = Recurrent(
+          theta=thetas[0],
+          state0=init_states[0],
+          inputs=inputs,
+          cell_fn=cell_fns[0],
+          cell_grad=cell_grads[0],
+          accumulator_layer=accumulator_layers[0])
+      # Just the accumulated states.
+      return cell_outs[0](acc_states), final
+
+  # We add explicit data dependencies between layer-i's theta/state0
+  # and layer-(i-1)'s theta/state0, layer-0's theta/state0 has an
+  # explicit data dependency on inputs.  These extra data dependencies
+  # ensure that if layer-i's theta/state0 is used in tf.gradient, all
+  # layers above's backprop are triggered.
+  prev = [inputs]
+  for i in range(num_layers):
+    with tf.device(devices[i]):
+      thetas[i], init_states[i] = _DependsOn([thetas[i], init_states[i]], prev)
+    prev = [thetas[i], init_states[i]]
+
+  def ExpectedOutputOfLayers():
+    """Estimate what tensor dtypes and shapes output by each layer."""
+
+    def ZerosLikeRequireShape(t):
+      assert t.shape.is_fully_defined()
+      return tf.zeros_like(t)
+
+    if py_utils.use_tpu():
+      transform_fn = ZerosLikeRequireShape
+    else:
+      transform_fn = tf.zeros_like
+
+    expected_output_by_layers = []
+    xs = _Index(inputs, 0)
+    for i in range(num_layers):
+      # Disable accumulators.
+      if accumulator_layers[i]:
+        accumulator_layers[i].accumulators.Transform(lambda x: x.Disable())
+      state1, extras = cell_fns[i](thetas[i], init_states[i], xs)
+      if accumulator_layers[i]:
+        accumulator_layers[i].accumulators.Transform(lambda x: x.Enable())
+        state1.accumulators = accumulator_layers[i].GetAccumulatorValues()
+      # only dtype and shape is needed.
+      xs = cell_outs[i](state1)
+      expected_output_by_layers += [
+          py_utils.NestedMap(
+              xs=xs.Transform(transform_fn),
+              extras=extras.Transform(transform_fn))
+      ]
+    return expected_output_by_layers
+
+  expected_output_by_layers = ExpectedOutputOfLayers()
+
+  # Sequence length. We assume it's a grid we are building.
+  slen_dim = _SeqLenDim(inputs)
+
+  assert num_layers >= 2
+  layers = []
+
+  padding = _FlattenPadding(inputs.get('padding', None))
+
+  # Builds the input layer.
+  out_links = _CreateLinks(expected_output_by_layers[0].xs,
+                           DevicePair(devices[0], devices[1]))
+  inp_l = _Input(
+      cell_fn=cell_fns[0],
+      cell_grad=cell_grads[0],
+      cell_out=cell_outs[0],
+      cell_out_grad=cell_out_grads[0],
+      theta=thetas[0],
+      state0=init_states[0],
+      accumulator_layer=accumulator_layers[0],
+      inputs=inputs,
+      extras=expected_output_by_layers[0].extras,
+      out_links=out_links,
+      unused_acc_state=unused_acc_state)
+  layers += [inp_l]
+
+  # Builds the intermediate layers.
+  for i in range(1, num_layers - 1):
+    in_links = out_links
+    out_links = _CreateLinks(expected_output_by_layers[i].xs,
+                             DevicePair(devices[i], devices[i + 1]))
+    mid_l = _Middle(
+        cell_fn=cell_fns[i],
+        cell_grad=cell_grads[i],
+        cell_out=cell_outs[i],
+        cell_out_grad=cell_out_grads[i],
+        theta=thetas[i],
+        state0=init_states[i],
+        accumulator_layer=accumulator_layers[i],
+        in_links=in_links,
+        padding=padding,
+        slen_dim=slen_dim,
+        per_step_inputs=expected_output_by_layers[i - 1].xs,
+        extras=expected_output_by_layers[i].extras,
+        out_links=out_links,
+        unused_acc_state=unused_acc_state)
+    layers += [mid_l]
+
+  # Builds the final output layer.
+  in_links = out_links
+  del out_links
+  out_l = _Output(
+      cell_fn=cell_fns[-1],
+      cell_grad=cell_grads[-1],
+      theta=thetas[-1],
+      state0=init_states[-1],
+      accumulator_layer=accumulator_layers[-1],
+      in_links=in_links,
+      padding=padding,
+      slen_dim=slen_dim,
+      per_step_inputs=expected_output_by_layers[-2].xs,
+      extras=expected_output_by_layers[-1].extras)
+  layers += [out_l]
+
+  assert len(layers) == num_layers
+
+  anchor = 0
+  final_states = []
+  for (dev, layer) in zip(devices, layers):
+    # Computes each layer on their designated device.
+    with tf.device(dev):
+      acc_states, final = layer.Compute()  # Don't care of final state yet.
+      final_states.append(final)
+
+      # We add every number output by the layer (s) and computes a
+      # zero scalar: (s - s), as an anchor. Anchors are added
+      # sequentially and added to the final layer's output. This way,
+      # we ensure that the final output depends on every previous
+      # layer through data dependencies. This is a hack to ensure that
+      # tf.gradient will follow some data dependencies path to start
+      # the Backward loop for each layer.
+      #
+      # TODO(zhifengc): We can write, if we have nil & first ops:
+      #   anchor += [nil(_Flatten(acc_states))]
+      # And finally,
+      #   return acc_states.Transform(lambda x: first(x, anchor))
+      def ComputeAnchor(x):
+        # For each
+        s = tf.add_n([tf.reduce_sum(_) for _ in x.Flatten()])
+        return s - s
+
+      anchor = ComputeAnchor(acc_states) + anchor
+
+  # The last layer's output is the real output that matters.  However,
+  # to make the previous layers backprop work, we need to make sure
+  # the returned value has data dependencies on the previous layers.
+  # 'anchor' is guaranteed to be a scalar 0 and hence adding it to the
+  # final output does not change its numerical value.
+  with tf.device(devices[-1]):
+    outputs = cell_outs[-1](acc_states.Transform(lambda x: x + anchor))
+
+  return outputs, final_states

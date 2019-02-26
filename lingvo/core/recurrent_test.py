@@ -19,7 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-
 import numpy as np
 from six.moves import range
 from six.moves import zip
@@ -527,6 +526,189 @@ class RecurrentTest(tf.test.TestCase):
 
     self._testElmanHelper(7, False, StopFn)
     self._testElmanHelper(7, True, StopFn)
+
+
+class StackedRecurrentTest(RecurrentTest):
+
+  @staticmethod
+  def Poly(theta, state0, inputs):
+    x = theta.x
+    s = state0.s
+    c = inputs.c
+    return py_utils.NestedMap(s=s * x + c), py_utils.NestedMap()
+
+  @staticmethod
+  def Identity(theta, state0, inputs):
+    del theta, state0
+    return py_utils.NestedMap(s=inputs.s), py_utils.NestedMap()
+
+  def testSimpleStacked(self):
+    g = tf.Graph()
+    with g.as_default():
+      devices = ['/cpu:0'] * 3
+      cell_fns = [self.Poly, self.Identity, self.Identity]
+      cell_grads = [None] * 3
+      cell_outs = [lambda x: x] * 3
+      cell_out_grads = [lambda x: x] * 3
+      w0 = tf.constant(2.)
+      w1 = tf.constant(0.)
+      w2 = tf.constant(0.)
+      thetas = [
+          py_utils.NestedMap(x=w0),
+          py_utils.NestedMap(x=w1),
+          py_utils.NestedMap(x=w2)
+      ]
+      init_states = [py_utils.NestedMap(s=tf.constant(0.))] * 3
+      inputs = py_utils.NestedMap(
+          c=tf.constant([1., 2., 1., 0.]),
+          padding=tf.constant([0., 0., 0., 1.]))
+      output, _ = recurrent.StackedRecurrent(
+          devices=devices,
+          cell_fns=cell_fns,
+          cell_grads=cell_grads,
+          cell_outs=cell_outs,
+          cell_out_grads=cell_out_grads,
+          thetas=thetas,
+          init_states=init_states,
+          inputs=inputs)
+      dw0, dw1, dw2 = tf.gradients(tf.reduce_sum(output.s), [w0, w1, w2])
+
+    with self.session(graph=g) as sess:
+      (output, dw0, dw1, dw2) = sess.run([output.s, dw0, dw1, dw2])
+
+    self.assertAllClose(output, [1., 4., 9., 0.])
+    self.assertAllClose(dw2, 0.)
+    self.assertAllClose(dw1, 0.)
+    self.assertAllClose(dw0, 7.)
+
+  def _BuildStackedRecurrentElman(self, seqlen, trailing_pad_len, batch, dims,
+                                  layers):
+    tf.set_random_seed(342462)
+    np.random.seed(32540)
+
+    seqlen += trailing_pad_len
+    dtype = tf.float64
+
+    def CreateTheta():
+      return py_utils.NestedMap(
+          w=tf.constant(
+              np.random.uniform(0, 0.2, (2 * dims, dims)), dtype=dtype),
+          b=tf.constant(np.random.uniform(0, 0.2, (dims,)), dtype=dtype))
+
+    def CreateState0():
+      return py_utils.NestedMap(
+          h=tf.constant(np.random.uniform(0, 0.2, (batch, dims)), dtype=dtype),
+          padding=tf.constant([[0]] * batch, dtype=dtype))
+
+    devices = ['/cpu:0'] * layers
+    cell_fns = [self.Elman] * layers
+    cell_grads = [self.ElmanGrad] * layers
+    cell_outs = [self.ElmanOut] * layers
+    cell_out_grads = [self.ElmanOutGrad] * layers
+    thetas = [CreateTheta() for _ in range(layers)]
+    init_states = [CreateState0() for _ in range(layers)]
+    padding = np.zeros((seqlen, batch, 1))
+    padding[-trailing_pad_len:, :, :] = 1.
+    padding[-trailing_pad_len - 3:-trailing_pad_len - 1, :, :] = 1.
+    inputs = py_utils.NestedMap(
+        x=tf.constant(
+            np.random.uniform(0, 0.2, (seqlen, batch, dims)), dtype=dtype),
+        padding=tf.constant(padding, dtype=dtype))
+    output, _ = recurrent.StackedRecurrent(
+        devices=devices,
+        cell_fns=cell_fns,
+        cell_grads=cell_grads,
+        cell_outs=cell_outs,
+        cell_out_grads=cell_out_grads,
+        thetas=thetas,
+        init_states=init_states,
+        inputs=inputs)
+    o = output.x
+    if 'padding' in inputs:
+      o *= (1 - inputs.padding)
+    loss = tf.reduce_sum(tf.square(o))
+
+    xs = recurrent._Flatten(thetas + [py_utils.NestedMap(x=inputs.x)])
+    dxs = tf.gradients(ys=loss, xs=xs)
+
+    # Reference implementation using Recurrent().
+    ref = inputs
+    for i in range(layers):
+      ref = self.ElmanOut(
+          recurrent.Recurrent(
+              cell_fn=cell_fns[i],
+              cell_grad=cell_grads[i],
+              theta=thetas[i],
+              state0=init_states[i],
+              inputs=ref)[0])
+    return ref.x, output.x, loss, xs, dxs
+
+  def _LogDiff(self, x, y):
+    tf.logging.info('max(abs(x - y)) = %s', np.max(np.abs(x - y)))
+
+  def _CompareStackedElman(self, seqlen, batch, dims, layers):
+    """Tests that StackedRecurrent computest the same output as Recurrent()."""
+    trailing_pad_len = 2
+    g = tf.Graph()
+    with g.as_default():
+      ref, output, _, _, _ = self._BuildStackedRecurrentElman(
+          seqlen, trailing_pad_len, batch, dims, layers)
+    ref = ref[:-trailing_pad_len]
+    output = output[:-trailing_pad_len]
+    with self.session(graph=g) as sess:
+      ref_val, out_val = sess.run([ref, output])
+    self._LogDiff(ref_val, out_val)
+    self.assertAllClose(ref_val, out_val)
+
+  def testStackedElman_2(self):
+    self._CompareStackedElman(4, 3, 8, 2)
+
+  def testStackedElman_4(self):
+    self._CompareStackedElman(8, 5, 8, 4)
+
+  def testStackedElman_8(self):
+    self._CompareStackedElman(11, 1, 4, 8)
+
+  def _TestStackedElmanGradient(self, num, seqlen=7, batch=5):
+    """Tests a stacked Elman recurrent network with num layers."""
+    g = tf.Graph()
+    with g.as_default():
+      # Sequence length, batdh size, hidden dimension
+      trailing_pad_len, dims, layers = 2, 8, num
+      _, _, loss, xs, dxs = self._BuildStackedRecurrentElman(
+          seqlen, trailing_pad_len, batch, dims, layers)
+
+    # Fetches all gradients (dxs) in one session run and compare
+    # them with their respective numerical gradient.
+    with self.session(graph=g) as sess:
+      s_dxs = sess.run(dxs)
+      for (x, s_dx) in zip(xs, s_dxs):
+        n_dx = test_utils.ComputeNumericGradient(sess, loss, x)
+        self._LogDiff(n_dx, s_dx)
+        self.assertAllClose(n_dx, s_dx)
+
+    # Randomly pick a few (x, dx) pairs, and fetch dx via one sess.run
+    # and compare with its numerical gradient.
+    xs_dxs = list(zip(xs, dxs))
+    np.random.shuffle(xs_dxs)
+    with self.session(graph=g) as sess:
+      for (x, dx) in xs_dxs[:4]:
+        s_dx = sess.run(dx)
+        n_dx = test_utils.ComputeNumericGradient(sess, loss, x)
+        self._LogDiff(n_dx, s_dx)
+        self.assertAllClose(n_dx, s_dx)
+
+  def testStackedElmanGrad_1(self):
+    self._TestStackedElmanGradient(1)
+
+  def testStackedElmanGrad_2(self):
+    self._TestStackedElmanGradient(2)
+
+  def testStackedElmanGrad_4(self):
+    self._TestStackedElmanGradient(4)
+
+  def testStackedElmanGrad_8(self):
+    self._TestStackedElmanGradient(8, seqlen=5, batch=3)
 
 
 if __name__ == '__main__':

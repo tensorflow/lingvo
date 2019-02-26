@@ -3199,3 +3199,147 @@ class ResidualAdapterLayer(base_layer.BaseLayer):
     bottleneck_x = self.bottleneck.FProp(theta.bottleneck, normalized_x,
                                          paddings)
     return x + bottleneck_x
+
+
+class Conv2DLayerNoPadding(base_layer.BaseLayer):
+  """2-D Convolution layer w/o padding.
+
+  TODO(laurenzo): Dedup in favor of SeparableConv2DLayer where possible.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(Conv2DLayerNoPadding, cls).Params()
+    p.Define(
+        'filter_shape', (0, 0, 0, 0),
+        'Filter shape. Must be a sequence of length 4. Elements are in'
+        ' the order of height (time), width (frequency), in_channel,'
+        ' out_channel. ')
+    p.Define(
+        'filter_stride', (0, 0),
+        'Filter stride to use. Must be a pair of ints. The first int'
+        ' specifies the stride on the height dimension. The second int'
+        ' specifies the stride on the width dimension.')
+    p.Define(
+        'dilations', (1, 1), ' An optional list of ints. Defaults to [1, 1]. '
+        '1-D tensor of length 2. The dilation factor for each dimension '
+        'of input. If set to k > 1, there will be k-1 skipped cells '
+        'between each filter element on that dimension.')
+    p.Define('padding', 'SAME', 'SAME|VALID')
+
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(Conv2DLayerNoPadding, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.padding in ['SAME', 'VALID']
+    assert len(p.filter_shape) == 4
+    assert len(p.filter_stride) == 2
+    assert len(p.dilations) == 2
+    assert all(x > 0 for x in p.filter_shape)
+    assert all(x > 0 for x in p.filter_stride)
+    self._CreateConvVariables()
+
+  def _CreateConvVariables(self):
+    p = self.params
+    w_pc = py_utils.WeightParams(
+        shape=p.filter_shape,
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    with tf.variable_scope(p.name):
+      self.CreateVariable('w', w_pc)
+
+  def FProp(self, theta, x):
+    """Apply convolution to inputs.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      x: The inputs tensor. It is expected to be of shape [batch, height, width,
+        channel].
+
+    Returns:
+      Convolution output.
+    """
+    p = self.params
+    with tf.name_scope(p.name):
+      return tf.nn.conv2d(
+          input=x,
+          filter=theta.w,
+          strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
+          padding=p.padding,
+          dilations=[1, p.dilations[0], p.dilations[1], 1],
+          data_format='NHWC')
+
+  @classmethod
+  def FPropMeta(cls, p, inputs):
+    py_utils.CheckShapes((inputs,))
+    b, h, w, c = inputs.as_list()
+    fh, fw, ic, oc = p.filter_shape
+    assert ic == c
+    sh, sw = p.filter_stride
+    if p.padding == 'SAME':
+      oh = int(np.ceil(float(h) / float(sh)))
+      ow = int(np.ceil(float(w) / float(sw)))
+    else:
+      oh = int(np.ceil(float(h - fh + 1) / float(sh)))
+      ow = int(np.ceil(float(w - fw + 1) / float(sw)))
+    flops = b * oh * ow * fh * fw * ic * oc * 2  # mul/add counts as 2 flop.
+    outputs = tf.TensorShape([b, oh, ow, oc])
+
+    return py_utils.NestedMap(flops=flops, out_shapes=(outputs,))
+
+
+class FetchLayer(base_layer.BaseLayer):
+  """A layer facilitating fetching activations and their gradients."""
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(FetchLayer, self).__init__(params)
+    assert self.params.name
+    self._activations = None
+    self._gradients = None
+
+  @classmethod
+  def FPropMeta(cls, params, *args):
+    return py_utils.NestedMap(flops=0, out_shapes=args)
+
+  def _ReturnSingleValueOrList(self, lst):
+    assert lst is not None
+    assert isinstance(lst, list)
+    return lst if len(lst) > 1 else lst[0]
+
+  @property
+  def activation(self):
+    return self._ReturnSingleValueOrList(self._activations)
+
+  @property
+  def gradient(self):
+    return self._ReturnSingleValueOrList(self._gradients)
+
+  def FProp(self, theta, *args):
+    del theta
+    num = len(args)
+    self._activations = [None] * num
+    self._gradients = [None] * num
+
+    for i, v in enumerate(args):
+
+      def ShapeFunc(op):
+        return [op.inputs[0].shape]
+
+      def FetchBak(op, dy, index=i):
+        del op
+        self._gradients[index] = dy
+        return dy
+
+      @function.Defun(v.dtype, shape_func=ShapeFunc, python_grad_func=FetchBak)
+      def FetchFwd(x):
+        return x
+
+      self._activations[i] = FetchFwd(v)
+
+    return tuple(self._activations) if num > 1 else self._activations[0]
