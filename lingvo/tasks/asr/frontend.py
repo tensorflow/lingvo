@@ -390,7 +390,10 @@ class MelAsrFrontend(BaseAsrFrontend):
     # Noise.
     if p.noise_scale > 0.0:
       noise_signal = tf.random_normal(
-          tf.shape(preemphasized), stddev=p.noise_scale, mean=0.0)
+          tf.shape(preemphasized),
+          stddev=p.noise_scale,
+          mean=0.0,
+          seed=p.random_seed)
     else:
       noise_signal = 0.0
 
