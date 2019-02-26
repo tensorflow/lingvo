@@ -1164,9 +1164,10 @@ class RunnerManager(object):
 
   def GetParamsForDataset(self, job_name, dataset_name):
     """Returns params for job `job_name` on the dataset `dataset_name`."""
+    # Get the current cluster and update its params from flags.
     cluster = cluster_factory.Current()
-    cluster.params.job = job_name
-    with cluster:
+    self.UpdateClusterParamsFromFlags(cluster.params, job_name)
+    with cluster_factory.Cluster(cluster.params):
       try:
         cfg = self.model_registry.GetParams(self._model_name, dataset_name)
       except AttributeError as e:
@@ -1178,7 +1179,7 @@ class RunnerManager(object):
                                             dataset_name_retry)
         tf.logging.warning(
             'Succeeded after retrying as %s.' % dataset_name_retry)
-    self.UpdateClusterParamsFromFlags(cfg, job_name)
+    cfg.cluster = cluster.params
     return cfg
 
   def MaybeConfigRunDistributed(self):
@@ -1218,36 +1219,36 @@ class RunnerManager(object):
         FLAGS.ps_job = '/job:ps'
         FLAGS.ps_replicas = len(cluster_spec_dict['ps'])
 
-  def UpdateClusterParamsFromFlags(self, cfg, job_name):
-    """Update `cfg` with a training cluster configuration from flags."""
-    cfg.cluster.mode = FLAGS.mode
-    cfg.cluster.job = job_name
-    cfg.cluster.task = FLAGS.task
+  def UpdateClusterParamsFromFlags(self, cluster, job_name):
+    """Update `cluster` with a training cluster configuration from flags."""
+    cluster.mode = FLAGS.mode
+    cluster.job = job_name
+    cluster.task = FLAGS.task
 
-    cfg.cluster.controller.name = FLAGS.controller_job
-    cfg.cluster.controller.gpus_per_replica = FLAGS.controller_gpus
+    cluster.controller.name = FLAGS.controller_job
+    cluster.controller.gpus_per_replica = FLAGS.controller_gpus
 
-    cfg.cluster.worker.name = FLAGS.worker_job
-    cfg.cluster.worker.replicas = FLAGS.worker_replicas
-    cfg.cluster.worker.gpus_per_replica = FLAGS.worker_gpus
-    cfg.cluster.worker.tpus_per_replica = FLAGS.worker_tpus
-    cfg.cluster.worker.num_tpu_hosts = FLAGS.worker_num_tpu_hosts
-    cfg.cluster.worker.devices_per_split = FLAGS.worker_split_size
+    cluster.worker.name = FLAGS.worker_job
+    cluster.worker.replicas = FLAGS.worker_replicas
+    cluster.worker.gpus_per_replica = FLAGS.worker_gpus
+    cluster.worker.tpus_per_replica = FLAGS.worker_tpus
+    cluster.worker.num_tpu_hosts = FLAGS.worker_num_tpu_hosts
+    cluster.worker.devices_per_split = FLAGS.worker_split_size
 
-    cfg.cluster.ps.name = FLAGS.ps_job
-    cfg.cluster.ps.replicas = FLAGS.ps_replicas
-    cfg.cluster.ps.gpus_per_replica = FLAGS.ps_gpus
+    cluster.ps.name = FLAGS.ps_job
+    cluster.ps.replicas = FLAGS.ps_replicas
+    cluster.ps.gpus_per_replica = FLAGS.ps_gpus
 
-    cfg.cluster.input.name = FLAGS.input_job
-    cfg.cluster.input.replicas = FLAGS.input_replicas
+    cluster.input.name = FLAGS.input_job
+    cluster.input.replicas = FLAGS.input_replicas
 
-    cfg.cluster.evaler.name = FLAGS.evaler_job
-    cfg.cluster.evaler.replicas = FLAGS.evaler_replicas
-    cfg.cluster.evaler.gpus_per_replica = FLAGS.evaler_gpus
+    cluster.evaler.name = FLAGS.evaler_job
+    cluster.evaler.replicas = FLAGS.evaler_replicas
+    cluster.evaler.gpus_per_replica = FLAGS.evaler_gpus
 
-    cfg.cluster.decoder.name = FLAGS.decoder_job
-    cfg.cluster.decoder.replicas = FLAGS.decoder_replicas
-    cfg.cluster.decoder.gpus_per_replica = FLAGS.decoder_gpus
+    cluster.decoder.name = FLAGS.decoder_job
+    cluster.decoder.replicas = FLAGS.decoder_replicas
+    cluster.decoder.gpus_per_replica = FLAGS.decoder_gpus
 
   def _CreateRunner(self, job, model_task_name, logdir, tf_master, trial):
     """Create a runner."""
