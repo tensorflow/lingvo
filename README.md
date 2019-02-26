@@ -139,8 +139,16 @@ Kaiser, Zhifeng Chen, Yonghui Wu, and Macduff Hughes. ACL 2018.
 
 *   [API Docs](https://tensorflow.github.io/lingvo/)
 
-Please cite this paper when referencing Lingvo.
+Please cite this [paper](https://arxiv.org/abs/1902.08295) when referencing
+Lingvo.
 
 ```
-Coming soon.
+@misc{shen2019lingvo,
+    title={Lingvo: a Modular and Scalable Framework for Sequence-to-Sequence Modeling},
+    author={Jonathan Shen and Patrick Nguyen and Yonghui Wu and Zhifeng Chen and others},
+    year={2019},
+    eprint={1902.08295},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
+}
 ```
