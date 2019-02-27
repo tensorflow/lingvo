@@ -121,6 +121,7 @@ void RecordBatcher::GetNext(int64* bucket, TensorVec* batch) {
 void RecordBatcher::ProcessorLoop() {
   // Multiply next_status_update_duration_seconds_ by 2 every update.
   const int64 status_update_duration_multiplier = 2;
+  std::vector<int64> out_of_range_buckets;
   while (true) {
     {
       MutexLock l(&mu_);
@@ -156,6 +157,9 @@ void RecordBatcher::ProcessorLoop() {
 
     if (iter == opts_.bucket_upper_bound.end()) {
       VLOG(1) << "Skip. bucket out-of-range " << bucket;
+      if (out_of_range_buckets.size() < 10) {
+        out_of_range_buckets.push_back(bucket);
+      }
       ++total_records_skipped_;
     } else {
       if (opts_.flush_every_n > 0 && records_yielded_ >= opts_.flush_every_n) {
@@ -206,6 +210,10 @@ void RecordBatcher::ProcessorLoop() {
                 << " total seconds passed. Total records yielded: "
                 << total_records_yielded_
                 << ". Total records skipped: " << total_records_skipped_;
+      for (auto bucket : out_of_range_buckets) {
+        LOG(INFO) << "Out-of-range sample: " << bucket;
+      }
+      out_of_range_buckets.clear();
       last_log_update_time_ = current_time;
       next_status_update_duration_seconds_ *= status_update_duration_multiplier;
     }
