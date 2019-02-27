@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -165,6 +167,7 @@
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">inplace_ops</span>
 
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
@@ -488,8 +491,9 @@
 
 
 <div class="viewcode-block" id="AdditiveAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.AdditiveAttention">[docs]</a><span class="k">class</span> <span class="nc">AdditiveAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Implements additive attention (also known as &quot;Bahdanau Attention&quot;),</span>
-<span class="sd">  as described in:</span>
+  <span class="sd">&quot;&quot;&quot;Implements additive attention (also known as &quot;Bahdanau Attention&quot;).</span>
+
+<span class="sd">  Described in:</span>
 
 <span class="sd">  Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio.</span>
 <span class="sd">  &quot;Neural Machine Translation by Jointly Learning to Align and Translate.&quot;</span>
@@ -627,6 +631,7 @@
       <span class="n">probs</span> <span class="o">=</span> <span class="n">AttenProbs</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span>
                          <span class="n">query_vec_reshaped</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">,</span>
                          <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span>
+      <span class="n">probs</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
       <span class="c1"># Apply dropout to weights if applicable.</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
@@ -711,6 +716,7 @@
       <span class="n">probs</span> <span class="o">=</span> <span class="n">AttenProbs</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span>
                          <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
                          <span class="n">query_segment_id</span><span class="p">)</span>
+      <span class="n">probs</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
       <span class="c1"># contexts[i, :] is a weighted (probs[i, :]) average of</span>
       <span class="c1"># concated_source_vecs[i, :, :].</span>
@@ -855,8 +861,9 @@
 
 
 <div class="viewcode-block" id="DotProductAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.DotProductAttention">[docs]</a><span class="k">class</span> <span class="nc">DotProductAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Implements dot-product attention (also known as &quot;Luong Attention&quot;)</span>
-<span class="sd">  as described in:</span>
+  <span class="sd">&quot;&quot;&quot;Implements dot-product attention (also known as &quot;Luong Attention&quot;).</span>
+
+<span class="sd">  Described in:</span>
 
 <span class="sd">  Minh-Thang Luong, Hieu Pham, Christopher D. Manning.</span>
 <span class="sd">  &quot;Effective Approaches to Attention-based Neural Machine Translation.&quot;</span>
@@ -1018,6 +1025,7 @@
       <span class="n">returned_probs</span> <span class="o">=</span> <span class="n">AttenProbs</span><span class="p">(</span>
           <span class="n">per_dim_scale</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span>
           <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span>
+      <span class="n">returned_probs</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
       <span class="c1"># =&gt; [n, source_batch, time].</span>
       <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">returned_probs</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
@@ -1228,8 +1236,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;source_proj_add&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;query_proj_add&#39;</span><span class="p">,</span>
                       <span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;ctx_pre_proj_add&#39;</span><span class="p">)</span>
-    <span class="c1"># TODO: Remove the p.is_eval check below once brop quant within defun is</span>
-    <span class="c1"># fixed on the training side. This is less than ideal as-is because</span>
+    <span class="c1"># TODO(suderman): Remove the p.is_eval check below once brop quant within</span>
+    <span class="c1"># defun is fixed on the training side. This is less than ideal as-is because</span>
     <span class="c1"># training will just trend to match downstream quant constraints vs force</span>
     <span class="c1"># alignment.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
@@ -1395,9 +1403,14 @@
           <span class="n">source_padding_replicated</span><span class="p">,</span> <span class="n">source_segment_id_repl</span><span class="p">)</span>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MultiHeadedAttention/ExtendSourcePacked&#39;</span><span class="p">)</span>
-  <span class="k">def</span> <span class="nf">ExtendSourcePacked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">new_source_vecs</span><span class="p">,</span> <span class="n">new_source_contexts</span><span class="p">,</span>
-                         <span class="n">new_source_paddings</span><span class="p">,</span> <span class="n">new_source_segment_ids</span><span class="p">,</span>
-                         <span class="n">cached_packed_src</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">ExtendSourcePacked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                         <span class="n">theta</span><span class="p">,</span>
+                         <span class="n">new_source_vecs</span><span class="p">,</span>
+                         <span class="n">new_source_contexts</span><span class="p">,</span>
+                         <span class="n">new_source_paddings</span><span class="p">,</span>
+                         <span class="n">new_source_segment_ids</span><span class="p">,</span>
+                         <span class="n">cached_packed_src</span><span class="p">,</span>
+                         <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extend cached source_vecs and source_contexts by one more timestep.</span>
 
 <span class="sd">    Args:</span>
@@ -1412,21 +1425,50 @@
 <span class="sd">      new_source_segment_ids: If not None, a tensor of shape [source_batch].</span>
 <span class="sd">        source_segment_id for the new timestep.</span>
 <span class="sd">      cached_packed_src: a `.NestedMap` object, containing already preprocessed</span>
-<span class="sd">        source_vecs and source_contexts for the previous t-1 steps:</span>
-<span class="sd">        * source_vecs: A tensor of shape [source_batch, t - 1, hidden_dim].</span>
-<span class="sd">        * source_contexts: A tensor of shape [source_batch, t - 1, hidden_dim].</span>
-<span class="sd">        * source_padding: If not None, a tensor of shape [source_batch,</span>
-<span class="sd">          t - 1, num_heads], cached source padding for the previous t - 1</span>
-<span class="sd">          timesteps.</span>
+<span class="sd">        source_vecs and source_contexts for the previous t-1 steps. To support</span>
+<span class="sd">        tf.while_loop on TPU (satisfying static shape requirement), instead of</span>
+<span class="sd">        using tf.concat to update the cached vectors, the time dimension of</span>
+<span class="sd">        each cached vector is fixed as the max_sequence_length and inplace</span>
+<span class="sd">        update op is used to update the information for each time step:</span>
+<span class="sd">        * source_vecs: A tensor of shape [max_sequence_length, source_batch,</span>
+<span class="sd">          hidden_dim]. [:t, :, :] contains valid preprocessed source_vecs in</span>
+<span class="sd">          the previous t - 1 timesteps, the rests are invalid data.</span>
+<span class="sd">        * source_contexts: A tensor of shape [max_sequence_length, source_batch,</span>
+<span class="sd">          hidden_dim]. [:t, :, :] contains valid preprocessed source_contexts</span>
+<span class="sd">          in the previous t - 1 timesteps, the rests are invalid data.</span>
+<span class="sd">        * source_padding: If not None, a tensor of shape [max_sequence_length,</span>
+<span class="sd">          source_batch, num_heads]. [:t, :, :] contains cached</span>
+<span class="sd">          source padding for the previous t - 1 timesteps, the rests are</span>
+<span class="sd">          invalid data.</span>
 <span class="sd">        * source_segment_id: If not None, a tensor of shape</span>
-<span class="sd">          [source_batch, t - 1, num_heads], cached source segment id for the</span>
+<span class="sd">          [max_sequence_length, source_batch, num_heads]. [:t, :, :] contains</span>
+<span class="sd">          cached source segment id for the previous t - 1 timesteps, the rests</span>
+<span class="sd">          are invalid data.</span>
+<span class="sd">        When t is None (not running on TPU or the while loop is unrolled):</span>
+<span class="sd">        * source_vecs: A tensor of shape [t - 1, source_batch, hidden_dim].</span>
+<span class="sd">        * source_contexts: A tensor of shape [t - 1, source_batch, hidden_dim].</span>
+<span class="sd">        * source_padding: If not None, a tensor of shape [t - 1, source_batch,</span>
+<span class="sd">          num_heads], cached source padding for the previous t - 1 timesteps.</span>
+<span class="sd">        * source_segment_id: If not None, a tensor of shape</span>
+<span class="sd">          [t - 1, source_batch, num_heads], cached source segment id for the</span>
 <span class="sd">          previous t - 1 timesteps.</span>
+<span class="sd">      t: a scalar, the current time step, 0-based.</span>
 <span class="sd">    Returns:</span>
-<span class="sd">      Extended cached source_vecs, source_contexts and source_paddings.</span>
-<span class="sd">      &#39;extended_source_vec&#39; is of shape [batch_size, t, num_heads * dim],</span>
-<span class="sd">      &#39;extended_source_context&#39; is of shape [batch_size, t, num_heads * dim],</span>
-<span class="sd">      source_padding is of shape [batch_size, t, num_heads], source_segment_id</span>
-<span class="sd">      is of shape [batch_size, t, num_heads].</span>
+<span class="sd">      Extended cached source_vecs, source_contexts, source_paddings, and</span>
+<span class="sd">      source_segment_ids. The time dimension of each cached state is fixed:</span>
+<span class="sd">      &#39;extended_source_vec&#39; is of shape [max_sequence_length, batch_size,</span>
+<span class="sd">      num_heads * dim];</span>
+<span class="sd">      &#39;extended_source_context&#39; is of shape [max_sequence_length, batch_size,</span>
+<span class="sd">      num_heads * dim];</span>
+<span class="sd">      &#39;source_padding&#39; is of shape [max_sequence_length, batch_size, num_heads];</span>
+<span class="sd">      &#39;source_segment_id&#39; is of shape [max_sequence_length, batch_size,</span>
+<span class="sd">      num_heads].</span>
+<span class="sd">      But only [:(t + 1), :, :] contains valid data.</span>
+<span class="sd">      If t is not given,</span>
+<span class="sd">      &#39;extended_source_vec&#39; is of shape [t, batch_size, num_heads * dim];</span>
+<span class="sd">      &#39;extended_source_context&#39; is of shape [t, batch_size, num_heads * dim];</span>
+<span class="sd">      &#39;source_padding&#39; is of shape [t, batch_size, num_heads];</span>
+<span class="sd">      &#39;source_segment_id&#39; is of shape [t, batch_size, num_heads].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">new_source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">new_source_paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1445,9 +1487,14 @@
       <span class="k">if</span> <span class="n">cached_packed_src</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">extended_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">processed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">processed_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">extended_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">cached_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">processed</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">processed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">processed_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+          <span class="n">extended_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span>
+              <span class="n">cached_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">t</span><span class="p">,</span> <span class="n">processed</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">processed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">processed_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+          <span class="n">extended_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+              <span class="p">[</span><span class="n">cached_packed_src</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">processed</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">extended_packed_src</span>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MultiHeadedAttention/ZeroAttentionState&#39;</span><span class="p">)</span>
@@ -1602,22 +1649,19 @@
     <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">cached_src</span><span class="o">.</span><span class="n">source_contexts</span>
     <span class="n">source_padding</span> <span class="o">=</span> <span class="n">cached_src</span><span class="o">.</span><span class="n">source_padding</span>
     <span class="n">source_segment_id</span> <span class="o">=</span> <span class="n">cached_src</span><span class="o">.</span><span class="n">source_segment_id</span>
-    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">src_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">src_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
     <span class="n">packed_src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">packed_src</span><span class="o">.</span><span class="n">source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
-        <span class="p">[</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="c1"># TODO(yonghui): Rewrite the following with just one transpose.</span>
     <span class="n">packed_src</span><span class="o">.</span><span class="n">source_contexts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">concated_source_contexts</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
-            <span class="p">[</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">concated_source_contexts</span><span class="p">,</span>
+                   <span class="p">[</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">source_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">packed_src</span><span class="o">.</span><span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
-          <span class="p">[</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">])</span>
+          <span class="n">source_padding</span><span class="p">,</span> <span class="p">[</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">packed_src</span><span class="o">.</span><span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
           <span class="p">[</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
@@ -1627,8 +1671,7 @@
           <span class="n">dtype</span><span class="o">=</span><span class="n">packed_src</span><span class="o">.</span><span class="n">source_padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">packed_src</span><span class="o">.</span><span class="n">source_segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_segment_id</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
-          <span class="p">[</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">])</span>
+          <span class="n">source_segment_id</span><span class="p">,</span> <span class="p">[</span><span class="n">src_seq_len</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">packed_src</span></div>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span>
@@ -1713,8 +1756,8 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_is_quantized</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed input is not supported yet for &#39;</span>
-                                     <span class="s1">&#39;LocationsensitiveAttention.&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed input is not supported yet for &#39;</span>
+                                <span class="s1">&#39;LocationSensitiveAttention.&#39;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;dropout is not supported&#39;</span><span class="p">)</span>
@@ -2099,7 +2142,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">query_segment_id</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
     <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_vecs</span>
     <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_contexts</span>
     <span class="n">source_padding</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_padding</span>
@@ -2226,8 +2268,8 @@
     <span class="sd">&quot;&quot;&quot;Constructs an MonotonicAttention object.&quot;&quot;&quot;</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">MonotonicAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed input not supported for &#39;</span>
-                                     <span class="s1">&#39;Monotonic Attention.&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed input not supported for Monotonic &#39;</span>
+                                <span class="s1">&#39;Attention.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;dropout is not supported&#39;</span><span class="p">)</span>
 
@@ -2780,26 +2822,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

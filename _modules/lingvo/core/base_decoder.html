@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -177,37 +179,24 @@
         <span class="s1">&#39;multiple examples in a single sequence.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="BaseDecoder.FProp"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">src_encs</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">src_segment_id</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseDecoder.FProp"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decodes `targets` given encoded source.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
-<span class="sd">      src_encs: source encoding, of shape [time, batch, depth].</span>
-<span class="sd">      src_enc_paddings: source encoding padding, of shape [time, batch].</span>
+<span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
 <span class="sd">      targets: A dict of string to tensors representing the targets one try to</span>
 <span class="sd">        predict.</span>
-<span class="sd">      src_segment_id: source segment id, of shape [time, batch]. This input is</span>
-<span class="sd">        meant to support multiple samples in a single training sequence. The id</span>
-<span class="sd">        identifies the sample that the input at the corresponding time-step</span>
-<span class="sd">        belongs to. For example, if the two examples packed together are</span>
-<span class="sd">        [&#39;good&#39;, &#39;day&#39;] -&gt; [&#39;guten-tag&#39;] and [&#39;thanks&#39;] -&gt; [&#39;danke&#39;] to produce</span>
-<span class="sd">        [&#39;good&#39;, &#39;day&#39;, &#39;thanks&#39;] -&gt; [&#39;guten-tag&#39;, &#39;danke&#39;], the source segment</span>
-<span class="sd">        ids would be [0, 0, 1] and target segment ids would be [0, 1]. These ids</span>
-<span class="sd">        are meant to enable masking computations for different examples from</span>
-<span class="sd">        each other. Models or layers than don&#39;t support packed inputs should</span>
-<span class="sd">        pass None.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A map from metric name (a python string) to a tuple (value, weight).</span>
 <span class="sd">      Both value and weight are scalar Tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">src_encs</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">,</span>
-                                          <span class="n">targets</span><span class="p">,</span> <span class="n">src_segment_id</span><span class="p">)</span>
+    <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="BaseDecoder.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">src_encs</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span>
-                         <span class="n">src_segment_id</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseDecoder.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="BaseDecoder.ComputeLoss"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseDecoder.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
@@ -245,13 +234,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">target_sequence_sampler</span><span class="o">.</span><span class="n">target_eos_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;target_sequence_sampler&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_sequence_sampler</span><span class="p">)</span>
 
-<div class="viewcode-block" id="BaseBeamSearchDecoder.BeamSearchDecode"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_encs</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseBeamSearchDecoder.BeamSearchDecode"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode">[docs]</a>  <span class="k">def</span> <span class="nf">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">):</span>
     <span class="c1"># pylint: disable=line-too-long</span>
     <span class="sd">&quot;&quot;&quot;Performs beam search based decoding.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      src_encs: source encoding, of shape [time, batch, depth].</span>
-<span class="sd">      src_enc_paddings: source encoding padding, of shape [time, batch].</span>
+<span class="sd">      encoder_outputs: the outputs of the encoder.</span>
 <span class="sd">    returns:</span>
 <span class="sd">      `.BeamSearchDecodeOutput`, A namedtuple whose elements are tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -286,26 +274,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

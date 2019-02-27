@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -294,6 +296,28 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">restored_tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">),</span>
         <span class="n">validate_shape</span><span class="o">=</span><span class="n">restored_shapes</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">())</span></div></div>
+
+
+<div class="viewcode-block" id="get_saver_spec_for_variables_with_bf16_overrides"><a class="viewcode-back" href="../../../lingvo.core.bfloat16_variables.html#lingvo.core.bfloat16_variables.get_saver_spec_for_variables_with_bf16_overrides">[docs]</a><span class="k">def</span> <span class="nf">get_saver_spec_for_variables_with_bf16_overrides</span><span class="p">(</span><span class="n">variables_to_restore</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a dictionary containing overrides to load variables as bf16.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    variables_to_restore: A mapping from variable to name (on checkpoint) to the</span>
+<span class="sd">      Variable object.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A saver dictionary which can be used to load from checkpoints.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">saver_dict</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables_to_restore</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">:</span>
+      <span class="c1"># TODO(rohananil): Add support for PartitionedVariables if there is</span>
+      <span class="c1"># demand.</span>
+      <span class="n">savable</span> <span class="o">=</span> <span class="n">Bfloat16VariableSaveable</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
+      <span class="n">saver_dict</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">savable</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">saver_dict</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+  <span class="k">return</span> <span class="n">saver_dict</span></div>
 </pre></div>
 
            </div>
@@ -323,26 +347,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

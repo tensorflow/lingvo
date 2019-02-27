@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
-
-  
-  <script src="../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -341,6 +343,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">report_uninitialized_variables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_all</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">close_queue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CLOSE_QUEUE_OPS</span><span class="p">)</span>
 
@@ -354,7 +357,7 @@
                          <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Controller.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Controller.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span>
@@ -373,6 +376,8 @@
 
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
+      <span class="c1"># This initializes local variables.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
 
       <span class="c1"># TODO(zhifengc): Moves these options into params.</span>
       <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
@@ -524,6 +529,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">params</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">close_queue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CLOSE_QUEUE_OPS</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Trainer number of enqueue ops: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
@@ -555,7 +561,7 @@
       <span class="n">writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">CreateScalarSummary</span><span class="p">(</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">),</span> <span class="n">steps</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trainer.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Trainer.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Trainer.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span>
@@ -580,6 +586,8 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
+      <span class="c1"># This initializes local variables.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
       <span class="n">global_step</span> <span class="o">=</span> <span class="kc">None</span>
 
       <span class="nd">@py_utils</span><span class="o">.</span><span class="n">Retry</span><span class="p">(</span><span class="n">retry_value</span><span class="o">=</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">FailedPreconditionError</span><span class="p">,))</span>
@@ -637,24 +645,25 @@
             <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
               <span class="k">pass</span>
 
-        <span class="n">_</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">fetched_verbose_tensors</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">per_example_tensors</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span>
             <span class="n">model_task</span><span class="o">.</span><span class="n">train_op</span><span class="p">,</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">,</span>
             <span class="n">model_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span>
-            <span class="n">model_task</span><span class="o">.</span><span class="n">trainer_verbose_tensors</span><span class="p">,</span>
+            <span class="n">model_task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">,</span>
         <span class="p">])</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;step:</span><span class="si">%6d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">eval_metrics</span><span class="p">)):</span>
           <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%.8g</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="p">)</span>
-        <span class="n">model_task</span><span class="o">.</span><span class="n">ProcessFetchedTrainerVerboseTensors</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span>
-                                                       <span class="n">fetched_verbose_tensors</span><span class="p">)</span>
+        <span class="n">model_task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
+                                       <span class="n">per_example_tensors</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="n">next_status_step</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
           <span class="n">next_status_step</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="n">status_interval_steps</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ModelPostUpdate</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
+                                        <span class="n">per_example_tensors</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TrainerTpu"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu">[docs]</a><span class="k">class</span> <span class="nc">TrainerTpu</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
@@ -693,6 +702,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span><span class="p">,</span>
                                <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
         <span class="s1">&#39;Creating TrainerTpu using data parallelism </span><span class="si">%s</span><span class="s1"> &#39;</span>
         <span class="s1">&#39;and </span><span class="si">%s</span><span class="s1"> steps_per_loop&#39;</span><span class="p">,</span> <span class="n">data_parallelism</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">)</span>
@@ -724,14 +735,25 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
 
         <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+          <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
+
+<span class="sd">          Args:</span>
+<span class="sd">            *args: metrics values from previous steps.</span>
+
+<span class="sd">          Returns:</span>
+<span class="sd">            New summed metrics values and a train_op.</span>
+<span class="sd">          &quot;&quot;&quot;</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
           <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+          <span class="n">outfeed_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedEnqueue</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">)</span>
           <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
           <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-          <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-            <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
+          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">outfeed_op</span><span class="p">]):</span>
+            <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+              <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
           <span class="k">return</span> <span class="n">summed_metrics</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">train_op</span><span class="p">]</span>
 
         <span class="k">def</span> <span class="nf">TpuTrain</span><span class="p">():</span>
@@ -747,10 +769,15 @@
             <span class="n">TpuTrain</span><span class="p">,</span>
             <span class="n">num_shards</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
             <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
+        <span class="n">outfeed_dequeue_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedDequeueLoop</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
         <span class="c1"># Get metric result from a single replica; they are all same here.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span> <span class="o">=</span> <span class="p">[[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">],</span>
+                               <span class="n">outfeed_dequeue_op</span><span class="p">]</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">CLOSE_QUEUE_OPS</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Trainer number of enqueue ops: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
@@ -762,9 +789,89 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">write_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                          <span class="s1">&#39;train.pbtxt&#39;</span><span class="p">)</span>
 
+<div class="viewcode-block" id="TrainerTpu._OutfeedEnqueue"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._OutfeedEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_OutfeedEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_example_tensors</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">per_example_tensors</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+    <span class="n">per_example_tensors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">outfeed_enqueue_tuple</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="TrainerTpu._OutfeedDequeueLoop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._OutfeedDequeueLoop">[docs]</a>  <span class="k">def</span> <span class="nf">_OutfeedDequeueLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_example_tensors</span><span class="p">,</span> <span class="n">num_loops</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process all per-example tensor outfeed data for a TPU sess.run.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      per_example_tensors: dict of key -&gt; tensor as generated by TpuTrainStep.</span>
+<span class="sd">      num_loops: number of times that TpuTrainStep will be executed by TpuTrain.</span>
+<span class="sd">      num_devices: number of TPU cores assigned to this process.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dict of per-example tensors from the latest TpuTrainStep.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">per_example_tensors</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+
+    <span class="n">tensor_shapes</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">tensor_types</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">as_dtype</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">)</span>
+    <span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">LoopBody</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="n">input_arrays</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Process outfeed data for a single TpuTrainStep.</span>
+
+<span class="sd">      Args:</span>
+<span class="sd">        i: current loop index.</span>
+<span class="sd">        *input_arrays: One tf.TensorArray per outfeed tensor.</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        i+1 (new index) plus post-write tf.TensorArray handles.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="c1"># Outfeed ops execute on each JF node, so they must be located on the</span>
+      <span class="c1"># nodes.</span>
+      <span class="n">outfeed_devices</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
+      <span class="k">assert</span> <span class="n">device_assignment</span>
+      <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">num_replicas</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">core</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">num_cores_per_replica</span><span class="p">):</span>
+          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">host_device</span><span class="p">(</span><span class="n">replica</span><span class="p">,</span> <span class="n">core</span><span class="p">)):</span>
+            <span class="n">outfeed_devices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">outfeed_dequeue_tuple</span><span class="p">(</span>
+                    <span class="n">tensor_types</span><span class="p">,</span>
+                    <span class="n">tensor_shapes</span><span class="p">,</span>
+                    <span class="n">device_ordinal</span><span class="o">=</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">tpu_ordinal</span><span class="p">(</span><span class="n">replica</span><span class="p">,</span>
+                                                                 <span class="n">core</span><span class="p">)))</span>
+      <span class="n">offset</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">num_devices</span>
+      <span class="n">output_arrays</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">input_arrays</span><span class="p">)</span>
+      <span class="c1"># Each output_array holds a different per-example tensor. We get results</span>
+      <span class="c1"># for each tensor from each TPU for each TpuTrainStep call.</span>
+      <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output_arrays</span><span class="p">)):</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">outfeed_devices</span><span class="p">)):</span>
+          <span class="n">output_arrays</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_arrays</span><span class="p">[</span><span class="n">j</span><span class="p">]</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">offset</span> <span class="o">+</span> <span class="n">k</span><span class="p">,</span>
+                                                    <span class="n">outfeed_devices</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">j</span><span class="p">])</span>
+
+      <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">output_arrays</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">LoopCond</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="n">output_arrays</span><span class="p">):</span>
+      <span class="k">del</span> <span class="n">output_arrays</span>
+      <span class="k">return</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_loops</span>
+
+    <span class="n">output_arrays</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">TensorArray</span><span class="p">(</span>
+            <span class="n">tensor_types</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">num_loops</span> <span class="o">*</span> <span class="n">num_devices</span><span class="p">,</span>
+            <span class="n">element_shape</span><span class="o">=</span><span class="n">tensor_shapes</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tensor_shapes</span><span class="p">))</span>
+    <span class="p">]</span>
+    <span class="c1"># Loop once for each time that TpuTrainStep runs.</span>
+    <span class="n">output_arrays</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+        <span class="n">LoopCond</span><span class="p">,</span> <span class="n">LoopBody</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">output_arrays</span><span class="p">,</span> <span class="n">parallel_iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">concatenated_arrays</span> <span class="o">=</span> <span class="p">[</span><span class="n">array</span><span class="o">.</span><span class="n">concat</span><span class="p">()</span> <span class="k">for</span> <span class="n">array</span> <span class="ow">in</span> <span class="n">output_arrays</span><span class="p">]</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">),</span> <span class="n">concatenated_arrays</span><span class="p">))</span></div>
+
 <div class="viewcode-block" id="TrainerTpu.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Run training.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TrainerTpu.StartEnqueueOp"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu.StartEnqueueOp">[docs]</a>  <span class="k">def</span> <span class="nf">StartEnqueueOp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span>
@@ -781,6 +888,8 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training skipped (trial requested to stop).&#39;</span><span class="p">)</span>
       <span class="k">return</span>
+    <span class="c1"># Wait for _Loop to initialize variables first before attempting to infeed.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TrainerTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_LoopEnqueue</span><span class="p">(</span><span class="n">op</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TrainerTpu._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.TrainerTpu._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -792,20 +901,29 @@
       <span class="k">return</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
       <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span><span class="p">:</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">())</span>
       <span class="n">global_step</span><span class="p">,</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
       <span class="n">eval_metrics</span> <span class="o">=</span> <span class="kc">None</span>
 
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStopAndMaybeReport</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">)</span> <span class="ow">or</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStopAndMaybeReport</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">):</span>
+          <span class="c1"># Early terminate gracefully by setting a new max step horizon: three</span>
+          <span class="c1"># more TPU steps to ensure that the enqueue ops can gracefully</span>
+          <span class="c1"># terminate as well.</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="mi">3</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Early stopping at step: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
           <span class="k">return</span>
 
-        <span class="n">values</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span><span class="p">)</span>
+        <span class="n">values</span><span class="p">,</span> <span class="n">outfeeds</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span><span class="p">)</span>
         <span class="n">eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">PackMetricsValues</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
 
         <span class="c1"># Note: global_step is incremented by self._steps_per_loop by the</span>
@@ -817,7 +935,14 @@
           <span class="n">msg</span> <span class="o">+=</span> <span class="s1">&#39; </span><span class="si">%s</span><span class="s1">:</span><span class="si">%.8g</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">:</span>
+          <span class="n">outfeeds</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">outfeeds</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
+                                        <span class="n">outfeeds</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Evaler"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler">[docs]</a><span class="k">class</span> <span class="nc">Evaler</span><span class="p">(</span><span class="n">base_runner</span><span class="o">.</span><span class="n">BaseRunner</span><span class="p">):</span>
@@ -846,6 +971,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
       <span class="c1"># No queues are allowed for eval models.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span>
@@ -857,13 +983,15 @@
                            <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.pbtxt&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_name</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Evaler.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Evaler._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The main loop.&quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
+      <span class="c1"># This initializes local variables.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
       <span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FindNewCheckpoint</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
@@ -880,6 +1008,8 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
+      <span class="c1"># This initializes local variables.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
       <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No checkpoint available.&#39;</span><span class="p">)</span>
@@ -1005,6 +1135,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
       <span class="c1"># No queues are allowed for decoder models.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span>
@@ -1016,13 +1147,15 @@
                            <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.pbtxt&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">)</span>
 
 <div class="viewcode-block" id="Decoder.Start"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder.Start">[docs]</a>  <span class="k">def</span> <span class="nf">Start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">,</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span><span class="n">inline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
+      <span class="c1"># This initializes local variables.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
 
       <span class="n">path</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
@@ -1057,6 +1190,7 @@
     <span class="n">start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="k">while</span> <span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">&lt;</span> <span class="n">samples_per_summary</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Fetching dec_output.&#39;</span><span class="p">)</span>
+      <span class="n">fetch_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
       <span class="n">run_options</span> <span class="o">=</span> <span class="n">config_pb2</span><span class="o">.</span><span class="n">RunOptions</span><span class="p">(</span>
           <span class="n">report_tensor_allocations_upon_oom</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -1066,12 +1200,17 @@
         <span class="n">dec_out</span><span class="p">,</span> <span class="n">summary</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span><span class="p">],</span>
                                     <span class="n">options</span><span class="o">=</span><span class="n">run_options</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done fetching.&#39;</span><span class="p">)</span>
+      <span class="n">post_process_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;Done fetching (</span><span class="si">%f</span><span class="s1"> seconds)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">post_process_start</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">))</span>
       <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">decode_out</span><span class="p">:</span>
         <span class="n">buffered_decode_out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">decode_out</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total examples done: </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                      <span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span><span class="p">,</span> <span class="n">samples_per_summary</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;Total examples done: </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1"> &#39;</span>
+          <span class="s1">&#39;(</span><span class="si">%f</span><span class="s1"> seconds decode postprocess)&#39;</span><span class="p">,</span> <span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span><span class="p">,</span>
+          <span class="n">samples_per_summary</span><span class="p">,</span>
+          <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">post_process_start</span><span class="p">)</span>
 
     <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">dec_metrics</span><span class="p">)}</span>
     <span class="n">elapsed_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
@@ -1109,6 +1248,8 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">initialize_tables</span><span class="p">)</span>
+      <span class="c1"># This initializes local variables.</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span><span class="p">)</span>
       <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No checkpoint available.&#39;</span><span class="p">)</span>
@@ -1168,14 +1309,22 @@
 
 <div class="viewcode-block" id="RunnerManager.GetParamsForDataset"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.GetParamsForDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetParamsForDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns params for job `job_name` on the dataset `dataset_name`.&quot;&quot;&quot;</span>
-    <span class="k">try</span><span class="p">:</span>
-      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">)</span>
-    <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-      <span class="n">dataset_name_retry</span> <span class="o">=</span> <span class="n">dataset_name</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Exception configuring dataset </span><span class="si">%s</span><span class="s1">, retrying as </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="n">dataset_name</span><span class="p">,</span> <span class="n">dataset_name_retry</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
-      <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="n">dataset_name_retry</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
+    <span class="c1"># Get the current cluster and update its params from flags.</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="p">):</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="n">dataset_name_retry</span> <span class="o">=</span> <span class="n">dataset_name</span><span class="o">.</span><span class="n">title</span><span class="p">()</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s1">&#39;Exception configuring dataset </span><span class="si">%s</span><span class="s1">, retrying as </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="n">dataset_name</span><span class="p">,</span> <span class="n">dataset_name_retry</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span>
+                                            <span class="n">dataset_name_retry</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s1">&#39;Succeeded after retrying as </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">dataset_name_retry</span><span class="p">)</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
 
 <div class="viewcode-block" id="RunnerManager.MaybeConfigRunDistributed"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunDistributed">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeConfigRunDistributed</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1215,36 +1364,36 @@
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:ps&#39;</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_spec_dict</span><span class="p">[</span><span class="s1">&#39;ps&#39;</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="RunnerManager.UpdateClusterParamsFromFlags"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.UpdateClusterParamsFromFlags">[docs]</a>  <span class="k">def</span> <span class="nf">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">,</span> <span class="n">job_name</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Update `cfg` with a training cluster configuration from flags.&quot;&quot;&quot;</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="n">job_name</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">task</span>
+<div class="viewcode-block" id="RunnerManager.UpdateClusterParamsFromFlags"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.UpdateClusterParamsFromFlags">[docs]</a>  <span class="k">def</span> <span class="nf">UpdateClusterParamsFromFlags</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">job_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update `cluster` with a training cluster configuration from flags.&quot;&quot;&quot;</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">mode</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="n">job_name</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">task</span>
 
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">controller_job</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">controller_gpus</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">controller_job</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">controller</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">controller_gpus</span>
 
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_gpus</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_tpus</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_num_tpu_hosts</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_split_size</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_gpus</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_tpus</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_num_tpu_hosts</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_split_size</span>
 
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_gpus</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">ps</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_gpus</span>
 
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">input_job</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">input_replicas</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">input_job</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">input_replicas</span>
 
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">evaler</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_job</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">evaler</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_replicas</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">evaler</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_gpus</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">evaler</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_job</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">evaler</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_replicas</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">evaler</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_gpus</span>
 
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_job</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_replicas</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span></div>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_job</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_replicas</span>
+    <span class="n">cluster</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span></div>
 
 <div class="viewcode-block" id="RunnerManager._CreateRunner"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager._CreateRunner">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateRunner</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">,</span> <span class="n">trial</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a runner.&quot;&quot;&quot;</span>
@@ -1570,26 +1719,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

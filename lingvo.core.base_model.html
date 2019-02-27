@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.base_model_params module" href="lingvo.core.base_model_params.html" />
     <link rel="prev" title="lingvo.core.base_layer module" href="lingvo.core.base_layer.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -260,16 +262,39 @@ index.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_model.BaseTask.ProcessFetchedTrainerVerboseTensors">
-<code class="descname">ProcessFetchedTrainerVerboseTensors</code><span class="sig-paren">(</span><em>global_step</em>, <em>eval_result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ProcessFetchedTrainerVerboseTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ProcessFetchedTrainerVerboseTensors" title="Permalink to this definition">¶</a></dt>
-<dd><p>Called each train loop with the eval of the trainer verbose tensors.</p>
+<dt id="lingvo.core.base_model.BaseTask.FilterPerExampleTensors">
+<code class="descname">FilterPerExampleTensors</code><span class="sig-paren">(</span><em>per_example</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FilterPerExampleTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FilterPerExampleTensors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the per-example tensors ProcessFPropResults needs.</p>
+<p>By default we don’t send any per-example tensors to ProcessFPropResults
+because some may be expensive to compute. Implement this method to let
+some of them pass through.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>per_example</strong> – A dict of tensors returned as per-example tensors from FProp.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A dict containing a subset of the key/value pairs in per_example.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_model.BaseTask.ProcessFPropResults">
+<code class="descname">ProcessFPropResults</code><span class="sig-paren">(</span><em>sess</em>, <em>global_step</em>, <em>metrics</em>, <em>per_example</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called once for each train loop.</p>
+<p>BaseModel.ProcessFPropResults is also called on each loop, so you
+can put your implementation wherever it is most convenient for you.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>global_step</strong> – eval result of the global step.</li>
-<li><strong>eval_result</strong> – eval result for the trainer_verbose_tensors set.</li>
+<li><strong>sess</strong> – a session.</li>
+<li><strong>global_step</strong> – approximate number of model training steps.</li>
+<li><strong>metrics</strong> – the metrics dict returned by FPropTower.</li>
+<li><strong>per_example</strong> – the per_example dict returned by FPropTower.</li>
 </ul>
 </td>
 </tr>
@@ -292,7 +317,14 @@ copied to this tower’s devices.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A dict containing metrics pairs.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dict containing str keys and (metric, weight) pairs as values, where
+one of the keys is expected to be ‘loss’.
+A dict containing arbitrary tensors describing something about each
+training example, where the first dimension of each tensor is the batch
+index.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Two dicts</p>
 </td>
 </tr>
 </tbody>
@@ -318,8 +350,14 @@ spiltting is used, a list of <code class="xref py py-obj docutils literal notran
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A dict containing metrics pairs. One of the keys should be ‘loss’ and its
-value should be a (loss, num_predictions) pair.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A dict containing str keys and (metric, weight) pairs as values, where
+one of the keys is expected to be ‘loss’.
+A dict containing arbitrary tensors describing something about each
+training example, where the first dimension of each tensor is the batch
+index.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Two dicts</p>
 </td>
 </tr>
 </tbody>
@@ -865,9 +903,27 @@ object as created by <a class="reference internal" href="#lingvo.core.base_model
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_model.BaseModel.ModelPostUpdate">
-<code class="descname">ModelPostUpdate</code><span class="sig-paren">(</span><em>sess</em>, <em>global_step</em>, <em>eval_metrics</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ModelPostUpdate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ModelPostUpdate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update model based on global step and eval_metrics.</p>
+<dt id="lingvo.core.base_model.BaseModel.ProcessFPropResults">
+<code class="descname">ProcessFPropResults</code><span class="sig-paren">(</span><em>sess</em>, <em>global_step</em>, <em>metrics</em>, <em>per_example</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
+<dd><p>Called once for each train loop.</p>
+<p>BaseTask.ProcessFPropResults is also called on each loop, so you
+can put your implementation wherever it is most convenient for you.</p>
+<p>Be sure to implement BaseTask.FilterPerExampleTensors if you plan to use any
+per-example tensors in this method.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>sess</strong> – a session.</li>
+<li><strong>global_step</strong> – approximate number of model training steps.</li>
+<li><strong>metrics</strong> – the metrics dict returned by FPropTower.</li>
+<li><strong>per_example</strong> – the per_example dict returned by FPropTower.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -998,7 +1054,7 @@ object as created by <a class="reference internal" href="#lingvo.core.base_model
         <a href="lingvo.core.base_model_params.html" class="btn btn-neutral float-right" title="lingvo.core.base_model_params module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.base_layer.html" class="btn btn-neutral" title="lingvo.core.base_layer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.base_layer.html" class="btn btn-neutral float-left" title="lingvo.core.base_layer module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -1024,26 +1080,16 @@ object as created by <a class="reference internal" href="#lingvo.core.base_model
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

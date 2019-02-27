@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" /> 
-
-  
-  <script src="../../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -202,6 +204,8 @@
         <span class="s1">&#39;Merger op for layer outputs.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, assumes multiple training samples per input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;has_aux_attention&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Allows encoder layers to attend auxiliary inputs.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="mi">8</span>
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_tpl</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="mi">8192</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -219,6 +223,7 @@
         <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;trans_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
         <span class="n">params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
         <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_attention</span>
         <span class="n">transformer_layer_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;trans&#39;</span><span class="p">,</span> <span class="n">transformer_layer_params</span><span class="p">)</span>
@@ -242,7 +247,14 @@
           <span class="n">transparent_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transparent_param</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;transparent_merger&#39;</span><span class="p">,</span> <span class="n">transparent_params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="TransformerStack.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.layers.html#lingvo.tasks.mt.layers.TransformerStack.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">transformer_input</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">src_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerStack.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.layers.html#lingvo.tasks.mt.layers.TransformerStack.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">transformer_input</span><span class="p">,</span>
+            <span class="n">paddings</span><span class="p">,</span>
+            <span class="n">src_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">aux_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">aux_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">aux_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transforms source sequence of Tensors with Transformers layers.</span>
 
 <span class="sd">    Args:</span>
@@ -254,6 +266,12 @@
 <span class="sd">         [time, batch] shape.</span>
 <span class="sd">      src_segment_id: A sequence of ints indicating segment ids of</span>
 <span class="sd">         [time, batch] shape.</span>
+<span class="sd">      aux_vecs: A sequence of input Tensors of [aux_time, batch, dim] shape, as</span>
+<span class="sd">          context for the cross-attention layer.</span>
+<span class="sd">      aux_paddings: A sequence of 0s and 1s indicating input paddings of</span>
+<span class="sd">         [aux_time, batch] shape.</span>
+<span class="sd">      aux_segment_id: A sequence of ints indicating segment ids of</span>
+<span class="sd">         [aux_time, batch] shape.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      (outputs, out_paddings, segment_ids) tuple. `outputs` is of the shape</span>
@@ -277,7 +295,10 @@
             <span class="n">theta</span><span class="o">.</span><span class="n">trans</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
             <span class="n">transformer_input</span><span class="p">,</span>
             <span class="n">paddings</span><span class="p">,</span>
-            <span class="n">source_segment_id</span><span class="o">=</span><span class="n">src_segment_id</span><span class="p">)</span>
+            <span class="n">aux_vecs</span><span class="o">=</span><span class="n">aux_vecs</span><span class="p">,</span>
+            <span class="n">aux_paddings</span><span class="o">=</span><span class="n">aux_paddings</span><span class="p">,</span>
+            <span class="n">source_segment_id</span><span class="o">=</span><span class="n">src_segment_id</span><span class="p">,</span>
+            <span class="n">aux_segment_id</span><span class="o">=</span><span class="n">aux_segment_id</span><span class="p">)</span>
         <span class="n">transformer_input</span> <span class="o">=</span> <span class="n">transformer_output</span>
         <span class="n">outputs_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">transformer_output</span><span class="p">)</span>
 
@@ -290,13 +311,17 @@
       <span class="c1"># to avoid excessive memory usage during training (which was prohibiting</span>
       <span class="c1"># training on TPUs), and simplify the beam search interface.</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
-        <span class="n">transformer_output</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span><span class="p">):</span>
-          <span class="n">merged_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-              <span class="n">theta</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">outputs_list</span><span class="p">)</span>
-          <span class="n">transformer_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_outputs</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
-          <span class="n">transformer_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">transformer_output</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+          <span class="n">transformer_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+              <span class="n">theta</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">outputs_list</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">transformer_output</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transparent_outputs</span><span class="p">):</span>
+            <span class="n">merged_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+                <span class="n">theta</span><span class="o">.</span><span class="n">transparent_merger</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">outputs_list</span><span class="p">)</span>
+            <span class="n">transformer_output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">merged_outputs</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+            <span class="n">transformer_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">transformer_output</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
 
       <span class="k">return</span> <span class="n">transformer_output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">src_segment_id</span></div></div>
 </pre></div>
@@ -328,26 +353,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

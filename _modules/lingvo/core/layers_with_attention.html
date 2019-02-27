@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -199,6 +201,7 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerAttentionLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the attention hidden dim.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_attention_heads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;Number of attention heads.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;is_masked&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set, uses masked MultiHededAttention.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
@@ -221,6 +224,8 @@
         <span class="s1">&#39;(1.0 - residual_dropout_prob).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, each training example may pack multiple sequences.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_unnormalized_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set, uses unnormalized input &#39;</span>
+             <span class="s1">&#39;in the residual add.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -230,13 +235,16 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
 
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_hidden_dim</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">atten_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="c1"># Initialize multi-headed attention</span>
       <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_atten&#39;</span>
       <span class="n">params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_hidden_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">context_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
@@ -277,6 +285,7 @@
 <span class="sd">      source_time].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
     <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">source_vecs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -317,7 +326,9 @@
         <span class="n">per_step_source_padding</span><span class="o">=</span><span class="n">causal_padding</span><span class="p">,</span>
         <span class="n">query_segment_id</span><span class="o">=</span><span class="n">query_segment_id</span><span class="p">)</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">query_vec</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">))</span>
+    <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">input_to_add</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">))</span>
     <span class="n">atten_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_prob</span><span class="p">,</span> <span class="p">[</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
@@ -325,7 +336,7 @@
     <span class="p">])</span>
     <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">atten_prob</span></div>
 
-<div class="viewcode-block" id="TransformerAttentionLayer.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">prefix_state</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerAttentionLayer.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">prefix_state</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extend prefix by one more time step.</span>
 
 <span class="sd">    This function is expected to be called during fast decoding of the</span>
@@ -337,6 +348,7 @@
 <span class="sd">      query_vec: [target_batch, dim]</span>
 <span class="sd">      prefix_state: dict, containing tensors which are the results of previous</span>
 <span class="sd">          attentions, used for fast decoding.</span>
+<span class="sd">      t: a scalar, the current time step, 0-based.</span>
 <span class="sd">    Returns:</span>
 <span class="sd">      A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor</span>
 <span class="sd">      representing the output from the current state, and new_state is the new</span>
@@ -344,6 +356,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span>  <span class="c1"># Must be causal attention.</span>
+    <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
     <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
 
     <span class="n">cached_packed_src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
@@ -352,12 +365,31 @@
         <span class="n">source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
     <span class="n">extended_packed_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ExtendSourcePacked</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cached_packed_src</span><span class="p">)</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cached_packed_src</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">source_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">zero_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span>
+                             <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">source_seq_len</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)),</span>
+          <span class="n">zero_padding</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">zero_padding</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
+          <span class="p">[</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithCachedSource</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">extended_packed_src</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>
+        <span class="n">extended_packed_src</span><span class="p">,</span>
+        <span class="n">query_vec</span><span class="p">,</span>
+        <span class="n">per_step_source_padding</span><span class="o">=</span><span class="n">per_step_source_padding</span><span class="p">)</span>
 
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">query_vec</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">))</span>
+    <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">input_to_add</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">))</span>
+
     <span class="n">new_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">key</span><span class="o">=</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">,</span>
         <span class="n">value</span><span class="o">=</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_contexts</span><span class="p">)</span>
@@ -380,6 +412,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the layer output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the hidden layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;Non-linearity.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;fflayer_tpl&#39;</span><span class="p">,</span>
         <span class="n">layers</span><span class="o">.</span><span class="n">FeedForwardNet</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">activation</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">]),</span>
@@ -415,6 +448,7 @@
       <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fflayer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;fflayer&#39;</span>
       <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">]</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">params</span><span class="o">.</span><span class="n">hidden_layer_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span>
       <span class="k">else</span><span class="p">:</span>
@@ -594,16 +628,18 @@
       <span class="k">assert</span> <span class="n">aux_vecs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="k">assert</span> <span class="n">aux_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
-    <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
-        <span class="n">source_vecs</span><span class="p">,</span>
-        <span class="n">source_paddings</span><span class="p">,</span>
-        <span class="n">query_segment_id</span><span class="o">=</span><span class="n">source_segment_id</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">):</span>
+      <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
+          <span class="n">source_vecs</span><span class="p">,</span>
+          <span class="n">source_paddings</span><span class="p">,</span>
+          <span class="n">query_segment_id</span><span class="o">=</span><span class="n">source_segment_id</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
-      <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
-          <span class="n">aux_segment_id</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;aux_atten&#39;</span><span class="p">):</span>
+        <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
+            <span class="n">aux_segment_id</span><span class="p">)</span>
 
     <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">atten_prob</span></div>
@@ -613,7 +649,8 @@
                  <span class="n">source_vecs</span><span class="p">,</span>
                  <span class="n">prefix_states</span><span class="p">,</span>
                  <span class="n">aux_vecs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">aux_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">aux_paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer Layer, extend one step in decoding.</span>
 
 <span class="sd">    This function is expected to be called during fast decoding of Transformer</span>
@@ -627,6 +664,7 @@
 <span class="sd">          attentions, used for fast decoding.</span>
 <span class="sd">      aux_vecs: [aux_time, aux_batch, dim]</span>
 <span class="sd">      aux_paddings: [aux_time, aux_batch]</span>
+<span class="sd">      t: a scalar, the current time step, 0-based.</span>
 <span class="sd">    Returns:</span>
 <span class="sd">      The attention context vector, [target_batch, source_dim]</span>
 
@@ -644,7 +682,7 @@
 
     <span class="c1"># First the self-attention layer.</span>
     <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">new_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">prefix_states</span><span class="p">)</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">prefix_states</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
     <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="c1"># Next the source attention layer.</span>
@@ -670,6 +708,8 @@
 <span class="sd">  - mean: Takes the mean of input tensors.</span>
 <span class="sd">  - concat: Concatenates the input tensors over the last dimension.</span>
 <span class="sd">  - sum: Sum up all the input tensors.</span>
+<span class="sd">  - weighted_sum: Use learnt weights to combine input tensors.</span>
+<span class="sd">  - gated_avg: Learnt input dependent gates are used to average tensors.</span>
 
 <span class="sd">  This class is expected to be called by multi-source/multi-column models.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -695,12 +735,14 @@
         <span class="n">layers</span><span class="o">.</span><span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">weight_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
         <span class="s1">&#39;Configs template for the projection layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gated_avg_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">GatedAverageLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Configs template for the gated average layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_sources&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If merger_op=weighted_sum, then must specify &#39;</span>
              <span class="s1">&#39;num of sources.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="c1"># Merging operation keys supported by this layer.</span>
-  <span class="n">MERGER_OPS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="s1">&#39;concat&#39;</span><span class="p">,</span> <span class="s1">&#39;sum&#39;</span><span class="p">,</span> <span class="s1">&#39;weighted_sum&#39;</span><span class="p">]</span>
+  <span class="n">MERGER_OPS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="s1">&#39;concat&#39;</span><span class="p">,</span> <span class="s1">&#39;sum&#39;</span><span class="p">,</span> <span class="s1">&#39;weighted_sum&#39;</span><span class="p">,</span> <span class="s1">&#39;gated_avg&#39;</span><span class="p">]</span>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -746,6 +788,15 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
         <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sum_weight</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;sum_weight&#39;</span><span class="p">,</span> <span class="n">pw</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;gated_avg&#39;</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;For merger_op=gated_avg, must specify &#39;</span>
+                                 <span class="s1">&#39;num_sources &gt; 0.&#39;</span><span class="p">)</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">gated_avg_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;g_avg_merger&#39;</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">num_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">num_inputs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sources</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gated_average&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MergerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.MergerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">query_vec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Combines the list of input tensors into a single tensor.</span>
@@ -833,6 +884,9 @@
                                 <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t2</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="ow">in</span> <span class="n">tensor_pairs</span>
       <span class="p">]):</span>
         <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;gated_avg&#39;</span><span class="p">:</span>
+      <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gated_average</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gated_average</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
 
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unrecognized merge op!&#39;</span><span class="p">)</span>
@@ -971,26 +1025,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

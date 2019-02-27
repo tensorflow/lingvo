@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.tasks.asr.decoder module" href="lingvo.tasks.asr.decoder.html" />
     <link rel="prev" title="lingvo.tasks.asr.params.librispeech module" href="lingvo.tasks.asr.params.librispeech.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -171,7 +173,7 @@
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Base class for a contextualizer.</p>
 <p>Typical usage of a contextualizer is:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">contextualizer</span><span class="o">.</span><span class="n">SetContextMap</span><span class="p">(</span><span class="n">context_map</span><span class="p">)</span>     <span class="c1"># Set context map.</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">contextualizer</span><span class="o">.</span><span class="n">SetContextMap</span><span class="p">(</span><span class="n">context_map</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>  <span class="c1"># Set context map.</span>
 <span class="n">contextualizer</span><span class="o">.</span><span class="n">InitAttention</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>             <span class="c1"># Initalize attn sources.</span>
 <span class="n">context</span> <span class="o">=</span> <span class="n">contextualizer</span><span class="o">.</span><span class="n">ZeroAttention</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>   <span class="c1"># Initalize attn state.</span>
 <span class="n">context</span> <span class="o">=</span> <span class="n">contextualizer</span><span class="o">.</span><span class="n">QueryAttention</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>  <span class="c1"># Call on each decoding step.</span>
@@ -186,14 +188,18 @@ LAS model with additional context.</p>
 </ul>
 <dl class="method">
 <dt id="lingvo.tasks.asr.contextualizer_base.ContextualizerBase.SetContextMap">
-<code class="descname">SetContextMap</code><span class="sig-paren">(</span><em>context_map</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#ContextualizerBase.SetContextMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.SetContextMap" title="Permalink to this definition">¶</a></dt>
+<code class="descname">SetContextMap</code><span class="sig-paren">(</span><em>context_map</em>, <em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#ContextualizerBase.SetContextMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.SetContextMap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the context map.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>context_map</strong> – A NestedMap object containing the context from which
-attention vectors will be computed.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context_map</strong> – A NestedMap object containing the context from which
+attention vectors will be computed.</li>
+<li><strong>theta</strong> – NestedMap, parameters needed for embedding.</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -292,14 +298,18 @@ placed.</li>
 <p>An ‘empty’ or no-op contextualizer.</p>
 <dl class="method">
 <dt id="lingvo.tasks.asr.contextualizer_base.NullContextualizer.SetContextMap">
-<code class="descname">SetContextMap</code><span class="sig-paren">(</span><em>context_map</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#NullContextualizer.SetContextMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.NullContextualizer.SetContextMap" title="Permalink to this definition">¶</a></dt>
+<code class="descname">SetContextMap</code><span class="sig-paren">(</span><em>context_map</em>, <em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/contextualizer_base.html#NullContextualizer.SetContextMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.contextualizer_base.NullContextualizer.SetContextMap" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the context map.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>context_map</strong> – A NestedMap object containing the context from which
-attention vectors will be computed.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context_map</strong> – A NestedMap object containing the context from which
+attention vectors will be computed.</li>
+<li><strong>theta</strong> – NestedMap, parameters needed for embedding.</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>
@@ -404,7 +414,7 @@ placed.</li>
         <a href="lingvo.tasks.asr.decoder.html" class="btn btn-neutral float-right" title="lingvo.tasks.asr.decoder module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.asr.params.librispeech.html" class="btn btn-neutral" title="lingvo.tasks.asr.params.librispeech module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tasks.asr.params.librispeech.html" class="btn btn-neutral float-left" title="lingvo.tasks.asr.params.librispeech module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -430,26 +440,16 @@ placed.</li>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

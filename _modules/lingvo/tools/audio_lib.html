@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -166,7 +168,9 @@
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.contrib.framework.python.ops</span> <span class="k">import</span> <span class="n">audio_ops</span> <span class="k">as</span> <span class="n">contrib_audio</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">asr_frontend</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.asr</span> <span class="k">import</span> <span class="n">frontend</span> <span class="k">as</span> <span class="n">asr_frontend</span>
+
 
 <span class="c1"># There are two ways to decode a wav in tensorflow:</span>
 <span class="c1"># Through the tensorflow native audio decoder, exported</span>
@@ -229,7 +233,7 @@
 
   <span class="k">def</span> <span class="nf">_CreateAsrFrontend</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Parameters corresponding to default ASR frontend.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">asr_frontend</span><span class="o">.</span><span class="n">MelFrontend</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">asr_frontend</span><span class="o">.</span><span class="n">MelAsrFrontend</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="mf">16000.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">frame_size_ms</span> <span class="o">=</span> <span class="mf">25.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">frame_step_ms</span> <span class="o">=</span> <span class="mf">10.</span>
@@ -239,9 +243,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">preemph</span> <span class="o">=</span> <span class="mf">0.97</span>
     <span class="n">p</span><span class="o">.</span><span class="n">noise_scale</span> <span class="o">=</span> <span class="mf">0.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">pad_end</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="c1"># Stack 3 frames and sub-sample by a factor of 3.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">output_stride</span> <span class="o">=</span> <span class="mi">3</span>
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
   <span class="n">sample_rate</span><span class="p">,</span> <span class="n">audio</span> <span class="o">=</span> <span class="n">DecodeWav</span><span class="p">(</span><span class="n">wav_bytes_t</span><span class="p">)</span>
@@ -254,7 +255,9 @@
   <span class="n">mel_frontend</span> <span class="o">=</span> <span class="n">_CreateAsrFrontend</span><span class="p">()</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
       <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">sample_rate</span><span class="p">,</span> <span class="n">static_sample_rate</span><span class="p">)]):</span>
-    <span class="n">log_mel</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">mel_frontend</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">mel_frontend</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">src_inputs</span><span class="o">=</span><span class="n">audio</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">audio</span><span class="p">)))</span>
+    <span class="n">log_mel</span> <span class="o">=</span> <span class="n">outputs</span><span class="o">.</span><span class="n">src_inputs</span>
   <span class="k">return</span> <span class="n">log_mel</span></div>
 </pre></div>
 
@@ -285,26 +288,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

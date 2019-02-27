@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.py_utils module" href="lingvo.core.py_utils.html" />
     <link rel="prev" title="lingvo.core.plot module" href="lingvo.core.plot.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -168,7 +170,7 @@
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">params</span> <span class="o">=</span> <span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="s1">&#39;MyModel&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
 <span class="n">inference_graph</span> <span class="o">=</span> <span class="n">inference_graph_exporter</span><span class="o">.</span><span class="n">InferenceGraphExporter</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span>
     <span class="n">params</span><span class="p">)</span>
-<span class="n">pred</span> <span class="o">=</span> <span class="n">Predictor</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">pred</span> <span class="o">=</span> <span class="n">Predictor</span><span class="p">(</span><span class="n">inference_graph</span><span class="o">=</span><span class="n">inference_graph</span><span class="p">)</span>
 <span class="n">pred</span><span class="o">.</span><span class="n">Load</span><span class="p">(</span><span class="s2">&quot;/tmp/logdir/train/ckpt-00000000&quot;</span><span class="p">)</span>
 <span class="p">[</span><span class="n">topk_hyps</span><span class="p">]</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">Run</span><span class="p">([</span><span class="s2">&quot;topk_hyps&quot;</span><span class="p">],</span> <span class="n">src_strings</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Hello World&quot;</span><span class="p">])</span>
 </pre></div>
@@ -307,7 +309,7 @@
         <a href="lingvo.core.py_utils.html" class="btn btn-neutral float-right" title="lingvo.core.py_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.plot.html" class="btn btn-neutral" title="lingvo.core.plot module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.plot.html" class="btn btn-neutral float-left" title="lingvo.core.plot module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -333,26 +335,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

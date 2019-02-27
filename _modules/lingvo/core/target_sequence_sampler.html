@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -197,7 +199,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;target_sequence_sampler&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="TargetSequenceSampler.Sample"><a class="viewcode-back" href="../../../lingvo.core.target_sequence_sampler.html#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample">[docs]</a>  <span class="k">def</span> <span class="nf">Sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_theta</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">,</span>
+<div class="viewcode-block" id="TargetSequenceSampler.Sample"><a class="viewcode-back" href="../../../lingvo.core.target_sequence_sampler.html#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample">[docs]</a>  <span class="k">def</span> <span class="nf">Sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">,</span>
              <span class="n">init_state_callback</span><span class="p">,</span> <span class="n">pre_step_callback</span><span class="p">,</span> <span class="n">post_step_callback</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Samples target sequences, one target sequence per source sequence.</span>
 
@@ -207,8 +209,7 @@
 <span class="sd">      decoder_theta: A NestedMap object containing weights&#39; values of the</span>
 <span class="sd">        decoder layer and its children layers, to be passed to decoder</span>
 <span class="sd">        callbacks.</span>
-<span class="sd">      source_encs: source encoding, to be passed to decoder callbacks.</span>
-<span class="sd">      source_paddings: source padding, to be passed to decoder callbacks.</span>
+<span class="sd">      encoder_outputs: the outputs of the encoder, to be passed to callbacks.</span>
 <span class="sd">      random_seed: a scalar int32 tensor representing the random seed.</span>
 <span class="sd">      init_state_callback: decoder._InitBeamSearchStateCallback.</span>
 <span class="sd">      pre_step_callback: decoder._PreBeamSearchStepCallback.</span>
@@ -226,16 +227,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">temperature</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="c1"># &#39;recurrent_theta&#39; represents all cross-timestep information used by the</span>
+    <span class="c1"># recurrent loop below, including layer theta and encoder outputs.</span>
     <span class="n">recurrent_theta</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">=</span><span class="n">decoder_theta</span><span class="p">,</span>
         <span class="n">random_seed</span><span class="o">=</span><span class="n">random_seed</span><span class="p">,</span>
-        <span class="n">source_encs</span><span class="o">=</span><span class="n">source_encs</span><span class="p">,</span>
-        <span class="n">source_paddings</span><span class="o">=</span><span class="n">source_paddings</span><span class="p">)</span>
+        <span class="n">encoder_outputs</span><span class="o">=</span><span class="n">encoder_outputs</span><span class="p">)</span>
     <span class="n">bs_result</span><span class="p">,</span> <span class="n">bs_state</span> <span class="o">=</span> <span class="n">init_state_callback</span><span class="p">(</span>
-        <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
-        <span class="n">source_encs</span><span class="p">,</span>
-        <span class="n">source_paddings</span><span class="p">,</span>
-        <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">recurrent_state0</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">timestep</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
@@ -252,8 +251,7 @@
         <span class="c1"># Compute logits and states.</span>
         <span class="n">bs_result</span><span class="p">,</span> <span class="n">bs_state1</span> <span class="o">=</span> <span class="n">pre_step_callback</span><span class="p">(</span>
             <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
-            <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">source_encs</span><span class="p">,</span>
-            <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">source_paddings</span><span class="p">,</span>
+            <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">encoder_outputs</span><span class="p">,</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># [batch, 1].</span>
             <span class="n">state0</span><span class="o">.</span><span class="n">bs_state</span><span class="p">,</span>
             <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -273,9 +271,9 @@
               <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">bs_result</span><span class="o">.</span><span class="n">is_last_chunk</span><span class="p">,</span>
                              <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span><span class="p">)),</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span><span class="p">),</span> <span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
-        <span class="n">state1</span><span class="o">.</span><span class="n">bs_state</span> <span class="o">=</span> <span class="n">post_step_callback</span><span class="p">(</span>
-            <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">source_encs</span><span class="p">,</span>
-            <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">bs_state1</span><span class="p">)</span>
+        <span class="n">state1</span><span class="o">.</span><span class="n">bs_state</span> <span class="o">=</span> <span class="n">post_step_callback</span><span class="p">(</span><span class="n">recurrent_theta</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+                                             <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">encoder_outputs</span><span class="p">,</span>
+                                             <span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">bs_state1</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
     <span class="n">accumulated_states</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span><span class="n">recurrent_theta</span><span class="p">,</span>
@@ -322,26 +320,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

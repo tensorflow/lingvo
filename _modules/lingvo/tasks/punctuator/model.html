@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" /> 
-
-  
-  <script src="../../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -163,22 +165,14 @@
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">model</span> <span class="k">as</span> <span class="n">mt_model</span>
 
 
-<div class="viewcode-block" id="TransformerModel"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.model.html#lingvo.tasks.punctuator.model.TransformerModel">[docs]</a><span class="k">class</span> <span class="nc">TransformerModel</span><span class="p">(</span><span class="n">mt_model</span><span class="o">.</span><span class="n">TransformerModel</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Transformer model.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="RNMTModel"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.model.html#lingvo.tasks.punctuator.model.RNMTModel">[docs]</a><span class="k">class</span> <span class="nc">RNMTModel</span><span class="p">(</span><span class="n">mt_model</span><span class="o">.</span><span class="n">RNMTModel</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;The MT model with an inference graph for punctuator.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="TransformerModel.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.model.html#lingvo.tasks.punctuator.model.TransformerModel.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">decoder_metrics</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
-        <span class="s1">&#39;corpus_bleu&#39;</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">CorpusBleuMetric</span><span class="p">(</span><span class="n">separator_type</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span>
-    <span class="p">}</span>
-    <span class="k">return</span> <span class="n">decoder_metrics</span></div>
-
-<div class="viewcode-block" id="TransformerModel.Inference"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.model.html#lingvo.tasks.punctuator.model.TransformerModel.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="RNMTModel.Inference"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.model.html#lingvo.tasks.punctuator.model.RNMTModel.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs the inference subgraphs.</span>
 
 <span class="sd">    Returns:</span>
@@ -189,31 +183,21 @@
       <span class="n">subgraphs</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InferenceSubgraph_Default</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">subgraphs</span></div>
 
-<div class="viewcode-block" id="TransformerModel._InferenceSubgraph_Default"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.model.html#lingvo.tasks.punctuator.model.TransformerModel._InferenceSubgraph_Default">[docs]</a>  <span class="k">def</span> <span class="nf">_InferenceSubgraph_Default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="RNMTModel._InferenceSubgraph_Default"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.model.html#lingvo.tasks.punctuator.model.RNMTModel._InferenceSubgraph_Default">[docs]</a>  <span class="k">def</span> <span class="nf">_InferenceSubgraph_Default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;inference&#39;</span><span class="p">):</span>
       <span class="n">src_strings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="kc">None</span><span class="p">])</span>
       <span class="n">_</span><span class="p">,</span> <span class="n">src_ids</span><span class="p">,</span> <span class="n">src_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
           <span class="n">src_strings</span><span class="p">,</span> <span class="n">is_source</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-      <span class="c1"># Truncate paddings at the end.</span>
-      <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-      <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">src_paddings</span><span class="p">[:,</span> <span class="n">max_seq_length</span><span class="p">:]</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">))</span>
-      <span class="p">],</span> <span class="n">src_paddings</span><span class="p">)</span>
-      <span class="n">src_ids</span> <span class="o">=</span> <span class="n">src_ids</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_length</span><span class="p">]</span>
-      <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">src_paddings</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_seq_length</span><span class="p">]</span>
-
       <span class="n">src_input_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">ids</span><span class="o">=</span><span class="n">src_ids</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">src_paddings</span><span class="p">)</span>
-      <span class="n">src_enc</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">src_input_map</span><span class="p">)</span>
-      <span class="n">decoder_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span><span class="n">src_enc</span><span class="p">,</span> <span class="n">src_enc_paddings</span><span class="p">)</span>
+      <span class="n">encoder_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">src_input_map</span><span class="p">)</span>
+      <span class="n">decoder_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">)</span>
 
       <span class="n">topk_hyps</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_hyps</span>
       <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_ids</span>
       <span class="n">topk_lens</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_lens</span>
 
+      <span class="c1"># topk_lens - 1 to remove the EOS id.</span>
       <span class="n">topk_decoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">(</span><span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
       <span class="n">topk_decoded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">topk_hyps</span><span class="p">))</span>
 
@@ -255,26 +239,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.inference_graph_pb2 module" href="lingvo.core.inference_graph_pb2.html" />
     <link rel="prev" title="lingvo.core.hyperparams module" href="lingvo.core.hyperparams.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -251,15 +253,9 @@
 <dd></dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.inference_graph_exporter.GetVariablesWithBfloat16Overrides">
-<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">GetVariablesWithBfloat16Overrides</code><span class="sig-paren">(</span><em>variables_to_load</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#GetVariablesWithBfloat16Overrides"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.GetVariablesWithBfloat16Overrides" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a dictionary containing overrides to load variables as bf16.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.core.inference_graph_exporter.GetAllVariables">
-<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">GetAllVariables</code><span class="sig-paren">(</span><em>variables_to_load</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#GetAllVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.GetAllVariables" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a dictionary contain a mapping between name: variable.</p>
+<dt id="lingvo.core.inference_graph_exporter._MakeVariableDictionary">
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">_MakeVariableDictionary</code><span class="sig-paren">(</span><em>variables</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#_MakeVariableDictionary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter._MakeVariableDictionary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary with name -&gt; tf.Variable() mapping.</p>
 </dd></dl>
 
 <dl class="function">
@@ -291,7 +287,7 @@ NestedMap.</td>
 
 <dl class="function">
 <dt id="lingvo.core.inference_graph_exporter.GetOutputOpNames">
-<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">GetOutputOpNames</code><span class="sig-paren">(</span><em>graph</em>, <em>inference_graph_proto</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#GetOutputOpNames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.GetOutputOpNames" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.inference_graph_exporter.</code><code class="descname">GetOutputOpNames</code><span class="sig-paren">(</span><em>graph</em>, <em>inference_graph_proto</em>, <em>preserve_colocation_nodes=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#GetOutputOpNames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.GetOutputOpNames" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets output op names from an inference graph.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -300,6 +296,8 @@ NestedMap.</td>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>graph</strong> – The tf graph.</li>
 <li><strong>inference_graph_proto</strong> – an InferenceGraph proto.</li>
+<li><strong>preserve_colocation_nodes</strong> – a Python bool, default to True. Preserves nodes
+colocating with the closure of output ops in the returned array.</li>
 </ul>
 </td>
 </tr>
@@ -369,6 +367,7 @@ NestedMap.</td>
 <dt id="lingvo.core.inference_graph_exporter.InferenceGraphExporter.Export">
 <em class="property">classmethod </em><code class="descname">Export</code><span class="sig-paren">(</span><em>model_cfg</em>, <em>model_task_name=None</em>, <em>per_step_inference=False</em>, <em>device_options=InferenceDeviceOptions(device=''</em>, <em>retain_device_placement=False</em>, <em>var_options=None</em>, <em>gen_init_op=True</em>, <em>dtype_override=None)</em>, <em>freeze_checkpoint=None</em>, <em>freeze_defaults=False</em>, <em>export_path=None</em>, <em>subgraph_filter=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#InferenceGraphExporter.Export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceGraphExporter.Export" title="Permalink to this definition">¶</a></dt>
 <dd><p>Exports a InferenceGraph proto with piecewise subgraphs.</p>
+<p>Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -439,7 +438,7 @@ subgraphs.</li>
         <a href="lingvo.core.inference_graph_pb2.html" class="btn btn-neutral float-right" title="lingvo.core.inference_graph_pb2 module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.hyperparams.html" class="btn btn-neutral" title="lingvo.core.hyperparams module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.hyperparams.html" class="btn btn-neutral float-left" title="lingvo.core.hyperparams module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -465,26 +464,16 @@ subgraphs.</li>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.base_encoder module" href="lingvo.core.base_encoder.html" />
     <link rel="prev" title="lingvo.core.attention module" href="lingvo.core.attention.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -177,7 +179,7 @@
 
 <dl class="method">
 <dt id="lingvo.core.base_decoder.BaseDecoder.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>src_encs</em>, <em>src_enc_paddings</em>, <em>targets</em>, <em>src_segment_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -186,20 +188,9 @@
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</li>
-<li><strong>src_encs</strong> – source encoding, of shape [time, batch, depth].</li>
-<li><strong>src_enc_paddings</strong> – source encoding padding, of shape [time, batch].</li>
+<li><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</li>
 <li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
 predict.</li>
-<li><strong>src_segment_id</strong> – source segment id, of shape [time, batch]. This input is
-meant to support multiple samples in a single training sequence. The id
-identifies the sample that the input at the corresponding time-step
-belongs to. For example, if the two examples packed together are
-[‘good’, ‘day’] -&gt; [‘guten-tag’] and [‘thanks’] -&gt; [‘danke’] to produce
-[‘good’, ‘day’, ‘thanks’] -&gt; [‘guten-tag’, ‘danke’], the source segment
-ids would be [0, 0, 1] and target segment ids would be [0, 1]. These ids
-are meant to enable masking computations for different examples from
-each other. Models or layers than don’t support packed inputs should
-pass None.</li>
 </ul>
 </td>
 </tr>
@@ -213,7 +204,7 @@ Both value and weight are scalar Tensors.</p>
 
 <dl class="method">
 <dt id="lingvo.core.base_decoder.BaseDecoder.ComputePredictions">
-<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>src_encs</em>, <em>src_enc_paddings</em>, <em>targets</em>, <em>src_segment_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -236,20 +227,15 @@ Both value and weight are scalar Tensors.</p>
 
 <dl class="method">
 <dt id="lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode">
-<code class="descname">BeamSearchDecode</code><span class="sig-paren">(</span><em>src_encs</em>, <em>src_enc_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.BeamSearchDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode" title="Permalink to this definition">¶</a></dt>
+<code class="descname">BeamSearchDecode</code><span class="sig-paren">(</span><em>encoder_outputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.BeamSearchDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs beam search based decoding.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>src_encs</strong> – source encoding, of shape [time, batch, depth].</li>
-<li><strong>src_enc_paddings</strong> – source encoding padding, of shape [time, batch].</li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>encoder_outputs</strong> – the outputs of the encoder.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><a class="reference internal" href="lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="lingvo.core.beam_search_helper.BeamSearchDecodeOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code></a>, A namedtuple whose elements are tensors.</p>
-</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><a class="reference internal" href="lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="lingvo.core.beam_search_helper.BeamSearchDecodeOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code></a>, A namedtuple whose elements are tensors.</td>
 </tr>
 </tbody>
 </table>
@@ -270,7 +256,7 @@ Both value and weight are scalar Tensors.</p>
         <a href="lingvo.core.base_encoder.html" class="btn btn-neutral float-right" title="lingvo.core.base_encoder module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.attention.html" class="btn btn-neutral" title="lingvo.core.attention module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.attention.html" class="btn btn-neutral float-left" title="lingvo.core.attention module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -296,26 +282,16 @@ Both value and weight are scalar Tensors.</p>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

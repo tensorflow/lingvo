@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -248,32 +250,12 @@
   <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;:0&#39;</span><span class="p">)]</span></div>
 
 
-<div class="viewcode-block" id="GetVariablesWithBfloat16Overrides"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.GetVariablesWithBfloat16Overrides">[docs]</a><span class="k">def</span> <span class="nf">GetVariablesWithBfloat16Overrides</span><span class="p">(</span><span class="n">variables_to_load</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Returns a dictionary containing overrides to load variables as bf16.&quot;&quot;&quot;</span>
-  <span class="n">saver_dict</span> <span class="o">=</span> <span class="p">{}</span>
-  <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables_to_load</span><span class="p">:</span>
-    <span class="n">var_name</span> <span class="o">=</span> <span class="n">_GetVarName</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">:</span>
-      <span class="c1"># TODO(rohananil): Add support for PartitionedVariables if there is</span>
-      <span class="c1"># demand.</span>
-      <span class="n">savable</span> <span class="o">=</span> <span class="n">bfloat16_variables</span><span class="o">.</span><span class="n">Bfloat16VariableSaveable</span><span class="p">(</span>
-          <span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">var_name</span><span class="p">)</span>
-      <span class="n">saver_dict</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">savable</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">saver_dict</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-  <span class="k">return</span> <span class="n">saver_dict</span></div>
-
-
-<div class="viewcode-block" id="GetAllVariables"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.GetAllVariables">[docs]</a><span class="k">def</span> <span class="nf">GetAllVariables</span><span class="p">(</span><span class="n">variables_to_load</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Returns a dictionary contain a mapping between name: variable.&quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables_to_load</span><span class="p">]):</span>
-    <span class="k">return</span> <span class="n">variables_to_load</span>
-
-  <span class="n">saver_dict</span> <span class="o">=</span> <span class="p">{}</span>
-  <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables_to_load</span><span class="p">:</span>
-    <span class="n">var_name</span> <span class="o">=</span> <span class="n">_GetVarName</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-    <span class="n">saver_dict</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
-  <span class="k">return</span> <span class="n">saver_dict</span></div>
+<div class="viewcode-block" id="_MakeVariableDictionary"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter._MakeVariableDictionary">[docs]</a><span class="k">def</span> <span class="nf">_MakeVariableDictionary</span><span class="p">(</span><span class="n">variables</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a dictionary with name -&gt; tf.Variable() mapping.&quot;&quot;&quot;</span>
+  <span class="n">vars_dict</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">:</span>
+    <span class="n">vars_dict</span><span class="p">[</span><span class="n">_GetVarName</span><span class="p">(</span><span class="n">v</span><span class="p">)]</span> <span class="o">=</span> <span class="n">v</span>
+  <span class="k">return</span> <span class="n">vars_dict</span></div>
 
 
 <div class="viewcode-block" id="IsTpu"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.IsTpu">[docs]</a><span class="k">def</span> <span class="nf">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
@@ -311,12 +293,16 @@
   <span class="k">return</span> <span class="n">inference_graph_proto</span></div>
 
 
-<div class="viewcode-block" id="GetOutputOpNames"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.GetOutputOpNames">[docs]</a><span class="k">def</span> <span class="nf">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">):</span>
+<div class="viewcode-block" id="GetOutputOpNames"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.GetOutputOpNames">[docs]</a><span class="k">def</span> <span class="nf">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span>
+                     <span class="n">inference_graph_proto</span><span class="p">,</span>
+                     <span class="n">preserve_colocation_nodes</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Gets output op names from an inference graph.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    graph: The tf graph.</span>
 <span class="sd">    inference_graph_proto: an InferenceGraph proto.</span>
+<span class="sd">    preserve_colocation_nodes: a Python bool, default to True. Preserves nodes</span>
+<span class="sd">      colocating with the closure of output ops in the returned array.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    Array of tf op names that should be preserved in the graph.</span>
@@ -361,6 +347,9 @@
                                               <span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span>
   <span class="n">reachable_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph_def</span><span class="o">.</span><span class="n">node</span><span class="p">]</span>
 
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">preserve_colocation_nodes</span><span class="p">:</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span>
+
   <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">():</span>
     <span class="k">if</span> <span class="s1">&#39;_class&#39;</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">node_def</span><span class="o">.</span><span class="n">attr</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">loc</span> <span class="ow">in</span> <span class="n">node</span><span class="o">.</span><span class="n">node_def</span><span class="o">.</span><span class="n">attr</span><span class="p">[</span><span class="s1">&#39;_class&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">list</span><span class="o">.</span><span class="n">s</span><span class="p">:</span>
@@ -371,7 +360,6 @@
             <span class="c1"># Skip nodes that cannot be reached from the pruned graph.</span>
             <span class="k">continue</span>
           <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-          <span class="n">output_op_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">loc_name</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">output_op_names</span><span class="p">))</span></div>
 
@@ -441,6 +429,8 @@
              <span class="n">subgraph_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exports a InferenceGraph proto with piecewise subgraphs.</span>
 
+<span class="sd">    Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">      model_cfg: a Params instance as returned by</span>
 <span class="sd">        model_registry.GetParams(modelname, &#39;Test&#39;) or model_params.Model().</span>
@@ -464,6 +454,10 @@
 <span class="sd">      ValueError: if the model does not support the listed subgraphs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">BaseModel</span><span class="p">)</span>
+
+    <span class="c1"># Disable assertions unless user explicitly enables it.</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="p">[</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">using_default_value</span><span class="p">:</span>
+      <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="c1"># TODO(laurenzo): Work out how much we need to specify here in terms of</span>
     <span class="c1"># cluster configuration.</span>
@@ -519,14 +513,17 @@
           <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">mdl</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">)</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="n">old_enable_asserts</span>
-        <span class="n">variables_to_load</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">()</span>
+        <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">_MakeVariableDictionary</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span> <span class="k">else</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">())</span>
 
         <span class="k">if</span> <span class="n">bfloat16_override</span><span class="p">:</span>
-          <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">GetVariablesWithBfloat16Overrides</span><span class="p">(</span><span class="n">variables_to_load</span><span class="p">)</span>
+          <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">bfloat16_variables</span>
+              <span class="o">.</span><span class="n">get_saver_spec_for_variables_with_bf16_overrides</span><span class="p">(</span>
+                  <span class="n">variables_to_restore</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">GetAllVariables</span><span class="p">(</span><span class="n">variables_to_load</span><span class="p">)</span>
+          <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">variables_to_restore</span>
 
         <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">saver_var_spec</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span>
@@ -549,13 +546,13 @@
         <span class="c1"># added last.</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
 
-    <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">)</span>
-
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Graph contains ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()])</span>
 
     <span class="c1"># Freezing.</span>
     <span class="k">if</span> <span class="n">freeze_defaults</span> <span class="ow">or</span> <span class="n">freeze_checkpoint</span><span class="p">:</span>
+      <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span>
+          <span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">,</span> <span class="n">preserve_colocation_nodes</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_DeviceSupportsFreezing</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;freeze_checkpoint cannot be used with device &#39;</span> <span class="o">+</span>
                          <span class="n">device_options</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
@@ -567,6 +564,8 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Default initializing graph and freezing.&#39;</span><span class="p">)</span>
         <span class="n">graph_def</span> <span class="o">=</span> <span class="n">_FreezeDefaults</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">output_op_names</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">)</span>
+
       <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">saver</span><span class="o">.</span><span class="n">as_saver_def</span><span class="p">())</span>
       <span class="c1"># Prune the graph to just the parts we need.</span>
       <span class="c1"># To support restoring, we have to not prune out the restore node.</span>
@@ -655,26 +654,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.lr_schedule module" href="lingvo.core.lr_schedule.html" />
+    <link rel="next" title="lingvo.core.layers_with_gpipe module" href="lingvo.core.layers_with_gpipe.html" />
     <link rel="prev" title="lingvo.core.layers module" href="lingvo.core.layers.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -226,7 +228,7 @@ source_time].</p>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep">
-<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>query_vec</em>, <em>prefix_state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>query_vec</em>, <em>prefix_state</em>, <em>t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extend prefix by one more time step.</p>
 <p>This function is expected to be called during fast decoding of the
 Transformer model.</p>
@@ -240,6 +242,7 @@ layer and its children layers.</li>
 <li><strong>query_vec</strong> – [target_batch, dim]</li>
 <li><strong>prefix_state</strong> – dict, containing tensors which are the results of previous
 attentions, used for fast decoding.</li>
+<li><strong>t</strong> – a scalar, the current time step, 0-based.</li>
 </ul>
 </td>
 </tr>
@@ -358,7 +361,7 @@ aux_time].</p>
 
 <dl class="method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer.ExtendStep">
-<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>prefix_states</em>, <em>aux_vecs=None</em>, <em>aux_paddings=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>prefix_states</em>, <em>aux_vecs=None</em>, <em>aux_paddings=None</em>, <em>t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer, extend one step in decoding.</p>
 <p>This function is expected to be called during fast decoding of Transformer
 models.</p>
@@ -374,6 +377,7 @@ layer and its children layers.</li>
 attentions, used for fast decoding.</li>
 <li><strong>aux_vecs</strong> – [aux_time, aux_batch, dim]</li>
 <li><strong>aux_paddings</strong> – [aux_time, aux_batch]</li>
+<li><strong>t</strong> – a scalar, the current time step, 0-based.</li>
 </ul>
 </td>
 </tr>
@@ -401,6 +405,8 @@ operator outputs a single tensor with the following options (merger_op):</p>
 <li>mean: Takes the mean of input tensors.</li>
 <li>concat: Concatenates the input tensors over the last dimension.</li>
 <li>sum: Sum up all the input tensors.</li>
+<li>weighted_sum: Use learnt weights to combine input tensors.</li>
+<li>gated_avg: Learnt input dependent gates are used to average tensors.</li>
 </ul>
 <p>This class is expected to be called by multi-source/multi-column models.</p>
 <dl class="classmethod">
@@ -411,7 +417,7 @@ operator outputs a single tensor with the following options (merger_op):</p>
 
 <dl class="attribute">
 <dt id="lingvo.core.layers_with_attention.MergerLayer.MERGER_OPS">
-<code class="descname">MERGER_OPS</code><em class="property"> = ['mean', 'atten', 'concat', 'sum', 'weighted_sum']</em><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.MERGER_OPS" title="Permalink to this definition">¶</a></dt>
+<code class="descname">MERGER_OPS</code><em class="property"> = ['mean', 'atten', 'concat', 'sum', 'weighted_sum', 'gated_avg']</em><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.MERGER_OPS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -515,10 +521,10 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.lr_schedule.html" class="btn btn-neutral float-right" title="lingvo.core.lr_schedule module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.layers_with_gpipe.html" class="btn btn-neutral float-right" title="lingvo.core.layers_with_gpipe module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.layers.html" class="btn btn-neutral" title="lingvo.core.layers module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.layers.html" class="btn btn-neutral float-left" title="lingvo.core.layers module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -544,26 +550,16 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" /> 
-
-  
-  <script src="../../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -165,7 +167,6 @@
 
 <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">font_manager</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">attention</span>
@@ -349,13 +350,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_context_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
              <span class="s1">&#39;Depth of the attention context vector output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;attention_plot_font_properties&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;attention_plot_font_properties&#39;</span><span class="p">,</span> <span class="n">font_manager</span><span class="o">.</span><span class="n">FontProperties</span><span class="p">(),</span>
         <span class="s1">&#39;Adds font properties for the given file if set. Required &#39;</span>
         <span class="s1">&#39;for displaying east-Asian character sets on plot axes.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;first_rnn_input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
-        <span class="s1">&#39;The input dim to the first RNN layer. If 0, it is &#39;</span>
-        <span class="s1">&#39;assumed to be p.emb_dim&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_layers&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of rnn layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;residual_start&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
@@ -433,8 +430,8 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">AsrDecoderBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed inputs are not yet supported for &#39;</span>
-                                     <span class="s1">&#39;AsrDecoderBase.&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed inputs are not yet supported for &#39;</span>
+                                <span class="s1">&#39;AsrDecoderBase.&#39;</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_max_label_prob</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">min_ground_truth_prob</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decay_interval</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">min_prob_step</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">prob_decay_start_step</span>
@@ -447,10 +444,8 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_font_properties</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_plot_font_properties</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_font_properties</span> <span class="o">=</span> <span class="n">font_manager</span><span class="o">.</span><span class="n">FontProperties</span><span class="p">(</span>
-          <span class="n">fname</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_plot_font_properties</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_font_properties</span> <span class="o">=</span> <span class="n">font_manager</span><span class="o">.</span><span class="n">FontProperties</span><span class="p">(</span>
+        <span class="n">fname</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_plot_font_properties</span><span class="p">)</span>
 
     <span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
@@ -472,10 +467,6 @@
       <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">base_model_logits_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fusion&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="p">)</span>
 
-      <span class="n">first_rnn_input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">first_rnn_input_dim</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">first_rnn_input_dim</span><span class="p">:</span>
-        <span class="n">first_rnn_input_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FusedEmbDim</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb_dim</span><span class="p">)</span>
-
       <span class="n">params_rnn_cells</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span><span class="p">):</span>
         <span class="n">rnn_cell_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -484,8 +475,7 @@
         <span class="n">decoder_utils</span><span class="o">.</span><span class="n">SetRnnCellNodes</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">rnn_cell_params</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
           <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_cell&#39;</span>
-          <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="n">first_rnn_input_dim</span> <span class="o">+</span> <span class="n">atten_context_dim</span><span class="p">)</span>
+          <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_dim</span> <span class="o">+</span> <span class="n">atten_context_dim</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_cell_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
           <span class="n">rnn_cell_params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span> <span class="o">+</span> <span class="n">atten_context_dim</span>
@@ -808,9 +798,9 @@
 <span class="sd">      BeamSearchDecodeOutput, a namedtuple containing the decode results</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">encoded</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
-        <span class="n">num_hyps_per_beam_override</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase.SampleTargetSequences"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.SampleTargetSequences">[docs]</a>  <span class="k">def</span> <span class="nf">SampleTargetSequences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Performs target sequence sampling.</span>
@@ -830,37 +820,22 @@
 <span class="sd">        a padded timestep.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_sequence_sampler</span><span class="o">.</span><span class="n">Sample</span><span class="p">(</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">encoded</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">random_seed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="AsrDecoderBase._InitBeamSearchStateCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._InitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                   <span class="n">theta</span><span class="p">,</span>
-                                   <span class="n">source_encs</span><span class="p">,</span>
-                                   <span class="n">source_paddings</span><span class="p">,</span>
-                                   <span class="n">num_hyps_per_beam</span><span class="p">,</span>
-                                   <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrDecoderBase._InitBeamSearchStateCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._InitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
+                                   <span class="n">num_hyps_per_beam</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;_InitBeamSearchStateCallback&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="AsrDecoderBase._PreBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._PreBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                 <span class="n">theta</span><span class="p">,</span>
-                                 <span class="n">source_encs</span><span class="p">,</span>
-                                 <span class="n">source_paddings</span><span class="p">,</span>
-                                 <span class="n">step_ids</span><span class="p">,</span>
-                                 <span class="n">states</span><span class="p">,</span>
-                                 <span class="n">num_hyps_per_beam</span><span class="p">,</span>
-                                 <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrDecoderBase._PreBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._PreBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span>
+                                 <span class="n">num_hyps_per_beam</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;_PreBeamSearchStepCallback&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="AsrDecoderBase._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                  <span class="n">theta</span><span class="p">,</span>
-                                  <span class="n">source_encs</span><span class="p">,</span>
-                                  <span class="n">source_paddings</span><span class="p">,</span>
-                                  <span class="n">new_step_ids</span><span class="p">,</span>
-                                  <span class="n">states</span><span class="p">,</span>
-                                  <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrDecoderBase._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span>
+                                  <span class="n">states</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;_PostBeamSearchStepCallback&#39;</span><span class="p">)</span></div>
 
+  <span class="c1"># TODO(tilarids): Can we remove this?</span>
 <div class="viewcode-block" id="AsrDecoderBase.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
       <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
@@ -972,7 +947,7 @@
     <span class="k">assert</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;src_segment_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="k">del</span> <span class="n">targets_per_batch_element</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">contextualizer</span><span class="o">.</span><span class="n">SetContextMap</span><span class="p">(</span><span class="n">targets</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">contextualizer</span><span class="o">.</span><span class="n">SetContextMap</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">contextualizer</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_while_loop_based_unrolling</span><span class="p">:</span>
       <span class="n">predictions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictionsDynamic</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
                                                    <span class="n">targets</span><span class="p">)</span>
@@ -1132,19 +1107,12 @@
         <span class="n">cur_target_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">TargetsToBeFedAtCurrentDecodeStep</span><span class="p">(</span>
             <span class="n">time</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">old_decoder_step_state</span><span class="p">,</span> <span class="n">target_info_tas</span><span class="p">,</span> <span class="n">seq_out_tas</span><span class="p">)</span>
 
-        <span class="n">lm_output</span><span class="p">,</span> <span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FPropLm</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">old_decoder_step_state</span><span class="o">.</span><span class="n">fusion_states</span><span class="p">,</span>
-            <span class="n">cur_target_info</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">cur_target_info</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
-
-        <span class="n">fused_emb</span><span class="p">,</span> <span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FuseEmb</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">fusion_states</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">cur_target_info</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
-        <span class="n">cur_target_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">OverrideEmbedding</span><span class="p">(</span><span class="n">cur_target_info</span><span class="p">,</span> <span class="n">fused_emb</span><span class="p">)</span>
-
         <span class="n">step_outs</span><span class="p">,</span> <span class="n">decoder_step_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SingleDecodeStep</span><span class="p">(</span>
             <span class="n">theta</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">,</span> <span class="n">cur_target_info</span><span class="p">,</span> <span class="n">old_decoder_step_state</span><span class="p">)</span>
 
-        <span class="n">step_outs</span><span class="p">,</span> <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FuseOutput</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">fusion_states</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">step_outs</span><span class="p">)</span>
+        <span class="n">step_outs</span><span class="p">,</span> <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">old_decoder_step_state</span><span class="o">.</span><span class="n">fusion_states</span><span class="p">,</span> <span class="n">step_outs</span><span class="p">,</span>
+            <span class="n">cur_target_info</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">cur_target_info</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
 
         <span class="c1"># Compute logits.</span>
         <span class="n">xent_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
@@ -1213,13 +1181,6 @@
           <span class="n">misc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">CreateTargetInfoMisc</span><span class="p">(</span><span class="n">targets</span><span class="p">),</span>
       <span class="p">)</span>
 
-      <span class="n">lm_output</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FPropLm</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">fusion_states</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
-          <span class="n">inputs</span><span class="o">.</span><span class="n">misc</span><span class="p">)</span>
-
-      <span class="n">inputs</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FuseEmb</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">fusion_states</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
-
       <span class="c1"># If the theta in the recurrent loop contains fusion related variables,</span>
       <span class="c1"># it will allocate a large amount of memory even though it is not being</span>
       <span class="c1"># used and exceed current TPU HBM limit. Thus remove fusion theta from</span>
@@ -1262,14 +1223,12 @@
             <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">step_out</span> <span class="o">=</span> <span class="n">accumulated_states</span><span class="o">.</span><span class="n">step_outs</span>
-      <span class="n">softmax_input</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FuseOutput</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">fusion_states</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">step_out</span><span class="p">)</span>
+      <span class="n">softmax_input</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">fusion_states</span><span class="p">,</span> <span class="n">step_out</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">misc</span><span class="p">)</span>
       <span class="c1"># TODO(syzhang): understand why we have to construct softmax outside the</span>
       <span class="c1"># recurrent loop; otherwise, the BProp numbers don&#39;t match.</span>
-      <span class="n">xent_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">softmax_input</span><span class="p">],</span>
-          <span class="n">class_weights</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span>
-          <span class="n">class_ids</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+      <span class="n">seq_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">softmax_input</span><span class="p">)</span>
       <span class="c1"># TODO(syzhang): supports AddAdditionalDecoderSummaries().</span>
       <span class="n">atten_states</span> <span class="o">=</span> <span class="n">accumulated_states</span><span class="o">.</span><span class="n">atten_states</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atten_states</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
@@ -1292,7 +1251,6 @@
           <span class="n">additional_atten_probs</span><span class="o">=</span><span class="n">additional_atten_probs</span><span class="p">,</span>
           <span class="n">target_alignments</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="s1">&#39;alignments&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">))</span>
       <span class="c1"># seq_logits: [time, batch, num_classes].</span>
-      <span class="n">seq_logits</span> <span class="o">=</span> <span class="n">xent_loss</span><span class="o">.</span><span class="n">logits</span>
       <span class="n">adjusted_logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">ComputeLogitsWithLM</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">fusion_states</span><span class="p">,</span>
                                                         <span class="n">seq_logits</span><span class="p">)</span>
       <span class="n">predictions</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
@@ -1307,6 +1265,19 @@
       <span class="n">predictions</span><span class="o">.</span><span class="n">attention</span> <span class="o">=</span> <span class="n">attention_map</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
           <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]))</span>
       <span class="k">return</span> <span class="n">predictions</span></div>
+
+<div class="viewcode-block" id="AsrDecoderBase._ComputeLogits"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._ComputeLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">softmax_input</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">ConvSoftmax</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">softmax_input</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># SoftmaxLayer.Logits() may not support 3-D inputs. So use FProp() with</span>
+      <span class="c1"># fake labels.</span>
+      <span class="n">xent_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">softmax_input</span><span class="p">],</span>
+          <span class="n">class_weights</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+              <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">softmax_input</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">softmax_input</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+          <span class="n">class_ids</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">softmax_input</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">xent_loss</span><span class="o">.</span><span class="n">logits</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase.SingleDecodeStep"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.SingleDecodeStep">[docs]</a>  <span class="k">def</span> <span class="nf">SingleDecodeStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">theta</span><span class="p">,</span>
@@ -1396,16 +1367,6 @@
         <span class="n">emb</span><span class="o">=</span><span class="n">emb</span><span class="p">,</span>
         <span class="n">padding</span><span class="o">=</span><span class="n">padding</span><span class="p">,</span>
         <span class="n">misc</span><span class="o">=</span><span class="n">misc</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="AsrDecoderBase.OverrideEmbedding"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.OverrideEmbedding">[docs]</a>  <span class="k">def</span> <span class="nf">OverrideEmbedding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_info</span><span class="p">,</span> <span class="n">new_emb</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Replaces target_info.emb with new_emb and returns the result tuple.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">AsrDecoderBase</span><span class="o">.</span><span class="n">TargetInfo</span><span class="p">(</span>
-        <span class="nb">id</span><span class="o">=</span><span class="n">target_info</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-        <span class="n">label</span><span class="o">=</span><span class="n">target_info</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
-        <span class="n">weight</span><span class="o">=</span><span class="n">target_info</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span>
-        <span class="n">emb</span><span class="o">=</span><span class="n">new_emb</span><span class="p">,</span>
-        <span class="n">padding</span><span class="o">=</span><span class="n">target_info</span><span class="o">.</span><span class="n">padding</span><span class="p">,</span>
-        <span class="n">misc</span><span class="o">=</span><span class="n">target_info</span><span class="o">.</span><span class="n">misc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase.PostStepDecoderStateUpdate"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.PostStepDecoderStateUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostStepDecoderStateUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_step_state</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update decoder states and logits after SingleDecodeStep.</span>
@@ -1622,20 +1583,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">atten_probs</span></div>
 
-<div class="viewcode-block" id="AsrDecoder._InitBeamSearchStateCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoder._InitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                   <span class="n">theta</span><span class="p">,</span>
-                                   <span class="n">source_encs</span><span class="p">,</span>
-                                   <span class="n">source_paddings</span><span class="p">,</span>
-                                   <span class="n">num_hyps_per_beam</span><span class="p">,</span>
-                                   <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="c1"># additional_source_info is currently not used.</span>
+<div class="viewcode-block" id="AsrDecoder._InitBeamSearchStateCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoder._InitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_InitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
+                                   <span class="n">num_hyps_per_beam</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">del</span> <span class="n">additional_source_info</span>
-    <span class="n">num_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetNumHypsForBeamSearch</span><span class="p">(</span><span class="n">source_encs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
-    <span class="p">(</span><span class="n">rnn_states</span><span class="p">,</span> <span class="n">atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">atten_states</span><span class="p">,</span> <span class="n">fusion_states</span><span class="p">,</span>
-     <span class="n">misc_states</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitDecoder</span><span class="p">(</span>
-         <span class="n">theta</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-             <span class="n">encoded</span><span class="o">=</span><span class="n">source_encs</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">source_paddings</span><span class="p">),</span> <span class="n">num_hyps</span><span class="p">)</span>
+    <span class="n">num_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetNumHypsForBeamSearch</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="o">.</span><span class="n">encoded</span><span class="p">,</span>
+                                             <span class="n">num_hyps_per_beam</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">rnn_states</span><span class="p">,</span> <span class="n">atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">atten_states</span><span class="p">,</span>
+     <span class="n">fusion_states</span><span class="p">,</span> <span class="n">misc_states</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">InitDecoder</span><span class="p">(</span>
+         <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">)</span>
     <span class="c1"># Throw away packed_src. We re-compute it in _PreBeamSearchStepCallback</span>
     <span class="c1"># because we cannot pass &#39;packed_src&#39; through &#39;states&#39;. beam_search_helper</span>
     <span class="c1"># assumes that all Tensors in &#39;states&#39; have &#39;target_batch&#39; as the first</span>
@@ -1664,20 +1619,10 @@
     <span class="p">})</span>
     <span class="k">return</span> <span class="n">initial_results</span><span class="p">,</span> <span class="n">other_states</span></div>
 
-<div class="viewcode-block" id="AsrDecoder._PreBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoder._PreBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                 <span class="n">theta</span><span class="p">,</span>
-                                 <span class="n">source_encs</span><span class="p">,</span>
-                                 <span class="n">source_paddings</span><span class="p">,</span>
-                                 <span class="n">step_ids</span><span class="p">,</span>
-                                 <span class="n">states</span><span class="p">,</span>
-                                 <span class="n">num_hyps_per_beam</span><span class="p">,</span>
-                                 <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrDecoder._PreBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoder._PreBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span>
+                                 <span class="n">num_hyps_per_beam</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="c1"># additional_source_info is currently not used.</span>
-    <span class="k">del</span> <span class="n">additional_source_info</span>
-    <span class="n">fake_step_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">step_ids</span><span class="p">)</span>
     <span class="n">step_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">step_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
     <span class="n">prev_rnn_states</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">rnn_states</span>
     <span class="n">prev_atten_states</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">all_atten_states</span><span class="o">.</span><span class="n">atten_states</span>
@@ -1702,16 +1647,7 @@
         <span class="n">padding</span><span class="o">=</span><span class="n">step_paddings</span><span class="p">,</span>
         <span class="n">misc</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">())</span>
 
-    <span class="n">lm_output</span><span class="p">,</span> <span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FPropLm</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">prev_fusion_states</span><span class="p">,</span> <span class="n">cur_target_info</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-        <span class="n">cur_target_info</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
-
-    <span class="n">fused_emb</span><span class="p">,</span> <span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FuseEmb</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">fusion_states</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">cur_target_info</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
-    <span class="n">cur_target_info</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">OverrideEmbedding</span><span class="p">(</span><span class="n">cur_target_info</span><span class="p">,</span> <span class="n">fused_emb</span><span class="p">)</span>
-
-    <span class="n">packed_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitAttention</span><span class="p">(</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">encoded</span><span class="o">=</span><span class="n">source_encs</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="n">source_paddings</span><span class="p">))</span>
+    <span class="n">packed_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitAttention</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">)</span>
     <span class="n">step_out</span><span class="p">,</span> <span class="n">new_decoder_step_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SingleDecodeStep</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span>
         <span class="n">packed_src</span><span class="p">,</span>
@@ -1737,18 +1673,13 @@
       <span class="n">softmax_input</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
           <span class="n">step_out</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">,</span> <span class="n">atten_context_dim</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
-    <span class="n">softmax_input</span><span class="p">,</span> <span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FuseOutput</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">fusion_states</span><span class="p">,</span> <span class="n">lm_output</span><span class="p">,</span> <span class="n">softmax_input</span><span class="p">)</span>
+    <span class="n">softmax_input</span><span class="p">,</span> <span class="n">fusion_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">fusion</span><span class="p">,</span> <span class="n">prev_fusion_states</span><span class="p">,</span> <span class="n">softmax_input</span><span class="p">,</span> <span class="n">cur_target_info</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="n">cur_target_info</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
 
-    <span class="n">xent_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-        <span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span>
-        <span class="p">[</span><span class="n">softmax_input</span><span class="p">],</span>
-        <span class="n">class_weights</span><span class="o">=</span><span class="n">step_weights</span><span class="p">,</span>
-        <span class="n">class_ids</span><span class="o">=</span><span class="n">fake_step_labels</span><span class="p">,</span>
-    <span class="p">)</span>
-
+    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">softmax_input</span><span class="p">)</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">ComputeLogitsWithLM</span><span class="p">(</span>
-        <span class="n">fusion_states</span><span class="p">,</span> <span class="n">xent_loss</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">fusion_states</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">is_eval</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_unnormalized_logits_as_log_probs</span><span class="p">:</span>
       <span class="n">log_probs</span> <span class="o">=</span> <span class="n">logits</span>
     <span class="k">else</span><span class="p">:</span>
@@ -1772,14 +1703,9 @@
     <span class="p">})</span>
     <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">new_states</span></div>
 
-<div class="viewcode-block" id="AsrDecoder._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoder._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                                  <span class="n">theta</span><span class="p">,</span>
-                                  <span class="n">source_encs</span><span class="p">,</span>
-                                  <span class="n">source_paddings</span><span class="p">,</span>
-                                  <span class="n">new_step_ids</span><span class="p">,</span>
-                                  <span class="n">states</span><span class="p">,</span>
-                                  <span class="n">additional_source_info</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">del</span> <span class="n">source_encs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">additional_source_info</span>
+<div class="viewcode-block" id="AsrDecoder._PostBeamSearchStepCallback"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoder._PostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span>
+                                  <span class="n">states</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_step_ids</span>
     <span class="k">return</span> <span class="n">states</span></div></div>
 </pre></div>
 
@@ -1810,26 +1736,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

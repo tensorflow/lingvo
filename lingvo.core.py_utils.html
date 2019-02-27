@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.quant_utils module" href="lingvo.core.quant_utils.html" />
     <link rel="prev" title="lingvo.core.predictor module" href="lingvo.core.predictor.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -453,6 +455,7 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <dt id="lingvo.core.py_utils.NestedMap.FlattenItems">
 <code class="descname">FlattenItems</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.FlattenItems"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.FlattenItems" title="Permalink to this definition">¶</a></dt>
 <dd><p>Flatten the <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> and returns &lt;key, value&gt; pairs in a list.</p>
+<p>For lists, keys will be returned with <code class="xref py py-obj docutils literal notranslate"><span class="pre">_</span></code> appended, e.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">x.y_10.z</span></code>.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -474,6 +477,26 @@ represented in the form of <code class="xref py py-obj docutils literal notransl
 <dt id="lingvo.core.py_utils.NestedMap.Filter">
 <code class="descname">Filter</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Filter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with entries that fn(entry) is True.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.py_utils.NestedMap.FilterKeyVal">
+<code class="descname">FilterKeyVal</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.FilterKeyVal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.FilterKeyVal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with filtered by fn.</p>
+<p>If fn(key, entry) is True, the entry is copied into the returned NestedMap.
+Otherwise, it is not copied.
+For lists, keys will be processed with indices, e.g. <code class="xref py py-obj docutils literal notranslate"><span class="pre">x.y[10].z</span></code>.
+This is different from FlattenItems.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fn</strong> – a callable of (string, entry)-&gt;boolean.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> contains copied entries from this <code class="xref py py-obj docutils literal notranslate"><span class="pre">'.NestedMap</span></code>.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -558,9 +581,21 @@ represented in the form of <code class="xref py py-obj docutils literal notransl
 </dd></dl>
 
 <dl class="staticmethod">
+<dt id="lingvo.core.py_utils.WeightInit.UniformPositive">
+<em class="property">static </em><code class="descname">UniformPositive</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.UniformPositive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.UniformPositive" title="Permalink to this definition">¶</a></dt>
+<dd><p>scale * tf.random_uniform(0., 1.0).</p>
+</dd></dl>
+
+<dl class="staticmethod">
 <dt id="lingvo.core.py_utils.WeightInit.Xavier">
 <em class="property">static </em><code class="descname">Xavier</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.Xavier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.Xavier" title="Permalink to this definition">¶</a></dt>
 <dd><p>Xavier initialization (x = sqrt(6. / (in + out)); [-x, x]).</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.py_utils.WeightInit.GeoMeanXavier">
+<em class="property">static </em><code class="descname">GeoMeanXavier</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.GeoMeanXavier"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.GeoMeanXavier" title="Permalink to this definition">¶</a></dt>
+<dd><p>A variant of Xavier (x = sqrt(3. / sqrt(in * out)); [-x, x]).</p>
 </dd></dl>
 
 <dl class="staticmethod">
@@ -598,6 +633,16 @@ represented in the form of <code class="xref py py-obj docutils literal notransl
 <em class="property">static </em><code class="descname">TruncatedGaussianSqrtDim</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.TruncatedGaussianSqrtDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim" title="Permalink to this definition">¶</a></dt>
 <dd><p>scale * tf.truncated_normal(0, 1 / sqrt(dim0)).</p>
 </dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.py_utils.WeightInit.KaimingUniformFanInRelu">
+<em class="property">static </em><code class="descname">KaimingUniformFanInRelu</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.KaimingUniformFanInRelu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.KaimingUniformFanInRelu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.py_utils.WeightInit.KaimingUniformFanInLeakyRelu">
+<em class="property">static </em><code class="descname">KaimingUniformFanInLeakyRelu</code><span class="sig-paren">(</span><em>scale=2.23606797749979</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.KaimingUniformFanInLeakyRelu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.KaimingUniformFanInLeakyRelu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -777,13 +822,13 @@ a var, var pair.</p>
 <li><strong>session</strong> – Tensorflow session.</li>
 <li><strong>all_vars</strong> – List of all the parameters in the model.</li>
 <li><strong>ckpts_loading_rules</strong> – A dictionary of checkpoint path: loading rules.
-Checkpoint path must be a path to a pretrained model, and loading rules
-is expected to be a tuple of two lists: the first consisting of tuples
-of strings defining (regex to match parameter names in the model to
-override, format string to determine the corresponding var in the
-checkpoint), and the second list consisting of a list of regexes to
-match parameter names in the model which should not be overridden,
-even if they match those in the loading rules.</li>
+Checkpoint path must be a path to a pretrained model, and loading rules is
+expected to be a tuple of two lists. The first consisting of tuples of
+strings defining (regex to match parameter names in the model to override,
+format string to determine the corresponding var in the checkpoint), and
+the second list consisting of a list of regexes to match parameter names
+in the model which should not be overridden, even if they match those in
+the loading rules.</li>
 </ul>
 </td>
 </tr>
@@ -1358,6 +1403,29 @@ issues.</li>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.TrimTrailingPaddings">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">TrimTrailingPaddings</code><span class="sig-paren">(</span><em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#TrimTrailingPaddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.TrimTrailingPaddings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trims trailing paddings from inputs.</p>
+<p>Since the number of dimensions is not fixed, this will not work on TPU.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>inputs</strong> – a tensor with shape [batch, length, …].</li>
+<li><strong>paddings</strong> – a tensor with shape [batch, length].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Trimmed inputs and paddings. For compatibility reasons, the trimmed tensors
+will always have length at least 1.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.ReversePaddedSequence">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ReversePaddedSequence</code><span class="sig-paren">(</span><em>inputs</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ReversePaddedSequence"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ReversePaddedSequence" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reverse inputs based on paddings.</p>
@@ -1510,6 +1578,28 @@ A one-hot vector of the source selected.</p>
 </table>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.py_utils.SequencesToDebugStrings">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">SequencesToDebugStrings</code><span class="sig-paren">(</span><em>ids</em>, <em>lens</em>, <em>summarize=5</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SequencesToDebugStrings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SequencesToDebugStrings" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns debug strings for the given sequences.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>ids</strong> – int32 of [batch, len].</li>
+<li><strong>lens</strong> – int32 of [batch].</li>
+<li><strong>summarize</strong> – number of ids to summarize per sequence.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A string tensor of [batch].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 
 
@@ -1523,7 +1613,7 @@ A one-hot vector of the source selected.</p>
         <a href="lingvo.core.quant_utils.html" class="btn btn-neutral float-right" title="lingvo.core.quant_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.predictor.html" class="btn btn-neutral" title="lingvo.core.predictor module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.predictor.html" class="btn btn-neutral float-left" title="lingvo.core.predictor module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -1549,26 +1639,16 @@ A one-hot vector of the source selected.</p>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

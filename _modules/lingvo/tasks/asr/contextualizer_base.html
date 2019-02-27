@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../search.html" /> 
-
-  
-  <script src="../../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -168,7 +170,7 @@
 
 <span class="sd">  Typical usage of a contextualizer is::</span>
 
-<span class="sd">    contextualizer.SetContextMap(context_map)     # Set context map.</span>
+<span class="sd">    contextualizer.SetContextMap(context_map, theta)  # Set context map.</span>
 <span class="sd">    contextualizer.InitAttention(...)             # Initalize attn sources.</span>
 <span class="sd">    context = contextualizer.ZeroAttention(...)   # Initalize attn state.</span>
 <span class="sd">    context = contextualizer.QueryAttention(...)  # Call on each decoding step.</span>
@@ -183,12 +185,13 @@
 <span class="sd">  - contextualizer.GetContextDim()</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="ContextualizerBase.SetContextMap"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.SetContextMap">[docs]</a>  <span class="k">def</span> <span class="nf">SetContextMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context_map</span><span class="p">):</span>
+<div class="viewcode-block" id="ContextualizerBase.SetContextMap"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.ContextualizerBase.SetContextMap">[docs]</a>  <span class="k">def</span> <span class="nf">SetContextMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context_map</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set the context map.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      context_map: A NestedMap object containing the context from which</span>
 <span class="sd">        attention vectors will be computed.</span>
+<span class="sd">      theta: NestedMap, parameters needed for embedding.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;SetContextMap&#39;</span><span class="p">)</span></div>
 
@@ -253,7 +256,7 @@
 <div class="viewcode-block" id="NullContextualizer"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer">[docs]</a><span class="k">class</span> <span class="nc">NullContextualizer</span><span class="p">(</span><span class="n">ContextualizerBase</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;An &#39;empty&#39; or no-op contextualizer.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="NullContextualizer.SetContextMap"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer.SetContextMap">[docs]</a>  <span class="k">def</span> <span class="nf">SetContextMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context_map</span><span class="p">):</span>
+<div class="viewcode-block" id="NullContextualizer.SetContextMap"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer.SetContextMap">[docs]</a>  <span class="k">def</span> <span class="nf">SetContextMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context_map</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="NullContextualizer.InitAttention"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.contextualizer_base.html#lingvo.tasks.asr.contextualizer_base.NullContextualizer.InitAttention">[docs]</a>  <span class="k">def</span> <span class="nf">InitAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">):</span>
@@ -298,26 +301,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

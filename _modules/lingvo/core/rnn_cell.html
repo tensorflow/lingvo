@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -440,6 +442,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
         <span class="s1">&#39;zero_c&#39;</span><span class="p">,</span>
         <span class="s1">&#39;mixed&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;c_couple_invert&#39;</span><span class="p">,</span>
         <span class="s1">&#39;c_input_gate&#39;</span><span class="p">,</span>
         <span class="s1">&#39;c_forget_gate&#39;</span><span class="p">,</span>
         <span class="s1">&#39;c_output_gate&#39;</span><span class="p">,</span>
@@ -610,8 +613,16 @@
       <span class="c1"># Sigmoid / tanh calls are not quantized under the assumption they share</span>
       <span class="c1"># the range with c_input_gate and c_forget_gate.</span>
       <span class="n">forget_gate</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmultiply</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_g</span><span class="p">),</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_input_gate&#39;</span><span class="p">)</span>
-      <span class="n">input_gate</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmultiply</span><span class="p">(</span>
-          <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_g</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">i_i</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_forget_gate&#39;</span><span class="p">)</span>
+
+      <span class="c1"># input_gate = tanh(i_i) - tanh(i_i) * tf.sigmoid(f_g)</span>
+      <span class="c1"># equivalent to (but more stable in fixed point):</span>
+      <span class="c1"># (1.0 - sigmoid(f_g)) * tanh(i_i)</span>
+      <span class="n">tanh_i_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">i_i</span><span class="p">)</span>
+      <span class="n">input_gate</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qsubtract</span><span class="p">(</span>
+          <span class="n">tanh_i_i</span><span class="p">,</span>
+          <span class="n">fns</span><span class="o">.</span><span class="n">qmultiply</span><span class="p">(</span><span class="n">tanh_i_i</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_g</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_couple_invert&#39;</span><span class="p">),</span>
+          <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_forget_gate&#39;</span><span class="p">)</span>
+
       <span class="n">new_c</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="n">forget_gate</span><span class="p">,</span> <span class="n">input_gate</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_output_gate&#39;</span><span class="p">)</span>
     <span class="c1"># Clip the cell states to reasonable value.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1552,6 +1563,166 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="DoubleProjectionLSTMCell"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell">[docs]</a><span class="k">class</span> <span class="nc">DoubleProjectionLSTMCell</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer normalized LSTM cell that support input and output projections.</span>
+
+<span class="sd">  Note, this version doesn&#39;t support all the options as implemented in</span>
+<span class="sd">  LayerNormalizedLSTMCellSimple, like quantization, zoneout regularization,</span>
+<span class="sd">  etc. Please use the other version if you need those options and do not need</span>
+<span class="sd">  input projection.</span>
+
+<span class="sd">  It also uses separate variables for weight matrices between gates</span>
+<span class="sd">  (&#39;wm_{i_i, i_g, f_g, o_g}&#39;) instead of a single variable (&#39;wm&#39;). This allows</span>
+<span class="sd">  the initialization to use the default GeoMeanXavier().</span>
+
+<span class="sd">  state:</span>
+
+<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  inputs:</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
+<span class="sd">  - reset_mask: optional 0/1 float input to support packed input training.</span>
+<span class="sd">    Shape [batch, 1]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DoubleProjectionLSTMCell.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DoubleProjectionLSTMCell</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_input_hidden_nodes&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;Project all inputs, include m, to a hidden vector this size before &#39;</span>
+        <span class="s1">&#39;projecting to num_gates * |c|. Must be &gt; 0.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_hidden_nodes&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of projection hidden nodes &#39;</span>
+        <span class="s1">&#39;(see https://arxiv.org/abs/1603.08042). &#39;</span>
+        <span class="s1">&#39;Set to 0 to disable projection.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;layer_norm_epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-8</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard rsqrt against.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">GeoMeanXavier</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">DoubleProjectionLSTMCell</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_hidden_nodes</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+
+      <span class="k">def</span> <span class="nf">_WeightInit</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;w_input_proj&#39;</span><span class="p">,</span>
+          <span class="n">_WeightInit</span><span class="p">(</span>
+              <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_hidden_nodes</span><span class="p">]),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_output_proj&#39;</span><span class="p">,</span>
+                          <span class="n">_WeightInit</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">]),</span>
+                          <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">gate_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+            <span class="s1">&#39;wm_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">,</span>
+            <span class="n">_WeightInit</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_hidden_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">]),</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]:</span>
+        <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">hidden_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_hidden_nodes</span>
+
+<div class="viewcode-block" id="DoubleProjectionLSTMCell.batch_size"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.batch_size">[docs]</a>  <span class="k">def</span> <span class="nf">batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">gates</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
+
+<div class="viewcode-block" id="DoubleProjectionLSTMCell.zero_state"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">zero_m</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">zero_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">zero_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">zero_c</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DoubleProjectionLSTMCell._ResetState"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._ResetState">[docs]</a>  <span class="k">def</span> <span class="nf">_ResetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">m</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">reset_mask</span> <span class="o">*</span> <span class="n">state</span><span class="o">.</span><span class="n">c</span>
+    <span class="k">return</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="DoubleProjectionLSTMCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
+
+<div class="viewcode-block" id="DoubleProjectionLSTMCell._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+    <span class="n">concat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">input_proj</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">concat</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w_input_proj</span><span class="p">)</span>
+    <span class="n">gate_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">gate_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span><span class="p">:</span>
+      <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">input_proj</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;wm_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">))</span>
+      <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNorm</span><span class="p">(</span><span class="n">g</span><span class="p">,</span>
+                          <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;ln_scale_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span>
+                          <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">))</span>
+      <span class="n">gate_map</span><span class="p">[</span><span class="n">gate_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span>
+    <span class="k">return</span> <span class="n">gate_map</span></div>
+
+<div class="viewcode-block" id="DoubleProjectionLSTMCell._LayerNorm"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._LayerNorm">[docs]</a>  <span class="k">def</span> <span class="nf">_LayerNorm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">bias</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies layer normalization on the last dimension of &#39;x&#39;.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      x: activation tensor, where the last dimension represents channels.</span>
+<span class="sd">      scale: multiples to the noramlized results</span>
+<span class="sd">      bias: additions to the noramlized results for biasing</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Layer normalized &#39;x&#39;, with the same shape as the input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">centered</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">mean</span>
+    <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">centered</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">normed</span> <span class="o">=</span> <span class="n">centered</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_norm_epsilon</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">normed</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">bias</span></div>
+
+<div class="viewcode-block" id="DoubleProjectionLSTMCell._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
+    <span class="n">new_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">xmw</span><span class="p">[</span><span class="s1">&#39;f_g&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span>
+        <span class="n">xmw</span><span class="p">[</span><span class="s1">&#39;i_g&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">xmw</span><span class="p">[</span><span class="s1">&#39;i_i&#39;</span><span class="p">])</span>
+    <span class="n">new_c_normed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNorm</span><span class="p">(</span><span class="n">new_c</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">ln_scale_c</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias_c</span><span class="p">)</span>
+    <span class="n">new_m</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">xmw</span><span class="p">[</span><span class="s1">&#39;o_g&#39;</span><span class="p">])</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">new_c_normed</span><span class="p">)</span>
+    <span class="n">new_m</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">new_m</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w_output_proj</span><span class="p">)</span>
+
+    <span class="c1"># Now take care of padding.</span>
+    <span class="n">padding</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">padding</span>
+    <span class="n">new_m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">new_m</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">)</span>
+    <span class="n">new_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">m</span><span class="o">=</span><span class="n">new_m</span><span class="p">,</span> <span class="n">c</span><span class="o">=</span><span class="n">new_c</span><span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="ConvLSTMCell"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell">[docs]</a><span class="k">class</span> <span class="nc">ConvLSTMCell</span><span class="p">(</span><span class="n">RNNCell</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Convolution LSTM cells.</span>
 
@@ -1732,6 +1903,10 @@
              <span class="s1">&#39;If &gt; 0, applies ZoneOut regularization with the given prob.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;couple_input_forget_gates&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;Whether to couple the input and forget gates.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;apply_layer_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Apply layer norm to the variables&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;layer_norm_epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-8</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard rsqr against.&#39;</span>
+        <span class="s1">&#39;value is necessary only if apply_layer_norm is True&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1767,6 +1942,33 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_layer_norm</span><span class="p">:</span>
+        <span class="n">f_t_ln_scale</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;f_t_ln_scale&#39;</span><span class="p">,</span> <span class="n">f_t_ln_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+        <span class="n">r_t_ln_scale</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;r_t_ln_scale&#39;</span><span class="p">,</span> <span class="n">r_t_ln_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+        <span class="n">c_t_ln_scale</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;c_t_ln_scale&#39;</span><span class="p">,</span> <span class="n">c_t_ln_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
+          <span class="n">i_t_ln_scale</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+              <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+              <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+              <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;i_t_ln_scale&#39;</span><span class="p">,</span> <span class="n">i_t_ln_scale</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
       <span class="c1"># Collect some stats</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
@@ -1809,6 +2011,23 @@
 <div class="viewcode-block" id="SRUCell.GetOutput"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.SRUCell.GetOutput">[docs]</a>  <span class="k">def</span> <span class="nf">GetOutput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">m</span></div>
 
+<div class="viewcode-block" id="SRUCell.LayerNorm"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.SRUCell.LayerNorm">[docs]</a>  <span class="k">def</span> <span class="nf">LayerNorm</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies layer normalization on the last dimension of &#39;x&#39;.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      x: activation tensor, where the last dimension represents channels.</span>
+<span class="sd">      scale: the scale tensor of the layer normalization</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Layer normalized &#39;x&#39;, with the same shape as the input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">centered</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">mean</span>
+    <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">centered</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">normed</span> <span class="o">=</span> <span class="n">centered</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_norm_epsilon</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">normed</span> <span class="o">*</span> <span class="n">scale</span></div>
+
 <div class="viewcode-block" id="SRUCell._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.SRUCell._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span></div>
@@ -1819,15 +2038,25 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
       <span class="n">x_t2</span><span class="p">,</span> <span class="n">resized</span><span class="p">,</span> <span class="n">f_t</span><span class="p">,</span> <span class="n">r_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
           <span class="n">value</span><span class="o">=</span><span class="n">xmw</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_layer_norm</span><span class="p">:</span>
+        <span class="n">f_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">f_t</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">f_t_ln_scale</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
       <span class="n">f_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_t</span><span class="p">)</span>
       <span class="n">i_t</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">f_t</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">x_t2</span><span class="p">,</span> <span class="n">resized</span><span class="p">,</span> <span class="n">i_t</span><span class="p">,</span> <span class="n">f_t</span><span class="p">,</span> <span class="n">r_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
           <span class="n">value</span><span class="o">=</span><span class="n">xmw</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_layer_norm</span><span class="p">:</span>
+        <span class="n">f_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">f_t</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">f_t_ln_scale</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
       <span class="n">f_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_t</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_layer_norm</span><span class="p">:</span>
+        <span class="n">i_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">i_t</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">i_t_ln_scale</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
       <span class="n">i_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">i_t</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_layer_norm</span><span class="p">:</span>
+      <span class="n">r_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">r_t</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">r_t_ln_scale</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
     <span class="n">r_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">r_t</span><span class="p">)</span>
     <span class="n">c_t</span> <span class="o">=</span> <span class="n">f_t</span> <span class="o">*</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="n">i_t</span> <span class="o">*</span> <span class="n">x_t2</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_layer_norm</span><span class="p">:</span>
+      <span class="n">c_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">c_t</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">c_t_ln_scale</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span>
     <span class="n">g_c_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">c_t</span><span class="p">)</span>
     <span class="n">h_t</span> <span class="o">=</span> <span class="n">r_t</span> <span class="o">*</span> <span class="n">g_c_t</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">r_t</span><span class="p">)</span> <span class="o">*</span> <span class="n">resized</span>
 
@@ -2235,26 +2464,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

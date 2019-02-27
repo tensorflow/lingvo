@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
-
-  
-  <script src="../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -220,8 +222,12 @@
     <span class="c1"># (e.g., global_step) by the trial id so that we do not share states across</span>
     <span class="c1"># trials.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">Name</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_has_stopped</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="c1"># To early terminate a runner, we set max_steps here and that will trigger</span>
+    <span class="c1"># appropriate ShouldStop behavior in the threads. This is used by Vizier</span>
+    <span class="c1"># to early stop a trial.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Cluster</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
@@ -255,8 +261,22 @@
     <span class="k">return</span> <span class="n">message</span></div>
 
 <div class="viewcode-block" id="BaseRunner._ShouldStop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._ShouldStop">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldStop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="ow">and</span>
-                                                   <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span></div>
+    <span class="sd">&quot;&quot;&quot;Check if the runner should stop.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> params.train.max_steps:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span> <span class="ow">and</span> <span class="n">step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> _max_steps:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_early_stop</span><span class="o">.</span><span class="n">Stop</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: Early stopping.&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="kc">False</span></div>
 
 <div class="viewcode-block" id="BaseRunner._WriteToLog"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._WriteToLog">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteToLog</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Logs `text` and saves it under `logdir/filename`.&quot;&quot;&quot;</span>
@@ -293,32 +313,33 @@
 
 <div class="viewcode-block" id="BaseRunner._FindNewCheckpoint"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._FindNewCheckpoint">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">Retry</span><span class="p">(</span><span class="n">initial_delay_sec</span><span class="o">=</span><span class="mi">300</span><span class="p">,</span> <span class="n">max_delay_sec</span><span class="o">=</span><span class="mi">300</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_FindNewCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prev_path</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the path to a new checkpoint, or raises RuntimeError.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span>
       <span class="k">return</span> <span class="kc">None</span>
     <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span> <span class="ow">or</span> <span class="p">(</span><span class="n">path</span> <span class="o">==</span> <span class="n">prev_path</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
+      <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No check point is found in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span> <span class="o">==</span> <span class="n">prev_path</span><span class="p">:</span>
       <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No new check point is found: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
       <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">path</span></div>
 
 <div class="viewcode-block" id="BaseRunner._RunLoop"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._RunLoop">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">Retry</span><span class="p">()</span>
-  <span class="k">def</span> <span class="nf">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">loop_func</span><span class="p">,</span> <span class="n">loop_args</span><span class="o">=</span><span class="p">(),</span> <span class="n">is_main_thread</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">loop_func</span><span class="p">,</span> <span class="n">loop_args</span><span class="o">=</span><span class="p">()):</span>
     <span class="sd">&quot;&quot;&quot;Runs `loop_func`, retrying on expected errors.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      job_name: string job name.</span>
 <span class="sd">      loop_func: callable to run and retry on expected errors.</span>
 <span class="sd">      loop_args: list or tuple of arguments to be passed to the loop_func.</span>
-<span class="sd">      is_main_thread: if set to True, this is the main thread and it will set</span>
-<span class="sd">        has_stopped to True upon completion.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> started.&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
       <span class="n">loop_func</span><span class="p">(</span><span class="o">*</span><span class="n">loop_args</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done.&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">is_main_thread</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_has_stopped</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="k">return</span>
     <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="o">+</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">,</span>
                                            <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DataLossError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
@@ -342,12 +363,11 @@
         <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AbortedError</span><span class="p">)</span> <span class="ow">and</span>
             <span class="s1">&#39;The same RecvTensor (WorkerServiceImpl) request was received twice&#39;</span>
             <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">(</span>
-              <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-              <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Infeasible error encountered.&#39;</span><span class="p">)</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">(</span>
+                <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Infeasible error encountered.&#39;</span><span class="p">)</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (infeasible error).&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
-          <span class="k">if</span> <span class="n">is_main_thread</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_has_stopped</span> <span class="o">=</span> <span class="kc">True</span>
           <span class="k">return</span>
 
       <span class="c1"># Retry indefinitely (error should be transient).</span>
@@ -355,8 +375,9 @@
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
       <span class="c1"># Allow the job to complete on errors that are unlikely to be transient,</span>
       <span class="c1"># e.g. caused by a mis-configured model.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">(</span>
-          <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Fatal error encountered.&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">(</span>
+            <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Fatal error encountered.&#39;</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (fatal error).&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exception: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
@@ -396,13 +417,6 @@
       <span class="c1"># hang in session.run if we do not terminate with this check.</span>
       <span class="n">global_enqueue_steps</span> <span class="o">=</span> <span class="kc">None</span>
 
-      <span class="c1"># Each session run to the tpu trainer makes tpu_steps_per_loop. We need</span>
-      <span class="c1"># to continue enqueueing beyond the max train steps since the tpu_steps</span>
-      <span class="c1"># in the loop may exceed the max train steps. adjust_steps makes an</span>
-      <span class="c1"># appropriate adjustment.</span>
-      <span class="n">adjust_steps</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
-
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;params.train.max_steps: </span><span class="si">%d</span><span class="s1">, enqueue_max_steps: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
                       <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">)</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
@@ -415,12 +429,16 @@
               <span class="s1">&#39;local_enqueue_steps: </span><span class="si">%d</span><span class="s1">, global_step: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">global_enqueue_steps</span><span class="p">,</span>
               <span class="n">local_enqueue_steps</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_enqueue_steps</span> <span class="o">-</span> <span class="n">adjust_steps</span><span class="p">)</span> <span class="ow">or</span>
+        <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+          <span class="n">global_steps_with_available_data</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+              <span class="n">global_enqueue_steps</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">*</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">global_steps_with_available_data</span> <span class="o">=</span> <span class="n">global_enqueue_steps</span>
+
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_steps_with_available_data</span><span class="p">)</span> <span class="ow">or</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)):</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. Params.train.max_steps reached.&#39;</span><span class="p">)</span>
-          <span class="k">return</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_has_stopped</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. has_stopped set to True.&#39;</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done. ShouldStop is True.&#39;</span><span class="p">)</span>
           <span class="k">return</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
             <span class="n">local_enqueue_steps</span> <span class="o">&gt;</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enqueue_max_steps</span><span class="p">):</span>
@@ -527,26 +545,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

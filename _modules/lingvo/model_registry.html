@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
-
-  
-  <script src="../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -212,6 +214,8 @@
 <div class="viewcode-block" id="_ModelRegistryHelper"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper">[docs]</a><span class="k">class</span> <span class="nc">_ModelRegistryHelper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="c1"># Global dictionary mapping subclass name to registered ModelParam subclass.</span>
   <span class="n">_MODEL_PARAMS</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="c1"># Global set of modules from which ModelParam subclasses have been registered.</span>
+  <span class="n">_REGISTERED_MODULES</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
 <div class="viewcode-block" id="_ModelRegistryHelper._ClassPathPrefix"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper._ClassPathPrefix">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">_ClassPathPrefix</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -254,9 +258,17 @@
   <span class="k">def</span> <span class="nf">_RegisterModel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">wrapper_cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Registers a ModelParams subclass in the global registry.&quot;&quot;&quot;</span>
     <span class="n">key</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_ModelParamsClassKey</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)</span>
+    <span class="n">module</span> <span class="o">=</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__module__</span>
     <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_MODEL_PARAMS</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Duplicate model registered for key </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-          <span class="n">key</span><span class="p">,</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__module__</span><span class="p">,</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+          <span class="n">key</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Registering model </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+    <span class="c1"># Log less frequently (once per module) but at a higher verbosity level.</span>
+    <span class="k">if</span> <span class="n">module</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_REGISTERED_MODULES</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Registering models from module: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">module</span><span class="p">)</span>
+      <span class="bp">cls</span><span class="o">.</span><span class="n">_REGISTERED_MODULES</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">module</span><span class="p">)</span>
+
     <span class="c1"># Decorate param methods to add source info metadata.</span>
     <span class="bp">cls</span><span class="o">.</span><span class="n">_MODEL_PARAMS</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">wrapper_cls</span>
     <span class="k">return</span> <span class="n">key</span></div>
@@ -309,7 +321,10 @@
 <div class="viewcode-block" id="_ModelRegistryHelper.GetAllRegisteredClasses"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetAllRegisteredClasses">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">GetAllRegisteredClasses</span><span class="p">():</span>
     <span class="sd">&quot;&quot;&quot;Returns global registry map from model names to their param classes.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">_ModelRegistryHelper</span><span class="o">.</span><span class="n">_MODEL_PARAMS</span></div>
+    <span class="n">all_params</span> <span class="o">=</span> <span class="n">_ModelRegistryHelper</span><span class="o">.</span><span class="n">_MODEL_PARAMS</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">all_params</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;No classes registered.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">all_params</span></div>
 
 <div class="viewcode-block" id="_ModelRegistryHelper.GetClass"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetClass">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">GetClass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">class_key</span><span class="p">):</span>
@@ -390,26 +405,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

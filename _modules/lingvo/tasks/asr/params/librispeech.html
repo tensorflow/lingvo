@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../../search.html" /> 
-
-  
-  <script src="../../../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -175,8 +177,6 @@
 <div class="viewcode-block" id="LibrispeechCommonAsrInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.LibrispeechCommonAsrInputParams">[docs]</a><span class="k">def</span> <span class="nf">LibrispeechCommonAsrInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Input generator params for Librispeech.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">AsrInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-
-  <span class="c1"># Convert the input stacked frames (80x3) into single 80 dimensional frames.</span>
   <span class="n">p</span><span class="o">.</span><span class="n">frame_size</span> <span class="o">=</span> <span class="mi">80</span>
   <span class="n">p</span><span class="o">.</span><span class="n">append_eos_frame</span> <span class="o">=</span> <span class="kc">True</span>
 
@@ -200,6 +200,7 @@
   <span class="sd">&quot;&quot;&quot;Base parameters for Librispeech 960 hour task.&quot;&quot;&quot;</span>
 
   <span class="c1"># Insert path to the base directory where the data are stored here.</span>
+  <span class="c1"># Generated using scripts in lingvo/tasks/asr/tools.</span>
   <span class="n">DATADIR</span> <span class="o">=</span> <span class="s1">&#39;/tmp/librispeech&#39;</span>
 
   <span class="c1"># Setting the last training bucket to 1710 excludes only ~0.1% of the training</span>
@@ -419,7 +420,6 @@
     <span class="n">params</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">WpmTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">tokp</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">tokenizer</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">vocab_filepath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">WPM_SYMBOL_TABLE_FILEPATH</span>
-    <span class="n">tokp</span><span class="o">.</span><span class="n">lowercase</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">WPM_VOCAB_SIZE</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">append_eos</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">tokp</span><span class="o">.</span><span class="n">target_unk_id</span> <span class="o">=</span> <span class="mi">0</span>
@@ -494,26 +494,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

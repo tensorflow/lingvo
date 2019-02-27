@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.task_scheduler module" href="lingvo.core.task_scheduler.html" />
     <link rel="prev" title="lingvo.core.summary_utils module" href="lingvo.core.summary_utils.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -184,7 +186,7 @@ OCD, second-pass deliberation.</p>
 
 <dl class="method">
 <dt id="lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample">
-<code class="descname">Sample</code><span class="sig-paren">(</span><em>decoder_theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>random_seed</em>, <em>init_state_callback</em>, <em>pre_step_callback</em>, <em>post_step_callback</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample" title="Permalink to this definition">¶</a></dt>
+<code class="descname">Sample</code><span class="sig-paren">(</span><em>decoder_theta</em>, <em>encoder_outputs</em>, <em>random_seed</em>, <em>init_state_callback</em>, <em>pre_step_callback</em>, <em>post_step_callback</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Samples target sequences, one target sequence per source sequence.</p>
 <p>(Please see beam_search_helper.py for description of decoder callbacks.)</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -195,8 +197,7 @@ OCD, second-pass deliberation.</p>
 <li><strong>decoder_theta</strong> – A NestedMap object containing weights’ values of the
 decoder layer and its children layers, to be passed to decoder
 callbacks.</li>
-<li><strong>source_encs</strong> – source encoding, to be passed to decoder callbacks.</li>
-<li><strong>source_paddings</strong> – source padding, to be passed to decoder callbacks.</li>
+<li><strong>encoder_outputs</strong> – the outputs of the encoder, to be passed to callbacks.</li>
 <li><strong>random_seed</strong> – a scalar int32 tensor representing the random seed.</li>
 <li><strong>init_state_callback</strong> – decoder._InitBeamSearchStateCallback.</li>
 <li><strong>pre_step_callback</strong> – decoder._PreBeamSearchStepCallback.</li>
@@ -238,7 +239,7 @@ a padded timestep.</li>
         <a href="lingvo.core.task_scheduler.html" class="btn btn-neutral float-right" title="lingvo.core.task_scheduler module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.summary_utils.html" class="btn btn-neutral" title="lingvo.core.summary_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.summary_utils.html" class="btn btn-neutral float-left" title="lingvo.core.summary_utils module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -264,26 +265,16 @@ a padded timestep.</li>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

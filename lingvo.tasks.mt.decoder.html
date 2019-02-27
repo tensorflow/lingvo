@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.tasks.mt.encoder module" href="lingvo.tasks.mt.encoder.html" />
     <link rel="prev" title="lingvo.tasks.mt.params.wmtm16_en_de module" href="lingvo.tasks.mt.params.wmtm16_en_de.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -305,18 +307,16 @@ this to split computation across subgraph boundaries.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback">
-<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>num_hyps_per_beam</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns initial beams search states.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>source_encs</strong> – A tensor of shape [src_len, src_batch, source_dim].</li>
-<li><strong>source_paddings</strong> – A tensor of shape [src_len, src_batch].</li>
+<li><strong>theta</strong> – a NestedMap of parameters.</li>
+<li><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</li>
 <li><strong>num_hyps_per_beam</strong> – An int, number hyps to keep for source sentence.</li>
-<li><strong>additional_source_info</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors containing extra context
-information about the source that may be useful for decoding.</li>
 </ul>
 </td>
 </tr>
@@ -360,25 +360,22 @@ information about the source that may be useful for decoding.</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback">
-<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>new_step_ids</em>, <em>states</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>new_step_ids</em>, <em>states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1.BeamSearchDecode">
-<code class="descname">BeamSearchDecode</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>num_hyps_per_beam_override=0</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.BeamSearchDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.BeamSearchDecode" title="Permalink to this definition">¶</a></dt>
+<code class="descname">BeamSearchDecode</code><span class="sig-paren">(</span><em>encoder_outputs</em>, <em>num_hyps_per_beam_override=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.BeamSearchDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.BeamSearchDecode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs beam-search based decoding.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>source_encs</strong> – source encoding, of shape [time, batch, depth].</li>
-<li><strong>source_paddings</strong> – source encoding’s padding, of shape [time, batch].</li>
+<li><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</li>
 <li><strong>num_hyps_per_beam_override</strong> – If set to a value &lt;= 0, this parameter is
 ignored. If set to a value &gt; 0, then this value will be used to
 override <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.num_hyps_per_beam</span></code>.</li>
-<li><strong>additional_source_info</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors containing extra context
-information about the source that may be useful for decoding.</li>
 </ul>
 </td>
 </tr>
@@ -406,7 +403,7 @@ information about the source that may be useful for decoding.</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._FProp">
-<code class="descname">_FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>targets</em>, <em>src_segment_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -415,15 +412,20 @@ information about the source that may be useful for decoding.</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</li>
-<li><strong>source_encs</strong> – source encoding. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is False, it is a
-tensor of shape [time, batch, depth]. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is True,
-it is a tensor of shape [time, batch, depth, num_trans_layers] if
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is True, and a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">num_trans_layers</span></code> tensors of shape
-[time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is False.</li>
-<li><strong>source_paddings</strong> – source encoding’s padding, of shape [time, batch].</li>
+<li><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder. Expected to contain:</p>
+<dl class="docutils">
+<dt>encoded - source encoding. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code> is False, it is a</dt>
+<dd>tensor of shape [time, batch, depth]. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_transparent</span></code>
+is True, it is a tensor of shape
+[time, batch, depth, num_trans_layers] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is True,
+and a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">num_trans_layers</span></code> tensors of shape
+[time, batch, depth] if <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.is_eval</span></code> is False.</dd>
+</dl>
+<p>padding - source encoding’s padding, of shape [time, batch].
+segment_id - source segment id, of shape [time, batch].</p>
+</li>
 <li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
 predict. Each tensor in targets is of shape [batch, time].</li>
-<li><strong>src_segment_id</strong> – source segment id, of shape [time, batch].</li>
 </ul>
 </td>
 </tr>
@@ -436,7 +438,7 @@ predict. Each tensor in targets is of shape [batch, time].</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep">
-<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>new_ids</em>, <em>t</em>, <em>prefix_states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ExtendStep</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>new_ids</em>, <em>t</em>, <em>prefix_states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extend prefix as represented by <code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_states</span></code> by one more step.</p>
 <p>This function is expected to be called during fast decoding of Transformer
 models.</p>
@@ -447,9 +449,13 @@ models.</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</li>
-<li><strong>source_encs</strong> – source encoding, of shape [time, batch, depth]. Can be [time,
+<li><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder, containing:</p>
+<ul>
+<li>encoded: source encoding, of shape [time, batch, depth]. Can be [time,
 bs, depth, num_trans_layers] if is_transparent is set.</li>
-<li><strong>source_paddings</strong> – source encoding’s padding, of shape [time, batch].</li>
+<li>padding: source encoding’s padding, of shape [time, batch].</li>
+</ul>
+</li>
 <li><strong>new_ids</strong> – new input ids, of shape [batch].</li>
 <li><strong>t</strong> – a scalar, the current time step, 0-based.</li>
 <li><strong>prefix_states</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the prefix that has already
@@ -468,7 +474,7 @@ output of the last decoder layer of shape [batch, model_dim], and
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.ComputePredictions">
-<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>targets</em>, <em>src_segment_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -477,12 +483,16 @@ output of the last decoder layer of shape [batch, model_dim], and
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</li>
-<li><strong>source_encs</strong> – source encoding, of shape [time, batch, depth]. Can be [time,
-batch, depth, num_layers] if is_transparent is set.</li>
-<li><strong>source_paddings</strong> – source encoding’s padding, of shape [time, batch].</li>
+<li><strong>encoder_outputs</strong> – <p>a NestedMap computed by encoder. Expected to contain:</p>
+<dl class="docutils">
+<dt>encoded - source encoding, of shape [time, batch, depth]. Can be [time,</dt>
+<dd>batch, depth, num_layers] if is_transparent is set.</dd>
+</dl>
+<p>padding - source encoding’s padding, of shape [time, batch].
+segment_id - source segment id, of shape [time, batch].</p>
+</li>
 <li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
 predict. Each tensor in targets is of shape [batch, time].</li>
-<li><strong>src_segment_id</strong> – source segment id, of shape [time, batch].</li>
 </ul>
 </td>
 </tr>
@@ -495,7 +505,7 @@ predict. Each tensor in targets is of shape [batch, time].</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback">
-<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>num_hyps_per_beam</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns initial beams search states.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -504,12 +514,8 @@ predict. Each tensor in targets is of shape [batch, time].</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</li>
-<li><strong>source_encs</strong> – A tensor of shape [src_len, src_batch, source_dim].
-Can be [time, batch, depth, num_layers] if is_transparent is set.</li>
-<li><strong>source_paddings</strong> – A tensor of shape [src_len, src_batch].</li>
+<li><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</li>
 <li><strong>num_hyps_per_beam</strong> – An int, number hyps to keep for source sentence.</li>
-<li><strong>additional_source_info</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors containing extra context
-information about the source that may be useful for decoding.</li>
 </ul>
 </td>
 </tr>
@@ -548,7 +554,7 @@ information about the source that may be useful for decoding.</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback">
-<code class="descname">_PreBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>step_ids</em>, <em>states</em>, <em>num_hyps_per_beam</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PreBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_PreBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>step_ids</em>, <em>states</em>, <em>num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PreBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PreBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns logits for sampling ids and the next model states.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -557,15 +563,11 @@ information about the source that may be useful for decoding.</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</li>
-<li><strong>source_encs</strong> – A tensor of shape [src_len, src_batch, source_dim].
-Can be [time, batch, depth, num_layers] if is_transparent is set.</li>
-<li><strong>source_paddings</strong> – A tensor of shape [src_len, src_batch].</li>
+<li><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</li>
 <li><strong>step_ids</strong> – A tensor of shape [tgt_batch, 1].</li>
 <li><strong>states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors representing states that the clients
 would like to keep track of for each of the active hyps.</li>
 <li><strong>num_hyps_per_beam</strong> – Beam size.</li>
-<li><strong>additional_source_info</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors containing extra context
-information about the source that may be useful for decoding.</li>
 </ul>
 </td>
 </tr>
@@ -608,25 +610,20 @@ shape [tgt_batch, vocab_size].</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback">
-<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>source_encs</em>, <em>source_paddings</em>, <em>new_step_ids</em>, <em>states</em>, <em>additional_source_info=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>new_step_ids</em>, <em>states</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.BeamSearchDecode">
-<code class="descname">BeamSearchDecode</code><span class="sig-paren">(</span><em>source_encs</em>, <em>source_paddings</em>, <em>num_hyps_per_beam_override=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.BeamSearchDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.BeamSearchDecode" title="Permalink to this definition">¶</a></dt>
+<code class="descname">BeamSearchDecode</code><span class="sig-paren">(</span><em>encoder_outputs</em>, <em>num_hyps_per_beam_override=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.BeamSearchDecode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.BeamSearchDecode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs beam search based decoding.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>src_encs</strong> – source encoding, of shape [time, batch, depth].</li>
-<li><strong>src_enc_paddings</strong> – source encoding padding, of shape [time, batch].</li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>encoder_outputs</strong> – the outputs of the encoder.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><a class="reference internal" href="lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="lingvo.core.beam_search_helper.BeamSearchDecodeOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code></a>, A namedtuple whose elements are tensors.</p>
-</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><a class="reference internal" href="lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="lingvo.core.beam_search_helper.BeamSearchDecodeOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code></a>, A namedtuple whose elements are tensors.</td>
 </tr>
 </tbody>
 </table>
@@ -647,7 +644,7 @@ shape [tgt_batch, vocab_size].</p>
         <a href="lingvo.tasks.mt.encoder.html" class="btn btn-neutral float-right" title="lingvo.tasks.mt.encoder module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.mt.params.wmtm16_en_de.html" class="btn btn-neutral" title="lingvo.tasks.mt.params.wmtm16_en_de module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tasks.mt.params.wmtm16_en_de.html" class="btn btn-neutral float-left" title="lingvo.tasks.mt.params.wmtm16_en_de module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -673,26 +670,16 @@ shape [tgt_batch, vocab_size].</p>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

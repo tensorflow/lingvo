@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -172,17 +174,20 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
+<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
+
 <span class="c1"># Must be a large ID.</span>
-<span class="n">NO_TOKEN</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxsize</span>
+<span class="n">NO_TOKEN</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="mi">31</span> <span class="o">-</span> <span class="mi">1</span>
 <span class="n">NO_TOKEN_STRING</span> <span class="o">=</span> <span class="s1">&#39;&lt;unk&gt;&#39;</span>
 
 <span class="n">SENTENCE_START_STRING</span> <span class="o">=</span> <span class="s1">&#39;&lt;s&gt;&#39;</span>
 <span class="n">SENTENCE_END_STRING</span> <span class="o">=</span> <span class="s1">&#39;&lt;/s&gt;&#39;</span>
+
+<span class="n">BOW_STR</span> <span class="o">=</span> <span class="s1">&#39;▁&#39;</span>
 
 
 <div class="viewcode-block" id="WpmEncoder"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder">[docs]</a><span class="k">class</span> <span class="nc">WpmEncoder</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -195,111 +200,133 @@
 <span class="sd">      merge_prob: the probability of merging tokens while encoding.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># Load vocabulary file.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">wpm_filepath</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-      <span class="n">pid</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
         <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
         <span class="n">piece</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;voc: </span><span class="si">%s</span><span class="s1"> -&gt; </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">piece</span><span class="p">,</span> <span class="n">pid</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">piece</span><span class="p">]</span> <span class="o">=</span> <span class="n">pid</span>
-        <span class="n">pid</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span> <span class="o">+=</span> <span class="p">[</span><span class="n">piece</span><span class="p">]</span>
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringToToken</span><span class="p">(</span><span class="n">NO_TOKEN_STRING</span><span class="p">)</span> <span class="o">!=</span> <span class="n">NO_TOKEN</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">piece</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_merge_prob</span> <span class="o">=</span> <span class="n">merge_prob</span>
 
-<div class="viewcode-block" id="WpmEncoder._TokenToString"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._TokenToString">[docs]</a>  <span class="k">def</span> <span class="nf">_TokenToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">token</span> <span class="o">==</span> <span class="n">NO_TOKEN</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">safe</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">NO_TOKEN_STRING</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">token</span> <span class="o">!=</span> <span class="n">NO_TOKEN</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">[</span><span class="n">token</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="WpmEncoder._TokensToString"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._TokensToString">[docs]</a>  <span class="k">def</span> <span class="nf">_TokensToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">sep</span><span class="o">=</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">safe</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">sep</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">safe</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">])</span></div>
+<div class="viewcode-block" id="WpmEncoder._TokenToString"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._TokenToString">[docs]</a>  <span class="k">def</span> <span class="nf">_TokenToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">vocab_id_to_token</span><span class="p">(</span><span class="n">token</span><span class="p">,</span> <span class="n">vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WpmEncoder._StringToToken"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._StringToToken">[docs]</a>  <span class="k">def</span> <span class="nf">_StringToToken</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokstr</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">tokstr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">tokstr</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">NO_TOKEN</span></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">py_x_ops</span><span class="o">.</span><span class="n">token_in_vocab</span><span class="p">(</span><span class="n">tokstr</span><span class="p">,</span> <span class="n">vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">),</span>
+        <span class="n">py_x_ops</span><span class="o">.</span><span class="n">vocab_token_to_id</span><span class="p">(</span><span class="n">tokstr</span><span class="p">,</span> <span class="n">vocab</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">NO_TOKEN</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tokstr</span><span class="p">)))</span></div>
 
-<div class="viewcode-block" id="WpmEncoder._MergeTokens"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._MergeTokens">[docs]</a>  <span class="k">def</span> <span class="nf">_MergeTokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token1</span><span class="p">,</span> <span class="n">token2</span><span class="p">):</span>
+<div class="viewcode-block" id="WpmEncoder._MergeTokens"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._MergeTokens">[docs]</a>  <span class="k">def</span> <span class="nf">_MergeTokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringToToken</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">token1</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">token2</span><span class="p">))</span></div>
-
-<div class="viewcode-block" id="WpmEncoder._IsAllNull"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._IsAllNull">[docs]</a>  <span class="k">def</span> <span class="nf">_IsAllNull</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">candidates</span><span class="p">):</span>
-    <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">==</span> <span class="n">candidates</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">NO_TOKEN</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="WpmEncoder._ShouldMerge"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._ShouldMerge">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldMerge</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merge_prob</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span></div>
 
 <div class="viewcode-block" id="WpmEncoder._EncodeToIds"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder._EncodeToIds">[docs]</a>  <span class="k">def</span> <span class="nf">_EncodeToIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="n">unicode</span><span class="p">):</span>
-      <span class="n">word</span> <span class="o">=</span> <span class="n">word</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
-    <span class="c1"># First, match entire words. That will work to shortcut exception words</span>
-    <span class="c1"># such as &lt;S&gt;, even if there is no path to merge hierarchically. To wit,</span>
-    <span class="c1"># in this case, either &#39;&lt;S&#39; or &#39;S&gt;&#39; must be present.</span>
-    <span class="k">if</span> <span class="n">word</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">:</span>
-      <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">word</span><span class="p">]]</span>
-    <span class="c1"># Henceforth,</span>
+    <span class="c1"># Below:</span>
     <span class="c1">#   * a token is a wordpiece ID.</span>
     <span class="c1">#   * the tokens array will be merged in-place.</span>
     <span class="c1">#   * the candidates array is an array of size len(tokens) - 1.</span>
     <span class="c1">#     It contains the token for the merged wordpiece, if it exists,</span>
     <span class="c1">#     -1 otherwise. For instance, candidate[3] = id(token[3] + token[4]).</span>
     <span class="c1"># First, split into basic UTF-8 characters (letters).</span>
-    <span class="n">tokens</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_StringToToken</span><span class="p">(</span><span class="n">letter</span><span class="p">)</span> <span class="k">for</span> <span class="n">letter</span> <span class="ow">in</span> <span class="n">word</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)):</span>
-      <span class="k">if</span> <span class="n">tokens</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">==</span> <span class="n">NO_TOKEN</span><span class="p">:</span>
+    <span class="n">chars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">unicode_split</span><span class="p">(</span><span class="n">word</span><span class="p">,</span> <span class="s1">&#39;UTF-8&#39;</span><span class="p">)</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringToToken</span><span class="p">(</span><span class="n">chars</span><span class="p">)</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">NO_TOKEN</span><span class="p">),</span>
         <span class="c1"># Unseen character.</span>
-        <span class="n">tokens</span><span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringToToken</span><span class="p">(</span><span class="n">NO_TOKEN_STRING</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unk_id</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tokens</span><span class="p">)),</span>
+        <span class="n">tokens</span><span class="p">)</span>
     <span class="c1"># Create initial candidate list.</span>
-    <span class="n">candidates</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-      <span class="n">merged</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MergeTokens</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">tokens</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
-      <span class="n">candidates</span> <span class="o">+=</span> <span class="p">[</span><span class="n">merged</span><span class="p">]</span>
-    <span class="c1"># Merge in the reverse binary tree until no more merges are possible, or</span>
-    <span class="c1"># we decide to abort the process early, according to merge_prob.</span>
-    <span class="k">while</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IsAllNull</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldMerge</span><span class="p">():</span>
-      <span class="n">best_id</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_MergeTokens</span><span class="p">,</span> <span class="p">(</span><span class="n">tokens</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">:]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tokens</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ShouldMerge</span><span class="p">(</span><span class="n">unused_tokens</span><span class="p">,</span> <span class="n">candidates</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Merge until not possible, or we abort early according to merge_prob.&quot;&quot;&quot;</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">NO_TOKEN</span><span class="p">)),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([])</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merge_prob</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_MergeOneToken</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_MergeTokens</span><span class="p">((</span><span class="n">tokens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">tokens</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_MergeCandidates</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">candidates</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Merge in the reverse binary tree.&quot;&quot;&quot;</span>
+      <span class="n">best_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
       <span class="c1"># Perform the merge at position best_id.</span>
-      <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[:</span><span class="n">best_id</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span><span class="p">]]</span> <span class="o">+</span> <span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">2</span><span class="p">:]</span>
-      <span class="c1"># Recompute the merge candidates to the right:</span>
-      <span class="k">if</span> <span class="n">best_id</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MergeTokens</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span><span class="p">],</span>
-                                                <span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">candidates</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-      <span class="c1"># Recompute the merge candidates to the left:</span>
-      <span class="k">if</span> <span class="n">best_id</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MergeTokens</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
-                                                    <span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span><span class="p">])</span>
-      <span class="n">candidates</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[:</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">2</span><span class="p">:]</span>
-      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">candidates</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-    <span class="k">return</span> <span class="n">tokens</span></div>
+      <span class="n">tokens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">tokens</span><span class="p">[:</span><span class="n">best_id</span><span class="p">],</span> <span class="p">[</span><span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span><span class="p">]],</span> <span class="n">tokens</span><span class="p">[</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">2</span><span class="p">:]],</span>
+          <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="c1"># Recompute the merge candidates.</span>
+      <span class="c1"># Only the neighbors of best_id need to be recomputed.</span>
+      <span class="n">empty</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">candidates</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
-<div class="viewcode-block" id="WpmEncoder.EncodeWord"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder.EncodeWord">[docs]</a>  <span class="k">def</span> <span class="nf">EncodeWord</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncodeToIds</span><span class="p">(</span><span class="n">word</span><span class="p">)]</span></div>
+      <span class="k">def</span> <span class="nf">_MergeLeft</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">candidates</span><span class="p">[:</span><span class="n">best_id</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+             <span class="n">_MergeOneToken</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">best_id</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)],</span>
+            <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
-<div class="viewcode-block" id="WpmEncoder.EncodeToStringAndIds"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder.EncodeToStringAndIds">[docs]</a>  <span class="k">def</span> <span class="nf">EncodeToStringAndIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncodeToIds</span><span class="p">(</span><span class="n">word</span><span class="p">)]</span></div>
+      <span class="n">left_candidates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">best_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">empty</span><span class="p">,</span> <span class="n">_MergeLeft</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">_MergeRight</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">_MergeOneToken</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">best_id</span><span class="p">),</span> <span class="n">candidates</span><span class="p">[</span><span class="n">best_id</span> <span class="o">+</span> <span class="mi">2</span><span class="p">:]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+      <span class="n">right_candidates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">best_id</span><span class="p">,</span>
+                           <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">empty</span><span class="p">,</span> <span class="n">_MergeRight</span><span class="p">)</span>
+
+      <span class="n">candidates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">left_candidates</span><span class="p">,</span> <span class="n">right_candidates</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">candidates</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+        <span class="n">_ShouldMerge</span><span class="p">,</span>
+        <span class="n">_MergeCandidates</span><span class="p">,</span> <span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">candidates</span><span class="p">),</span>
+        <span class="n">parallel_iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="WpmEncoder.Encode"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder.Encode">[docs]</a>  <span class="k">def</span> <span class="nf">Encode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Assumes that the text is utf-8 decoded.&quot;&quot;&quot;</span>
-    <span class="n">words</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">)</span>
-    <span class="n">encoded_words</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">words</span><span class="p">:</span>
-      <span class="n">encoded_words</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EncodeWord</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
-    <span class="k">return</span> <span class="s1">&#39; &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">encoded_words</span><span class="p">)</span></div>
+    <span class="sd">&quot;&quot;&quot;Converts string `text` to integer ids and the encoded string.</span>
+
+<span class="sd">    Encoding includes prefixing the beginning-of-word token to each word.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      ids: the encoded integer ids.</span>
+<span class="sd">      tokens: the encoded string.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">words</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sparse</span><span class="o">.</span><span class="n">to_dense</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">split</span><span class="p">([</span><span class="n">text</span><span class="p">]),</span> <span class="n">default_value</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">num_words</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">words</span><span class="p">)</span>
+    <span class="n">ids_ta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorArray</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">dynamic_size</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_WordsToIds</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">words</span><span class="p">,</span> <span class="n">ids_ta</span><span class="p">):</span>
+      <span class="n">encoded_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncodeToIds</span><span class="p">(</span><span class="n">BOW_STR</span> <span class="o">+</span> <span class="n">words</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+      <span class="n">ids_ta</span> <span class="o">=</span> <span class="n">ids_ta</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">ids_ta</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>
+                   <span class="n">ids_ta</span><span class="o">.</span><span class="n">size</span><span class="p">()</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">encoded_ids</span><span class="p">)),</span> <span class="n">encoded_ids</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">words</span><span class="p">,</span> <span class="n">ids_ta</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">ids_ta</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">:</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">num_words</span><span class="p">,</span>
+        <span class="n">_WordsToIds</span><span class="p">,</span>
+        <span class="n">loop_vars</span><span class="o">=</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">words</span><span class="p">,</span> <span class="n">ids_ta</span><span class="p">),</span>
+        <span class="n">parallel_iterations</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+        <span class="n">back_prop</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">ids_ta</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WpmEncoder.Decode"><a class="viewcode-back" href="../../../lingvo.core.wpm_encoder.html#lingvo.core.wpm_encoder.WpmEncoder.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">]</span></div>
+    <span class="n">txt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">reduce_join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_TokenToString</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
+    <span class="n">txt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">txt</span><span class="p">,</span> <span class="n">BOW_STR</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+    <span class="c1"># Note that this strips spaces from the end of the input as well.</span>
+    <span class="c1"># We assume no inputs rely on the existence of trailing whitespace.</span>
+    <span class="n">txt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="n">txt</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">txt</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">sentence_start_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">SENTENCE_START_STRING</span><span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">SENTENCE_START_STRING</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">sentence_start_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -307,7 +334,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">sentence_end_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">SENTENCE_END_STRING</span><span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">SENTENCE_END_STRING</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">sentence_end_string</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -315,7 +342,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">unk_id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_piece2id</span><span class="p">[</span><span class="n">NO_TOKEN_STRING</span><span class="p">]</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pieces</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">NO_TOKEN_STRING</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
@@ -345,26 +372,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

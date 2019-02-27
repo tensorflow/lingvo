@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.tasks.mt.model module" href="lingvo.tasks.mt.model.html" />
     <link rel="prev" title="lingvo.tasks.mt.input_generator module" href="lingvo.tasks.mt.input_generator.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -181,7 +183,7 @@ for details.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.layers.TransformerStack.FProp">
-<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>transformer_input</em>, <em>paddings</em>, <em>src_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/layers.html#TransformerStack.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.layers.TransformerStack.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>transformer_input</em>, <em>paddings</em>, <em>src_segment_id=None</em>, <em>aux_vecs=None</em>, <em>aux_paddings=None</em>, <em>aux_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/layers.html#TransformerStack.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.layers.TransformerStack.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transforms source sequence of Tensors with Transformers layers.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -196,6 +198,12 @@ shape.</li>
 [time, batch] shape.</li>
 <li><strong>src_segment_id</strong> – A sequence of ints indicating segment ids of
 [time, batch] shape.</li>
+<li><strong>aux_vecs</strong> – A sequence of input Tensors of [aux_time, batch, dim] shape, as
+context for the cross-attention layer.</li>
+<li><strong>aux_paddings</strong> – A sequence of 0s and 1s indicating input paddings of
+[aux_time, batch] shape.</li>
+<li><strong>aux_segment_id</strong> – A sequence of ints indicating segment ids of
+[aux_time, batch] shape.</li>
 </ul>
 </td>
 </tr>
@@ -227,7 +235,7 @@ None.</p>
         <a href="lingvo.tasks.mt.model.html" class="btn btn-neutral float-right" title="lingvo.tasks.mt.model module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.mt.input_generator.html" class="btn btn-neutral" title="lingvo.tasks.mt.input_generator module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tasks.mt.input_generator.html" class="btn btn-neutral float-left" title="lingvo.tasks.mt.input_generator module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -253,26 +261,16 @@ None.</p>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

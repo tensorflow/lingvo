@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
-
-  
-  <script src="../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -384,14 +386,16 @@
     <span class="c1"># Create the gradient mask,</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_input_gradient_mask</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_shared_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shared_global_step</span>
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
-    <span class="k">if</span> <span class="n">tp</span><span class="p">:</span>
+    <span class="c1"># p.train can be None if this task is the teacher/student task in a</span>
+    <span class="c1"># DistillationTask.</span>
+    <span class="k">if</span> <span class="n">tp</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
+                                   <span class="s1">&#39;controller&#39;</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">task_global_step</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span> <span class="o">=</span> <span class="n">CreateTaskGlobalStep</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task_global_step</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_shared_global_step</span>
       <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">)</span>
@@ -439,12 +443,32 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseTask.ProcessFetchedTrainerVerboseTensors"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ProcessFetchedTrainerVerboseTensors">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessFetchedTrainerVerboseTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_result</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Called each train loop with the eval of the trainer verbose tensors.</span>
+<div class="viewcode-block" id="BaseTask.FilterPerExampleTensors"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.FilterPerExampleTensors">[docs]</a>  <span class="k">def</span> <span class="nf">FilterPerExampleTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_example</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return the per-example tensors ProcessFPropResults needs.</span>
+
+<span class="sd">    By default we don&#39;t send any per-example tensors to ProcessFPropResults</span>
+<span class="sd">    because some may be expensive to compute. Implement this method to let</span>
+<span class="sd">    some of them pass through.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      global_step: eval result of the global step.</span>
-<span class="sd">      eval_result: eval result for the trainer_verbose_tensors set.</span>
+<span class="sd">      per_example: A dict of tensors returned as per-example tensors from FProp.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dict containing a subset of the key/value pairs in per_example.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="BaseTask.ProcessFPropResults"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ProcessFPropResults">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessFPropResults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Called once for each train loop.</span>
+
+<span class="sd">    BaseModel.ProcessFPropResults is also called on each loop, so you</span>
+<span class="sd">    can put your implementation wherever it is most convenient for you.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: a session.</span>
+<span class="sd">      global_step: approximate number of model training steps.</span>
+<span class="sd">      metrics: the metrics dict returned by FPropTower.</span>
+<span class="sd">      per_example: the per_example dict returned by FPropTower.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
@@ -457,7 +481,12 @@
 <span class="sd">      input_batch: A `.NestedMap` object containing input tensors to this tower.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A dict containing metrics pairs.</span>
+<span class="sd">      Two dicts:</span>
+<span class="sd">      A dict containing str keys and (metric, weight) pairs as values, where</span>
+<span class="sd">      one of the keys is expected to be &#39;loss&#39;.</span>
+<span class="sd">      A dict containing arbitrary tensors describing something about each</span>
+<span class="sd">      training example, where the first dimension of each tensor is the batch</span>
+<span class="sd">      index.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">predicted</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predicted</span><span class="p">)</span></div>
@@ -476,8 +505,12 @@
 <span class="sd">        spiltting is used, a list of `NestedMap`, one for each split.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A dict containing metrics pairs. One of the keys should be &#39;loss&#39; and its</span>
-<span class="sd">      value should be a (loss, num_predictions) pair.</span>
+<span class="sd">      Two dicts:</span>
+<span class="sd">      A dict containing str keys and (metric, weight) pairs as values, where</span>
+<span class="sd">      one of the keys is expected to be &#39;loss&#39;.</span>
+<span class="sd">      A dict containing arbitrary tensors describing something about each</span>
+<span class="sd">      training example, where the first dimension of each tensor is the batch</span>
+<span class="sd">      index.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fprop&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
@@ -544,6 +577,7 @@
     <span class="c1"># Generates summaries.</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">metrics</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+    <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FilterPerExampleTensors</span><span class="p">(</span><span class="n">per_example</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">per_example</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">AddPerExampleTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
     <span class="c1"># Loss.</span>
@@ -899,7 +933,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask.AddPerExampleTensor"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.AddPerExampleTensor">[docs]</a>  <span class="k">def</span> <span class="nf">AddPerExampleTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_per_example</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Metric </span><span class="si">%s</span><span class="s1"> has already been defined.&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_example</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
@@ -1205,10 +1239,22 @@
           <span class="p">[</span><span class="n">task</span><span class="o">.</span><span class="n">total_examples</span> <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">])</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_total_examples_sum</span>
 
-<div class="viewcode-block" id="BaseModel.ModelPostUpdate"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ModelPostUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">ModelPostUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Update model based on global step and eval_metrics.&quot;&quot;&quot;</span>
-    <span class="k">del</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span>
-    <span class="k">return</span></div></div>
+<div class="viewcode-block" id="BaseModel.ProcessFPropResults"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ProcessFPropResults">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessFPropResults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Called once for each train loop.</span>
+
+<span class="sd">    BaseTask.ProcessFPropResults is also called on each loop, so you</span>
+<span class="sd">    can put your implementation wherever it is most convenient for you.</span>
+
+<span class="sd">    Be sure to implement BaseTask.FilterPerExampleTensors if you plan to use any</span>
+<span class="sd">    per-example tensors in this method.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: a session.</span>
+<span class="sd">      global_step: approximate number of model training steps.</span>
+<span class="sd">      metrics: the metrics dict returned by FPropTower.</span>
+<span class="sd">      per_example: the per_example dict returned by FPropTower.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">pass</span></div></div>
 
 
 <div class="viewcode-block" id="SingleTaskModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
@@ -1395,26 +1441,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

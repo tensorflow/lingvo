@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.tasks.asr.model_test_input_generator module" href="lingvo.tasks.asr.model_test_input_generator.html" />
     <link rel="prev" title="lingvo.tasks.asr.input_generator module" href="lingvo.tasks.asr.input_generator.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -240,6 +242,28 @@ index.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.tasks.asr.model.AsrModel._FrontendAndEncoderFProp">
+<code class="descname">_FrontendAndEncoderFProp</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch_src</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel._FrontendAndEncoderFProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel._FrontendAndEncoderFProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>FProps through the frontend and encoder.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>input_batch_src</strong> – An input NestedMap as per <code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseAsrFrontend.FProp</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A NestedMap as from <code class="xref py py-obj docutils literal notranslate"><span class="pre">AsrEncoder.FProp</span></code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.tasks.asr.model.AsrModel._GetTopK">
 <code class="descname">_GetTopK</code><span class="sig-paren">(</span><em>decoder_outs</em>, <em>tag=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel._GetTopK"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel._GetTopK" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -251,7 +275,7 @@ index.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.model.AsrModel.AddAdditionalDecoderMetricsToGraph">
-<code class="descname">AddAdditionalDecoderMetricsToGraph</code><span class="sig-paren">(</span><em>topk_hyps</em>, <em>filtered_hyps</em>, <em>filtered_refs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.AddAdditionalDecoderMetricsToGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.AddAdditionalDecoderMetricsToGraph" title="Permalink to this definition">¶</a></dt>
+<code class="descname">AddAdditionalDecoderMetricsToGraph</code><span class="sig-paren">(</span><em>topk_hyps</em>, <em>filtered_hyps</em>, <em>filtered_refs</em>, <em>input_batch</em>, <em>decoder_outs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.AddAdditionalDecoderMetricsToGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.AddAdditionalDecoderMetricsToGraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a dict of metrics which should be computed from decoded hyps.</p>
 </dd></dl>
 
@@ -259,6 +283,29 @@ index.</p>
 <dt id="lingvo.tasks.asr.model.AsrModel.Decode">
 <code class="descname">Decode</code><span class="sig-paren">(</span><em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.Decode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.model.AsrModel._ComputeDecoderMetrics">
+<code class="descname">_ComputeDecoderMetrics</code><span class="sig-paren">(</span><em>decoder_outs</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel._ComputeDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel._ComputeDecoderMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes metrics on output from decoder.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>decoder_outs</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code>, a namedtuple containing the
+decode results.</li>
+<li><strong>input_batch</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of tensors representing the source, target,
+and other components of the input batch.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A dict of Tensors containing decoder output and metrics.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -353,7 +400,7 @@ corresponding to a tensor in the graph which should be input/read from.</td>
         <a href="lingvo.tasks.asr.model_test_input_generator.html" class="btn btn-neutral float-right" title="lingvo.tasks.asr.model_test_input_generator module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.asr.input_generator.html" class="btn btn-neutral" title="lingvo.tasks.asr.input_generator module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tasks.asr.input_generator.html" class="btn btn-neutral float-left" title="lingvo.tasks.asr.input_generator module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -379,26 +426,16 @@ corresponding to a tensor in the graph which should be input/read from.</td>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

@@ -17,32 +17,34 @@
   
 
   
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="../../../../../genindex.html" />
     <link rel="search" title="Search" href="../../../../../search.html" /> 
-
-  
-  <script src="../../../../../_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -162,47 +164,39 @@
 
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="k">import</span> <span class="n">model_registry</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model_params</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt.params</span> <span class="k">import</span> <span class="n">base_config</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.punctuator</span> <span class="k">import</span> <span class="n">input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.punctuator</span> <span class="k">import</span> <span class="n">model</span>
 
 
-<span class="c1"># This decorator registers the model in the Lingvo model registry.</span>
-<span class="c1"># This file is lingvo/tasks/punctuator/params/codelab.py,</span>
-<span class="c1"># so the model will be registered as punctuator.codelab.TransformerModel.</span>
-<div class="viewcode-block" id="TransformerModel"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.TransformerModel">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
-<span class="k">class</span> <span class="nc">TransformerModel</span><span class="p">(</span><span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A transformer model for the punctuator task.&quot;&quot;&quot;</span>
+<span class="c1"># This base class defines parameters for the input generator for a specific</span>
+<span class="c1"># dataset. Specific network architectures will be implemented in subclasses.</span>
+<div class="viewcode-block" id="BrownCorpusWPM"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.BrownCorpusWPM">[docs]</a><span class="k">class</span> <span class="nc">BrownCorpusWPM</span><span class="p">(</span><span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Brown Corpus data with a Word-Piece Model tokenizer.&quot;&quot;&quot;</span>
 
+  <span class="c1"># Generated using</span>
+  <span class="c1"># lingvo/tasks/punctuator/tools:download_brown_corpus.</span>
   <span class="n">_DATADIR</span> <span class="o">=</span> <span class="s1">&#39;/tmp/punctuator_data&#39;</span>
-  <span class="n">_VOCAB_FILE</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">_DATADIR</span><span class="p">,</span> <span class="s1">&#39;grapheme.txt&#39;</span><span class="p">)</span>
+  <span class="n">_VOCAB_FILE</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">resource_loader</span><span class="o">.</span><span class="n">get_path_to_datafile</span><span class="p">(</span>
+      <span class="s1">&#39;brown_corpus_wpm.16000.vocab&#39;</span><span class="p">)</span>
   <span class="c1"># _VOCAB_SIZE needs to be a multiple of 16 because we use a sharded softmax</span>
   <span class="c1"># with 16 shards.</span>
-  <span class="n">_VOCAB_SIZE</span> <span class="o">=</span> <span class="mi">96</span>
+  <span class="n">_VOCAB_SIZE</span> <span class="o">=</span> <span class="mi">16000</span>
 
-<div class="viewcode-block" id="TransformerModel.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.TransformerModel.Train">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="BrownCorpusWPM.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.BrownCorpusWPM.Train">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">PunctuatorInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_DATADIR</span><span class="p">,</span> <span class="s1">&#39;train.txt&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># Do not use a fixed seed.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">16</span>  <span class="c1"># How many parallel input reading threads to run.</span>
-    <span class="c1"># Note, for training, we prefer to use big file_buffer_size (as long as all</span>
-    <span class="c1"># fits in RAM), to more thoroughly randomize the training examples. when the</span>
-    <span class="c1"># file_buffer_size too small, we run the risk of sequentially going over the</span>
-    <span class="c1"># example as they are stored which may not be random (e.g.</span>
-    <span class="c1"># maybe alphabetically ordered).</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">10000000</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_vocab_filepath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_FILE</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># We only have a single input file.</span>
 
     <span class="c1"># The bucket upper bound specifies how to split the input into buckets. We</span>
     <span class="c1"># train on sequences up to maximum bucket size and discard longer examples.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">51</span><span class="p">,</span> <span class="mi">91</span><span class="p">,</span> <span class="mi">130</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">600</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">120</span><span class="p">]</span>
 
     <span class="c1"># The bucket batch limit determines how many examples are there in each</span>
     <span class="c1"># batch during training. We reduce the batch size for the buckets that</span>
@@ -212,55 +206,74 @@
     <span class="c1"># language. Larger models may warrant smaller batches in order to fit in</span>
     <span class="c1"># memory, for example; and ideographical languages like Chinese may benefit</span>
     <span class="c1"># from more buckets.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">128</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[</span><span class="mi">64</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">512</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="mi">160</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">40</span><span class="p">]</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_filepath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_FILE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_to_max_length</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="c1"># Set the tokenizer max length slightly longer than the largest bucket to</span>
+    <span class="c1"># discard examples that are longer than we allow.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="c1"># There is also a Dev method for dev set params, but we don&#39;t have a dev set.</span>
-<div class="viewcode-block" id="TransformerModel.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.TransformerModel.Test">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="BrownCorpusWPM.Test"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.BrownCorpusWPM.Test">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">input_generator</span><span class="o">.</span><span class="n">PunctuatorInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span> <span class="o">=</span> <span class="s1">&#39;text:&#39;</span> <span class="o">+</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="n">_DATADIR</span><span class="p">,</span> <span class="s1">&#39;test.txt&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span> <span class="o">=</span> <span class="mi">27182818</span>  <span class="c1"># Fix random seed for testing.</span>
+    <span class="c1"># The following two parameters are important if there&#39;s more than one input</span>
+    <span class="c1"># file. For this codelab it doesn&#39;t actually matter.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># Avoid randomness in testing.</span>
     <span class="c1"># In order to make exactly one pass over the dev/test sets, we set buffer</span>
     <span class="c1"># size to 1. Greater numbers may cause inaccurate dev/test scores.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span> <span class="o">=</span> <span class="mi">1</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">token_vocab_filepath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_FILE</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">30</span><span class="p">,</span> <span class="mi">60</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_filepath</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_FILE</span>
     <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_to_max_length</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">91</span><span class="p">,</span> <span class="mi">197</span><span class="p">,</span> <span class="mi">600</span><span class="p">]</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="mi">16</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">p</span></div>
+    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">2</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
 
-<div class="viewcode-block" id="TransformerModel.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.TransformerModel.Task">[docs]</a>  <span class="nd">@classmethod</span>
+
+<span class="c1"># This decorator registers the model in the Lingvo model registry.</span>
+<span class="c1"># This file is lingvo/tasks/punctuator/params/codelab.py,</span>
+<span class="c1"># so the model will be registered as punctuator.codelab.RNMTModel.</span>
+<div class="viewcode-block" id="RNMTModel"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.RNMTModel">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">RNMTModel</span><span class="p">(</span><span class="n">BrownCorpusWPM</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;RNMT+ Model.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RNMTModel.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.punctuator.params.codelab.html#lingvo.tasks.punctuator.params.codelab.RNMTModel.Task">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">TransformerModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;punctuator_transformer&#39;</span>
-
-    <span class="n">model_dim</span> <span class="o">=</span> <span class="mi">64</span>
-    <span class="n">vocab_size</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span>
-    <span class="n">num_layers</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="n">num_heads</span> <span class="o">=</span> <span class="mi">2</span>
-    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="mi">128</span>
-    <span class="n">residual_dropout_prob</span> <span class="o">=</span> <span class="mf">0.1</span>
-    <span class="n">input_dropout_prob</span> <span class="o">=</span> <span class="mf">0.1</span>
-
-    <span class="c1"># Transformer encoder and decoder setup, delegated to</span>
-    <span class="c1"># lingvo/tasks/mt/params/base_config.py.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">base_config</span><span class="o">.</span><span class="n">SetupTransformerEncoder</span><span class="p">(</span>
-        <span class="n">model_dim</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span>
-        <span class="n">residual_dropout_prob</span><span class="p">,</span> <span class="n">input_dropout_prob</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">base_config</span><span class="o">.</span><span class="n">SetupTransformerDecoder</span><span class="p">(</span>
-        <span class="n">model_dim</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span> <span class="n">num_layers</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span>
-        <span class="n">residual_dropout_prob</span><span class="p">,</span> <span class="n">input_dropout_prob</span><span class="p">)</span>
-
-    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
-    <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">3.0</span>
-    <span class="n">tp</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">ParamsB</span><span class="p">()</span>
-    <span class="n">tp</span><span class="o">.</span><span class="n">clip_gradient_norm_to_value</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">tp</span><span class="o">.</span><span class="n">grad_norm_to_clip_to_zero</span> <span class="o">=</span> <span class="mf">0.0</span>
-    <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="n">lr_schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">worker_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">model_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">base_config</span><span class="o">.</span><span class="n">SetupRNMTParams</span><span class="p">(</span>
+        <span class="n">model</span><span class="o">.</span><span class="n">RNMTModel</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;punctuator_rnmt&#39;</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">_VOCAB_SIZE</span><span class="p">,</span>
+        <span class="n">embedding_dim</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="mi">1024</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">num_encoder_layers</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span>
+        <span class="n">num_decoder_layers</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">learning_rate</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span>
+        <span class="n">l2_regularizer_weight</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+        <span class="n">lr_warmup_steps</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span>
+        <span class="n">lr_decay_start</span><span class="o">=</span><span class="mi">400000</span><span class="p">,</span>
+        <span class="n">lr_decay_end</span><span class="o">=</span><span class="mi">1200000</span><span class="p">,</span>
+        <span class="n">lr_min</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">ls_uncertainty</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+        <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+        <span class="n">adam_beta2</span><span class="o">=</span><span class="mf">0.98</span><span class="p">,</span>
+        <span class="n">adam_epsilon</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">2466</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
 </pre></div>
 
@@ -291,26 +304,16 @@
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
-        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
-        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
-        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
-        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

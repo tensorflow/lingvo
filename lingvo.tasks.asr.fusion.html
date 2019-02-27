@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.tasks.asr.input_generator module" href="lingvo.tasks.asr.input_generator.html" />
-    <link rel="prev" title="lingvo.tasks.asr.encoder module" href="lingvo.tasks.asr.encoder.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
+    <link rel="prev" title="lingvo.tasks.asr.frontend module" href="lingvo.tasks.asr.frontend.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -183,8 +185,8 @@
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.asr.fusion.FusionBase.FPropLm">
-<code class="descname">FPropLm</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.FPropLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.FPropLm" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.tasks.asr.fusion.FusionBase._FPropLm">
+<code class="descname">_FPropLm</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase._FPropLm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase._FPropLm" title="Permalink to this definition">¶</a></dt>
 <dd><p>LM FProp.</p>
 <p>Works for single step or entire seq.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -220,14 +222,8 @@ shape should be [seq_len, batch_size, dim].</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.asr.fusion.FusionBase._ModifyLmBeforeFProp">
-<code class="descname">_ModifyLmBeforeFProp</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase._ModifyLmBeforeFProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase._ModifyLmBeforeFProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Perform any LM modifications before LM FProp (no-op by default).</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.asr.fusion.FusionBase.FuseOutput">
-<code class="descname">FuseOutput</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>lm_output</em>, <em>am_output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.FuseOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.FuseOutput" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.tasks.asr.fusion.FusionBase.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>am_output</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Real fusion logic happens here.</p>
 <p>Works for single step or for the entire sequence.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -238,10 +234,14 @@ shape should be [seq_len, batch_size, dim].</li>
 <li><strong>theta</strong> – A NestedMap object containing weights for the layer and its
 children.</li>
 <li><strong>state0</strong> – A NestedMap of states (specific to the layer).</li>
-<li><strong>lm_output</strong> – A NestedMap containing lm output.</li>
 <li><strong>am_output</strong> – The output from the speech model. ‘am_output’ can have shape
 [batch_size, base_model_logits_dim] for a single step unrolling or
 [seq_len, batch_size, base_model_logits_dim] for the entire sequence.</li>
+<li><strong>ids</strong> – Target ids, of shape [batch_size] for single step unrolling or
+[batch_size, base_model_logits_dim] for the entire sequence.</li>
+<li><strong>paddings</strong> – Target paddings, of the same shape as ‘ids’.</li>
+<li><strong>misc</strong> – NestedMap of miscellaneous items, which might be needed during
+training.</li>
 </ul>
 </td>
 </tr>
@@ -254,10 +254,7 @@ am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</li>
 </p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(fused_output, state1), with</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">NotImplementedError</span></code> – If method is not implemented.</p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(fused_output, state1), with</p>
 </td>
 </tr>
 </tbody>
@@ -265,40 +262,9 @@ am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</li>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.asr.fusion.FusionBase.FusedEmbDim">
-<code class="descname">FusedEmbDim</code><span class="sig-paren">(</span><em>input_emb_dim</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.FusedEmbDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.FusedEmbDim" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.asr.fusion.FusionBase.FuseEmb">
-<code class="descname">FuseEmb</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>lm_output</em>, <em>emb</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.FuseEmb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.FuseEmb" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fuse LM output with input embedding.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A NestedMap object containing weights for the layer and its
-children.</li>
-<li><strong>state0</strong> – A NestedMap of states (specific to the layer).</li>
-<li><strong>lm_output</strong> – a NestedMap containing lm output.</li>
-<li><strong>emb</strong> – the output from the AM embedding layer. ‘emb’ can have shape
-[batch_size, base_model_logits_dim] for a single step unrolling or
-[seq_len, batch_size, base_model_logits_dim] for the entire sequence.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A tuple (output, state1) which is a tensor containing the fused result
-(output) and the updated states (state1), respectively. If emb is 2-D,
-then the fused output should have shape [batch_size, dim]; if emb is 3D,
-then the fused output should have shape [seq_len, batch_size, dim].</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">NotImplementedError</span></code> – If method is not implemented.</p>
-</td>
-</tr>
-</tbody>
-</table>
+<dt id="lingvo.tasks.asr.fusion.FusionBase._ModifyLmBeforeFProp">
+<code class="descname">_ModifyLmBeforeFProp</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase._ModifyLmBeforeFProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase._ModifyLmBeforeFProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform any LM modifications before LM FProp (no-op by default).</p>
 </dd></dl>
 
 <dl class="method">
@@ -355,40 +321,8 @@ then the fused output should have shape [seq_len, batch_size, dim].</p>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.fusion.FusionBase" title="lingvo.tasks.asr.fusion.FusionBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.fusion.FusionBase</span></code></a></p>
 <p>A trivial fusion layer which does nothing.</p>
 <dl class="method">
-<dt id="lingvo.tasks.asr.fusion.NullFusion.FuseEmb">
-<code class="descname">FuseEmb</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>lm_output</em>, <em>emb</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#NullFusion.FuseEmb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.NullFusion.FuseEmb" title="Permalink to this definition">¶</a></dt>
-<dd><p>Fuse LM output with input embedding.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A NestedMap object containing weights for the layer and its
-children.</li>
-<li><strong>state0</strong> – A NestedMap of states (specific to the layer).</li>
-<li><strong>lm_output</strong> – a NestedMap containing lm output.</li>
-<li><strong>emb</strong> – the output from the AM embedding layer. ‘emb’ can have shape
-[batch_size, base_model_logits_dim] for a single step unrolling or
-[seq_len, batch_size, base_model_logits_dim] for the entire sequence.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A tuple (output, state1) which is a tensor containing the fused result
-(output) and the updated states (state1), respectively. If emb is 2-D,
-then the fused output should have shape [batch_size, dim]; if emb is 3D,
-then the fused output should have shape [seq_len, batch_size, dim].</p>
-</td>
-</tr>
-<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">NotImplementedError</span></code> – If method is not implemented.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.tasks.asr.fusion.NullFusion.FuseOutput">
-<code class="descname">FuseOutput</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>lm_output</em>, <em>am_output</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#NullFusion.FuseOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.NullFusion.FuseOutput" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.tasks.asr.fusion.NullFusion.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>am_output</em>, <em>ids</em>, <em>paddings</em>, <em>misc=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#NullFusion.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.NullFusion.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Real fusion logic happens here.</p>
 <p>Works for single step or for the entire sequence.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -399,10 +333,14 @@ then the fused output should have shape [seq_len, batch_size, dim].</p>
 <li><strong>theta</strong> – A NestedMap object containing weights for the layer and its
 children.</li>
 <li><strong>state0</strong> – A NestedMap of states (specific to the layer).</li>
-<li><strong>lm_output</strong> – A NestedMap containing lm output.</li>
 <li><strong>am_output</strong> – The output from the speech model. ‘am_output’ can have shape
 [batch_size, base_model_logits_dim] for a single step unrolling or
 [seq_len, batch_size, base_model_logits_dim] for the entire sequence.</li>
+<li><strong>ids</strong> – Target ids, of shape [batch_size] for single step unrolling or
+[batch_size, base_model_logits_dim] for the entire sequence.</li>
+<li><strong>paddings</strong> – Target paddings, of the same shape as ‘ids’.</li>
+<li><strong>misc</strong> – NestedMap of miscellaneous items, which might be needed during
+training.</li>
 </ul>
 </td>
 </tr>
@@ -415,10 +353,7 @@ am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</li>
 </p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">(fused_output, state1), with</p>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">NotImplementedError</span></code> – If method is not implemented.</p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(fused_output, state1), with</p>
 </td>
 </tr>
 </tbody>
@@ -465,7 +400,7 @@ am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</li>
         <a href="lingvo.tasks.asr.input_generator.html" class="btn btn-neutral float-right" title="lingvo.tasks.asr.input_generator module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.asr.encoder.html" class="btn btn-neutral" title="lingvo.tasks.asr.encoder module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tasks.asr.frontend.html" class="btn btn-neutral float-left" title="lingvo.tasks.asr.frontend module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -491,26 +426,16 @@ am_output is 3-D, then the shape should be [seq_len, batch_size, dim].</li>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

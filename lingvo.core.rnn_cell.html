@@ -17,34 +17,36 @@
   
 
   
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
 
-  
-  
     
 
   
-
   <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="lingvo.core.rnn_layers module" href="lingvo.core.rnn_layers.html" />
     <link rel="prev" title="lingvo.core.retry module" href="lingvo.core.retry.html" /> 
-
-  
-  <script src="_static/js/modernizr.min.js"></script>
-
 </head>
 
 <body class="wy-body-for-nav">
 
    
   <div class="wy-grid-for-nav">
-
     
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
-        <div class="wy-side-nav-search">
+        <div class="wy-side-nav-search" >
           
 
           
@@ -890,6 +892,109 @@ Shape [batch, 1]</li>
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell">
+<em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">DoubleProjectionLSTMCell</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<p>A layer normalized LSTM cell that support input and output projections.</p>
+<p>Note, this version doesn’t support all the options as implemented in
+LayerNormalizedLSTMCellSimple, like quantization, zoneout regularization,
+etc. Please use the other version if you need those options and do not need
+input projection.</p>
+<p>It also uses separate variables for weight matrices between gates
+(‘wm_{i_i, i_g, f_g, o_g}’) instead of a single variable (‘wm’). This allows
+the initialization to use the default GeoMeanXavier().</p>
+<p>state:</p>
+<ul class="simple">
+<li>m: the lstm output. [batch, cell_nodes]</li>
+<li>c: the lstm cell state. [batch, cell_nodes]</li>
+</ul>
+<p>inputs:</p>
+<ul class="simple">
+<li>act: a list of input activations. [batch, input_nodes]</li>
+<li>padding: the padding. [batch, 1].</li>
+<li>reset_mask: optional 0/1 float input to support packed input training.
+Shape [batch, 1]</li>
+</ul>
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell.output_size">
+<code class="descname">output_size</code><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell.hidden_size">
+<code class="descname">hidden_size</code><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.hidden_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell.batch_size">
+<code class="descname">batch_size</code><span class="sig-paren">(</span><em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell.batch_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.batch_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Given the inputs, returns the batch size.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell.gates">
+<code class="descname">gates</code><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.gates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell.zero_state">
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the initial state given the batch size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell._ResetState">
+<code class="descname">_ResetState</code><span class="sig-paren">(</span><em>state</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell._ResetState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._ResetState" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell.GetOutput">
+<code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.GetOutput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell._Mix">
+<code class="descname">_Mix</code><span class="sig-paren">(</span><em>theta</em>, <em>state0</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell._Mix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._Mix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell._LayerNorm">
+<code class="descname">_LayerNorm</code><span class="sig-paren">(</span><em>x</em>, <em>scale</em>, <em>bias</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell._LayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._LayerNorm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies layer normalization on the last dimension of ‘x’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – activation tensor, where the last dimension represents channels.</li>
+<li><strong>scale</strong> – multiples to the noramlized results</li>
+<li><strong>bias</strong> – additions to the noramlized results for biasing</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Layer normalized ‘x’, with the same shape as the input.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell._Gates">
+<code class="descname">_Gates</code><span class="sig-paren">(</span><em>xmw</em>, <em>theta</em>, <em>state0</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell._Gates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._Gates" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the new state.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.rnn_cell.ConvLSTMCell">
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_cell.</code><code class="descname">ConvLSTMCell</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
@@ -1008,6 +1113,27 @@ implementation. It does the 4-matrix implementation found in appendix C.</p>
 <dt id="lingvo.core.rnn_cell.SRUCell.GetOutput">
 <code class="descname">GetOutput</code><span class="sig-paren">(</span><em>state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.GetOutput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.GetOutput" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the output value given the current state.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.rnn_cell.SRUCell.LayerNorm">
+<code class="descname">LayerNorm</code><span class="sig-paren">(</span><em>x</em>, <em>scale</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.LayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.LayerNorm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies layer normalization on the last dimension of ‘x’.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – activation tensor, where the last dimension represents channels.</li>
+<li><strong>scale</strong> – the scale tensor of the layer normalization</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Layer normalized ‘x’, with the same shape as the input.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">
@@ -1231,7 +1357,7 @@ its children layers.</li>
         <a href="lingvo.core.rnn_layers.html" class="btn btn-neutral float-right" title="lingvo.core.rnn_layers module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.retry.html" class="btn btn-neutral" title="lingvo.core.retry module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.retry.html" class="btn btn-neutral float-left" title="lingvo.core.retry module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
@@ -1257,26 +1383,16 @@ its children layers.</li>
   
 
 
-  
-
-    
-    
-      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-        <script type="text/javascript" src="_static/jquery.js"></script>
-        <script type="text/javascript" src="_static/underscore.js"></script>
-        <script type="text/javascript" src="_static/doctools.js"></script>
-        <script type="text/javascript" src="_static/language_data.js"></script>
-    
-
-  
-
-  <script type="text/javascript" src="_static/js/theme.js"></script>
-
   <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>
