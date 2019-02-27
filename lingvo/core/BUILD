@@ -453,6 +453,7 @@ py_library(
         ":py_utils",
         ":scorers",
         # Implicit six dependency.
+        # Implicit sklearn dependency.
         # Implicit tensorflow dependency.
     ],
 )

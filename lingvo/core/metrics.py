@@ -24,6 +24,12 @@ import tensorflow as tf
 
 from lingvo.core import py_utils
 from lingvo.core import scorers
+try:
+  # pylint: disable=g-import-not-at-top
+  import sklearn.metrics
+  HAS_SKLEARN = True
+except ImportError:
+  HAS_SKLEARN = False
 
 
 def CreateScalarSummary(name, simple_value):
@@ -88,7 +94,8 @@ class AverageMetric(BaseMetric):
 
   @property
   def value(self):
-    return self._total_value/self._total_weight if self._total_weight > 0 else 0
+    return (self._total_value /
+            self._total_weight if self._total_weight > 0 else 0)
 
 
 class F1Metric(BaseMetric):
@@ -168,8 +175,8 @@ class TpuEvalMetrics(object):
     self._max_metrics = 51
 
     # Loop-carried values alternate value and weight; all values are scalars.
-    self._initial_values = (
-        2 * self._max_metrics) * [tf.constant(0, tf.float32)]
+    self._initial_values = (2 *
+                            self._max_metrics) * [tf.constant(0, tf.float32)]
 
   def SetMetrics(self, metric_dict, step_args):
     """Sets the metrics to evaluate and the per-step output tensors.
@@ -189,8 +196,8 @@ class TpuEvalMetrics(object):
       loop).
     """
     num_metrics = len(metric_dict)
-    assert num_metrics <= self._max_metrics, (
-        'Increase _max_metrics to >= %d' % num_metrics)
+    assert num_metrics <= self._max_metrics, ('Increase _max_metrics to >= %d' %
+                                              num_metrics)
     self._metrics = py_utils.NestedMap(metric_dict)
 
     # self._metrics contains a map of (metric_value,
@@ -247,3 +254,47 @@ class TpuEvalMetrics(object):
   def PackMetricsValues(self, values):
     """Packs numpy values into a NestedMap of metrics."""
     return self.metrics.Pack(self._Zip(values))
+
+
+class AUCMetric(BaseMetric):
+  """Class to compute the AUC score for binary classification."""
+
+  def __init__(self, mode='roc', samples=-1):
+    """Constructor of the class.
+
+    Args:
+      mode: Possible values: 'roc' or 'pr'.
+      samples: The number of sample points to compute the AUC. If -1, include
+        all points seen thus far.
+
+    Raises:
+      ImportError: If user has installed sklearn, raise an ImportError.
+    """
+    if not HAS_SKLEARN:
+      raise ImportError('AUC metrics depends on sklearn.')
+    self._mode = mode
+    self._samples = samples
+    self._label = []
+    self._prob = []
+
+  def Update(self, label, prob):
+    """Updates the metrics.
+
+    Args:
+      label: An array to specify the groundtruth binary labels. Values must be
+        either 0 or 1.
+      prob: An array to specify the prediction probabilities. Values must be
+        within [0, 1.0].
+    """
+    self._label += label
+    self._prob += prob
+    if self._samples > 0:
+      self._label = self._label[-self._samples:]
+      self._prob = self._prob[-self._samples:]
+
+  @property
+  def value(self):
+    if self._mode == 'roc':
+      return sklearn.metrics.roc_auc_score(self._label, self._prob)
+    else:
+      return sklearn.metrics.average_precision_score(self._label, self._prob)
