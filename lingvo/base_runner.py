@@ -205,10 +205,10 @@ class BaseRunner(object):
       #   DataLossError: Race condition between evaler and trainer when saving
       #       or removing checkpoints.
       self._SetStatusMessage(
-          '%s exception: %r\n' % (job_name, e), retrying=True)
+          '%s exception: %s\n' % (job_name, e), retrying=True)
 
       for msg in traceback.format_exc().split('\n'):
-        tf.logging.error(msg)
+        tf.logging.vlog(1, msg)
 
       # With Vizier studies, we want to avoid retrying under some error
       # conditions, these are captured here.
