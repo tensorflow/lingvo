@@ -52,6 +52,7 @@ class DummyModel(base_model_params.SingleTaskModelParams):
   @classmethod
   def Task(cls):
     p = base_model.BaseTask.Params()
+    p.name = 'DummyModel'
     return p
 
 
