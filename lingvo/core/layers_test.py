@@ -2903,25 +2903,42 @@ class DeterministicDropoutTest(tf.test.TestCase):
     dropout = layers.DeterministicDropoutLayer(params)
 
     x = tf.ones([4, 6], dtype=tf.float32)
+    x_expected = np.array([
+        [1, 0, 0, 0, 1, 1],
+        [1, 1, 1, 1, 1, 1],
+        [1, 0, 0, 1, 1, 0],
+        [1, 0, 0, 1, 1, 1],
+    ]) / 0.7
 
-    with self.session() as sess:
-      graph = tf.get_default_graph()
-      global_step = py_utils.GetOrCreateGlobalStep()
-      tf.assign(global_step, tf.constant(1234, dtype=tf.int64))
-      graph.add_to_collection('step_seed', tf.constant(5678, dtype=tf.int64))
+    with self.session():
+      tf.assign(py_utils.GetOrCreateGlobalStep(), 1234).eval()
+      py_utils.ResetStepSeed(seed=5678)
+      x_val = dropout.FPropDefaultTheta(x).eval()
+      self.assertAllClose(x_expected, x_val)
+      self.assertEqual(5679, py_utils.GetStepSeed().eval())
 
-      x = dropout.FProp(dropout.theta, x)
-      tf.global_variables_initializer().run()
-      x_val = sess.run(x)
-      print(np.array_repr(x_val))
-      # pyformat: disable
-      self.assertAllClose(
-          [[1.0 / 0.7, 0.0000000, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7],
-           [1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7],
-           [1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 0.0000000, 1.0 / 0.7, 1.0 / 0.7],
-           [0.0000000, 1.0 / 0.7, 0.0000000, 0.0000000, 1.0 / 0.7, 0.0000000]],
-          x_val)
-      # pyformat: enable
+      # Different step seed gives different result.
+      x_val = dropout.FPropDefaultTheta(x).eval()
+      self.assertNotAllClose(x_expected, x_val)
+
+      # Different global step gives different result
+      tf.assign(py_utils.GetOrCreateGlobalStep(), 1235).eval()
+      py_utils.ResetStepSeed(seed=5678)
+      x_val = dropout.FPropDefaultTheta(x).eval()
+      self.assertNotAllClose(x_expected, x_val)
+
+      # The same seeds in the same session is consistent.
+      tf.assign(py_utils.GetOrCreateGlobalStep(), 1234).eval()
+      py_utils.ResetStepSeed(seed=5678)
+      x_val = dropout.FPropDefaultTheta(x).eval()
+      self.assertAllClose(x_expected, x_val)
+
+    # The same seeds in a different session is consistent.
+    with self.session():
+      tf.assign(py_utils.GetOrCreateGlobalStep(), 1234).eval()
+      py_utils.ResetStepSeed(seed=5678)
+      x_val = dropout.FPropDefaultTheta(x).eval()
+      self.assertAllClose(x_expected, x_val)
 
 
 class GradNormTrackerTest(tf.test.TestCase):
