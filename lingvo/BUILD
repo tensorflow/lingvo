@@ -88,7 +88,7 @@ py_test(
     deps = [
         ":model_imports",
         ":model_registry",
-        ":model_registry_test",
+        ":model_registry_test_lib",
         ":models_test_helper",
         # Implicit tensorflow dependency.
         "//lingvo/core:base_model_params",
@@ -106,6 +106,13 @@ py_library(
 
 py_test(
     name = "model_registry_test",
+    srcs = ["model_registry_test.py"],
+    deps = [":model_registry_test_lib"],
+)
+
+py_library(
+    name = "model_registry_test_lib",
+    testonly = True,
     srcs = ["model_registry_test.py"],
     deps = [
         ":model_registry",
@@ -153,6 +160,19 @@ py_test(
     name = "trainer_test",
     srcs = ["trainer_test.py"],
     shard_count = 5,
+    tags = [
+        "noasan",
+        "nomsan",
+        "notsan",
+        "optonly",
+    ],
+    deps = [":trainer_test_lib"],
+)
+
+py_library(
+    name = "trainer_test_lib",
+    testonly = True,
+    srcs = ["trainer_test.py"],
     tags = [
         "noasan",
         "nomsan",

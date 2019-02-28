@@ -20,6 +20,13 @@ py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
     shard_count = 2,
+    deps = [":layers_test_lib"],
+)
+
+py_library(
+    name = "layers_test_lib",
+    testonly = True,
+    srcs = ["layers_test.py"],
     deps = [
         ":layers",
         # Implicit numpy dependency.
@@ -85,6 +92,13 @@ py_test(
     name = "decoder_test",
     srcs = ["decoder_test.py"],
     shard_count = 20,
+    deps = [":decoder_test_lib"],
+)
+
+py_library(
+    name = "decoder_test_lib",
+    testonly = True,
+    srcs = ["decoder_test.py"],
     deps = [
         ":decoder",
         # Implicit numpy dependency.
@@ -147,10 +161,17 @@ py_library(
 py_test(
     name = "model_test",
     srcs = ["model_test.py"],
+    shard_count = 20,
+    deps = [":model_test_lib"],
+)
+
+py_library(
+    name = "model_test_lib",
+    testonly = True,
+    srcs = ["model_test.py"],
     data = [
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
-    shard_count = 20,
     deps = [
         ":decoder",
         ":encoder",

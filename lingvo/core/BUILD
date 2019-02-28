@@ -691,6 +691,13 @@ py_library(
 py_test(
     name = "recurrent_test",
     srcs = ["recurrent_test.py"],
+    deps = [":recurrent_test_lib"],
+)
+
+py_library(
+    name = "recurrent_test_lib",
+    testonly = True,
+    srcs = ["recurrent_test.py"],
     deps = [
         ":py_utils",
         ":recurrent",
