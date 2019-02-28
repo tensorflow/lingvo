@@ -1837,7 +1837,7 @@ def GetOpSeedPair(op_seed=None, graph=None):
   """Returns the seed pair for an operation given op_seed."""
   graph = graph or tf.get_default_graph()
   step_seed = GetIncStepSeed(graph)
-  global_step = tf.train.get_global_step(graph)
+  global_step = tf.train.get_or_create_global_step(graph)
   seeds = tf.stack([global_step, tf.cast(step_seed, global_step.dtype)])
 
   if op_seed is not None:

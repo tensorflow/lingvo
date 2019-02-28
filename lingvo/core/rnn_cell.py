@@ -21,7 +21,6 @@ from six.moves import range
 from six.moves import zip
 import tensorflow as tf
 
-from tensorflow.contrib import stateless
 from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
 
 from lingvo.core import base_layer
@@ -739,14 +738,14 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
       c_seed = tf.stack([random_seed1, 2 * random_seed2])
       m_seed = tf.stack([random_seed1, 2 * random_seed2 + 1])
       if py_utils.use_tpu():
-        c_random_uniform = stateless.stateless_random_uniform(
+        c_random_uniform = tf.contrib.stateless.stateless_random_uniform(
             py_utils.GetShape(new_c, 2), tf.cast(c_seed, tf.int32))
-        m_random_uniform = stateless.stateless_random_uniform(
+        m_random_uniform = tf.contrib.stateless.stateless_random_uniform(
             py_utils.GetShape(new_m, 2), tf.cast(m_seed, tf.int32))
       else:
-        c_random_uniform = stateless.stateless_random_uniform(
+        c_random_uniform = tf.contrib.stateless.stateless_random_uniform(
             py_utils.GetShape(new_c, 2), c_seed)
-        m_random_uniform = stateless.stateless_random_uniform(
+        m_random_uniform = tf.contrib.stateless.stateless_random_uniform(
             py_utils.GetShape(new_m, 2), m_seed)
     else:
       c_random_uniform = None

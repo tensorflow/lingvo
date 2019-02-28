@@ -174,6 +174,7 @@ py_library(
         ":base_input_generator",
         ":base_layer",
         ":build_data",
+        ":cluster_factory",
         ":early_stop",
         ":hyperparams",
         ":lr_schedule",
