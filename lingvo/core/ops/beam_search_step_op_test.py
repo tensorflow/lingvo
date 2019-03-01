@@ -523,7 +523,7 @@ class BeamSearchOpTest(tf.test.TestCase):
 
     self.assertEqual(hyp1.beam_id, hyp2.beam_id)
     self.assertEqual(hyp1.ids, hyp2.ids)
-    self.assertEqual(hyp1.normalized_score, hyp2.normalized_score)
+    self.assertNear(hyp1.normalized_score, hyp2.normalized_score, 1e-6)
     self.assertAllClose(hyp1.scores, hyp2.scores)
     self.assertEqual(len(hyp1.atten_vecs), len(hyp2.atten_vecs))
     for av1, av2 in zip(hyp1.atten_vecs, hyp2.atten_vecs):
