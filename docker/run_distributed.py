@@ -152,12 +152,12 @@ def Cleanup():
 
 
 def InitFiles():
-  os.mkdir(SHARED_FS_MOUNTPOINT, 01777)
+  os.mkdir(SHARED_FS_MOUNTPOINT, 0o1777)
   # Create these directories so that we own them, not root.
-  os.mkdir(SHARED_FS_MOUNTPOINT + "/log", 01777)
-  os.mkdir(SHARED_FS_MOUNTPOINT + "/log/train", 01777)
-  os.mkdir(SHARED_FS_MOUNTPOINT + "/log/decoder_test", 01777)
-  os.mkdir(SHARED_FS_MOUNTPOINT + "/log/eval_test", 01777)
+  os.mkdir(SHARED_FS_MOUNTPOINT + "/log", 0o1777)
+  os.mkdir(SHARED_FS_MOUNTPOINT + "/log/train", 0o1777)
+  os.mkdir(SHARED_FS_MOUNTPOINT + "/log/decoder_test", 0o1777)
+  os.mkdir(SHARED_FS_MOUNTPOINT + "/log/eval_test", 0o1777)
 
 
 def InitNetwork():
