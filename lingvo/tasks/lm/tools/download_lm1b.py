@@ -52,7 +52,7 @@ def main(_):
   with open(os.path.join(FLAGS.outdir, basename, "vocab.txt"), "w") as f:
     f.write("<epsilon>\t0\n<S>\t1\n</S>\t2\n<UNK>\t3\n")
     id = 4
-    for k, v in sorted(vocab.items(), key=lambda (k, v): (-v, k)):
+    for k, v in sorted(vocab.items(), key=lambda kv: (-kv[1], kv[0])):
       if v < FLAGS.count_cutoff:
         break
       f.write("%s\t%d\n" % (k, id))
