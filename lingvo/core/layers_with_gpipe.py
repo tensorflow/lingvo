@@ -100,7 +100,10 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
                   theta.transparent_merger[i], list(more_source_vecs + (h,)))
               transformer_output.append(merged_outputs)
             h = transformer_output[0]
-            more_source_vecs = tuple(transformer_output[1:])
+            if p.num_transparent_outputs == 1:
+              more_source_vecs = ()
+            else:
+              more_source_vecs = tuple(transformer_output[1:])
         return (h, source_paddings, target_vecs, target_paddings,
                 source_segment_id, target_segment_id) + more_source_vecs
 
@@ -118,6 +121,9 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
       else:
         if p.num_transparent_outputs == 0:
           args += (inputs,)
+        elif p.num_transparent_outputs == 1:
+          # Switch back to non-transparent mode for decoder.
+          args = args[:5]
         else:
           args += (inputs,) * (p.num_transparent_outputs - len(args) + 4)
     return py_utils.NestedMap(flops=flops, out_shapes=(inputs,) + args)
@@ -154,6 +160,10 @@ class GPipeTransformerStack(PipeliningLayer):
         'is_transparent', False,
         'If set, encoder outputs a merger of embeddings and '
         'layer outputs.')
+    p.Define(
+        'num_transparent_outputs', 0,
+        'If set, the transparent merger outputs this number of weighted sums. '
+        'Defaults to number of decoder layers if transparent.')
     p.Define('packed_input', False,
              'If True, assumes multiple training samples per input.')
     p.encoder_tpl.has_aux_atten = False
@@ -190,20 +200,22 @@ class GPipeTransformerStack(PipeliningLayer):
               DeterministicDropoutLayer.Params())
 
         assert not params.has_aux_atten
-        if p.is_transparent and i == p.num_encoder_layers - 1:
+        last_layer = (i == p.num_encoder_layers - 1)
+        if p.is_transparent and last_layer:
           transparent_merger_tpl = DeterministicWeightedSumLayer.Params()
           transparent_merger_tpl.num_sources = p.num_encoder_layers + 1
           transparent_merger_tpl.dropout_tpl.keep_prob = (
               1 - p.transparent_merger_dropout_prob)
           params.transparent_merger_tpl = transparent_merger_tpl
-          params.num_transparent_outputs = p.num_decoder_layers
+          params.num_transparent_outputs = p.num_transparent_outputs
         transformers.append(params)
       for i in range(p.num_decoder_layers):
         params = p.decoder_tpl.Copy()
         params.name = 'decoder_%d' % (i)
         params.mask_self_atten = True
         params.packed_input = p.packed_input
-        params.is_transparent = p.is_transparent
+        params.is_transparent = p.is_transparent and (
+            p.num_transparent_outputs == p.num_decoder_layers)
         assert params.has_aux_atten
         transformers.append(params)
       cells = []
@@ -262,7 +274,7 @@ class GPipeTransformerStack(PipeliningLayer):
 
     assert p.is_transparent or not more_source_vecs
 
-    if p.is_transparent:
+    if p.is_transparent and p.num_transparent_outputs > 1:
       source_vecs = more_source_vecs + (source_vecs,)
       if p.is_eval:
         source_vecs = tf.stack(list(source_vecs), 3)

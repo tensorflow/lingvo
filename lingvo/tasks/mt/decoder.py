@@ -1031,8 +1031,9 @@ class TransformerDecoder(MTBaseDecoder):
         atten_probs=atten_probs)
 
     batch_size = num_hyps
-    key_channels = p.model_dim
-    value_channels = p.model_dim
+    atten_hidden_dim = p.trans_tpl.tr_atten_tpl.atten_hidden_dim
+    if not atten_hidden_dim:
+      atten_hidden_dim = p.model_dim
 
     if p.beam_search.name == 'tpu_beam_search':
       seq_len = p.target_seq_len
@@ -1042,10 +1043,10 @@ class TransformerDecoder(MTBaseDecoder):
     prefix_states = py_utils.NestedMap({
         'layer_%d' % layer: py_utils.NestedMap({
             'key':
-                tf.zeros([seq_len, batch_size, key_channels],
+                tf.zeros([seq_len, batch_size, atten_hidden_dim],
                          dtype=py_utils.FPropDtype(p)),
             'value':
-                tf.zeros([seq_len, batch_size, value_channels],
+                tf.zeros([seq_len, batch_size, atten_hidden_dim],
                          dtype=py_utils.FPropDtype(p)),
         }) for layer in range(p.num_trans_layers)
     })
