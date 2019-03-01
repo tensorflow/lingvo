@@ -1799,19 +1799,17 @@ def VariationalNoiseParams(scale, global_vn=False, per_step_vn=False,
   return p
 
 
-def GetStepSeed(graph=None):
+def GetStepSeed():
   """Gets step_seed."""
-  graph = graph or tf.get_default_graph()
-  step_seed_tensors = graph.get_collection_ref('step_seed')
+  step_seed_tensors = tf.get_default_graph().get_collection_ref('step_seed')
   if len(step_seed_tensors) == 1:
     return step_seed_tensors[0]
   return None
 
 
-def ResetStepSeed(graph=None, seed=0):
+def ResetStepSeed(seed=0):
   """Resets step_seed to specified value."""
-  graph = graph or tf.get_default_graph()
-  step_seed_tensors = graph.get_collection_ref('step_seed')
+  step_seed_tensors = tf.get_default_graph().get_collection_ref('step_seed')
   if len(step_seed_tensors) == 1:
     step_seed_tensors[0] = tf.convert_to_tensor(seed, dtype=tf.int64)
   elif not step_seed_tensors:
@@ -1821,23 +1819,19 @@ def ResetStepSeed(graph=None, seed=0):
     raise ValueError('Multiple tensors in step_seed collection.')
 
 
-def GetIncStepSeed(graph=None):
+def GetIncStepSeed():
   """Returns and increments the step_seed."""
-  graph = graph or tf.get_default_graph()
-  step_seed_tensors = graph.get_collection_ref('step_seed')
-  assert len(step_seed_tensors) == 1, str(step_seed_tensors)
-  step_seed = step_seed_tensors[0]
+  step_seed = GetStepSeed()
   # TODO(lepikhin): introduce a routine filling a queue of uint32 random seeds
   # independent of underlying PRNG used by tensorflow.
-  step_seed_tensors[0] = step_seed_tensors[0] + 1
+  ResetStepSeed(step_seed + 1)
   return step_seed
 
 
-def GetOpSeedPair(op_seed=None, graph=None):
+def GetOpSeedPair(op_seed=None):
   """Returns the seed pair for an operation given op_seed."""
-  graph = graph or tf.get_default_graph()
-  step_seed = GetIncStepSeed(graph)
-  global_step = tf.train.get_or_create_global_step(graph)
+  step_seed = GetIncStepSeed()
+  global_step = tf.train.get_or_create_global_step()
   seeds = tf.stack([global_step, tf.cast(step_seed, global_step.dtype)])
 
   if op_seed is not None:

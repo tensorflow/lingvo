@@ -1448,7 +1448,7 @@ class StepSeedTest(tf.test.TestCase):
       graph = tf.get_default_graph()
       if not graph.get_collection(tf.GraphKeys.GLOBAL_STEP):
         graph.add_to_collection(tf.GraphKeys.GLOBAL_STEP, state0.global_step)
-      py_utils.ResetStepSeed(graph, seed=state0.step_seed)
+      py_utils.ResetStepSeed(seed=state0.step_seed)
 
       state1 = py_utils.NestedMap()
       state1.input = inputs.input
