@@ -369,6 +369,8 @@ class BaseTask(base_layer.BaseLayer):
     """
     p = self.params
     with tf.name_scope('fprop'), tf.name_scope(p.name):
+      # Always reset step seed at the start of a new global_step.
+      py_utils.ResetStepSeed()
       if py_utils.use_tpu():
         metrics, per_example = self._FPropTpu(theta, input_batch)
       else:
@@ -1167,7 +1169,6 @@ class SingleTaskModel(BaseModel):
     return self._task
 
   def ConstructFPropBPropGraph(self):
-    py_utils.ResetStepSeed()
     self._task.FPropDefaultTheta()
     self._task.BProp()
     if self.ema:
