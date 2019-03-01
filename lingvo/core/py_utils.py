@@ -2194,34 +2194,6 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
       return x * (1.0 - padding) + padded * padding
 
 
-def TrimTrailingPaddings(inputs, paddings):
-  """Trims trailing paddings from inputs.
-
-  Since the number of dimensions is not fixed, this will not work on TPU.
-
-  Args:
-    inputs: a tensor with shape [batch, length, ...].
-    paddings: a tensor with shape [batch, length].
-
-  Returns:
-    Trimmed inputs and paddings. For compatibility reasons, the trimmed tensors
-    will always have length at least 1.
-  """
-  paddings = HasRank(paddings, 2)
-  # Find the last unpadded value. Argmax returns the first index when tied.
-  # Cannot just use tf.reduce_sum because there might be leading paddings.
-  cumsum = tf.cumsum(1.0 - paddings, axis=1)
-  length = tf.argmax(cumsum, axis=1, output_type=tf.int32) + 1
-  max_length = tf.reduce_max(length)
-  output_shape = tf.shape(inputs)
-  output_shape = tf.concat([[output_shape[0], max_length], output_shape[2:]],
-                           axis=0)
-  outputs = tf.slice(inputs, tf.zeros_like(output_shape), output_shape)
-  out_paddings = tf.slice(paddings, [0, 0],
-                          tf.stack([output_shape[0], max_length]))
-  return outputs, out_paddings
-
-
 def ReversePaddedSequence(inputs, paddings):
   """Reverse inputs based on paddings.
 
@@ -2269,13 +2241,7 @@ def PadOrTrimTo(x, shape, pad_val=0):
     'x' is padded with pad_val and sliced so that the result has the given
     shape.
   """
-  if isinstance(shape, list):
-    expected_rank = len(shape)
-  elif isinstance(shape, tf.TensorShape):
-    expected_rank = shape.rank
-  else:
-    expected_rank = tf.rank(shape)
-  x = HasRank(x, expected_rank)
+  x = HasRank(x, len(shape))
   # If dim-i is less than shape[i], pads on the right shape[i] -
   # dim-i.  Otherwise, pads [0, 0] for dim-i.
   pad = shape - tf.minimum(tf.shape(x), shape)
