@@ -18,7 +18,7 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-from six.moves import range
+from six.moves import xrange  # pylint: disable=redefined-builtin
 from six.moves import zip
 import tensorflow as tf
 

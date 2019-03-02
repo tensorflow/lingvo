@@ -39,7 +39,7 @@ import time
 
 import numpy as np
 import six
-from six.moves import zip
+from six.moves import xrange, zip  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from lingvo import base_runner
