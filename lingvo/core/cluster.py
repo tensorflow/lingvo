@@ -223,12 +223,12 @@ class _Cluster(object):
     return self._job_spec
 
   @property
-  def asyncronous(self):
+  def asynchronous(self):
     """Returns True if configured for asynchronous training."""
     return self.params.mode == 'async'
 
   @property
-  def syncronous(self):
+  def synchronous(self):
     """Returns True if configured for synchronous training."""
     return self.params.mode == 'sync'
 
@@ -266,7 +266,7 @@ class _Cluster(object):
   @property
   def num_splits_per_client(self):
     """The number of splits visible by one trainer client."""
-    if self.syncronous and self.job == 'trainer_client':
+    if self.synchronous and self.job == 'trainer_client':
       # One client drives all the workers.
       return self.num_splits_per_replica * self.num_replicas
     else:
@@ -287,11 +287,11 @@ class _Cluster(object):
         ret[0, i] = tf.contrib.tpu.core(i)
       return ret
 
-    if self.job == 'trainer' and self.asyncronous:
+    if self.job == 'trainer' and self.asynchronous:
       # In async mode, each trainer task can only use its own devices.
       return self.ListDevices(self._job_spec)[self.task:(self.task + 1), :]
 
-    if self.job == 'trainer_client' and self.syncronous:
+    if self.job == 'trainer_client' and self.synchronous:
       # In sync mode, trainer_client can use every device.
       return self.ListDevices(self._job_spec)
 
@@ -306,7 +306,7 @@ class _Cluster(object):
   def input_device(self):
     """Returns the tensorflow device name to place input op on."""
     p = self.params
-    if self.syncronous and self.job == 'trainer_client' and p.input.replicas > 0:
+    if self.synchronous and self.job == 'trainer_client' and p.input.replicas > 0:
       # Uses a separate job for input processing.
       assert p.input.replicas == 1
       return self.ListDevices(p.input)[0, 0]
