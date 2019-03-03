@@ -32,6 +32,13 @@ from lingvo.core import lr_schedule
 
 class LearningRateScheduleTest(tf.test.TestCase):
 
+  def testConstantOne(self):
+    with self.session(use_gpu=False):
+      p = lr_schedule.ConstantOne.Params()
+      lrs = p.cls(p)
+      for x in [0, 10, 100, 1000000]:
+        self.assertAllClose(lrs.Value(x).eval(), 1.0)
+
   def testPiecewiseConstant(self):
     cls = lr_schedule.PiecewiseConstantLearningRateSchedule
     with self.session(use_gpu=False):

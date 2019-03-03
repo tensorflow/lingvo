@@ -884,8 +884,7 @@ class DistillationTask(BaseTask):
     p.Define(
         'distillation_loss_weight',
         # Only uses distillation loss by default.
-        lr_schedule.PiecewiseConstantLearningRateSchedule.Params().Set(
-            boundaries=[], values=[1.0]),
+        lr_schedule.ConstantOne.Params(),
         'A schedule of distillation loss weight. '
         'The weight determines the fraction of total loss contributed by '
         'distillation loss, while the rest loss will be computed against '

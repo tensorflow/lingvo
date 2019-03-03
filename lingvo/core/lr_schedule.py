@@ -57,6 +57,14 @@ class BaseLearningRateSchedule(base_layer.BaseLayer):
     return self.FProp(self.theta, current_step)
 
 
+class ConstantOne(BaseLearningRateSchedule):
+  """A lr schedule remains constant 1."""
+
+  def FProp(self, theta, current_step):
+    del theta, current_step
+    return tf.constant(1.0, self.params.dtype)
+
+
 class PiecewiseConstantLearningRateSchedule(BaseLearningRateSchedule):
   """Piecewise constants rate decay."""
 
@@ -97,9 +105,8 @@ class ContinuousLearningRateSchedule(BaseLearningRateSchedule):
     p = self.params
     q = ExponentialLearningRateSchedule.Params().Set(
         start=(p.start_step, 1.0),
-        limit=(
-            p.start_step + p.half_life_steps * math.log(p.min) / math.log(0.5),
-            p.min))
+        limit=(p.start_step +
+               p.half_life_steps * math.log(p.min) / math.log(0.5), p.min))
     self.CreateChild('exp', q)
 
   def FProp(self, theta, current_step):
@@ -288,9 +295,9 @@ class TransformerLearningRateScheduleNoWarmUp(BaseLearningRateSchedule):
   @base_layer.initializer
   def __init__(self, params):
     super(TransformerLearningRateScheduleNoWarmUp, self).__init__(params)
-    tf.logging.info('Peak lr: %f',
-                    (self.params.decay_start * self.params.worker_replicas)
-                    **-0.5)
+    tf.logging.info(
+        'Peak lr: %f',
+        (self.params.decay_start * self.params.worker_replicas)**-0.5)
 
   def FProp(self, theta, current_step):
     """Returns the current learning rate decay."""
@@ -299,7 +306,7 @@ class TransformerLearningRateScheduleNoWarmUp(BaseLearningRateSchedule):
     current_step = tf.to_float(current_step)
     if params.decay_end is not None:
       current_step = tf.where(current_step < params.decay_end, current_step,
-                              tf.to_float(p.decay_end))
+                              tf.to_float(params.decay_end))
     peak_learning_rate = (warmup_steps**-0.5)
     return (params.model_dim**-0.5) * tf.minimum(
         tf.minimum((current_step + 1),
@@ -580,8 +587,8 @@ class PiecewiseSchedule(BaseLearningRateSchedule):
         raise ValueError('Invalid boundary %s < %s' % (boundary, prev_boundary))
       prev_boundary = boundary
     if len(p.schedules) != len(p.boundaries) + 1:
-      raise ValueError('len(schedules) != len(boundaries) + 1: %s vs %s' % (len(
-          p.schedules), len(p.boundaries)))
+      raise ValueError('len(schedules) != len(boundaries) + 1: %s vs %s' %
+                       (len(p.schedules), len(p.boundaries)))
     self.CreateChildren('schedules', p.schedules)
 
   def FProp(self, theta, current_step):
