@@ -144,7 +144,11 @@ class GPipeTransformerStack(PipeliningLayer):
     p = super(GPipeTransformerStack, cls).Params()
 
     # GPipe Related
-    p.Define('num_splits', 1, 'Number of partitions.')
+    p.Define('num_splits', 1, 'Deprecated.')
+    p.Define(
+        'splits', 1,
+        'Number of splits, or list of integers specifying the ending index for '
+        'each split in ascending order. Last index should be num_layers.')
 
     # Transformer related
     p.Define('model_dim', 1024, 'Characteristic depth (dimension).')
@@ -176,11 +180,21 @@ class GPipeTransformerStack(PipeliningLayer):
   def __init__(self, params):
     p = params.Copy()
     num_layers = p.num_encoder_layers + p.num_decoder_layers
-    assert num_layers % p.num_splits == 0
+
+    if isinstance(p.splits, (list, tuple)):
+      assert p.splits[-1] == num_layers
+      for i, j in zip(p.splits[:-1], p.splits[1:]):
+        assert i < j, 'Splits must be in increasing order.'
+    else:
+      num_splits = max(p.splits, p.num_splits)  # Supporting deprecated param.
+      layers_per_split = num_layers // num_splits
+      p.splits = []
+      for i in range(num_splits):
+        p.splits.append((i + 1) * layers_per_split)
+
     with tf.variable_scope(p.name):
       p.encoder_tpl.source_dim = p.model_dim
       p.decoder_tpl.source_dim = p.model_dim
-      layers_per_split = num_layers // p.num_splits
       transformers = []
       for i in range(p.num_encoder_layers):
         params = p.encoder_tpl.Copy()
@@ -188,7 +202,7 @@ class GPipeTransformerStack(PipeliningLayer):
         params.is_transparent = p.is_transparent
         params.packed_input = p.packed_input
         # Use DeterministicDropoutLayer when used in temp graphs.
-        if p.num_splits > 1:
+        if len(p.splits) > 1:
           params.tr_atten_tpl.residual_dropout_tpl = (
               DeterministicDropoutLayer.Params())
           params.tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
@@ -219,43 +233,43 @@ class GPipeTransformerStack(PipeliningLayer):
         assert params.has_aux_atten
         transformers.append(params)
       cells = []
-      for split in range(p.num_splits):
-        sub = transformers[split * layers_per_split:(split + 1) *
-                           layers_per_split]
+      cell_start = 0
+      for split, cell_end in enumerate(p.splits):
+        sub = transformers[cell_start:cell_end]
         cell = FeatureExtractionLayer.Params().Set(
             name='cell_{}'.format(split), sub=sub)
         cells.append(cell)
+        cell_start = cell_end
       p.cell_tpl = cells
     super(GPipeTransformerStack, self).__init__(p)
 
   def GetEncoders(self):
     encoders = []
     p = self.params
-    num_layers = p.num_encoder_layers + p.num_decoder_layers
-    layers_per_split = num_layers // p.num_splits
-    for split in xrange(p.num_splits):
-      for layer_id in xrange(layers_per_split):
-        encoder_id = split * layers_per_split + layer_id
+    cell_start = 0
+    for split, cell_end in enumerate(p.splits):
+      for encoder_id in xrange(cell_start, cell_end):
         if encoder_id >= p.num_encoder_layers:
           break
         encoder_l = self.children['cell_{}'.format(split)].children[
             'encoder_{}'.format(encoder_id)]
         encoders.append(encoder_l)
+      cell_start = cell_end
     return encoders
 
   def GetDecoders(self):
     decoders = []
     p = self.params
-    num_layers = p.num_encoder_layers + p.num_decoder_layers
-    layers_per_split = num_layers // p.num_splits
-    for split in xrange(p.num_splits):
-      for layer_id in xrange(layers_per_split):
-        decoder_id = split * layers_per_split + layer_id - p.num_encoder_layers
+    cell_start = 0
+    for split, cell_end in enumerate(p.splits):
+      for layer_id in xrange(cell_start, cell_end):
+        decoder_id = layer_id - p.num_encoder_layers
         if decoder_id < 0:
           continue
         decoder_l = self.children['cell_{}'.format(split)].children[
             'decoder_{}'.format(decoder_id)]
         decoders.append(decoder_l)
+      cell_start = cell_end
     assert len(decoders) == p.num_decoder_layers
     return decoders
 
