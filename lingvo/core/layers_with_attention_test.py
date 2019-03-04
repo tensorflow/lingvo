@@ -203,10 +203,6 @@ class LayersWithAttentionTest(tf.test.TestCase):
 
   def testTransformerAttentionLayerDeterministicDropout(self):
     with self.session(use_gpu=True) as sess:
-      # Needed to generate a seed pair.
-      py_utils.ResetStepSeed()
-      py_utils.GetOrCreateGlobalStep()
-
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'

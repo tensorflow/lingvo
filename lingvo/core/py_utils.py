@@ -1802,9 +1802,13 @@ def VariationalNoiseParams(scale, global_vn=False, per_step_vn=False,
 def GetStepSeed():
   """Gets step_seed."""
   step_seed_tensors = tf.get_default_graph().get_collection_ref('step_seed')
-  if len(step_seed_tensors) == 1:
+  if not step_seed_tensors:
+    ResetStepSeed()
+    return GetStepSeed()
+  elif len(step_seed_tensors) == 1:
     return step_seed_tensors[0]
-  return None
+  else:
+    raise ValueError('Multiple tensors in step_seed collection.')
 
 
 def ResetStepSeed(seed=0):
@@ -1830,9 +1834,8 @@ def GetIncStepSeed():
 
 def GetOpSeedPair(op_seed=None):
   """Returns the seed pair for an operation given op_seed."""
-  step_seed = GetIncStepSeed()
-  global_step = tf.train.get_or_create_global_step()
-  seeds = tf.stack([global_step, tf.cast(step_seed, global_step.dtype)])
+  global_step = GetOrCreateGlobalStep()
+  seeds = tf.stack([global_step, tf.cast(GetIncStepSeed(), global_step.dtype)])
 
   if op_seed is not None:
     seeds += op_seed

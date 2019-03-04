@@ -247,7 +247,7 @@ class DecoderTest(tf.test.TestCase):
       p.attention.atten_dropout_deterministic = True
 
       loss, per_sequence_loss = self._testDecoderFPropHelper(params=p)
-      global_step = tf.train.get_global_step()
+      global_step = py_utils.GetOrCreateGlobalStep()
       tf.global_variables_initializer().run()
       loss_val, per_sequence_loss_val, global_steps_val, time_steps_val = (
           sess.run([

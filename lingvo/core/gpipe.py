@@ -42,7 +42,7 @@ def GetOverWriteGlobalStep(graph=None):
   if len(mb_tensors) == 1:
     mb_tensor = mb_tensors[0]
   else:
-    mb_tensor = tf.train.get_global_step(graph)
+    mb_tensor = py_utils.GetOrCreateGlobalStep()
   return mb_tensor
 
 
@@ -401,7 +401,7 @@ class PipeliningLayer(SeqLayer):
         previous = l.FProp(theta[name], *previous)
         previous = _ToTuple(previous)
       inputs = py_utils.NestedMap()
-      gs_tensor = tf.train.get_or_create_global_step()
+      gs_tensor = py_utils.GetOrCreateGlobalStep()
       inputs[_MICRO_BATCH_STATE_NAME] = tf.stack([
           tf.cast(gs_tensor * p.num_micro_batches + t, dtype=input_dtype)
           for t in range(p.num_micro_batches)

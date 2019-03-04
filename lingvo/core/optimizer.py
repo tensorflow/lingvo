@@ -266,7 +266,7 @@ class Accumulator(Base):
 
     return tf.cond(
         tf.equal(
-            tf.mod(tf.train.get_or_create_global_step(), p.accum_steps),
+            tf.mod(py_utils.GetOrCreateGlobalStep(), p.accum_steps),
             p.accum_steps - 1), _ApplyAndReset, lambda: tf.group(tf.no_op()))
 
   def GetOptimizer(self, lr):
