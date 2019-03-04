@@ -50,7 +50,7 @@ class BaseEncoder(base_layer.BaseLayer):
         ['good', 'day', 'thanks'] -> ['guten-tag', 'danke'], the source segment
         ids would be [0, 0, 1] and target segment ids would be [0, 1]. These ids
         are meant to enable masking computations for different examples from
-        each other. Models or layers than don't support packed inputs should
+        each other. Models or layers that don't support packed inputs should
         pass None.
 
     Returns:
