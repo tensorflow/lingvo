@@ -36,7 +36,7 @@ from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 
 
-def CreateTaskGlobalStep(params, task_name):
+def CreateTaskGlobalStep(task_name):
   """Create if needed and return the global_step."""
   with tf.name_scope(None), tf.variable_scope(py_utils.global_variable_scope):
     graph_collections = [tf.GraphKeys.GLOBAL_VARIABLES, 'TASK_GLOBAL_STEP']
@@ -94,12 +94,6 @@ class BaseTask(base_layer.BaseLayer):
              'Params to control how this task should be trained.')
 
     tp = p.train
-    tp.Define(
-        'task_global_step', False,
-        'Whether or not to create a task-specific global step. '
-        'When a task specific global step exists, learning rate schedule '
-        'depends on the task specific global step, instead of the shared '
-        'global step.')
     tp.Define(
         'start_up_delay_steps', 200, 'i-th replica starts training after '
         'i*(i+1)/2*start_up_delay_steps steps')
@@ -240,17 +234,18 @@ class BaseTask(base_layer.BaseLayer):
 
     # Create the gradient mask,
     self._per_input_gradient_mask = None
-    self._shared_global_step = py_utils.GetOrCreateGlobalStep()
-    self._task_global_step = None
-    self._global_step = self._shared_global_step
+    task_global_step_list = tf.get_collection('TASK_GLOBAL_STEP',
+                                              '^%s_global_step' % p.name)
+    if len(task_global_step_list) > 1:
+      raise ValueError('Found multiple task_global_step for task %s' % p.name)
+    self._global_step = (
+        task_global_step_list[0] if len(task_global_step_list) == 1 else
+        py_utils.GetOrCreateGlobalStep())
     tp = p.train
     # p.train can be None if this task is the teacher/student task in a
     # DistillationTask.
     if tp and self.cluster.job in ('worker', 'trainer', 'trainer_client',
                                    'controller'):
-      if tp.task_global_step:
-        self._task_global_step = CreateTaskGlobalStep(p, p.name)
-        self._global_step = self._task_global_step
       if tp.grad_norm_tracker:
         with tf.variable_scope(p.name):
           self.CreateChild('grad_norm_tracker', tp.grad_norm_tracker)
@@ -630,15 +625,13 @@ class BaseTask(base_layer.BaseLayer):
 
     var_update_op = self.optimizer.Apply(lr, self._var_grads)
 
-    increment_global_step_ops = []
-    with tf.colocate_with(self._shared_global_step):
-      increment_global_step_ops.append(
-          tf.assign_add(self._shared_global_step, 1))
-    if self._task_global_step:
-      with tf.colocate_with(self._task_global_step):
-        increment_global_step_ops.append(
-            tf.assign_add(self._task_global_step, 1))
-    increment_global_steps = tf.group(*increment_global_step_ops)
+    true_global_step = py_utils.GetOrCreateGlobalStep()
+    with tf.colocate_with(true_global_step):
+      increment_global_steps = tf.assign_add(true_global_step, 1)
+    if self._global_step != true_global_step:
+      with tf.colocate_with(self._global_step):
+        increment_global_steps = tf.group(increment_global_steps,
+                                          tf.assign_add(self._global_step, 1))
 
     relevant_bn_updates, _ = py_utils.FindRelevantBatchNormUpdates(
         self.loss, tf.get_collection(py_utils.BATCH_NORM_UPDATES))
@@ -1191,6 +1184,10 @@ class MultiTaskModel(BaseModel):
         'Params object mapping task name to the relative likelihood the '
         'task will be sampled during training.')
     p.Define('task_schedule', None, 'Task schedule.')
+    p.Define(
+        'task_global_step', False,
+        'Whether or not to use task-specific global steps, which causes each '
+        'task to use its own global_step instead of the true global_step.')
     return p
 
   @base_layer.initializer
@@ -1222,6 +1219,9 @@ class MultiTaskModel(BaseModel):
           (task_name, task_params)
           for task_name, task_params in p.task_params.IterParams())
       for task_name, task_params in sorted_task_params:
+        if p.task_global_step:
+          assert task_name == task_params.name
+          CreateTaskGlobalStep(task_name)
         # Make sure each task is under its own variable scope.
         with tf.variable_scope(task_name):
           self.CreateChild(task_name, task_params)
