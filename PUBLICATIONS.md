@@ -1,143 +1,502 @@
 # List of publications using Lingvo.
 
-*   Translation:
 
-    *   [The Best of Both Worlds: Combining Recent Advances in Neural Machine
-        Translation](http://aclweb.org/anthology/P18-1008). Mia X. Chen, Orhan
-        Firat, Ankur Bapna, Melvin Johnson, Wolfgang Macherey, George Foster,
-        Llion Jones, Mike Schuster, Noam Shazeer, Niki Parmar, Ashish Vaswani,
-        Jakob Uszkoreit, Lukasz Kaiser, Zhifeng Chen, Yonghui Wu, and Macduff
-        Hughes. ACL 2018.
 
-    *   [Revisiting Character-Based Neural Machine Translation with Capacity and
-        Compression](https://arxiv.org/abs/1808.09943). Colin Cherry, George
-        Foster, Ankur Bapna, Orhan Firat, and Wolfgang Macherey. EMNLP 2018.
+## Translation
 
-    *   [Training Deeper Neural Machine Translation Models with Transparent
-        Attention](https://arxiv.org/abs/1808.07561). Ankur Bapna, Mia X. Chen,
-        Orhan Firat, Yuan Cao and Yonghui Wu. EMNLP 2018.
+<!-- This document was automatically generated with bibtex2html 1.98
+     (see http://www.lri.fr/~filliatr/bibtex2html/),
+     with the following command:
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
 
-    *   [Google's Neural Machine Translation System: Bridging the Gap between
-        Human and Machine Translation](https://arxiv.org/abs/1609.08144).
-        Yonghui Wu, Mike Schuster, Zhifeng Chen, Quoc V. Le, Mohammad Norouzi,
-        Wolfgang Macherey, Maxim Krikun, Yuan Cao, Qin Gao, Klaus Macherey, Jeff
-        Klingner, Apurva Shah, Melvin Johnson, Xiaobing Liu, Łukasz Kaiser,
-        Stephan Gouws, Yoshikiyo Kato, Taku Kudo, Hideto Kazawa, Keith Stevens,
-        George Kurian, Nishant Patil, Wei Wang, Cliff Young, Jason Smith, Jason
-        Riesa, Alex Rudnick, Oriol Vinyals, Greg Corrado, Macduff Hughes, and
-        Jeffrey Dean. Technical Report, 2016.
 
-*   Speech Recognition:
+<table>
 
-    *   [A comparison of techniques for language model integration in
-        encoder-decoder speech
-        recognition](https://arxiv.org/pdf/1807.10857.pdf). Shubham Toshniwal,
-        Anjuli Kannan, Chung-Cheng Chiu, Yonghui Wu, Tara N. Sainath, Karen
-        Livescu. IEEE SLT 2018.
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chen2018best">1</a>]
+</td>
+<td class="bibtexitem">
+M.&nbsp;X. Chen, O.&nbsp;Firat, A.&nbsp;Bapna, M.&nbsp;Johnson, W.&nbsp;Macherey, G.&nbsp;Foster, L.&nbsp;Jones,
+  M.&nbsp;Schuster, N.&nbsp;Shazeer, N.&nbsp;Parmar, A.&nbsp;Vaswani, J.&nbsp;Uszkoreit, L.&nbsp;Kaiser,
+  Z.&nbsp;Chen, Y.&nbsp;Wu, and M.&nbsp;Hughes, &ldquo;The Best of Both Worlds: Combining Recent
+  Advances in Neural Machine Translation,&rdquo; in <em>Proc. Annual Meeting of
+  the Association for Computational Linguistics (ACL)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1804.09849">pdf</a>&nbsp;]
 
-    *   [Deep Context: End-to-End Contextual Speech Recognition](https://arxiv.org/pdf/1808.02480.pdf).
-        Golan Pundak, Tara N. Sainath, Rohit Prabhavalkar, Anjuli Kannan, Ding
-        Zhao. IEEE SLT 2018.
+</td>
+</tr>
 
-    *   [Speech recognition for medical conversations](https://arxiv.org/abs/1711.07274).
-        Chung-Cheng Chiu, Anshuman Tripathi, Katherine Chou, Chris Co, Navdeep
-        Jaitly, Diana Jaunzeikare, Anjuli Kannan, Patrick Nguyen, Hasim Sak,
-        Ananth Sankar, Justin Tansuwan, Nathan Wan, Yonghui Wu, and Xuedong
-        Zhang. Interspeech 2018.
 
-    *   [Compression of End-to-End Models](https://www.isca-speech.org/archive/Interspeech_2018/abstracts/1025.html).
-        Ruoming Pang, Tara Sainath, Rohit Prabhavalkar, Suyog Gupta, Yonghui Wu,
-        Shuyuan Zhang, and Chung-Cheng Chiu. Interspeech 2018.
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="cherry2018revisiting">2</a>]
+</td>
+<td class="bibtexitem">
+C.&nbsp;Cherry, G.&nbsp;Foster, A.&nbsp;Bapna, O.&nbsp;Firat, and W.&nbsp;Macherey, &ldquo;Revisiting
+  character-based neural machine translation with capacity and compression,&rdquo;
+  in <em>Proc. Conference on Empirical Methods in Natural Language Processing
+  (EMNLP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1808.09943">pdf</a>&nbsp;]
 
-    *   [Contextual Speech Recognition in End-to-End Neural Network Systems
-        using Beam
-        Search](https://www.isca-speech.org/archive/Interspeech_2018/abstracts/2416.html).
-        Ian Williams, Anjuli Kannan, Petar Aleksic, David Rybach, and Tara N.
-        Sainath. Interspeech 2018.
+</td>
+</tr>
 
-    *   [State-of-the-art Speech Recognition With Sequence-to-Sequence Models](https://arxiv.org/abs/1712.01769).
-        Chung-Cheng Chiu, Tara N. Sainath, Yonghui Wu, Rohit Prabhavalkar,
-        Patrick Nguyen, Zhifeng Chen, Anjuli Kannan, Ron J. Weiss, Kanishka Rao,
-        Ekaterina Gonina, Navdeep Jaitly, Bo Li, Jan Chorowski, and Michiel
-        Bacchiani. ICASSP 2018.
 
-    *   [End-to-End Multilingual Speech Recognition using Encoder-Decoder Models](https://arxiv.org/abs/1711.01694).
-        Shubham Toshniwal, Tara N. Sainath, Ron J. Weiss, Bo Li, Pedro Moreno,
-        Eugene Weinstein, and Kanishka Rao. ICASSP 2018.
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="bapna2018training">3</a>]
+</td>
+<td class="bibtexitem">
+A.&nbsp;Bapna, M.&nbsp;X. Chen, O.&nbsp;Firat, Y.&nbsp;Cao, and Y.&nbsp;Wu, &ldquo;Training deeper neural
+  machine translation models with transparent attention,&rdquo; in <em>Proc.
+  Conference on Empirical Methods in Natural Language Processing (EMNLP)</em>,
+  2018.
+[&nbsp;<a href="https://arxiv.org/abs/1808.07561">pdf</a>&nbsp;]
 
-    *   [Multi-Dialect Speech Recognition With a Single Sequence-to-Sequence
-        Model](https://arxiv.org/abs/1712.01541). Bo Li, Tara N. Sainath, Khe
-        Chai Sim, Michiel Bacchiani, Eugene Weinstein, Patrick Nguyen, Zhifeng
-        Chen, Yonghui Wu, and Kanishka Rao. ICASSP 2018.
+</td>
+</tr>
 
-    *   [Improving the Performance of Online Neural Transducer Models](https://arxiv.org/abs/1712.01807).
-        Tara N. Sainath, Chung-Cheng Chiu, Rohit Prabhavalkar, Anjuli Kannan,
-        Yonghui Wu, Patrick Nguyen, and Zhifeng Chen. ICASSP 2018.
 
-    *   [Minimum Word Error Rate Training for Attention-based
-        Sequence-to-Sequence Models](https://arxiv.org/abs/1712.01818). Rohit
-        Prabhavalkar, Tara N. Sainath, Yonghui Wu, Patrick Nguyen, Zhifeng Chen,
-        Chung-Cheng Chiu, and Anjuli Kannan. ICASSP 2018.
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="wu2016google">4</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Wu, M.&nbsp;Schuster, Z.&nbsp;Chen, Q.&nbsp;V. Le, M.&nbsp;Norouzi, W.&nbsp;Macherey, M.&nbsp;Krikun,
+  Y.&nbsp;Cao, Q.&nbsp;Gao, K.&nbsp;Macherey, J.&nbsp;Klingner, A.&nbsp;Shah, M.&nbsp;Johnson, X.&nbsp;Liu,
+  L.&nbsp;Kaiser, S.&nbsp;Gouws, Y.&nbsp;Kato, T.&nbsp;Kudo, H.&nbsp;Kazawa, K.&nbsp;Stevens, G.&nbsp;Kurian,
+  N.&nbsp;Patil, W.&nbsp;Wang, C.&nbsp;Young, J.&nbsp;Smith, J.&nbsp;Riesa, A.&nbsp;Rudnick, O.&nbsp;Vinyals,
+  G.&nbsp;Corrado, M.&nbsp;Hughes, and J.&nbsp;Dean, &ldquo;Google's neural machine translation
+  system: Bridging the gap between human and machine translation,&rdquo; tech. rep.,
+  2016.
+[&nbsp;<a href="https://arxiv.org/abs/1609.08144">pdf</a>&nbsp;]
 
-    *   [No Need for a Lexicon? Evaluating the Value of the Pronunciation Lexica
-        in End-to-End Models](https://arxiv.org/abs/1712.01864). Tara N.
-        Sainath, Rohit Prabhavalkar, Shankar Kumar, Seungji Lee, Anjuli Kannan,
-        David Rybach, Vlad Schogol, Patrick Nguyen, Bo Li, Yonghui Wu, Zhifeng
-        Chen, and Chung-Cheng Chiu. ICASSP 2018.
+</td>
+</tr>
+</table>
 
-    *   [Learning hard alignments with variational inference](https://arxiv.org/abs/1705.05524).
-        Dieterich Lawson, Chung-Cheng Chiu, George Tucker, Colin Raffel, Kevin
-        Swersky, and Navdeep Jaitly. ICASSP 2018.
+## Speech recognition
 
-    *   [Monotonic Chunkwise Attention](https://arxiv.org/abs/1712.05382).
-        Chung-Cheng Chiu, and Colin Raffel. ICLR 2018.
+<!-- This document was automatically generated with bibtex2html 1.98
+     (see http://www.lri.fr/~filliatr/bibtex2html/),
+     with the following command:
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
 
-    *   [An Analysis of Incorporating an External Language Model into a
-        Sequence-to-Sequence Model](https://arxiv.org/abs/1712.01996). Anjuli
-        Kannan, Yonghui Wu, Patrick Nguyen, Tara N. Sainath, Zhifeng Chen, and
-        Rohit Prabhavalkar. ICASSP 2018.
 
-*   Language understanding
+<table>
 
-    *   [Semi-Supervised Learning for Information Extraction from Dialogue](https://www.isca-speech.org/archive/Interspeech_2018/abstracts/1318.html).
-        Anjuli Kannan, Kai Chen, Diana Jaunzeikare, and Alvin Rajkomar.
-        Interspeech 2018.
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chiu2018state">1</a>]
+</td>
+<td class="bibtexitem">
+C.-C.Chiu, T.&nbsp;N. Sainath, Y.&nbsp;Wu, R.&nbsp;Prabhavalkar, P.&nbsp;Nguyen, Z.&nbsp;Chen,
+  A.&nbsp;Kannan, R.&nbsp;J. Weiss, K.&nbsp;Rao, K.&nbsp;Gonina, N.&nbsp;Jaitly, B.&nbsp;Li, J.&nbsp;Chorowski,
+  and M.&nbsp;Bacchiani, &ldquo;State-of-the-art speech recognition with
+  sequence-to-sequence models,&rdquo; in <em>Proc. IEEE International Conference
+  on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1712.01769">pdf</a>&nbsp;]
 
-    *   [CaLcs: Continuously Approximating Longest Common Subsequence for
-        Sequence Level Optimization](http://aclweb.org/anthology/D18-1406).
-        Semih Yavuz, Chung-Cheng Chiu, Patrick Nguyen, and Yonghui Wu.
-        EMNLP 2018.
+</td>
+</tr>
 
-*   Speech synthesis
 
-    *   [Hierarchical Generative Modeling for Controllable Speech Synthesis](https://arxiv.org/abs/1810.07217).
-        Wei-Ning Hsu, Yu Zhang, Ron J. Weiss, Heiga Zen, Yonghui Wu, Yuxuan
-        Wang, Yuan Cao, Ye Jia, Zhifeng Chen, Jonathan Shen, Patrick Nguyen,
-        Ruoming Pang. Submitted to ICLR 2019.
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="toshniwal2018multilingual">2</a>]
+</td>
+<td class="bibtexitem">
+S.&nbsp;Toshniwal, T.&nbsp;N. Sainath, R.&nbsp;J. Weiss, B.&nbsp;Li, P.&nbsp;Moreno, E.&nbsp;Weinstein, and
+  K.&nbsp;Rao, &ldquo;Multilingual speech recognition with a single end-to-end model,&rdquo;
+  in <em>Proc. IEEE International Conference on Acoustics, Speech, and
+  Signal Processing (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1711.01694">pdf</a>&nbsp;]
 
-    *   [Transfer Learning from Speaker Verification to Multispeaker
-        Text-To-Speech Synthesis](https://arxiv.org/abs/1806.04558). Ye Jia, Yu
-        Zhang, Ron J. Weiss, Quan Wang, Jonathan Shen, Fei Ren, Zhifeng Chen,
-        Patrick Nguyen, Ruoming Pang, Ignacio Lopez Moreno, Yonghui Wu.
-        NIPS 2018.
+</td>
+</tr>
 
-    *   [Natural TTS Synthesis By Conditioning WaveNet On Mel Spectrogram
-        Predictions](https://arxiv.org/abs/1712.05884). Jonathan Shen, Ruoming
-        Pang, Ron J. Weiss, Mike Schuster, Navdeep Jaitly, Zongheng Yang,
-        Zhifeng Chen, Yu Zhang, Yuxuan Wang, RJ Skerry-Ryan, Rif A. Saurous,
-        Yannis Agiomyrgiannakis, Yonghui Wu. ICASSP 2018.
 
-    *   [On Using Backpropagation for Speech Texture Generation and Voice
-        Conversion](https://arxiv.org/abs/1712.08363). Jan Chorowski, Ron J.
-        Weiss, Rif A. Saurous, Samy Bengio. ICASSP 2018.
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="li2018multidialect">3</a>]
+</td>
+<td class="bibtexitem">
+B.&nbsp;Li, T.&nbsp;N. Sainath, K.&nbsp;Sim, M.&nbsp;Bacchiani, E.&nbsp;Weinstein, P.&nbsp;Nguyen, Z.&nbsp;Chen,
+  Y.&nbsp;Wu, and K.&nbsp;Rao, &ldquo;Multi-Dialect Speech Recognition With a Single
+  Sequence-to-Sequence Model,&rdquo; in <em>Proc. IEEE International Conference
+  on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1712.01541">pdf</a>&nbsp;]
 
-*   Speech-to-text translation
+</td>
+</tr>
 
-    *   [Leveraging weakly supervised data to improve end-to-end speech-to-text
-        translation](https://arxiv.org/abs/1811.02050). Ye Jia, Melvin Johnson,
-        Wolfgang Macherey, Ron J. Weiss, Yuan Cao, Chung-Cheng Chiu, Naveen Ari,
-        Stella Laurenzo, Yonghui Wu. Submitted to ICASSP 2019.
 
-    *   [Sequence-to-Sequence Models Can Directly Translate Foreign Speech](https://arxiv.org/abs/1703.08581).
-        Ron J. Weiss, Jan Chorowski, Navdeep Jaitly, Yonghui Wu, and Zhifeng
-        Chen. Interspeech 2017.
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="sainath2018no">4</a>]
+</td>
+<td class="bibtexitem">
+T.&nbsp;N. Sainath, P.&nbsp;Prabhavalkar, S.&nbsp;Kumar, S.&nbsp;Lee, A.&nbsp;Kannan, D.&nbsp;Rybach,
+  V.&nbsp;Schogol, P.&nbsp;Nguyen, B.&nbsp;Li, Y.&nbsp;Wu, Z.&nbsp;Chen, and C.&nbsp;C. Chiu, &ldquo;No Need for
+  a Lexicon? Evaluating the Value of the Pronunciation Lexica in End-to-End
+  Models,&rdquo; in <em>Proc. IEEE International Conference on Acoustics,
+  Speech, and Signal Processing (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1712.01864">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="lawson2018learning">5</a>]
+</td>
+<td class="bibtexitem">
+D.&nbsp;Lawson, C.&nbsp;C. Chiu, G.&nbsp;Tucker, C.&nbsp;Raffel, K.&nbsp;Swersky, and N.&nbsp;Jaitly,
+  &ldquo;Learning hard alignments with variational inference,&rdquo; in <em>Proc.
+  IEEE International Conference on Acoustics, Speech, and Signal Processing
+  (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1705.05524">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="kannan2018analysis">6</a>]
+</td>
+<td class="bibtexitem">
+A.&nbsp;Kannan, Y.&nbsp;Wu, P.&nbsp;Nguyen, T.&nbsp;N. Sainath, Z.&nbsp;Chen, and R.&nbsp;Prabhavalkar, &ldquo;An
+  analysis of incorporating an external language model into a
+  sequence-to-sequence model,&rdquo; in <em>Proc. IEEE International Conference
+  on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1712.01996">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="prabhavalkar2018minimum">7</a>]
+</td>
+<td class="bibtexitem">
+R.&nbsp;Prabhavalkar, T.&nbsp;N. Sainath, Y.&nbsp;Wu, P.&nbsp;Nguyen, Z.&nbsp;Chen, C.&nbsp;C. Chiu, and
+  A.&nbsp;Kannan, &ldquo;Minimum Word Error Rate Training for Attention-based
+  Sequence-to-sequence Models,&rdquo; in <em>Proc. IEEE International Conference
+  on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1712.01818">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="sainath2018improving">8</a>]
+</td>
+<td class="bibtexitem">
+T.&nbsp;N. Sainath, C.&nbsp;C. Chiu, R.&nbsp;Prabhavalkar, A.&nbsp;Kannan, Y.&nbsp;Wu, P.&nbsp;Nguyen, and
+  Z.&nbsp;C. Z, &ldquo;Improving the Performance of Online Neural Transducer Models,&rdquo;
+  in <em>Proc. IEEE International Conference on Acoustics, Speech, and
+  Signal Processing (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1712.01807">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chiu2018monotonic">9</a>]
+</td>
+<td class="bibtexitem">
+C.&nbsp;C. Chiu and C.&nbsp;Raffel, &ldquo;Monotonic Chunkwise Attention,&rdquo; in <em>Proc.
+  International Conference on Learning Representations (ICLR)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1712.05382">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="williams2018contextual">10</a>]
+</td>
+<td class="bibtexitem">
+I.&nbsp;Williams, A.&nbsp;Kannan, P.&nbsp;Aleksic, D.&nbsp;Rybach, and T.&nbsp;N.&nbsp;S. TN, &ldquo;Contextual
+  Speech Recognition in End-to-End Neural Network Systems using Beam Search,&rdquo;
+  in <em>Proc. Interspeech</em>, 2018.
+[&nbsp;<a href="https://www.isca-speech.org/archive/Interspeech_2018/pdfs/2416.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chui2018speech">11</a>]
+</td>
+<td class="bibtexitem">
+C.&nbsp;C. Chiu, A.&nbsp;Tripathi, K.&nbsp;Chou, C.&nbsp;Co, N.&nbsp;Jaitly, D.&nbsp;Jaunzeikare, A.&nbsp;Kannan,
+  P.&nbsp;Nguyen, H.&nbsp;Sak, A.&nbsp;Sankar, J.&nbsp;Tansuwan, N.&nbsp;Wan, Y.&nbsp;Wu, and X.&nbsp;Zhang,
+  &ldquo;Speech recognition for medical conversations,&rdquo; in <em>Proc.
+  Interspeech</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1711.07274">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="pang2018compression">12</a>]
+</td>
+<td class="bibtexitem">
+R.&nbsp;Pang, T.&nbsp;N. Sainath, R.&nbsp;Prabhavalkar, S.&nbsp;Gupta, Y.&nbsp;Wu, S.&nbsp;Zhang, and C.&nbsp;C.
+  Chiu, &ldquo;Compression of End-to-End Models,&rdquo; in <em>Proc. Interspeech</em>,
+  2018.
+[&nbsp;<a href="https://www.isca-speech.org/archive/Interspeech_2018/pdfs/1025.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="toshniwal2018comparison">13</a>]
+</td>
+<td class="bibtexitem">
+S.&nbsp;Toshniwal, A.&nbsp;Kannan, C.&nbsp;C. Chiu, Y.&nbsp;Wu, T.&nbsp;N. Sainath, and K.&nbsp;Livescu, &ldquo;A
+  comparison of techniques for language model integration in encoder-decoder
+  speech recognition,&rdquo; in <em>Proc. IEEE Spoken Language Technology
+  Workshop (SLT)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/pdf/1807.10857.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="pundak2018deep">14</a>]
+</td>
+<td class="bibtexitem">
+G.&nbsp;Pundak, T.&nbsp;N. Sainath, R.&nbsp;Prabhavalkar, A.&nbsp;Kannan, and D.&nbsp;Zhao, &ldquo;Deep
+  context: End-to-end contextual speech recognition,&rdquo; in <em>Proc. IEEE
+  Spoken Language Technology Workshop (SLT)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/pdf/1808.02480.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="li2019bytes">15</a>]
+</td>
+<td class="bibtexitem">
+B.&nbsp;Li, Y.&nbsp;Zhang, T.&nbsp;N. Sainath, Y.&nbsp;Wu, and W.&nbsp;Chan, &ldquo;Bytes are all you need:
+  End-to-end multilingual speech recognition and synthesis with bytes,&rdquo; in
+  <em>Proc. IEEE International Conference on Acoustics, Speech, and Signal
+  Processing (ICASSP)</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1811.09021">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="guo2019spelling">16</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;Guo, T.&nbsp;N. Sainath, and R.&nbsp;J. Weiss, &ldquo;A spelling correction model for
+  end-to-end speech recognition,&rdquo; in <em>Proc. IEEE International
+  Conference on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1902.07178">pdf</a>&nbsp;]
+
+</td>
+</tr>
+</table>
+
+## Language understanding
+
+<!-- This document was automatically generated with bibtex2html 1.98
+     (see http://www.lri.fr/~filliatr/bibtex2html/),
+     with the following command:
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
+
+
+<table>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="kannan2018semi">1</a>]
+</td>
+<td class="bibtexitem">
+A.&nbsp;Kannan, K.&nbsp;Chen, D.&nbsp;Jaunzeikare, and A.&nbsp;Rajkomar, &ldquo;Semi-Supervised
+  Learning for Information Extraction from Dialogue,&rdquo; in <em>Proc.
+  Interspeech</em>, 2018.
+[&nbsp;<a href="https://www.isca-speech.org/archive/Interspeech_2018/pdfs/1318.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="yavuz2018calcs">2</a>]
+</td>
+<td class="bibtexitem">
+S.&nbsp;Yavuz, C.&nbsp;C. Chiu, P.&nbsp;Nguyen, and Y.&nbsp;Wu, &ldquo;CaLcs: Continuously
+  Approximating Longest Common Subsequence for Sequence Level Optimization,&rdquo;
+  in <em>Proc. Conference on Empirical Methods in Natural Language Processing
+  (EMNLP)</em>, 2018.
+[&nbsp;<a href="http://aclweb.org/anthology/D18-1406">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="haghani2018s2p">3</a>]
+</td>
+<td class="bibtexitem">
+P.&nbsp;Haghani, A.&nbsp;Narayanan, M.&nbsp;Bacchiani, G.&nbsp;Chuang, N.&nbsp;Gaur, P.&nbsp;Moreno,
+  R.&nbsp;Prabhavalkar, Z.&nbsp;Qu, and A.&nbsp;Waters, &ldquo;From Audio to Semantics: Approaches
+  to End-to-End Spoken Language Understanding,&rdquo; in <em>Proc. IEEE Spoken
+  Language Technology Workshop (SLT)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/pdf/1809.09190.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
+</table>
+
+## Speech synthesis
+
+<!-- This document was automatically generated with bibtex2html 1.98
+     (see http://www.lri.fr/~filliatr/bibtex2html/),
+     with the following command:
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
+
+
+<table>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="shen2018natural">1</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;Shen, R.&nbsp;Pang, R.&nbsp;J. Weiss, M.&nbsp;Schuster, N.&nbsp;Jaitly, Z.&nbsp;Yang, Z.&nbsp;Chen,
+  Y.&nbsp;Zhang, Y.&nbsp;Wang, R.&nbsp;Skerry-Ryan, R.&nbsp;A. Saurous, Y.&nbsp;Agiomyrgiannakis, and
+  Y.&nbsp;Wu, &ldquo;Natural TTS synthesis by conditioning WaveNet on mel spectrogram
+  predictions,&rdquo; in <em>Proc. IEEE International Conference on Acoustics,
+  Speech, and Signal Processing (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1703.10135">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chorowski2018styletransfer">2</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;Chorowski, R.&nbsp;J. Weiss, R.&nbsp;A. Saurous, and S.&nbsp;Bengio, &ldquo;On using
+  backpropagation for speech texture generation and voice conversion,&rdquo; in <em>
+  Proc. IEEE International Conference on Acoustics, Speech, and Signal
+  Processing (ICASSP)</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1712.08363">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="jia2018multispeaker">3</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Jia, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Q.&nbsp;Wang, J.&nbsp;Shen, F.&nbsp;Ren, Z.&nbsp;Chen, P.&nbsp;Nguyen,
+  R.&nbsp;Pang, I.&nbsp;Lopez-Moreno, and Y.&nbsp;Wu, &ldquo;Transfer learning from speaker
+  verification to multispeaker text-to-speech synthesis,&rdquo; in <em>Advances in
+  Neural Information Processing Systems</em>, 2018.
+[&nbsp;<a href="https://arxiv.org/abs/1806.04558">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="hsu2019hierarchical">4</a>]
+</td>
+<td class="bibtexitem">
+W.&nbsp;N. Hsu, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, H.&nbsp;Zen, Y.&nbsp;Wu, Y.&nbsp;Wang, Y.&nbsp;Cao, Y.&nbsp;Jia,
+  Z.&nbsp;Chen, J.&nbsp;Shen, P.&nbsp;Nguyen, and R.&nbsp;Pang, &ldquo;Hierarchical generative modeling
+  for controllable speech synthesis,&rdquo; in <em>Proc. International Conference
+  on Learning Representations (ICLR)</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1810.07217">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="hsu2018disentangling">5</a>]
+</td>
+<td class="bibtexitem">
+W.&nbsp;N. Hsu, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;A. Chung, Y.&nbsp;Wang, Y.&nbsp;Wu, and J.&nbsp;Glass,
+  &ldquo;Disentangling correlated speaker and noise for speech synthesis via data
+  augmentation and adversarial factorization,&rdquo; in <em>NeurIPS 2018 Workshop
+  on Interpretability and Robustness in Audio, Speech, and Language</em>, 2018.
+[&nbsp;<a href="https://openreview.net/forum?id=Bkg9ZeBB37">pdf</a>&nbsp;]
+
+</td>
+</tr>
+</table>
+
+## Speech-to-text translation
+
+<!-- This document was automatically generated with bibtex2html 1.98
+     (see http://www.lri.fr/~filliatr/bibtex2html/),
+     with the following command:
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
+
+
+<table>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="weiss2017sequence">1</a>]
+</td>
+<td class="bibtexitem">
+R.&nbsp;J. Weiss, J.&nbsp;Chorowski, N.&nbsp;Jaitly, Y.&nbsp;Wu, and Z.&nbsp;Chen,
+  &ldquo;Sequence-to-sequence models can directly translate foreign speech,&rdquo; in
+  <em>Proc. Interspeech</em>, 2017.
+[&nbsp;<a href="https://arxiv.org/abs/1703.08581">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="jia2019leveraging">2</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Jia, M.&nbsp;Johnson, W.&nbsp;Macherey, R.&nbsp;J. Weiss, Y.&nbsp;Cao, C.&nbsp;C. Chiu, N.&nbsp;Ari,
+  S.&nbsp;Laurenzo, and Y.&nbsp;Wu, &ldquo;Leveraging weakly supervised data to improve
+  end-to-end speech-to-text translation,&rdquo; in <em>Proc. IEEE International
+  Conference on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1811.02050">pdf</a>&nbsp;]
+
+</td>
+</tr>
+</table>
