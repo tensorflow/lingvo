@@ -89,9 +89,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
           initial_results: a `.NestedMap` of initial results. It should contain
               the following tensors at the minimum.
                   log_probs: The initial log probs for each of the tokens in
-                      the target vocab, of shape [tgt_batch, vocab_size].
-                  atten_probs: The initial attention probs, of shape [tgt_batch,
-                      src_len].
+                      the target vocab, of shape [tgt_batch * num_hyps_per_beam, 
+                      vocab_size].
+                  atten_probs: The initial attention probs, of shape [
+                      tgt_batch * num_hyps_per_beam, src_len].
           states: a `.NestedMap` of tensors representing states that the client
               would like to keep track of for each hyp.
 
