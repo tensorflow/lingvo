@@ -271,7 +271,6 @@ class InferenceGraphExporter(object):
   def Export(cls,
              model_cfg,
              model_task_name=None,
-             per_step_inference=False,
              device_options=InferenceDeviceOptions(
                  device='',
                  retain_device_placement=False,
@@ -291,8 +290,6 @@ class InferenceGraphExporter(object):
         model_registry.GetParams(modelname, 'Test') or model_params.Model().
       model_task_name: The task to generate an inference graph for. Should be
         None for single-task models.
-      per_step_inference: Whether the exported graph will be driven step-by-step
-        instead of being end-to-end.
       device_options: Device options for the accelerator used for serving.
       freeze_checkpoint: The checkpoint to load. Loads and freezes the model if
         given.
@@ -333,10 +330,8 @@ class InferenceGraphExporter(object):
 
     if issubclass(model_cfg.cls, base_model.MultiTaskModel):
       for _, task_param in model_cfg.task_params.IterParams():
-        task_param.per_step_infer = per_step_inference
         _DisablePackedInput(task_param)
     else:
-      model_cfg.task.per_step_infer = per_step_inference
       _DisablePackedInput(model_cfg.task)
 
     tf.logging.info('Model %s. Params: %s', model_cfg.name, model_cfg.ToText())

@@ -181,7 +181,6 @@ class BaseLayer(object):
     p.Define('is_inference', None, 'True if in inference mode.')
     # In addition to is_eval/is_inference, indicate that the inference graph is
     # for a single step.
-    p.Define('per_step_infer', False, 'True if in per-step inference mode.')
     p.Define(
         'allow_implicit_capture', None,
         'When using Defuns, code often asserts that the Defun does not '
