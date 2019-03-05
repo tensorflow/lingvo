@@ -43,6 +43,7 @@ from six.moves import zip
 import tensorflow as tf
 
 from lingvo import base_runner
+from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.core.protobuf import config_pb2
 from lingvo import base_trial
 from lingvo import model_registry
@@ -589,6 +590,7 @@ class TrainerTpu(base_runner.BaseRunner):
       with self._cluster, tf.device(self._cluster.job_spec.name):
         self._eval_metrics = metrics.TpuEvalMetrics()
 
+        @tpu_function.on_device_training_loop
         def TpuTrainStep(*args):
           """Train a shard of a batch on a single TPU core.
 
