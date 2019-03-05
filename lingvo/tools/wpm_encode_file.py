@@ -18,10 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from six import text_type
-
 import numpy as np
-
+from six import text_type
 import tensorflow as tf
 
 from lingvo.core import wpm_encoder
