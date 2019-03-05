@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""A recurrent model which enables pipelinng model parallelism.
+"""A recurrent model which enables pipelining model parallelism.
 
 Reference:
 'GPipe: Efficient Training of Giant Neural Networks using Pipeline Parallelism'
