@@ -2456,8 +2456,6 @@ class GmmMonotonicAttention(BaseAttentionLayer):
       self.CreateChild('GMM', gmm_params)
 
       # TODO(ngyuzh): change variance to scale to make it simpler.
-      # noinline and compiled cannot be set at the same time
-      @function.Defun(*[p.dtype] * 4, noinline=not py_utils.use_tpu())
       def EvalGmmPdfs(encoder_positions, priors, means, variances):
         """Evaluate the location GMMs on all encoder positions."""
         # encoder_positions: [batch, 1, timesteps, 1]
