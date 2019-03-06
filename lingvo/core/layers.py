@@ -3343,3 +3343,78 @@ class FetchLayer(base_layer.BaseLayer):
       self._activations[i] = FetchFwd(v)
 
     return tuple(self._activations) if num > 1 else self._activations[0]
+
+
+class GluLayer(base_layer.BaseLayer):
+  """Gated Linear Unit.
+
+  See https://arxiv.org/abs/1612.08083 for more details.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(GluLayer, cls).Params()
+    p.Define('input_dim', 0, 'Dimension of the layer input.')
+    p.Define('output_dim', 0, 'Dimension of the layer output.')
+    p.Define('ln_tpl', LayerNorm.Params(), 'Layer norm default params.')
+    p.Define('dense_tpl', FCLayer.Params().Set(), 'Fully connected layer.')
+    p.Define(
+        'activation', 'RELU',
+        'Non-linearity applied after the dense layer in the value branch.')
+    p.Define('dropout_tpl', DropoutLayer.Params(), 'Dropout applied to output.')
+    p.Define('apply_residual', True, 'Whether or not to add inputs to outputs.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(GluLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.input_dim
+
+    if p.output_dim:
+      output_dim = p.output_dim
+    else:
+      output_dim = p.input_dim
+
+    if p.apply_residual:
+      assert output_dim == p.input_dim
+
+    with tf.variable_scope(p.name):
+      # Initialize value feed-forward layer.
+      params = p.dense_tpl.Copy()
+      params.name = 'value_layer'
+      params.input_dim = p.input_dim
+      params.activation = p.activation
+      params.output_dim = output_dim
+      self.CreateChild('value_layer', params)
+
+      # Initialize gate feed-forward layer.
+      params = p.dense_tpl.Copy()
+      params.name = 'gate_layer'
+      params.input_dim = p.input_dim
+      params.activation = 'SIGMOID'
+      params.output_dim = output_dim
+      self.CreateChild('gate_layer', params)
+
+      # Initialize layer norm.
+      params = p.ln_tpl.Copy()
+      params.name = 'layer_norm'
+      params.input_dim = p.input_dim
+      self.CreateChild('layer_norm', params)
+
+      # Initialize dropout.
+      dropout_tpl = p.dropout_tpl.Copy()
+      self.CreateChild('dropout', dropout_tpl)
+
+  def FProp(self, theta, inputs, paddings):
+    inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+    values = self.value_layer.FProp(theta.value_layer, inputs_normalized,
+                                    tf.expand_dims(paddings, -1))
+    gates = self.gate_layer.FProp(theta.gate_layer, inputs_normalized,
+                                  tf.expand_dims(paddings, -1))
+    glu_output = values * gates
+    glu_output = self.dropout.FProp(theta.dropout, glu_output)
+    if self.params.apply_residual:
+      return inputs + glu_output
+    return glu_output
