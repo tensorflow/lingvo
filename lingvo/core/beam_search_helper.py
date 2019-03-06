@@ -91,7 +91,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
           log_probs: The initial log probs for each of the tokens in
               the target vocab, of shape [tgt_batch * num_hyps_per_beam, 
               vocab_size].    
-          s: The initial attention probs, of shape [
+          atten_probs: The initial attention probs, of shape [
               tgt_batch * num_hyps_per_beam, src_len].
           states: a `.NestedMap` of tensors representing states that the client
               would like to keep track of for each hyp.
