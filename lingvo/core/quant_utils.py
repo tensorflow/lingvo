@@ -169,12 +169,12 @@ class QuantizableLayer(base_layer.BaseLayer):
     return qd.QuantizeNaturalRange(t, 0.0, softmax_max) if qd else t
 
   def QRRelu(self, t, domain='relu'):
-    """Quantizes the output of a softmax (0, 1.0)."""
+    """Quantizes the output of a relu (0, 1.0)."""
     qd = self.GetQDomain(domain)
     return qd.QuantizeNaturalRange(t, 0.0, 1.0) if qd else t
 
   def QRRelu6(self, t, domain='relu6'):
-    """Quantizes the output of a softmax (0, 1.0)."""
+    """Quantizes the output of a relu6 (0, 6.0)."""
     qd = self.GetQDomain(domain)
     return qd.QuantizeNaturalRange(t, 0.0, 6.0) if qd else t
 
