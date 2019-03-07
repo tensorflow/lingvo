@@ -49,11 +49,11 @@ from six.moves import range
 from six.moves import zip
 import tensorflow as tf
 
-from lingvo.core import sendrecv
 from tensorflow.python.framework import function
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
 from lingvo.core import py_utils
+from lingvo.core import sendrecv
 
 # pylint: disable=unbalanced-tuple-unpacking
 _ACCUMULATORS_ATTR_KEY = 'accumulators'

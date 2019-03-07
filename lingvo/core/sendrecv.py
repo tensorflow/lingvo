@@ -87,6 +87,46 @@ def _Send(tensor, tensor_name, send_device, recv_device, name=None):
 _ops.RegisterShape("_Send")(None)
 
 
+def _XlaSend(tensor, tensor_name, name=None):
+  r"""Sends the named tensor from send_device to recv_device.
+
+  Args:
+    tensor: A `Tensor`. The tensor to send.
+    tensor_name: A `string`. The name of the tensor to send.
+    name: A name for the operation (optional).
+
+  Returns:
+    The created Operation.
+  """
+  result = _op_def_lib.apply_op(
+      "XlaSend",
+      tensor=tensor,
+      tensor_name=tensor_name,
+      name=name if name else "XlaSend")
+  return result
+
+
+def _XlaRecv(dtype, tensor_name, shape, name=None):
+  r"""Sends the named tensor from send_device to recv_device.
+
+  Args:
+    dtype: A `tf.DType`.
+    tensor_name: A `string`. The name of the tensor to receive.
+    shape: A `tf.TensorShape` or list of `ints`. The shape of the input tensor.
+    name: A name for the operation (optional).
+
+  Returns:
+    The created Operation.
+  """
+  result = _op_def_lib.apply_op(
+      "XlaRecv",
+      dtype=dtype,
+      shape=shape,
+      tensor_name=tensor_name,
+      name=name if name else "XlaRecv")
+  return result
+
+
 def _InitOpDefLibrary():
   op_list = _op_def_pb2.OpList()
   _text_format.Merge(_InitOpDefLibrary.op_list_ascii, op_list)
@@ -167,13 +207,13 @@ op {
   is_stateful: true
 }
 op {
-  name: "_XLARecv"
+  name: "XlaRecv"
   output_arg {
     name: "tensor"
-    type_attr: "T"
+    type_attr: "dtype"
   }
   attr {
-    name: "T"
+    name: "dtype"
     type: "type"
   }
   attr {
@@ -187,7 +227,7 @@ op {
   is_stateful: true
 }
 op {
-  name: "_XLASend"
+  name: "XlaSend"
   input_arg {
     name: "tensor"
     type_attr: "T"
@@ -254,9 +294,6 @@ class Channel(object):
           "TPU send/recv must be cross-core: %s and %s" %
           (send_device, recv_device))
 
-  def TpuSend(self, tensor):
-    raise NotImplementedError("TPU send op not implemented.")
-
   def Send(self, tensor):
     """Sends a tensor through the channel."""
     assert tensor.dtype == self._dtype
@@ -267,10 +304,8 @@ class Channel(object):
       return _Send(tensor, self._name, self._send_device, self._recv_device)
     else:
       with _ops.device(self._send_device):
-        return self.TpuSend(tensor)
-
-  def TpuRecv(self):
-    raise NotImplementedError("TPU recv op not implemented.")
+        return _XlaSend(
+            tensor, tensor_name=self._name, name="Send_" + self._name)
 
   def Recv(self):
     """Receives a tensor from the channel."""
@@ -279,4 +314,8 @@ class Channel(object):
                    self._send_device, self._recv_device)
     else:
       with _ops.device(self._recv_device):
-        return self.TpuRecv()
+        return _XlaRecv(
+            self._dtype,
+            tensor_name=self._name,
+            shape=self._shape,
+            name="Recv_" + self._name)
