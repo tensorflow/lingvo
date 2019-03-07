@@ -118,7 +118,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
               the 'atten_probs' and 'log_probs' tensors at the minimal.
               Optionally it may contain 'is_last_chunk' if it is decoding a
               neural transducer model.
-              .atten_probs: The updated attention probs, of shape 
+              .atten_probs: The updated attention probs, of shape
                   [tgt_batch, src_len].
               .log_probs: Log prob for each of the tokens in the target vocab.
                   This is of shape [tgt_batch, vocab_size].
