@@ -2152,7 +2152,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
       class_ids = py_utils.HasShape(class_ids, [-1, 1])
       per_example_xent, per_example_argmax = self._XentLossByChunk(
           theta, inputs, class_ids)
-    elif p.num_sampled is 0 or p.is_eval:
+    elif p.num_sampled == 0 or p.is_eval:
       assert class_ids is not None
       assert logits is not None
       tf.logging.vlog(
