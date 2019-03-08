@@ -625,14 +625,6 @@ class BaseTask(base_layer.BaseLayer):
 
     var_update_op = self.optimizer.Apply(lr, self._var_grads)
 
-    true_global_step = py_utils.GetOrCreateGlobalStep()
-    with tf.colocate_with(true_global_step):
-      increment_global_steps = tf.assign_add(true_global_step, 1)
-    if self._global_step != true_global_step:
-      with tf.colocate_with(self._global_step):
-        increment_global_steps = tf.group(increment_global_steps,
-                                          tf.assign_add(self._global_step, 1))
-
     relevant_bn_updates, _ = py_utils.FindRelevantBatchNormUpdates(
         self.loss, tf.get_collection(py_utils.BATCH_NORM_UPDATES))
     batch_norm_updates = tf.group(*relevant_bn_updates)
@@ -651,14 +643,21 @@ class BaseTask(base_layer.BaseLayer):
     # TODO(rpang): try to structure _train_op as:
     #   tf.cond(skip_step, <only update skip stats>, <all updates>)
     # so that we skip all other updates when a step is skipped.
-    self._train_op = tf.group(
-        var_update_op,
-        batch_norm_updates,
-        stats_updates,
-        post_training_step_updates,
-        increment_global_steps,
-        mask_update_op,
-        name='train')
+    train_ops = [
+        var_update_op, batch_norm_updates, stats_updates,
+        post_training_step_updates, mask_update_op
+    ]
+    with tf.control_dependencies(train_ops):
+      true_global_step = py_utils.GetOrCreateGlobalStep()
+      with tf.colocate_with(true_global_step):
+        increment_global_steps = tf.assign_add(true_global_step, 1)
+      if self._global_step != true_global_step:
+        with tf.colocate_with(self._global_step):
+          increment_global_steps = tf.group(increment_global_steps,
+                                            tf.assign_add(self._global_step, 1))
+
+    train_ops.append(increment_global_steps)
+    self._train_op = tf.group(*train_ops, name='train')
 
   def ApplyExponentialMovingAverage(self, ema):
     """Wraps `self.train_op` with an op updating exponential moving average."""
