@@ -17,6 +17,15 @@
 Reference:
 'GPipe: Efficient Training of Giant Neural Networks using Pipeline Parallelism'
 https://arxiv.org/abs/1811.06965
+
+Example implementation of Transformer Language model:
+tasks/lm/layers.GPipeTransformerLm
+
+Sample params for the one billion words task:
+tasks/lm/params/one_billion_wds.OneBWdsGPipeTransformer.
+
+More examples in machine translation, image classifications and others
+will be included.
 """
 
 from __future__ import absolute_import

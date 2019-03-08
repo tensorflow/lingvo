@@ -26,6 +26,7 @@ import tensorflow as tf
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
+from lingvo.core import layers_with_gpipe
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
@@ -187,6 +188,50 @@ class NullLm(BaseLanguageModel):
 def _RnnOutputSize(rnns):
   cell = rnns.cell_tpl[-1]
   return cell.num_output_nodes
+
+
+def ComputeXentOutput(softmax_layer,
+                      softmax_theta,
+                      activations,
+                      labels,
+                      num_samples=1):
+  """Compute Softmax CrossEntropy output."""
+  seqlen, batch, _ = tf.unstack(tf.shape(activations), num=3)
+  if labels is None:
+    # We can only compute the logits here.
+    logits = softmax_layer.Logits(
+        theta=softmax_theta,
+        inputs=tf.reshape(activations, [seqlen * batch * num_samples, -1]))
+    xent_output = py_utils.NestedMap(
+        logits=tf.reshape(logits, [seqlen, batch, -1]))
+  elif 'class_ids' in labels:
+    # labels.class_ids: [len, batch]
+    if num_samples > 1:
+      class_ids = tf.tile(labels.class_ids, [1, num_samples])
+      class_weights = tf.tile(labels.class_weights, [1, num_samples])
+    else:
+      class_ids = labels.class_ids
+      class_weights = labels.class_weights
+    xent_output = softmax_layer.FProp(
+        theta=softmax_theta,
+        inputs=activations,
+        class_weights=class_weights,
+        class_ids=class_ids)
+  else:
+    assert 'class_probabilities' in labels
+    if num_samples > 1:
+      class_probabilities = tf.tile(labels.class_probabilities,
+                                    [1, num_samples])
+      class_weights = tf.tile(labels.class_weights, [1, num_samples])
+    else:
+      class_probabilities = labels.class_probabilities
+      class_weights = labels.class_weights
+    xent_output = softmax_layer.FProp(
+        theta=softmax_theta,
+        inputs=activations,
+        class_weights=class_weights,
+        class_probabilities=class_probabilities)
+  return xent_output
 
 
 class RnnLmNoEmbedding(BaseLanguageModel):
@@ -1080,4 +1125,258 @@ class TransformerLm(TransformerLmNoEmbedding):
     paddings = py_utils.HasShape(paddings, tf.shape(ids))
     activation = self.emb.EmbLookup(theta.emb, ids)
     return super(TransformerLm, self).FProp(
+        theta, activation, paddings, labels=labels)
+
+
+class GPipeTransformerLmNoEmbedding(BaseLanguageModel):
+  """GPipe Transformer language model."""
+
+  @classmethod
+  def Params(cls):
+    p = super(GPipeTransformerLmNoEmbedding, cls).Params()
+    p.Define('position_emb', layers.PositionalEmbeddingLayer.Params(),
+             'Position embedding layer params.')
+    p.Define(
+        'model_dim', 512, 'Model dimension that applies to embedding '
+        'layers and all Transformer layers.')
+    p.Define('stack', layers_with_gpipe.GPipeTransformerStack.Params(),
+             'GPipeTransformerStack Layer params.')
+    p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
+    p.Define(
+        'residual_dropout_prob', 0.0, 'Dropout prob to the output of '
+        'each sub-layer before it is added to the sub-layer input.')
+    p.Define(
+        'atten_dropout_prob', 0.0, 'Dropout prob to the attention '
+        'weights in each Transformer attention sub-layer.')
+    p.Define(
+        'relu_dropout_prob', 0.0, 'Dropout prob to the inner layer '
+        'output (ReLU activation) in each Transformer feed-forward '
+        'sub-layer.')
+    p.Define('label_smoother', None, 'Label smoothing class.')
+    p.Define('softmax', layers.SimpleFullSoftmax.Params(),
+             'The softmax layer params.')
+
+    # Default config for the transformer layers.
+    trans_tpl = p.stack.encoder_tpl
+    trans_tpl.has_aux_atten = False
+    trans_tpl.mask_self_atten = True
+    trans_tpl.tr_atten_tpl.is_masked = True
+    trans_tpl.tr_atten_tpl.num_attention_heads = 8
+    trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_pre_proj = True
+    trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_post_proj = True
+    trans_tpl.tr_fflayer_tpl.hidden_dim = 2048
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(GPipeTransformerLmNoEmbedding, self).__init__(params)
+    p = self.params
+    p.position_emb.embedding_dim = p.model_dim
+    p.stack.name = p.name
+    p.stack.model_dim = p.model_dim
+    p.softmax.input_dim = p.model_dim
+    p.softmax.num_classes = p.vocab_size
+    trans_tpl = p.stack.encoder_tpl
+    trans_tpl.tr_atten_tpl.residual_dropout_prob = p.residual_dropout_prob
+    trans_tpl.tr_atten_tpl.atten_dropout_prob = p.atten_dropout_prob
+    trans_tpl.tr_fflayer_tpl.residual_dropout_prob = p.residual_dropout_prob
+    trans_tpl.tr_fflayer_tpl.relu_dropout_prob = p.relu_dropout_prob
+
+    with tf.variable_scope(p.name):
+      self.CreateChild('position_emb', p.position_emb)
+
+      dropout_tpl = layers.DropoutLayer.Params().Set(
+          keep_prob=(1.0 - p.input_dropout_prob))
+      self.CreateChild('input_dropout', dropout_tpl)
+      self.CreateChild('stack', p.stack)
+      self.CreateChild('softmax', p.softmax)
+      if p.label_smoother is not None:
+        self.CreateChild('smoother', p.label_smoother)
+
+  def FProp(self, theta, inputs, paddings, state0=None, labels=None):
+    """Computes xent loss given the language model input activations.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: Input activation. A tensor of shape [time, batch, model_dim].
+      paddings: A 0/1 tensor of shape [time, batch].
+      state0: Not used for Transformer.
+      labels: If not None, a `.NestedMap` containing the following fields: -
+        class_weights, a tensor with shape [time, batch] containing the weights
+        for each target word. - class_ids, a tensor with shape [time, batch] of
+        int32 dtype containing the target class labels. - class_probabilities, a
+        tensor with shape [time, batch, vocab_size] of float values indicating
+        class-membership probabilities.
+
+    Returns:
+      If `labels` is not None, returns (xent_output, None), where
+      `xent_output` is a `.NestedMap` as defined by `SoftmaxLayer`'s return
+      value. Otherwise, `xent_output` only contains the softmax logits.
+    """
+    p = self.params
+    inputs = py_utils.HasRank(inputs, 3)
+    tf.logging.info('input shape = {}'.format(inputs.shape))
+    seqlen, batch, _ = tf.unstack(tf.shape(inputs), num=3)
+    inputs = py_utils.HasShape(inputs, [seqlen, batch, p.model_dim])
+    paddings = py_utils.HasShape(paddings, [seqlen, batch])
+
+    # [time, 1, model_dim]
+    posit_embs = tf.expand_dims(
+        self.position_emb.FProp(theta.position_emb, seqlen), 1)
+    # [time, batch, model_dim]
+    input_embs = inputs + posit_embs
+    input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)
+    tf.logging.info('input_embs shape = {}'.format(input_embs.shape))
+
+    layer_out = self.stack.FProp(theta.stack, input_embs, paddings)
+    tf.logging.info('layer_out shape = {}'.format(layer_out.shape))
+
+    if not (p.label_smoother is None or p.is_eval):
+      # [time, batch, num_classes]
+      labels.class_probabilities = self.smoother.FProp(
+          theta.smoother, paddings, labels.class_ids, target_ids=None)
+      labels.pop('class_ids', None)
+    xent_output = ComputeXentOutput(self.softmax, theta.softmax, layer_out,
+                                    labels)
+    xent_output.last_hidden = layer_out
+    return xent_output, None
+
+  def zero_state(self, batch_size):
+    return py_utils.NestedMap()
+
+
+class GPipeTransformerLm(GPipeTransformerLmNoEmbedding):
+  """GPipe Transformer based language model layer."""
+
+  @classmethod
+  def Params(cls):
+    p = super(GPipeTransformerLm, cls).Params()
+    p.Define('emb', layers.SimpleEmbeddingLayer.Params(),
+             'The embedding layer params.')
+    return p
+
+  @classmethod
+  def CommonParams(cls,
+                   vocab_size,
+                   model_dim,
+                   hidden_dim=1024,
+                   num_heads=8,
+                   num_layers=6,
+                   splits=1,
+                   num_micro_batches=1,
+                   num_shards=16,
+                   input_dropout_prob=0.0,
+                   residual_dropout_prob=0.1,
+                   atten_dropout_prob=0.0,
+                   relu_dropout_prob=0.0,
+                   softmax_max_alloc=None):
+    """Common setup for Transformer language models.
+
+    Args:
+      vocab_size: vocab size.
+      model_dim: model dimension.
+      hidden_dim: hidden dimension of feed-forward inner layer.
+      num_heads: number of attention heads.
+      num_layers: number of layers in the transformer LM.
+      splits: list or number of partitions for GPipe.
+      num_micro_batches: number of micro batches for GPipe.
+      num_shards: num_shards for softmax. Assert vocab_size % num_shards == 0
+      input_dropout_prob: dropout prob to the sums of the token embeddings and
+        the position embeddings.
+      residual_dropout_prob: dropout prob to the output of each sub-layer before
+        it is added to the sub-layer input.
+      atten_dropout_prob: dropout prob to the attention weights in each
+        Transformer attention sub-layer.
+      relu_dropout_prob: dropout prob to the inner layer output (ReLU
+        activation) in each Transformer feed-forward sub-layer.
+      softmax_max_alloc: If set to a positive integer the soft-max computation
+        is chunked into allocations of at most softmax_max_alloc; when left to
+        its default value of None no chunking is done.
+
+    Returns:
+      A Params object containing the parameters that set up a Transformer LM.
+    """
+    p = cls.Params()
+    p.name = 'transformerlm'
+
+    p.model_dim = model_dim
+    p.vocab_size = vocab_size
+    p.input_dropout_prob = input_dropout_prob
+    p.residual_dropout_prob = residual_dropout_prob
+    p.atten_dropout_prob = atten_dropout_prob
+    p.relu_dropout_prob = relu_dropout_prob
+
+    emb_params_init = py_utils.WeightInit.Gaussian(1.0 / math.sqrt(p.model_dim))
+    p.emb.Set(
+        use_matmul=False,
+        use_3d_weight_tensor=False,
+        vocab_size=vocab_size,
+        embedding_dim=p.model_dim,
+        params_init=emb_params_init)
+
+    p.position_emb.Set(embedding_dim=p.model_dim, trainable_scaling=False)
+
+    p.stack.splits = splits
+    p.stack.num_micro_batches = num_micro_batches
+    p.stack.num_encoder_layers = num_layers
+    trans_tpl = p.stack.encoder_tpl
+
+    trans_tpl.is_decoder = False
+    trans_tpl.has_aux_atten = False
+    trans_tpl.mask_self_atten = True
+    trans_tpl.tr_atten_tpl.is_masked = True
+    trans_tpl.tr_atten_tpl.num_attention_heads = num_heads
+    trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_pre_proj = True
+    trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_post_proj = True
+    trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
+    p.softmax.Set(num_classes=vocab_size, num_shards=num_shards)
+
+    if softmax_max_alloc:
+      # If the vocab is very large, computes the softmax chunk-by-chunk.
+      p.softmax.chunk_size = max(1, int(softmax_max_alloc / vocab_size))
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(GPipeTransformerLm, self).__init__(params)
+    p = self.params
+    p.emb.embedding_dim = p.model_dim
+
+    assert p.emb.vocab_size == p.vocab_size, ('{} vs. {}'.format(
+        p.emb.vocab_size, p.vocab_size))
+    assert p.emb.embedding_dim == p.position_emb.embedding_dim, (
+        '{} vs. {}'.format(p.emb.embedding_dim, p.position_emb.embedding_dim))
+    assert p.emb.embedding_dim == p.model_dim, ('{} vs. {}'.format(
+        p.emb.embedding_dim, p.model_dim))
+
+    with tf.variable_scope(p.name):
+      self.CreateChild('emb', p.emb)
+
+  def FProp(self, theta, inputs, paddings, state0=None, labels=None):
+    """Computes xent loss given the language model input activations.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: Input ids. An int32 tensor of shape [time, batch].
+      paddings: A 0/1 tensor of shape [time, batch].
+      state0: Not used for Transformer.
+      labels: If not None, a `.NestedMap` containing the following fields:  -
+        class_weights, a tensor with shape [time, batch] containing the weights
+        for each target word. - class_ids, a tensor with shape [time, batch] of
+        int32 dtype containing the target class labels. - class_probabilities, a
+        tensor with shape [time, batch, vocab_size] of float values indicating
+        class-membership probabilities.
+
+    Returns:
+      If `labels` is not None, returns (xent_output, state1), where
+      `xent_output` is a `.NestedMap` as defined by `SoftmaxLayer`'s return
+      value and `state1` is the next recurrent state. Otherwise,
+      `xent_output` only contains the softmax logits.
+    """
+    ids = py_utils.HasRank(inputs, 2)
+    paddings = py_utils.HasShape(paddings, tf.shape(ids))
+    activation = self.emb.EmbLookup(theta.emb, ids)
+    return super(GPipeTransformerLm, self).FProp(
         theta, activation, paddings, labels=labels)

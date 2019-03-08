@@ -33,6 +33,7 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
   def Params(cls):
     """Defaults params for `LmInput`."""
     p = super(LmInput, cls).Params()
+    p.Define('fixed_input_shape', False, 'Fixed input shape or not.')
     p.tokenizer = tokenizers.AsciiTokenizer.Params()
     return p
 
@@ -40,6 +41,7 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
     params.pad_to_max_seq_length = True
     super(LmInput, self).__init__(params)
     p = self.params
+    p.fixed_input_shape = p.fixed_input_shape or py_utils.use_tpu()
 
     text, self._word_count = self._BuildDataSource()
     self._ids, self._labels, self._paddings = self.StringsToIds(text)
@@ -47,15 +49,17 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
     tf.summary.histogram('examples/sequence_length',
                          tf.reduce_sum(1.0 - self._paddings, axis=1))
     self._weights = 1.0 - self._paddings
-
-    if py_utils.use_tpu():
-      # When flush_every_n is on, at end of each epoch, our input
-      # generator can generate a batch smaller than
-      # bucket_batch_limit.
-      assert not p.flush_every_n, 'flush_every_n is not allowed on TPU.'
-      assert min(self.scaled_bucket_batch_limit) == max(
-          self.scaled_bucket_batch_limit)
-      bs = min(self.scaled_bucket_batch_limit)
+    if p.fixed_input_shape:
+      if py_utils.use_tpu():
+        # When flush_every_n is on, at end of each epoch, our input
+        # generator can generate a batch smaller than
+        # bucket_batch_limit
+        assert not p.flush_every_n, 'flush_every_n is not allowed on TPU.'
+        assert min(self.scaled_bucket_batch_limit) == max(
+            self.scaled_bucket_batch_limit)
+        bs = min(self.scaled_bucket_batch_limit)
+      else:
+        bs = max(self.scaled_bucket_batch_limit)
 
       def SetShape(x):
         x.set_shape([bs, p.target_max_length])

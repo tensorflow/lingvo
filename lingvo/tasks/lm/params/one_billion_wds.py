@@ -173,3 +173,58 @@ class WordLevelOneBwdsSimpleSampledSoftmaxTiny(
   NUM_SAMPLED = 8
   NUM_SOFTMAX_SHARDS = 8
   RNN_STATE_DIM = 32
+
+
+# Word-level log-pplx on eval_test: 0.02@13.4k
+# Try the following params and deploy 8 accelerators to train a bigger model
+# LAYERS = 94  #4.9B params
+# MAX_SEQLEN = 1024
+# SPLITS = [10, 22, 34, 46, 58, 70, 82, 94]  # On 8 accelerator, 16G mem each.
+# BATCH_SIZE = 32
+# NUM_MICRO_BATCHES = 32
+@model_registry.RegisterSingleTaskModel
+class OneBWdsGPipeTransformer(WordLevelOneBwdsBase):
+  """LM using gpipe transformer."""
+  VOCAB_SIZE = 32000
+  EMBEDDING_DIM = 2048
+  BATCH_SIZE = 8
+  MAX_SEQLEN = 100
+  LAYERS = 6
+  # GPIPE related params.
+  SPLITS = 1
+  NUM_MICRO_BATCHES = 1
+
+  @classmethod
+  def Train(cls):
+    p = super(OneBWdsGPipeTransformer, cls).Train()
+    p.bucket_upper_bound = [cls.MAX_SEQLEN]
+    p.bucket_batch_limit = [cls.BATCH_SIZE]
+    p.fixed_input_shape = True
+    return p
+
+  @classmethod
+  def Task(cls):
+    """Language model on 1bw dataset using gpipe transformer."""
+    p = model.FixedShapeInputLanguageModel.Params()
+    p.eval.samples_per_summary = 0
+    p.name = '1bwds_wpm_level_lm'
+    p.lm = lm_layers.GPipeTransformerLm.CommonParams(
+        model_dim=cls.EMBEDDING_DIM,
+        vocab_size=cls.VOCAB_SIZE,
+        hidden_dim=cls.EMBEDDING_DIM * 4,
+        num_layers=cls.LAYERS,
+        splits=cls.SPLITS,
+        num_micro_batches=cls.NUM_MICRO_BATCHES,
+        num_heads=16,
+        softmax_max_alloc=128 * (2**20),
+        atten_dropout_prob=0.1,
+        residual_dropout_prob=0.1)
+
+    p.train.Set(
+        learning_rate=0.5,
+        optimizer=optimizer.Adam.ParamsA(),
+        clip_gradient_norm_to_value=0.0,
+        grad_norm_to_clip_to_zero=0.0,
+        lr_schedule=lr_schedule.TransformerLearningRateSchedule.Params().Set(
+            warmup_steps=40000, worker_replicas=1, model_dim=cls.EMBEDDING_DIM))
+    return p
