@@ -87,11 +87,11 @@ class BeamSearchHelper(base_layer.BaseLayer):
           num_hyps_per_beam: An int, number hyps to keep for source sentence.
         Returns:
           initial_results: a `.NestedMap` of initial results. It should contain
-              the following tensors at the minimum.
-                  log_probs: The initial log probs for each of the tokens in
-                      the target vocab, of shape [tgt_batch, vocab_size].
-                  atten_probs: The initial attention probs, of shape [tgt_batch,
-                      src_len].
+              the following tensors at minimum:
+              .log_probs: The initial log probs for each of the tokens in
+                  the target vocab, of shape [tgt_batch, vocab_size].
+              .atten_probs: The initial attention probs, of shape [
+                  tgt_batch, src_len].
           states: a `.NestedMap` of tensors representing states that the client
               would like to keep track of for each hyp.
 
@@ -117,12 +117,12 @@ class BeamSearchHelper(base_layer.BaseLayer):
               the 'atten_probs' and 'log_probs' tensors at the minimal.
               Optionally it may contain 'is_last_chunk' if it is decoding a
               neural transducer model.
-          atten_probs: The updated attention probs, of shape [tgt_batch,
-              src_len].
-          log_probs: Log prob for each of the tokens in the target vocab. This
-              is of shape [tgt_batch, vocab_size].
-          is_last_chunk: Whether or not each of the hyp is at the end of a
-              chunk. If non-empty, it is of shape [tgt_batch, 1]
+              .atten_probs: The updated attention probs, of shape
+                  [tgt_batch, src_len].
+              .log_probs: Log prob for each of the tokens in the target vocab.
+                  This is of shape [tgt_batch, vocab_size].
+              .is_last_chunk: Whether or not each of the hyp is at the end of a
+                  chunk. If non-empty, it is of shape [tgt_batch, 1]
           out_states: A `.NestedMap`. The updated states. This 'out_states'
               should be of the exact same structure as 'in_states'
 
