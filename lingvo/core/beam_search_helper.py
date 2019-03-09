@@ -89,7 +89,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
           initial_results: a `.NestedMap` of initial results. It should contain
               the following tensors at the minimum.
               .log_probs: The initial log probs for each of the tokens in
-                  the target vocab, of shape [num_hyps_per_beam * src_batch, 
+                  the target vocab, of shape [num_hyps_per_beam * src_batch,
                   vocab_size]. src_batch "b" and hyp_per_beam "h" is 
                   represented at index (h * src_batch + b).
               .atten_probs: The initial attention probs, of shape [
@@ -129,7 +129,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
                   src_batch "b" and hyp_per_beam "h" is represented at index 
                   (h * src_batch + b).
               .is_last_chunk: Whether or not each of the hyp is at the end of a
-                  chunk. If non-empty, it is of shape [num_hyps_per_beam * src_batch, 
+                  chunk. If non-empty, it is of shape [num_hyps_per_beam * src_batch,
                   1]
           out_states: A `.NestedMap`. The updated states. This 'out_states'
               should be of the exact same structure as 'in_states'
