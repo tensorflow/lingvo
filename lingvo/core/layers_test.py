@@ -2199,7 +2199,7 @@ class SoftmaxLayerTest(tf.test.TestCase):
         # Turn on sampled soft-max; the asserts need to hold for it to be used.
         params.num_sampled = num_samples
         assert class_probabilities is None
-        assert chunk_size is 0
+        assert chunk_size == 0
         assert params.is_eval is not True
 
       params.vn.global_vn = False
