@@ -583,6 +583,67 @@ class LayersWithAttentionTest(tf.test.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  def testEvolvedTransformerEncoderLayerConstruction(self):
+    p = layers_with_attention.EvolvedTransformerEncoderLayer.Params()
+    p.name = 'evolved_transformer_encoder'
+    p.source_dim = 4
+    p.transformer_tpl.tr_fflayer_tpl.hidden_dim = 7
+    p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+    _ = layers_with_attention.EvolvedTransformerEncoderLayer(p)
+
+  def testEvolvedTransformerEncoderLayerFProp(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.EvolvedTransformerEncoderLayer.Params()
+      p.name = 'evolved_transformer_encoder'
+      p.source_dim = depth
+      p.transformer_tpl.tr_fflayer_tpl.hidden_dim = 7
+      p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+      transformer = layers_with_attention.EvolvedTransformerEncoderLayer(p)
+
+      (source_vecs, source_padding, aux_vecs,
+       aux_paddings) = self._testTransformerAttentionLayerInputs(depth=depth)
+
+      h, probs = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings)
+
+      tf.global_variables_initializer().run()
+      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      tf.logging.info(np.array_repr(actual_layer_output))
+      tf.logging.info(np.array_repr(actual_prob_output))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_layer_output = [
+          [[ 0.32970679,  0.07163108,  2.27543545, -1.23836803],
+           [-1.1963284 , -1.68216836,  0.8141135 ,  1.22242999]],
+          [[ 0.33281779,  0.18915993,  2.21856713, -1.24962616],
+           [-0.39842927,  0.61820436,  0.13190651, -0.27921003]],
+          [[ 2.01548862,  0.57699746, -0.19467634, -1.54167116],
+           [-1.4074955 ,  0.02095264, -0.84756052,  0.59144902]],
+          [[-0.70480233, -0.51531404,  2.22327709, -0.4005008 ],
+           [ 0.78482121, -1.17252493, -1.61011922,  0.16484746]],
+          [[ 0.13012397,  0.5342291 ,  1.05864811, -0.61784816],
+           [-1.50333738, -0.31062198, -0.83974272,  1.92515945]]]
+      expected_prob_output = [
+          [[ 0.25908554,  0.25745448,  0.        ,  0.        ,  0.48345995],
+           [ 0.        ,  0.24002701,  0.24501088,  0.51496214,  0.        ]],
+          [[ 0.26010522,  0.2584973 ,  0.        ,  0.        ,  0.48139751],
+           [ 0.        ,  0.25460896,  0.42372373,  0.32166731,  0.        ]],
+          [[ 0.3834559 ,  0.3857061 ,  0.        ,  0.        ,  0.23083803],
+           [ 0.        ,  0.18320519,  0.39236432,  0.42443043,  0.        ]],
+          [[ 0.30031767,  0.29874057,  0.        ,  0.        ,  0.40094173],
+           [ 0.        ,  0.45309052,  0.30999154,  0.23691788,  0.        ]],
+          [[ 0.18247566,  0.18200508,  0.        ,  0.        ,  0.63551933],
+           [ 0.        ,  0.16233803,  0.33563358,  0.50202835,  0.        ]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_layer_output, actual_layer_output)
+      self.assertAllClose(expected_prob_output, actual_prob_output)
+
   def testMergerLayerMean(self):
     with self.session(use_gpu=True) as sess:
       np.random.seed(505837249)

@@ -775,6 +775,78 @@ class EvolvedTransformerDecoderBranchedConvsLayer(base_layer.BaseLayer):
     return hidden_state + inputs
 
 
+class EvolvedTransformerEncoderLayer(base_layer.BaseLayer):
+  """Evolved Transformer encoder layer.
+
+  An Evolved Transformer encoder layer as described in
+  https://arxiv.org/abs/1901.11117 .
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(EvolvedTransformerEncoderLayer, cls).Params()
+    p.Define('source_dim', 0, 'Dimension of the transformer block input.')
+    p.Define('glu_tpl', layers.GluLayer.Params(), 'Glu layer.')
+    p.Define('branched_convs_tpl',
+             EvolvedTransformerEncoderBranchedConvsLayer.Params(),
+             'Evolved Transformer branched convolutional layers.')
+    p.Define('transformer_tpl', TransformerLayer.Params(), 'Transformer layer.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(EvolvedTransformerEncoderLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.source_dim
+
+    with tf.variable_scope(p.name):
+
+      # Initialize Glu layer.
+      params = p.glu_tpl.Copy()
+      params.name = 'glu_layer'
+      params.input_dim = p.source_dim
+      self.CreateChild('glu_layer', params)
+
+      # Initialize branched convolutions layer.
+      params = p.branched_convs_tpl.Copy()
+      params.name = 'branched_convs_layer'
+      params.input_dim = p.source_dim
+      self.CreateChild('branched_convs_layer', params)
+
+      # Initialize branched convolutional layers.
+      params = p.transformer_tpl.Copy()
+      params.name = 'transformer_layer'
+      params.source_dim = p.source_dim
+      params.output_dim = p.source_dim
+      # Decoder functionality is not supported so disable auxiliary attention.
+      params.has_aux_atten = False
+      params.tr_aux_atten_tpl = None
+      params.mask_self_atten = False
+      params.is_decoder = False
+      self.CreateChild('transformer_layer', params)
+
+  def FProp(self,
+            theta,
+            source_vecs,
+            source_paddings,
+            aux_vecs=None,
+            aux_paddings=None,
+            source_segment_id=None,
+            aux_segment_id=None):
+    hidden_state = self.glu_layer.FProp(theta.glu_layer, source_vecs,
+                                        source_paddings)
+
+    hidden_state = self.branched_convs_layer.FProp(
+        theta.branched_convs_layer, hidden_state, source_paddings)
+
+    hidden_state, atten_prob = self.transformer_layer.FProp(
+        theta.transformer_layer, hidden_state, source_paddings, aux_vecs,
+        aux_paddings, source_segment_id, aux_segment_id)
+
+    return hidden_state, atten_prob
+
+
 class MergerLayer(base_layer.BaseLayer):
   """Merges a list of input tensors with various options into a single tensor.
 
