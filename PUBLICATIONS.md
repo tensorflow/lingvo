@@ -320,6 +320,20 @@ J.&nbsp;Guo, T.&nbsp;N. Sainath, and R.&nbsp;J. Weiss, &ldquo;A spelling correct
 
 </td>
 </tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="alon2019contextual">17</a>]
+</td>
+<td class="bibtexitem">
+U.&nbsp;Alon, G.&nbsp;Pundak, and T.&nbsp;N. Sainath, &ldquo;Contextual speech recognition with
+  difficult negative training examples,&rdquo; in <em>Proc. IEEE International
+  Conference on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/pdf/1810.12170.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
 </table>
 
 ## Language understanding
