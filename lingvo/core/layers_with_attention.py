@@ -127,13 +127,14 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     """Transformer attention, residual and normalization layer.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       query_vec: [target_time, target_batch, dim]
       source_paddings: [source_time, source_batch]
       source_vecs: [source_time, source_batch, dim].
       query_segment_id: [target_time, target_batch]
       source_segment_id: [source_time, source_batch]
+
     Returns:
       (output, atten_probs). output is of shape [target_time, target_batch,
       source_dim], atten_probs is of shape [target_time, target_batch,
@@ -198,12 +199,13 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     Transformer model.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       query_vec: [target_batch, dim]
       prefix_state: dict, containing tensors which are the results of previous
-          attentions, used for fast decoding.
+        attentions, used for fast decoding.
       t: a scalar, the current time step, 0-based.
+
     Returns:
       A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
       representing the output from the current state, and new_state is the new
@@ -268,10 +270,9 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p.Define('hidden_dim', 0, 'Dimension of the hidden layer.')
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define('activation', 'RELU', 'Non-linearity.')
-    p.Define(
-        'fflayer_tpl',
-        layers.FeedForwardNet.Params().Set(activation=['RELU', 'NONE']),
-        'Feed forward layer default params')
+    p.Define('fflayer_tpl',
+             layers.FeedForwardNet.Params().Set(activation=['RELU', 'NONE']),
+             'Feed forward layer default params')
     p.Define(
         'res_proj_tpl', layers.ProjectionLayer.Params(),
         'Residual projection default params, used when input_dim != '
@@ -337,10 +338,11 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     """Feed-forward, residual and layer-norm.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: [time, batch, dim].
       paddings: [time, batch]
+
     Returns:
       tensor of the same shape with inputs
     """
@@ -371,14 +373,12 @@ class TransformerLayer(base_layer.BaseLayer):
     p = super(TransformerLayer, cls).Params()
     p.Define('source_dim', 0, 'Dimension of the transformer block input.')
     p.Define('output_dim', 0, 'Dimension of the transformer block output.')
-    p.Define(
-        'tr_atten_tpl',
-        TransformerAttentionLayer.Params().Set(num_attention_heads=8),
-        'Transformer Attention Layer params.')
-    p.Define(
-        'tr_fflayer_tpl',
-        TransformerFeedForwardLayer.Params().Set(hidden_dim=2048),
-        'Transformer Feed-Forward Layer params.')
+    p.Define('tr_atten_tpl',
+             TransformerAttentionLayer.Params().Set(num_attention_heads=8),
+             'Transformer Attention Layer params.')
+    p.Define('tr_fflayer_tpl',
+             TransformerFeedForwardLayer.Params().Set(hidden_dim=2048),
+             'Transformer Feed-Forward Layer params.')
     p.Define(
         'has_aux_atten', False,
         'If set, introduces a second attention layer, which attends to'
@@ -459,14 +459,15 @@ class TransformerLayer(base_layer.BaseLayer):
     coming from the activations of layer below, in particular `source_vecs`.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       source_vecs: [source_time, source_batch, dim].
       source_paddings: [source_time, source_batch]
       aux_vecs: [aux_time, aux_batch, dim]
       aux_paddings: [aux_time, aux_batch]
       source_segment_id: [source_time, source_batch]
       aux_segment_id: [aux_time, aux_batch]
+
     Returns:
       The attention context vector, [source_time, source_batch, dim].
 
@@ -512,14 +513,15 @@ class TransformerLayer(base_layer.BaseLayer):
     models.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       source_vecs: [source_batch, dim].
       prefix_states: dict, containing tensors which are the results of previous
-          attentions, used for fast decoding.
+        attentions, used for fast decoding.
       aux_vecs: [aux_time, aux_batch, dim]
       aux_paddings: [aux_time, aux_batch]
       t: a scalar, the current time step, 0-based.
+
     Returns:
       The attention context vector, [target_batch, source_dim]
 
@@ -551,6 +553,226 @@ class TransformerLayer(base_layer.BaseLayer):
         tf.zeros([1, batch_size], dtype=py_utils.FPropDtype(p)))
     h = tf.squeeze(h, 0)
     return h, atten_prob, new_states
+
+
+class EvolvedTransformerEncoderBranchedConvsLayer(base_layer.BaseLayer):
+  """Evolved Transformer encoder branched convolutions layer.
+
+  This constructs the branched convolution portion of the Evolved Transformer
+  encoder described in https://arxiv.org/abs/1901.11117 .
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(EvolvedTransformerEncoderBranchedConvsLayer, cls).Params()
+    p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
+    p.Define('input_dim', 0, 'Dimension of the layer input.')
+    p.Define('activation', 'RELU',
+             'Activation applied after the left and right branches.')
+    p.Define('dropout_tpl', layers.DropoutLayer.Params(),
+             'Dropout applied to each layer output.')
+    p.Define('dense_tpl', layers.FCLayer.Params(),
+             'Fully connected "dense" layer.')
+    p.Define('conv_tpl', layers.Conv2DLayer.Params(),
+             'Standard convolution layer.')
+    p.Define('separable_conv_tpl', layers.SeparableConv2DLayer.Params(),
+             'Separable convolution layer.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(EvolvedTransformerEncoderBranchedConvsLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.input_dim
+
+    with tf.variable_scope(p.name):
+      # Initialize first layer norm.
+      params = p.ln_tpl.Copy()
+      params.name = 'first_layer_norm'
+      params.input_dim = p.input_dim
+      self.CreateChild('first_layer_norm', params)
+
+      # Initialize second layer norm.
+      params = p.ln_tpl.Copy()
+      params.name = 'second_layer_norm'
+      params.input_dim = p.input_dim * 4
+      self.CreateChild('second_layer_norm', params)
+
+      # Initialize dense layer.
+      params = p.dense_tpl.Copy()
+      params.name = 'dense_layer'
+      params.input_dim = p.input_dim
+      params.activation = p.activation
+      params.output_dim = p.input_dim * 4
+      self.CreateChild('dense_layer', params)
+
+      # Initialize standard conv.
+      params = p.conv_tpl.Copy()
+      params.name = 'conv_layer'
+      params.bias = True
+      params.batch_norm = False
+      params.activation = p.activation
+      params.filter_stride = (1, 1)
+      params.filter_shape = (3, 1, p.input_dim, int(p.input_dim / 2))
+      self.CreateChild('conv_layer', params)
+
+      # Initialize separable conv.
+      params = p.separable_conv_tpl.Copy()
+      params.name = 'separable_conv_layer'
+      params.bias = True
+      params.batch_norm = False
+      params.activation = 'NONE'
+      params.filter_stride = (1, 1)
+      params.filter_shape = (9, 1, int(p.input_dim * 4), p.input_dim)
+      self.CreateChild('separable_conv_layer', params)
+
+      # Initialize dropout.
+      dropout_tpl = p.dropout_tpl.Copy()
+      self.CreateChild('dropout', dropout_tpl)
+
+  def FProp(self, theta, inputs, paddings):
+    inputs_normalized = self.first_layer_norm.FProp(theta.first_layer_norm,
+                                                    inputs)
+
+    left_branch = self.dense_layer.FProp(theta.dense_layer, inputs_normalized,
+                                         tf.expand_dims(paddings, -1))
+    left_branch = self.dropout.FProp(theta.dropout, left_branch)
+    # Newly computed padding is discarded.
+    right_branch = self.conv_layer.FProp(
+        theta.conv_layer, tf.expand_dims(inputs_normalized, axis=2),
+        paddings)[0]
+    right_branch = tf.squeeze(right_branch, axis=2)
+    right_branch = self.dropout.FProp(theta.dropout, right_branch)
+    right_branch = tf.pad(
+        right_branch,
+        [[0, 0], [0, 0],
+         [0, tf.shape(left_branch)[-1] - tf.shape(right_branch)[-1]]],
+        constant_values=0)
+
+    hidden_state = left_branch + right_branch
+
+    hidden_state = self.second_layer_norm.FProp(theta.second_layer_norm,
+                                                hidden_state)
+    # Newly computed padding is discarded.
+    hidden_state = self.separable_conv_layer.FProp(
+        theta.separable_conv_layer, tf.expand_dims(hidden_state, axis=2),
+        paddings)[0]
+    hidden_state = tf.squeeze(hidden_state, axis=2)
+    hidden_state = tf.pad(
+        hidden_state, [[0, 0], [0, 0],
+                       [0, tf.shape(inputs)[-1] - tf.shape(hidden_state)[-1]]],
+        constant_values=0)
+    hidden_state = self.dropout.FProp(theta.dropout, hidden_state)
+    hidden_state += inputs
+
+    return hidden_state
+
+
+class EvolvedTransformerDecoderBranchedConvsLayer(base_layer.BaseLayer):
+  """Evolved Transformer decoder branched convolutions layer.
+
+  This constructs the branched convolution portion of the Evolved Transformer
+  decoder described in https://arxiv.org/abs/1901.11117 .
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(EvolvedTransformerDecoderBranchedConvsLayer, cls).Params()
+    p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
+    p.Define('input_dim', 0, 'Dimension of the layer input.')
+    p.Define('activation', 'RELU',
+             'Activation applied to the left convolution branch output.')
+    p.Define('dropout_tpl', layers.DropoutLayer.Params(),
+             'Dropout applied to each layer output.')
+    p.Define('separable_conv_tpl',
+             layers.SeparableConv2DLayer.Params().Set(causal_convolution=True),
+             'Separable convolution layer.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(EvolvedTransformerDecoderBranchedConvsLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.input_dim
+
+    with tf.variable_scope(p.name):
+      # Initialize first layer norm.
+      params = p.ln_tpl.Copy()
+      params.name = 'first_layer_norm'
+      params.input_dim = p.input_dim
+      self.CreateChild('first_layer_norm', params)
+
+      # Initialize second layer norm.
+      params = p.ln_tpl.Copy()
+      params.name = 'second_layer_norm'
+      params.input_dim = p.input_dim * 2
+      self.CreateChild('second_layer_norm', params)
+
+      # Initialize separable conv.
+      params = p.separable_conv_tpl.Copy()
+      params.name = 'separable_conv_11x1_layer'
+      params.bias = True
+      params.batch_norm = False
+      params.activation = p.activation
+      params.filter_stride = (1, 1)
+      params.filter_shape = (11, 1, p.input_dim, int(p.input_dim * 2))
+      self.CreateChild('separable_conv_11x1_layer', params)
+
+      # Initialize first separable conv.
+      params = p.separable_conv_tpl.Copy()
+      params.name = 'separable_conv_7x1_layer'
+      params.bias = True
+      params.batch_norm = False
+      params.activation = 'NONE'
+      params.filter_stride = (1, 1)
+      params.filter_shape = (7, 1, p.input_dim, int(p.input_dim / 2))
+      self.CreateChild('separable_conv_7x1_layer', params)
+
+      # Initialize second separable conv.
+      params = p.separable_conv_tpl.Copy()
+      params.name = 'separable_conv_7x1_layer_2'
+      params.bias = True
+      params.batch_norm = False
+      params.activation = 'NONE'
+      params.filter_stride = (1, 1)
+      params.filter_shape = (7, 1, int(p.input_dim * 2), p.input_dim)
+      self.CreateChild('separable_conv_7x1_layer_2', params)
+
+      # Initialize dropout.
+      dropout_tpl = p.dropout_tpl.Copy()
+      self.CreateChild('dropout', dropout_tpl)
+
+  def FProp(self, theta, inputs, paddings):
+    inputs_normalized = self.first_layer_norm.FProp(theta.first_layer_norm,
+                                                    inputs)
+
+    left_branch = self.separable_conv_11x1_layer.FProp(
+        theta.separable_conv_11x1_layer,
+        tf.expand_dims(inputs_normalized, axis=2), paddings)[0]
+    left_branch = self.dropout.FProp(theta.dropout, left_branch)
+
+    right_branch = self.separable_conv_7x1_layer.FProp(
+        theta.separable_conv_7x1_layer, tf.expand_dims(
+            inputs_normalized, axis=2), paddings)[0]
+    right_branch = self.dropout.FProp(theta.dropout, right_branch)
+    right_branch = tf.pad(
+        right_branch,
+        [[0, 0], [0, 0], [0, 0],
+         [0, tf.shape(left_branch)[-1] - tf.shape(right_branch)[-1]]],
+        constant_values=0)
+
+    hidden_state = left_branch + right_branch
+    hidden_state = self.second_layer_norm.FProp(theta.second_layer_norm,
+                                                hidden_state)
+
+    hidden_state = self.separable_conv_7x1_layer_2.FProp(
+        theta.separable_conv_7x1_layer_2, hidden_state, paddings)[0]
+    hidden_state = self.dropout.FProp(theta.dropout, hidden_state)
+
+    hidden_state = tf.squeeze(hidden_state, axis=2)
+    return hidden_state + inputs
 
 
 class MergerLayer(base_layer.BaseLayer):
@@ -657,11 +879,12 @@ class MergerLayer(base_layer.BaseLayer):
     """Combines the list of input tensors into a single tensor.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
-      inputs: A list of tensors of shape [..., hidden_dim] or
-          [..., [pre_proj_input_dims[i]]] if pre_proj_input_dims is specified.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: A list of tensors of shape [..., hidden_dim] or [...,
+        [pre_proj_input_dims[i]]] if pre_proj_input_dims is specified.
       query_vec: A tensor of shape [..., hidden_dim].
+
     Returns:
       A tensor of the same shape with input tensors.
 

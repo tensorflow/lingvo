@@ -113,7 +113,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
           theta: A NestedMap object containing weights' values of this
               layer and its children layers.
           encoder_outputs: A NestedMap computed by encoder.
-          step_ids: A tensor of shape [tgt_batch, 1].
+          step_ids: A tensor of shape [num_hyps_per_beam * src_batch, 1].
           in_states: A `.NestedMap` of tensors representing states that the
               clients would like to keep track of for each of the active hyps.
         Returns:
@@ -122,7 +122,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
               Optionally it may contain 'is_last_chunk' if it is decoding a
               neural transducer model.
               .atten_probs: The updated attention probs, of shape [
-                  num_hyps_per_beam * src_batch, src_len].src_batch "b" 
+                  num_hyps_per_beam * src_batch, src_len]. src_batch "b" 
                   and hyp_per_beam "h" is represented at index (h * src_batch + b).
               .log_probs: Log prob for each of the tokens in the target vocab. This
                   is of shape [num_hyps_per_beam * src_batch, vocab_size].
@@ -236,7 +236,9 @@ class BeamSearchHelper(base_layer.BaseLayer):
       | num_hyps_per_beam = Number of hyps to keep per source sequence.
       | num_hyps = num_beams * num_hyps_per_beam
       | src_seq_len = Number of time steps in the source sequence.
+      | src_batch = Nuber of examples in the source sequence.
       | tgt_seq_len = Maximum allowed time steps in the target sequence.
+      | tgt_batch = num_hyps_per_beam * src_batch
 
     Args:
       theta: A `.NestedMap` object containing weights' values of the decoder

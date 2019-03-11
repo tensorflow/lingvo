@@ -683,7 +683,7 @@ py_library(
     srcs = ["recurrent.py"],
     deps = [
         ":py_utils",
-        "//lingvo/core:sendrecv",
+        ":sendrecv",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],

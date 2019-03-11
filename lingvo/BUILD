@@ -205,7 +205,7 @@ lingvo_py_binary(
     deps = [
         ":model_imports",  # build_cleaner: keep
         ":trainer_lib",  # build_cleaner: keep
-        "//lingvo/core:predictor",  # build_cleaner: keep
+        "//lingvo/core:predictor_lib",  # build_cleaner: keep
         "//lingvo/core/ops:hyps_py_pb2",  # build_cleaner: keep
     ],
 )

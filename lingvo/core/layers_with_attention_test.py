@@ -104,8 +104,8 @@ class LayersWithAttentionTest(tf.test.TestCase):
     aux_source_vecs = tf.stack(
         [tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(7)])
     aux_source_paddings = tf.transpose(
-        tf.constant(
-            [[0, 1, 0, 1, 0, 1, 0], [1, 0, 1, 0, 1, 0, 1]], dtype=dtype))
+        tf.constant([[0, 1, 0, 1, 0, 1, 0], [1, 0, 1, 0, 1, 0, 1]],
+                    dtype=dtype))
     return (source_vecs, source_padding, aux_source_vecs, aux_source_paddings)
 
   def testTransformerAttentionLayerCase1(self):
@@ -441,8 +441,8 @@ class LayersWithAttentionTest(tf.test.TestCase):
             tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(7)
         ])
         aux_paddings = tf.transpose(
-            tf.constant(
-                [[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 1]], dtype=dtype))
+            tf.constant([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 1]],
+                        dtype=dtype))
 
         source_vecs_packed = tf.reshape(source_vecs, [-1, 1, depth])
         aux_vecs_packed = tf.reshape(aux_vecs, [-1, 1, depth])
@@ -451,8 +451,8 @@ class LayersWithAttentionTest(tf.test.TestCase):
         source_segment_id = tf.transpose(
             tf.constant([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1]], dtype=tf.float32))
         aux_segment_id = tf.transpose(
-            tf.constant(
-                [[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]], dtype=tf.float32))
+            tf.constant([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]],
+                        dtype=tf.float32))
 
         h, _ = transformer.FPropDefaultTheta(
             source_vecs,
@@ -518,6 +518,70 @@ class LayersWithAttentionTest(tf.test.TestCase):
       h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
+
+  def testEvolvedTransformerEncoderBranchedConvsLayer(self):
+    layer = layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(3980847392)
+      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      p = layer.Params()
+      p.name = 'et_encoder_branched_convs'
+      p.input_dim = 3
+      et_branched_convs = layer(p)
+
+      h = et_branched_convs.FPropDefaultTheta(inputs, paddings)
+      tf.global_variables_initializer().run()
+      actual_layer_output = sess.run(h)
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_output = [
+          [[-0.13232423, -0.46060669,  0.72598207],
+           [ 0.6725747 ,  1.58664441,  2.64087844]],
+          [[-0.21702465, -0.68267912,  1.20886588],
+           [ 1.69793618,  0.53306532,  1.02958691]],
+          [[-0.46037287, -0.42950529, -1.68443251],
+           [ 0.21459752,  0.42246291, -0.01271994]],
+          [[-0.23293658,  0.15300342, -0.83518255],
+           [-0.48914853, -0.44239512, -0.2328119 ]],
+          [[-0.57934833,  0.24165238, -1.05392623],
+           [-0.8292231 ,  0.06175411,  1.28672981]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
+  def testEvolvedTransformerDecoderBranchedConvsLayer(self):
+    layer = layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(3980847392)
+      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      p = layer.Params()
+      p.name = 'et_decoder_branched_convs'
+      p.input_dim = 3
+      et_branched_convs = layer(p)
+
+      h = et_branched_convs.FPropDefaultTheta(inputs, paddings)
+      tf.global_variables_initializer().run()
+      actual_layer_output = sess.run(h)
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_output = [
+          [[-0.31987068, -0.65715098,  0.90350437],
+           [ 0.00773269,  1.07779562,  4.11094666]],
+          [[-0.84862059, -0.93186408,  1.16371167],
+           [ 1.31467259,  0.03560367,  2.36822462]],
+          [[ 0.02183507, -0.0799394 , -1.68870354],
+           [ 0.77921551,  1.30145741, -0.86353606]],
+          [[ 0.31672907,  0.50000876, -0.93973017],
+           [-0.54707348,  0.19211179, -1.45307386]],
+          [[-0.46405494,  0.65833056, -1.09345317],
+           [-1.17221224, -0.08027397,  0.84021652]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
 
   def testMergerLayerMean(self):
     with self.session(use_gpu=True) as sess:

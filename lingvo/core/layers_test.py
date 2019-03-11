@@ -489,11 +489,10 @@ class ConvLayerTest(tf.test.TestCase):
 
   def testConvPoolComputeOutPaddingUnevenStride(self):
     with self.session(use_gpu=True):
-      in_padding = tf.constant(
-          [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [
-              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1
-          ], [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]],
-          dtype=tf.float32)
+      in_padding = tf.constant([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                                [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]],
+                               dtype=tf.float32)
       out_padding = layers._ComputeConvOutputPadding(in_padding, 3, 3)
       expected_out_padding = [[0, 0, 0, 0, 1], [0, 0, 0, 1, 1], [0, 0, 1, 1, 1]]
 
@@ -541,10 +540,10 @@ class ConvLayerTest(tf.test.TestCase):
     self._checkConvLayerShapes([2, 4, 4, 3], [3, 3, 3, 32], [2, 2])
     self._checkConvLayerShapes([2, 10, 4, 3], [3, 3, 3, 32], [3, 3])
 
-    self._checkConvLayerShapes(
-        [2, 10, 4, 3], [3, 3, 3, 32], [1, 1], dilation_rate=[2, 2])
-    self._checkConvLayerShapes(
-        [2, 10, 4, 3], [3, 3, 3, 32], [1, 1], dilation_rate=[3, 3])
+    self._checkConvLayerShapes([2, 10, 4, 3], [3, 3, 3, 32], [1, 1],
+                               dilation_rate=[2, 2])
+    self._checkConvLayerShapes([2, 10, 4, 3], [3, 3, 3, 32], [1, 1],
+                               dilation_rate=[3, 3])
 
   def testDepthwiseConv2DLayerOutputShapes(self):
     self._checkConvLayerShapes(
@@ -2200,7 +2199,7 @@ class SoftmaxLayerTest(tf.test.TestCase):
         # Turn on sampled soft-max; the asserts need to hold for it to be used.
         params.num_sampled = num_samples
         assert class_probabilities is None
-        assert chunk_size is 0
+        assert chunk_size == 0
         assert params.is_eval is not True
 
       params.vn.global_vn = False
@@ -3281,6 +3280,73 @@ class ResidualAdapterLayerTest(tf.test.TestCase):
       # pylint: enable=bad-whitespace
       self.assertEqual(actual_avg.shape, (batch, depth))
       self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
+
+
+class GluLayerTest(tf.test.TestCase):
+
+  def testGlu(self):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(3980847392)
+      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      p = layers.GluLayer.Params()
+      p.name = 'glu_layers'
+      p.input_dim = 3
+      glu_layer = layers.GluLayer(p)
+
+      h = glu_layer.FPropDefaultTheta(inputs, paddings)
+      tf.global_variables_initializer().run()
+      actual_layer_output = sess.run(h)
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_output = [
+          [[ -1.84272185e-01,  -3.82728219e-01,   8.69752645e-01],
+           [  4.42533880e-01,   1.51665461e+00,   3.26201534e+00]],
+          [[ -7.06624031e-01,  -6.52632236e-01,   1.22156203e+00],
+           [  1.66484845e+00,   5.98078966e-01,   1.14039946e+00]],
+          [[  3.26439053e-01,   2.47359693e-01,  -1.14889514e+00],
+           [  7.71084905e-01,   1.07083774e+00,   1.74589559e-01]],
+          [[  5.70576251e-01,   7.95466423e-01,  -4.07778949e-01],
+           [ -8.71581078e-01,  -5.38501918e-01,  -2.50373930e-01]],
+          [[ -3.88817638e-01,   5.84501982e-01,  -6.60797715e-01],
+           [ -1.34579837e+00,  -2.18637614e-03,   1.55258143e+00]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
+  def testGluWithoutResidual(self):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(3980847392)
+      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      p = layers.GluLayer.Params()
+      p.name = 'glu_layers'
+      p.input_dim = 3
+      p.output_dim = 4
+      p.apply_residual = False
+      glu_layer = layers.GluLayer(p)
+
+      h = glu_layer.FPropDefaultTheta(inputs, paddings)
+      tf.global_variables_initializer().run()
+      actual_layer_output = sess.run(h)
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_output = [
+          [[ 0.2498899 ,  0.        ,  0.62683833,  0.        ],
+           [ 0.34115699,  0.        ,  0.38020864,  0.        ]],
+          [[ 0.3014423 ,  0.        ,  0.59274423,  0.        ],
+           [ 0.        ,  0.35897657,  0.2908403 ,  0.03678071]],
+          [[ 0.        ,  0.78786391,  0.        ,  0.38839644],
+           [ 0.        ,  0.44012907,  0.        ,  0.41553062]],
+          [[ 0.        ,  0.61838603,  0.        ,  0.41521466],
+           [ 0.34117079,  0.        ,  0.0372162 ,  0.        ]],
+          [[ 0.        ,  0.        ,  0.        ,  0.28136203],
+           [ 0.34413674,  0.        ,  0.30943182,  0.        ]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
 
 
 if __name__ == '__main__':

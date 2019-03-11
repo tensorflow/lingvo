@@ -283,6 +283,17 @@ class ClusterTest(tf.test.TestCase):
     ]]
     self.assertAllEqual(gpu_devices, expected_gpu_devices)
 
+    # Compute the total number of worker devices for a multi
+    # replica setup.
+    self.assertEqual(4, c.total_worker_devices)
+
+    # Even when the job is different, we still look at the worker
+    # information.
+    p.job = 'controller'
+    p.task = 0
+    c = cluster_factory.Cluster(p)
+    self.assertEqual(4, c.total_worker_devices)
+
   def testDeviceListMultiReplicaSyncSgd(self):
     p = cluster_factory.Cluster.Params()
     p.mode = 'sync'

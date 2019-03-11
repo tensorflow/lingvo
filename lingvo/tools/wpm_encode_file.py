@@ -19,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-
+from six import text_type
 import tensorflow as tf
 
 from lingvo.core import wpm_encoder
@@ -87,11 +87,9 @@ def _MakeTfExample(enc, src_i, src_s, tgt_i, tgt_s):
 
 
 def _Preprocess(text):
-  if not isinstance(text, unicode):
+  if not isinstance(text, text_type):
     text = text.decode('utf-8')
-  text = text.strip()
-  text = text.replace(' </s>', '')
-  return text
+  return text.strip().replace(' </s>', '')
 
 
 def _RunEncoding():

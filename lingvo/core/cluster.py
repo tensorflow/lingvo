@@ -253,6 +253,15 @@ class _Cluster(object):
       return num
 
   @property
+  def total_worker_devices(self):
+    """Return the total number of discrete worker devices in the cluster."""
+    worker_spec = self.params.worker
+    devices_per_replica = (
+        worker_spec.gpus_per_replica or worker_spec.tpus_per_replica or 1)
+    num_replicas = worker_spec.replicas
+    return devices_per_replica * num_replicas
+
+  @property
   def num_devices_per_split(self):
     """Return number of accelerators to use per split."""
     return self._job_spec.devices_per_split
