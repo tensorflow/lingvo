@@ -14,7 +14,7 @@ def _find_tf_include_path(repo_ctx):
     )
     if exec_result.return_code != 0:
         fail("Could not locate tensorflow installation path.")
-    return exec_result.stdout
+    return exec_result.stdout.splitlines()[-1]
 
 def _find_tf_lib_path(repo_ctx):
     exec_result = repo_ctx.execute(
@@ -28,7 +28,7 @@ def _find_tf_lib_path(repo_ctx):
     )
     if exec_result.return_code != 0:
         fail("Could not locate tensorflow installation path.")
-    return exec_result.stdout
+    return exec_result.stdout.splitlines()[-1]
 
 def _eigen_archive_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
