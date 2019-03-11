@@ -203,17 +203,8 @@ class GPipeTransformerStack(PipeliningLayer):
         params.is_transparent = p.is_transparent
         params.packed_input = p.packed_input
         # Use DeterministicDropoutLayer when used in temp graphs.
-        if len(p.splits) > 1:
-          params.tr_atten_tpl.residual_dropout_tpl = (
-              DeterministicDropoutLayer.Params())
-          params.tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
-          params.tr_atten_tpl.atten_tpl.inner_atten_params \
-          .atten_dropout_deterministic = True
-          params.tr_fflayer_tpl.residual_dropout_tpl = (
-              DeterministicDropoutLayer.Params())
-          params.tr_fflayer_tpl.fflayer_tpl.dropout = (
-              DeterministicDropoutLayer.Params())
-
+        if len(p.splits) > 1 or p.num_micro_batches > 1:
+          params = self.SetupDeterministicDropout(params)
         assert not params.has_aux_atten
         last_layer = (i == p.num_encoder_layers - 1)
         if p.is_transparent and last_layer:
@@ -231,6 +222,8 @@ class GPipeTransformerStack(PipeliningLayer):
         params.packed_input = p.packed_input
         params.is_transparent = p.is_transparent and (
             p.num_transparent_outputs == p.num_decoder_layers)
+        if len(p.splits) > 1 or p.num_micro_batches > 1:
+          params = self.SetupDeterministicDropout(params)
         assert params.has_aux_atten
         transformers.append(params)
       cells = []
@@ -243,6 +236,19 @@ class GPipeTransformerStack(PipeliningLayer):
         cell_start = cell_end
       p.cell_tpl = cells
     super(GPipeTransformerStack, self).__init__(p)
+
+  def SetupDeterministicDropout(self, params):
+    """Replaced dropout layers in transformer with deterministic ones."""
+    params.tr_atten_tpl.residual_dropout_tpl = (
+        DeterministicDropoutLayer.Params())
+    params.tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
+    params.tr_atten_tpl.atten_tpl.inner_atten_params \
+    .atten_dropout_deterministic = True
+    params.tr_fflayer_tpl.residual_dropout_tpl = (
+        DeterministicDropoutLayer.Params())
+    params.tr_fflayer_tpl.fflayer_tpl.dropout = (
+        DeterministicDropoutLayer.Params())
+    return params
 
   def GetEncoders(self):
     encoders = []

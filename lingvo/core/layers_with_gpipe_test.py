@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from absl.testing import parameterized
 import numpy as np
 import tensorflow as tf
 
@@ -85,7 +86,8 @@ class GPipeTransformerLayerTest(tf.test.TestCase):
                           [1.10429943, -1.64884555, 0.15726769, -0.00250494])
 
 
-class LayersWithGPipeTest(tf.test.TestCase):
+class GPipeTransformerStackTest(tf.test.TestCase):
+  """Tests for GPipeTransformerStack layer."""
 
   def _TransformerParams(self,
                          num_decoder_layers=0,
@@ -275,27 +277,6 @@ class LayersWithGPipeTest(tf.test.TestCase):
           [[[-2.8764534, 1.00808454]] * batch, [[1.02129495, -0.78406084]] *
            batch, [[1.02129495, -0.78406084]] * batch])
 
-  def testDeterministicDropoutInsideFunctionalWhile(self):
-    with self.session() as sess:
-      cells = FeatureExtractionLayer.Params().Set(
-          name='cell',
-          sub=[
-              DeterministicDropoutLayer.Params().Set(
-                  name='dropout', keep_prob=0.7)
-          ])
-      p = PipeliningLayer.Params().Set(name='pipe', cell_tpl=[cells])
-      x = tf.ones([2, 3], dtype=tf.float32)
-      model = p.cls(p)
-      y = model.FPropDefaultTheta(x)
-      py_utils.GetOrCreateGlobalStep()
-      tf.global_variables_initializer().run()
-      y_val = sess.run(y)
-      self.assertAllClose([
-          [1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7],
-          [0.0, 0.0, 1.0 / 0.7],
-      ], y_val)
-      self.assertAllClose(5.7142859, np.sum(y_val))
-
   def testGPipeTransformerStackTrainTransparentFPropEval(self):
     # time = 2,
     batch = 4
@@ -483,6 +464,70 @@ class LayersWithGPipeTest(tf.test.TestCase):
   def testGPipeTransformerStackTrainEncoderTransparentFPropFourSplitsMB4(self):
     self._testGPipeTransformerStackTrainEncoderTransparentFProp(
         splits=4, num_micro_batches=4)
+
+
+class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
+  """Tests for DeterministicDropoutLayer."""
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'baseline',
+          'splits': 1,
+          'num_micro_batches': 1
+      },
+      {
+          'testcase_name': 'OneSplitTwoMicroBatches',
+          'splits': 1,
+          'num_micro_batches': 2
+      },
+      {
+          'testcase_name': 'TwoSplitsOneMicroBatch',
+          'splits': 2,
+          'num_micro_batches': 1
+      },
+      {
+          'testcase_name': 'TwoSplitsTwoMicroBatches',
+          'splits': 2,
+          'num_micro_batches': 2
+      },
+  )
+  def testDropoutInRecurrent(self, splits=1, num_micro_batches=1):
+    assert splits in [1, 2, 4]
+    with self.session() as sess:
+      tf.set_random_seed(12345)
+      num_layers = 4
+      py_utils.GetOrCreateGlobalStep()
+      # Build a model with 4 dropout layers.
+      layers = []
+      for l in range(num_layers):
+        layers.append(DeterministicDropoutLayer.Params().Set(
+            name='dropout_{}'.format(l), keep_prob=0.7))
+      # Divide the model into splits partitions.
+      cell_tpl = []
+      layers_per_split = num_layers // splits
+      for i in range(splits):
+        sub = layers[i * layers_per_split:(i + 1) * layers_per_split]
+        cell_tpl.append(FeatureExtractionLayer.Params().Set(
+            name='cell_{}'.format(i), sub=sub))
+      # Parallelize partitions using pipeline.
+      p = PipeliningLayer.Params().Set(
+          name='pipeline',
+          num_micro_batches=num_micro_batches,
+          cell_tpl=cell_tpl)
+      # Fake input
+      x = tf.ones([2, 3])
+      # Construct weights.
+      w = tf.get_variable(
+          'w', shape=[2, 3], initializer=tf.constant_initializer([[1] * 3] * 2))
+      mdl = p.cls(p)
+      y = mdl.FPropDefaultTheta(x * w)
+      # Construct loss function such that gradients = final activation.
+      loss = tf.reduce_sum(y)
+      grads = py_utils.ComputeGradients(loss, py_utils.NestedMap(w=w))
+      tf.global_variables_initializer().run()
+      y_val = sess.run(y)
+      grads_val = sess.run(grads)['w'][1]
+      self.assertAllClose(y_val, grads_val)
 
 
 if __name__ == '__main__':
