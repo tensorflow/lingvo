@@ -545,7 +545,12 @@ class BaseTask(base_layer.BaseLayer):
     # may be nan, which may cause grad_scale to be nan.
     for name, vg in var_grads.FlattenItems():
       summary_utils.AddNormSummary(name, py_utils.NestedMap(s=vg))
-    _, all_grad_norm = summary_utils.AddNormSummary('all', var_grads)
+    all_grad_norm = tf.sqrt(
+        py_utils.SumSquared(
+            [g for (_, g) in py_utils.NestedMap(child=var_grads).Flatten()]))
+    all_var_norm = tf.sqrt(
+        py_utils.SumSquared(
+            [v for (v, _) in py_utils.NestedMap(child=var_grads).Flatten()]))
     grad_norm_is_nan_or_inf = tf.logical_or(
         tf.is_nan(all_grad_norm), tf.is_inf(all_grad_norm))
 
@@ -578,8 +583,10 @@ class BaseTask(base_layer.BaseLayer):
 
     # Force grad_scale to be 0 if there is any NaN or Inf in gradients.
     grad_scale = tf.where(has_nan_or_inf, 0.0, grad_scale)
+    self.AddEvalMetric('grad_norm/all', all_grad_norm, tf.constant(1.0))
+    self.AddEvalMetric('var_norm/all', all_var_norm, tf.constant(1.0))
+    self.AddEvalMetric('grad_scale_all', grad_scale, tf.constant(1.0))
 
-    summary_utils.scalar('grad_scale_all', grad_scale)
     final_var_grads = py_utils.ApplyGradMultiplier(var_grads, grad_scale)
     return has_nan_or_inf, grad_scale, final_var_grads
 
