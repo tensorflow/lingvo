@@ -130,19 +130,19 @@ py_library(
         ":contextualizer_base",
         ":decoder_utils",
         ":fusion",
-        # Implicit numpy dependency.
+        # Implicit matplotlib dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
         "//lingvo/core:attention",
         "//lingvo/core:base_decoder",
         "//lingvo/core:base_layer",
+        "//lingvo/core:cluster_factory",
         "//lingvo/core:layers",
         "//lingvo/core:plot",
         "//lingvo/core:py_utils",
         "//lingvo/core:recurrent",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:summary_utils",
-        "//lingvo/core/ops:py_x_ops",
     ],
 )
 
@@ -157,6 +157,7 @@ py_test(
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
+        "//lingvo/core:cluster_factory",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         "//lingvo/core/ops:hyps_py_pb2",

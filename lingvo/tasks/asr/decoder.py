@@ -481,7 +481,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     source_encs = encoder_outputs.encoded
     source_paddings = encoder_outputs.padding
     if not self.cluster.add_summary:
-      return tf.summary.scalar('disabled_decoder_example', 0)
+      return
 
     def _ToTensor(t):
       return t.stack() if isinstance(t, tf.TensorArray) else t
@@ -514,7 +514,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
     index = 0
     if 'transcripts' not in targets:
-      return tf.summary.scalar('disabled_decoder_example', 0)
+      return
     transcript = targets.transcripts[:index + 1]
 
     srclen = tf.cast(tf.reduce_sum(1 - source_paddings[:, index]), tf.int32)

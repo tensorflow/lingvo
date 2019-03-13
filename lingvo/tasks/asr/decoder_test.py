@@ -26,6 +26,7 @@ from six.moves import zip
 import tensorflow as tf
 from google.protobuf import text_format
 
+from lingvo.core import cluster_factory
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
@@ -125,11 +126,13 @@ class DecoderTest(tf.test.TestCase):
                                    target_seq_len=5,
                                    residual_start=0):
     """Computes decoder from params and computes loss with random inputs."""
+    cluster = cluster_factory.ForTestingWorker(add_summary=True)
     config = tf.ConfigProto(
         graph_options=tf.GraphOptions(
             optimizer_options=tf.OptimizerOptions(
                 do_function_inlining=func_inline)))
-    with self.session(graph=tf.Graph(), use_gpu=False, config=config) as sess:
+    with cluster, self.session(
+        graph=tf.Graph(), use_gpu=False, config=config) as sess:
       tf.set_random_seed(8372749040)
       vn_config = py_utils.VariationalNoiseParams(None, False, False)
       p = self._DecoderParams(vn_config)

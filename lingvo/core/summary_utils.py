@@ -119,13 +119,10 @@ def AddAttentionSummary(attention_tensors,
     transcripts: Optional, transcripts shaped [batch, target_len] for the source
       sequence.
     max_outputs: Integer maximum number of elements of the batch to plot.
-
-  Returns:
-    The added image summary.
   """
   name = attention_tensors[0].name + '/Attention'
   if not _ShouldAddSummary():
-    return tf.summary.scalar('disabled_%s' % name, 0)
+    return
   fig = plot.MatplotlibFigureSummary(name, max_outputs=max_outputs)
   src_lens = SequenceLength(tf.transpose(src_paddings))
   tgt_lens = SequenceLength(tf.transpose(tgt_paddings))
@@ -145,7 +142,7 @@ def AddAttentionSummary(attention_tensors,
         title=atten.name,
         xlabel='Input',
         ylabel='Output')
-  return fig.Finalize()
+  fig.Finalize()
 
 
 def AddNormSummary(name, vs_gs):
