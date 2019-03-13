@@ -14,6 +14,8 @@ limitations under the License.
 ==============================================================================*/
 
 #include "lingvo/core/ops/beam_search_step_op_kernels.h"
+
+#include <cmath>
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
@@ -76,7 +78,7 @@ bool IsDuplicateHyp(const Hyp& cur_hyp, const Hyp& other_hyp,
 
 float LogSumExp(float a, float b) {
   const float m = std::max(a, b);
-  return m + log(exp(a - m) + exp(b - m));
+  return m + log(std::exp(a - m) + std::exp(b - m));
 }
 
 #ifdef __AVX__
