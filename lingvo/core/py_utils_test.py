@@ -1348,10 +1348,11 @@ class SequencesToDebugStrings(tf.test.TestCase):
 class StepSeedTest(tf.test.TestCase):
 
   def testStepSeed(self):
+    p = base_layer.BaseLayer.Params()
     state0 = py_utils.NestedMap(
         input=tf.constant(0, dtype=tf.int64),
         seed_pair=tf.zeros(2, dtype=tf.int64),
-        step_seed=tf.constant(0, dtype=tf.int64),
+        step_seed=py_utils.GetStepSeed(),
         global_step=py_utils.GetOrCreateGlobalStep())
     inputs = py_utils.NestedMap(input=tf.range(10, dtype=tf.int64))
 
@@ -1359,13 +1360,13 @@ class StepSeedTest(tf.test.TestCase):
       graph = tf.get_default_graph()
       if not graph.get_collection(tf.GraphKeys.GLOBAL_STEP):
         graph.add_to_collection(tf.GraphKeys.GLOBAL_STEP, state0.global_step)
-      py_utils.ResetStepSeed(seed=state0.step_seed)
+      py_utils.ResetStepSeed(state0.step_seed)
 
       state1 = py_utils.NestedMap()
       state1.input = inputs.input
-      state1.seed_pair = py_utils.GetOpSeedPair()
-      state1.step_seed = graph.get_collection_ref('step_seed')[0]
-      state1.global_step = tf.train.get_global_step(graph)
+      state1.seed_pair = py_utils.GetOpSeedPair(p)
+      state1.step_seed = py_utils.GetStepSeed()
+      state1.global_step = py_utils.GetOrCreateGlobalStep()
       return state1, py_utils.NestedMap()
 
     accumulated_states, _ = recurrent.Recurrent(py_utils.NestedMap(), state0,

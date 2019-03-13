@@ -1832,17 +1832,44 @@ def GetIncStepSeed():
   return step_seed
 
 
-def GetOpSeedPair(op_seed=None):
-  """Returns the seed pair for an operation given op_seed."""
-  global_step = GetOrCreateGlobalStep()
-  seeds = tf.stack([global_step, tf.cast(GetIncStepSeed(), global_step.dtype)])
+def GetOpSeedPair(p, op_seed=None):
+  """Gets a seed pair for deterministic random operations in functional loops.
 
+  This function retrieves a unique seed pair on each call, based off the current
+  global step and step seed. The step seed ensures this function returns a
+  unique seed pair on each call: calling this function automatically increments
+  the step seed. The step seed is automatically reset at the beginning of each
+  global step in the model's FProp.
+
+  Args:
+    p: A params object, containing keys 'random_seed' and 'is_inference'.
+    op_seed: An op seed to apply.
+
+  Returns:
+    A size 2 tensor of op seeds to use for stateless_random ops.
+  """
+  seed_dtype = tf.int32 if use_tpu() else tf.int64
+  if p.is_inference and p.random_seed is None:
+    # Ensure GetIncStepSeed is called even inside the shortcut.
+    # This ensures if p.random_seed is set for other ops that use this function
+    # that they will get the same seed pair whether or not p.random_seed is set
+    # for this specific call.
+    GetIncStepSeed()
+    # Unlike tf.random*, stateless random ops are completely determined by the
+    # passed-in seeds. This means at inference time the same inputs will produce
+    # the same outputs, even if the model is supposed to have randomness such as
+    # dropout during inference. We inject additional randomness only during
+    # inference if the graph is exported with random_seed=None as a workaround.
+    return tf.random_uniform([2], maxval=seed_dtype.max, dtype=seed_dtype)
+
+  global_step = tf.cast(GetOrCreateGlobalStep(), seed_dtype)
+  step_seed = tf.cast(GetIncStepSeed(), seed_dtype)
+  seeds = tf.stack([global_step, step_seed])
+
+  if p.random_seed is not None:
+    seeds += p.random_seed
   if op_seed is not None:
     seeds += op_seed
-
-  if use_tpu():
-    seeds = tf.cast(seeds, tf.int32)
-
   return seeds
 
 

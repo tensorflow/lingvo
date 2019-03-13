@@ -2431,8 +2431,8 @@ class DeterministicDropoutLayer(base_layer.BaseLayer):
     """
     p = self.params
     if p.keep_prob < 1.0 and (not p.is_eval or p.dropout_at_eval):
-      return py_utils.DeterministicDropout(
-          inputs, p.keep_prob, py_utils.GetOpSeedPair(op_seed=p.random_seed))
+      return py_utils.DeterministicDropout(inputs, p.keep_prob,
+                                           py_utils.GetOpSeedPair(p))
     else:
       return inputs
 

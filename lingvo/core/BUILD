@@ -365,6 +365,7 @@ py_test(
         ":base_model_params",
         ":inference_graph_exporter",
         ":inference_graph_py_pb2",
+        ":predictor_lib",
         ":py_utils",
         # Implicit tensorflow dependency.
         "//lingvo:model_registry",
@@ -636,11 +637,11 @@ py_library(
     name = "layers_with_gpipe",
     srcs = ["layers_with_gpipe.py"],
     deps = [
+        ":base_layer",
         ":gpipe",
+        ":layers_with_attention",
+        ":py_utils",
         # Implicit tensorflow dependency.
-        "//lingvo/core:base_layer",
-        "//lingvo/core:layers_with_attention",
-        "//lingvo/core:py_utils",
     ],
 )
 
@@ -659,10 +660,11 @@ py_library(
     name = "gpipe",
     srcs = ["gpipe.py"],
     deps = [
+        ":base_layer",
+        ":py_utils",
+        ":recurrent",
+        # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:base_layer",
-        "//lingvo/core:py_utils",
-        "//lingvo/core:recurrent",
     ],
 )
 

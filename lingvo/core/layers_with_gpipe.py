@@ -695,7 +695,7 @@ class DeterministicDropoutLayer(base_layer.BaseLayer):
       else:
         keep_prob = tf.cast(p.keep_prob, inputs.dtype)
 
-      seeds = gpipe.GetOpSeedPair(p.random_seed)
+      seeds = gpipe.GetOpSeedPair(p)
       noise_shape = py_utils.GetShape(inputs)
       if p.noise_shape_dim and p.noise_shape_dim < inputs.shape.ndims:
         for d in range(inputs.shape.ndims):

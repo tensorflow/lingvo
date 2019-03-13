@@ -69,16 +69,20 @@ def _ApplyAttentionDropout(params, x, step_state=None, prng_seed=None):
       assert 'global_step' in step_state, step_state.DebugString()
       assert 'time_step' in step_state, step_state.DebugString()
       assert prng_seed is not None
+      if params.random_seed:
+        prng_seed += params.random_seed
       seeds = prng_seed + tf.stack(
           [step_state.global_step, step_state.time_step])
     else:
       assert prng_seed is not None
-      seeds = py_utils.GetOpSeedPair(prng_seed)
+      seeds = py_utils.GetOpSeedPair(params, prng_seed)
 
     return py_utils.DeterministicDropout(x, 1.0 - params.atten_dropout_prob,
                                          seeds)
   else:
-    seed = None if not params.random_seed else prng_seed
+    seed = params.random_seed
+    if seed is not None and prng_seed is not None:
+      seed += prng_seed
     return tf.nn.dropout(x, 1.0 - params.atten_dropout_prob, seed=seed)
 
 
@@ -114,8 +118,6 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     p = self.params
     self._source_init_done = False
     self._prng_seed = py_utils.GenerateSeedFromName(p.name)
-    if p.random_seed:
-      self._prng_seed += p.random_seed
     self.TrackQTensor('logits', domain='fullyconnected')
 
   def InitForSourcePacked(self,
@@ -2196,8 +2198,6 @@ class MonotonicAttention(BaseAttentionLayer):
       vname = self._step_counter.name
       self._prng_seed = tf.constant(
           py_utils.GenerateSeedFromName(vname), dtype=random_seed_dtype)
-      if p.random_seed:
-        self._prng_seed += p.random_seed
 
     def EncodeSource(src_w, vecs, ctxs):
       time, batch = py_utils.GetShape(vecs, 2)

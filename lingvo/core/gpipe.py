@@ -64,12 +64,24 @@ def SetOverWriteGlobalStep(tensor, graph=None):
     graph.add_to_collection(_OVERWRITE_GLOBAL_STEP_COLLECTION, tensor)
 
 
-def GetOpSeedPair(op_seed=None):
+def GetOpSeedPair(p, op_seed=None):
+  """Override py_utils.GetOpSeedPair to use GetOverWriteGlobalStep."""
+  seed_dtype = tf.int32 if py_utils.use_tpu() else tf.int64
+  if p.is_inference and p.random_seed is None:
+    # Unlike tf.random*, stateless random ops are completely determined by the
+    # passed-in seeds. This means at inference time the same inputs will produce
+    # the same outputs, even if the model is supposed to have randomness such as
+    # dropout during inference. We inject additional randomness only during
+    # inference if the graph is exported with random_seed=None as a workaround.
+    return tf.random_uniform([2], maxval=seed_dtype.max, dtype=seed_dtype)
+
   with tf.name_scope('op_seed') as scope:
-    mb_tensor = GetOverWriteGlobalStep()
-    seeds = tf.stack(
-        [tf.cast(mb_tensor, tf.int32),
-         py_utils.GenerateSeedFromName(scope)])
+    global_step = tf.cast(GetOverWriteGlobalStep(), seed_dtype)
+    step_seed = tf.cast(py_utils.GenerateSeedFromName(scope), seed_dtype)
+    seeds = tf.stack([global_step, step_seed])
+
+    if p.random_seed is not None:
+      seeds += p.random_seed
     if op_seed is not None:
       seeds += op_seed
     return seeds
