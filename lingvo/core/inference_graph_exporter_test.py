@@ -26,6 +26,7 @@ from lingvo.core import base_model
 from lingvo.core import base_model_params
 from lingvo.core import inference_graph_exporter
 from lingvo.core import inference_graph_pb2
+from lingvo.core import predictor
 from lingvo.core import py_utils
 
 
@@ -183,7 +184,9 @@ class LinearModel(base_model.BaseTask):
     """Computes y = w^T x + b. Returns y and x, as outputs and inputs."""
     with tf.variable_scope('inference'):
       x = tf.placeholder(dtype=tf.float32, name='input')
-      y = tf.reduce_sum(self._w * x) + self._b
+      r = tf.random.stateless_uniform([3],
+                                      seed=py_utils.GetOpSeedPair(self.params))
+      y = tf.reduce_sum((self._w + r) * x) + self._b
       return {'default': ({'output': y}, {'input': x})}
 
 
@@ -298,6 +301,38 @@ class InferenceGraphExporterLinearModelTest(tf.test.TestCase):
             gen_init_op=True,
             dtype_override=tf.bfloat16))
     self.assertIn('tpu', inference_graph.subgraphs)
+
+  def testExportWithRandomSeeds(self):
+    """Test the effect of setting random seeds on export."""
+    params = model_registry.GetParams('test.LinearModelParams', 'Test')
+    # Default -- use random_seed = None.
+    inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
+        params, subgraph_filter=['default'])
+    pred = predictor.Predictor(inference_graph)
+    [no_op_seed_1] = pred.Run(['output'], input=3)
+    [no_op_seed_2] = pred.Run(['output'], input=3)
+    self.assertNotEqual(no_op_seed_1, no_op_seed_2)
+    pred = predictor.Predictor(inference_graph)
+    [no_op_seed_3] = pred.Run(['output'], input=3)
+    self.assertNotEqual(no_op_seed_1, no_op_seed_3)
+
+    # Use a fixed random_seed.
+    inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
+        params, subgraph_filter=['default'], random_seed=1234)
+    pred = predictor.Predictor(inference_graph)
+    [fixed_op_seed_1] = pred.Run(['output'], input=3)
+    [fixed_op_seed_2] = pred.Run(['output'], input=3)
+    self.assertEqual(fixed_op_seed_1, fixed_op_seed_2)
+    pred = predictor.Predictor(inference_graph)
+    [fixed_op_seed_3] = pred.Run(['output'], input=3)
+    self.assertEqual(fixed_op_seed_1, fixed_op_seed_3)
+
+    # A different seed gives different results.
+    inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
+        params, subgraph_filter=['default'], random_seed=1235)
+    pred = predictor.Predictor(inference_graph)
+    [fixed_op_seed_4] = pred.Run(['output'], input=3)
+    self.assertNotEqual(fixed_op_seed_1, fixed_op_seed_4)
 
 
 if __name__ == '__main__':

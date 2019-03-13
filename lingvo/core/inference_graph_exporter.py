@@ -280,7 +280,8 @@ class InferenceGraphExporter(object):
              freeze_checkpoint=None,
              freeze_defaults=False,
              export_path=None,
-             subgraph_filter=None):
+             subgraph_filter=None,
+             random_seed=None):
     """Exports a InferenceGraph proto with piecewise subgraphs.
 
     Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.
@@ -298,6 +299,7 @@ class InferenceGraphExporter(object):
       export_path: If not None, write the inference graph in ASCII to this path.
       subgraph_filter: If not None or empty, export only this list of inference
         subgraphs.
+      random_seed: Fixes the random seed in the exported inference graph.
 
     Returns:
       InferenceGraph proto.
@@ -325,6 +327,7 @@ class InferenceGraphExporter(object):
         task.decoder.packed_input = False
 
     # Configure the model.
+    model_cfg.random_seed = random_seed
     model_cfg.is_eval = True
     model_cfg.is_inference = True
 
