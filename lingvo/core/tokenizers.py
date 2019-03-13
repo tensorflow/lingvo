@@ -90,14 +90,7 @@ class BaseTokenizer(base_layer.BaseLayer):
     else:
       append_eos = external_append_eos
 
-    ids, labels, paddings = self._StringsToIdsImpl(strs, max_length, append_eos,
-                                                   languages)
-    if py_utils.use_tpu():
-      batch_size = strs.shape[0]
-      ids.set_shape([batch_size, max_length])
-      labels.set_shape([batch_size, max_length])
-      paddings.set_shape([batch_size, max_length])
-    return ids, labels, paddings
+    return self._StringsToIdsImpl(strs, max_length, append_eos, languages)
 
   def _StringsToIdsImpl(self, strs, max_length, append_eos, languages):
     raise NotImplementedError('Abstract method.')
