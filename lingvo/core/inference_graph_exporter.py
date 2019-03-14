@@ -361,11 +361,14 @@ class InferenceGraphExporter(object):
           py_utils.UpdateDtype(model_cfg, tf.bfloat16)
           py_utils.UpdateFpropDtype(model_cfg, tf.bfloat16)
 
+        # Hard-code TPU-related flags prior to instantiating model.
         old_enable_asserts = FLAGS.enable_asserts
+        old_xla_device = FLAGS.xla_device
         if IsTpu(device_options):
           FLAGS.enable_asserts = False
+          FLAGS.xla_device = 'tpu'
+
         mdl = model_cfg.cls(model_cfg)
-        FLAGS.enable_asserts = old_enable_asserts
         variables_to_restore = (
             _MakeVariableDictionary(tf.global_variables())
             if not mdl.ema else mdl.ema.variables_to_restore())
@@ -398,6 +401,10 @@ class InferenceGraphExporter(object):
         # Tables can be declared anywhere in the graph, so this op has to be
         # added last.
         tf.tables_initializer(name='init_all_tables')
+
+        # Reset TPU-related flags after model instantiation.
+        FLAGS.enable_asserts = old_enable_asserts
+        FLAGS.xla_device = old_xla_device
 
     tf.logging.info('Graph contains ops: %r',
                     [op.name for op in graph.get_operations()])

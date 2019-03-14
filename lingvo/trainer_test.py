@@ -36,7 +36,7 @@ from lingvo.core import py_utils
 from lingvo.core import trainer_test_utils
 from lingvo.tasks.image.input_generator import FakeMnistData
 import lingvo.tasks.image.params.mnist  # pylint: disable=unused-import
-import lingvo.tasks.lm.params.one_billion_wds  # pylint: disable=unused-import
+import lingvo.tasks.punctuator.params.codelab  # pylint: disable=unused-import
 
 FLAGS = tf.flags.FLAGS
 
@@ -175,7 +175,7 @@ class TrainerTest(BaseTrainerTest):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'inference_graphs' + str(random.random()))
     FLAGS.logdir = logdir
-    cfg = 'lm.one_billion_wds.WordLevelOneBwdsSimpleSampledSoftmax'
+    cfg = 'punctuator.codelab.RNMTModel'
     trainer.RunnerManager(cfg).WriteInferenceGraph()
     inference_files = tf.gfile.Glob(logdir + '/inference_graphs/*')
     self.assertTrue(self._HasFile(inference_files, 'inference.pbtxt'))

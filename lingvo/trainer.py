@@ -1490,7 +1490,11 @@ class RunnerManager(object):
           model_cfg=cfg,
           model_task_name=FLAGS.model_task_name,
           export_path=filename_prefix + '.pbtxt')
-      # TPU inference graph.
+    except NotImplementedError as e:
+      tf.logging.error('Cannot write inference graph: %s', e)
+
+    # TPU inference graph. Not all models support it so fail silently.
+    try:
       self.inference_graph_exporter.InferenceGraphExporter.Export(
           model_cfg=cfg,
           model_task_name=FLAGS.model_task_name,
@@ -1501,8 +1505,8 @@ class RunnerManager(object):
               gen_init_op=True,
               dtype_override=None),
           export_path=filename_prefix + '_tpu.pbtxt')
-    except NotImplementedError as e:
-      tf.logging.error('Cannot write inference graph: %s', e)
+    except Exception as e:  # pylint: disable=broad-except
+      tf.logging.info('Error exporting TPU inference graph: %s' % e)
 
   def Start(self):
     """Start the process."""
