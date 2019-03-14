@@ -452,6 +452,36 @@ class LinearRampupPiecewiseConstantSchedule(BaseLearningRateSchedule):
     return self.combine.Value(current_step)
 
 
+class LinearRampupCosineSchedule(BaseLearningRateSchedule):
+  """A cosine decaying learning rate schedule with a linear rampup phase."""
+
+  @classmethod
+  def Params(cls):
+    p = super(LinearRampupCosineSchedule, cls).Params()
+    p.Define('warmup_init', 0, 'The initial lr value of the warm-up phase.')
+    p.Define('warmup_steps', 0, 'Number of warm up steps.')
+    p.Define('initial_value', 1.0, 'Initial decay value.')
+    p.Define('total_steps', 0, 'Number of steps to reach full decay.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(LinearRampupCosineSchedule, self).__init__(params)
+    p = self.params
+    schedules = [
+        LinearLearningRateSchedule.Params().Set(
+            start=(0., p.warmup_init), limit=(p.warmup_steps, p.initial_value)),
+        CosineSchedule.Params().Set(
+            initial_value=p.initial_value, total_steps=p.total_steps),
+    ]
+    self.CreateChild(
+        'combine',
+        CombinedMinimumLearningRateSchedule.Params().Set(schedules=schedules))
+
+  def FProp(self, theta, current_step):
+    return self.combine.Value(current_step)
+
+
 class DevBasedSchedule(BaseLearningRateSchedule):
   """Decay triggered by lack of improvement on the dev set.
 

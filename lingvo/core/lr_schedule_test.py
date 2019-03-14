@@ -415,6 +415,26 @@ class LearningRateScheduleTest(tf.test.TestCase):
               [400000, 0.0],
           ])
 
+  def testLinearRampupCosineSchedule(self):
+    p = lr_schedule.LinearRampupCosineSchedule.Params().Set(
+        warmup_steps=200, initial_value=2.0, total_steps=400000)
+    with self.session():
+      lrs = p.cls(p)
+
+      pts = [[i, lrs.Value(i).eval()]
+             for i in [0, 100, 200, 100000, 200000, 300000, 400000]]
+      self.assertAllClose(
+          pts,
+          [
+              [0, 0.0],
+              [100, 1.0],
+              [200, 2.0],
+              [100000, math.cos(math.pi / 4) + 1.],  # angle=pi/4
+              [200000, 1.0],  # angle=pi/2, half-way
+              [300000, math.cos(math.pi * 3 / 4) + 1.],  # angle=pi*3/4
+              [400000, 0.0],
+          ])
+
   def testPiecewiseSchedule(self):
     # Linear ramp-up in 20000 steps, cosine decay in 40000 steps.
     p0 = lr_schedule.LinearLearningRateSchedule.Params().Set(
