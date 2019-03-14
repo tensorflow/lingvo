@@ -75,7 +75,7 @@ def _ApplyAttentionDropout(params, x, step_state=None, prng_seed=None):
           [step_state.global_step, step_state.time_step])
     else:
       assert prng_seed is not None
-      seeds = py_utils.GetOpSeedPair(params, prng_seed)
+      seeds = py_utils.GenerateStepSeedPair(params, prng_seed)
 
     return py_utils.DeterministicDropout(x, 1.0 - params.atten_dropout_prob,
                                          seeds)

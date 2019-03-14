@@ -1832,8 +1832,8 @@ def GetIncStepSeed():
   return step_seed
 
 
-def GetOpSeedPair(p, op_seed=None):
-  """Gets a seed pair for deterministic random operations in functional loops.
+def GenerateStepSeedPair(p, op_seed=None):
+  """Generates a seed pair for deterministic random operations in functional loops.
 
   This function retrieves a unique seed pair on each call, based off the current
   global step and step seed. The step seed ensures this function returns a
@@ -1842,8 +1842,9 @@ def GetOpSeedPair(p, op_seed=None):
   global step in the model's FProp.
 
   Args:
-    p: A params object, containing keys 'random_seed' and 'is_inference'.
-    op_seed: An op seed to apply.
+    p: A hyperparams.Params object, containing keys 'random_seed' and
+      'is_inference'.
+    op_seed: An additional operation-level seed to apply.
 
   Returns:
     A size 2 tensor of op seeds to use for stateless_random ops.

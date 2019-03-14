@@ -185,7 +185,8 @@ class LinearModel(base_model.BaseTask):
     with tf.variable_scope('inference'):
       x = tf.placeholder(dtype=tf.float32, name='input')
       r = tf.random.stateless_uniform([3],
-                                      seed=py_utils.GetOpSeedPair(self.params))
+                                      seed=py_utils.GenerateStepSeedPair(
+                                          self.params))
       y = tf.reduce_sum((self._w + r) * x) + self._b
       return {'default': ({'output': y}, {'input': x})}
 

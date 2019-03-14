@@ -1364,7 +1364,7 @@ class StepSeedTest(tf.test.TestCase):
 
       state1 = py_utils.NestedMap()
       state1.input = inputs.input
-      state1.seed_pair = py_utils.GetOpSeedPair(p)
+      state1.seed_pair = py_utils.GenerateStepSeedPair(p)
       state1.step_seed = py_utils.GetStepSeed()
       state1.global_step = py_utils.GetOrCreateGlobalStep()
       return state1, py_utils.NestedMap()

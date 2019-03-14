@@ -64,8 +64,8 @@ def SetOverWriteGlobalStep(tensor, graph=None):
     graph.add_to_collection(_OVERWRITE_GLOBAL_STEP_COLLECTION, tensor)
 
 
-def GetOpSeedPair(p, op_seed=None):
-  """Override py_utils.GetOpSeedPair to use GetOverWriteGlobalStep."""
+def GenerateStepSeedPair(p, op_seed=None):
+  """Override py_utils.GenerateStepSeedPair to use GetOverWriteGlobalStep."""
   seed_dtype = tf.int32 if py_utils.use_tpu() else tf.int64
   if p.is_inference and p.random_seed is None:
     # Unlike tf.random*, stateless random ops are completely determined by the
@@ -94,9 +94,9 @@ def CellFnFropOpReplacementWrapper():
   # op replacement for lingvo. As assert_equal doesn't support String on GPUs.
   # Hack to replace tf.assert_equal
   saved_assert_equal = tf.assert_equal
-  # Hack to replace GetOpSeedPair since global_step is not available
+  # Hack to replace GenerateStepSeedPair since global_step is not available
   # in temp graph created by optional.while.
-  saved_get_op_seed = py_utils.GetOpSeedPair
+  saved_get_op_seed = py_utils.GenerateStepSeedPair
 
   # pylint: disable=unused-argument
   def NoOP(*args, **kwargs):
@@ -104,12 +104,12 @@ def CellFnFropOpReplacementWrapper():
 
   # pylint: enable=unused-argument
   tf.assert_equal = NoOP  # Make assert_equal a no op.
-  py_utils.GetOpSeedPair = GetOpSeedPair
+  py_utils.GenerateStepSeedPair = GenerateStepSeedPair
 
   yield
 
   tf.assert_equal = saved_assert_equal
-  py_utils.GetOpSeedPair = saved_get_op_seed
+  py_utils.GenerateStepSeedPair = saved_get_op_seed
 
 
 def _ToTuple(x):
