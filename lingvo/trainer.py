@@ -591,7 +591,6 @@ class TrainerTpu(base_runner.BaseRunner):
       with self._cluster, tf.device(self._cluster.job_spec.name):
         self._eval_metrics = metrics.TpuEvalMetrics()
 
-        @tpu_function.on_device_training_loop
         def TpuTrainStep(*args):
           """Train a shard of a batch on a single TPU core.
 
@@ -614,6 +613,7 @@ class TrainerTpu(base_runner.BaseRunner):
               summed_metrics.append(x + y)
           return summed_metrics + [self._model.GetTask().train_op]
 
+        @tpu_function.on_device_training_loop
         def TpuTrain():
           loop_result = tf.contrib.tpu.repeat(
               self._steps_per_loop,
