@@ -1361,6 +1361,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
       if att_params.params_init is None:
         att_params.params_init = py_utils.WeightInit.Gaussian(
             1. / math.sqrt(att_params.source_dim + att_params.query_dim))
+      att_params.atten_dropout_deterministic = True
       params_atten.append(att_params)
       self._source_dims.append(att_params.source_dim)
       if p.share_attention:
@@ -1402,6 +1403,9 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
 
     ctxs0 = []
     packed_srcs = py_utils.NestedMap()
+    state0.step_state = py_utils.NestedMap(
+        global_step=py_utils.GetOrCreateGlobalStep(),
+        time_step=tf.constant(0, dtype=tf.int64))
     for i, src_name in enumerate(p.source_names):
       att_idx = (0 if p.share_attention else i)
 
@@ -1414,8 +1418,11 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
       zero_atten_state = self.attentions[att_idx].ZeroAttentionState(
           s_seq_len, batch_size)
       ctxs0.append(self.attentions[att_idx].ComputeContextVectorWithSource(
-          theta.attentions[att_idx], packed_srcs[src_name], query_vec0,
-          zero_atten_state)[0])
+          theta.attentions[att_idx],
+          packed_srcs[src_name],
+          query_vec0,
+          zero_atten_state,
+          step_state=state0.step_state)[0])
 
     # Initial attention state is the output of merger-op.
     state0.atten = self.atten_merger.FProp(theta.atten_merger, ctxs0,
@@ -1483,7 +1490,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
 
     def CellFn(theta, state0, inputs):
       """Computes one step forward."""
-      state1 = py_utils.NestedMap()
+      state1 = py_utils.NestedMap(step_state=state0.step_state)
       state1.rnn, _ = rcell.FProp(
           theta.rnn, state0.rnn,
           py_utils.NestedMap(
@@ -1496,10 +1503,14 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
       for i, src_name in enumerate(p.source_names):
         att_idx = (0 if p.share_attention else i)
         local_ctxs.append(attentions[att_idx].ComputeContextVectorWithSource(
-            theta.attens[src_name], theta.packed_src[src_name], query_vec,
-            state0.atten)[0])
+            theta.attens[src_name],
+            theta.packed_src[src_name],
+            query_vec,
+            state0.atten,
+            step_state=state0.step_state)[0])
       state1.atten = self.atten_merger.FProp(theta.atten_merger, local_ctxs,
                                              query_vec)
+      state1.step_state.time_step += 1
       return state1, py_utils.NestedMap()
 
     # Note that, we have a NestedMap for each parameter.
