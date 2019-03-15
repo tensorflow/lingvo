@@ -127,12 +127,13 @@ def ComputeWER(hyp, ref):
   return d, nr
 
 
-def AverageWERs(hyps, refs):
+def AverageWERs(hyps, refs, verbose=True):
   """Computes average WER from a list of references/hypotheses.
 
   Args:
     hyps: list of hypothesis strings.
     refs: list of reference strings.
+    verbose: optional (default True)
 
   Returns:
     total num of errors, total num of words in refs
@@ -143,8 +144,9 @@ def AverageWERs(hyps, refs):
     totale += ei
     totalw += ni
 
-  print('total error = %d, total word = %d, wer = %.2f' %
-        (totale, totalw, totale * 100.0 / totalw))
+  if verbose:
+    print('total error = %d, total word = %d, wer = %.2f' %
+          (totale, totalw, totale * 100.0 / totalw))
   return totale, totalw
 
 
