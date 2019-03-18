@@ -238,6 +238,10 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'record is about 500KB, the buffer needs 5GB ram.')
     p.Define('file_parallelism', 16, 'How many files to read concurrently.')
     p.Define(
+        'bucket_adjust_every_n', 0, 'If non-zero, optimize the values of '
+        'bucket_upper_bound except the last one after every N records '
+        'based on the current input length distribution.')
+    p.Define(
         'flush_every_n', 0, 'If non-zero, flushes all batches buffered '
         'so far every these many records are yielded.')
     p.Define('num_batcher_threads', 1, 'Number of threads to use for input '
@@ -264,6 +268,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'file_random_seed': p.file_random_seed,
         'file_buffer_size': p.file_buffer_size,
         'file_parallelism': p.file_parallelism,
+        'bucket_adjust_every_n': p.bucket_adjust_every_n,
         'flush_every_n': p.flush_every_n,
         'num_threads': p.num_batcher_threads,
     })

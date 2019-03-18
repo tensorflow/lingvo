@@ -24,6 +24,7 @@ limitations under the License.
       .Attr("file_parallelism: int = 16")             \
       .Attr("bucket_upper_bound: list(int)")          \
       .Attr("bucket_batch_limit: list(int)")          \
+      .Attr("bucket_adjust_every_n: int = 0")         \
       .Attr("flush_every_n: int = 0")                 \
       .Attr("num_threads: int = 1")                   \
       .SetIsStateful()
@@ -42,6 +43,9 @@ file_parallelism: How many sstables are opened and concurrently iterated over.\
 bucket_upper_bound: Bucketing scheme. Specifies each bucket's upper bound.\
 bucket_batch_limit: Batching scheme. Specifies each bucket's maximum batch\
   size.\
+bucket_adjust_every_n: If non-zero, optimize the values of bucket_upper_bound\
+  except the last one after every N records based on the current input length\
+  distribution.\
 flush_every_n: If non-zero, flushes all batches buffered so far every these\
     many records are yielded.\
 num_threads: Number of threads to use for the record batcher. Each thread fills\

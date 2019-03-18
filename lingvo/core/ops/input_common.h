@@ -53,6 +53,7 @@ class InputOp : public OpKernel {
     GETATTR(int64, file_parallelism);
     GETATTR(Int64Vec, bucket_upper_bound);
     GETATTR(Int64Vec, bucket_batch_limit);
+    GETATTR(int64, bucket_adjust_every_n);
     GETATTR(int64, flush_every_n);
     GETATTR(int64, num_threads);
 #undef GETATTR
@@ -69,6 +70,7 @@ class InputOp : public OpKernel {
     RecordBatcher::Options bopts;
     bopts.bucket_upper_bound = bucket_upper_bound;
     bopts.bucket_batch_limit = bucket_batch_limit;
+    bopts.bucket_adjust_every_n = bucket_adjust_every_n;
     bopts.flush_every_n = flush_every_n;
     bopts.num_threads = num_threads;
     batcher_ = new RecordBatcher(bopts, yielder, processor_);

@@ -144,6 +144,65 @@ TEST(RecordBatcher, BasicMultiThread) {
   }
 }
 
+TEST(RecordBatcher, LearnBuckets) {
+  const string filename = io::JoinPath("/tmp", "basic");
+  GenerateTestData(filename, 1000, true /* random_value */);
+
+  BasicRecordYielder::Options yopts;
+  yopts.file_pattern = strings::StrCat("tfrecord:", filename);
+  yopts.seed = 301;
+  yopts.bufsize = 10;
+  yopts.parallelism = 1;
+
+  RecordBatcher::Options bopts;
+  bopts.bucket_upper_bound = {100, 100, 100, 100};
+  bopts.bucket_batch_limit = {8, 8, 8, 8};
+  bopts.bucket_adjust_every_n = 550;
+
+  RecordBatcher batcher(bopts, BasicRecordYielder::New(yopts), new TestRP());
+  int64 bucket_id;
+  TensorVec batch;
+
+  // For the first 500 batches we just make sure the batches are the right
+  // size.
+  for (int i = 0; i < 500; ++i) {
+    batcher.GetNext(&bucket_id, &batch);
+    ASSERT_LE(0, bucket_id);
+    const Tensor& t = batch[0];
+    ASSERT_EQ(8, t.dim_size(0));
+  }
+
+  // For the next 1000 batches we measure the max length distribution.
+  std::vector<double> maxlens;
+  std::vector<int64> batches;
+  maxlens.resize(4, 0);
+  batches.resize(4, 0);
+  for (int i = 0; i < 1000; ++i) {
+    batcher.GetNext(&bucket_id, &batch);
+    const Tensor& t = batch[0];
+    int maxlen = 0;
+    for (int j = 0; j < t.dim_size(0); ++j) {
+      int len = t.vec<string>()(j).size();
+      maxlen = std::max<int>(maxlen, len);
+    }
+    maxlens[bucket_id] += maxlen;
+    batches[bucket_id]++;
+  }
+
+  // The data has a uniform distribution of [1 .. 100]. So we expect
+  // bucket boundaries around 25, 50, 75, 100, and roughly equal numbers of
+  // batches of each ID.
+  EXPECT_NEAR(250, batches[0], 25);
+  EXPECT_NEAR(250, batches[1], 25);
+  EXPECT_NEAR(250, batches[2], 25);
+  EXPECT_NEAR(250, batches[3], 25);
+
+  EXPECT_NEAR(25, maxlens[0] / batches[0], 5);
+  EXPECT_NEAR(50, maxlens[1] / batches[1], 5);
+  EXPECT_NEAR(75, maxlens[2] / batches[2], 5);
+  EXPECT_NEAR(100, maxlens[3] / batches[3], 5);
+}
+
 TEST(RecordBatcher, FullEpoch) {
   const int N = 1000;
   const string filename =
