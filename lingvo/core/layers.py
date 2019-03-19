@@ -383,7 +383,7 @@ def _ComputeConvOutputPadding(paddings,
     return paddings
 
   # Pad so input_length divides stride.
-  input_length = tf.shape(paddings)[1]
+  input_length = py_utils.GetShape(paddings)[1]
   pad_len = (input_length + stride - 1) // stride * stride - input_length
   paddings = tf.pad(paddings, [[0, 0], [0, pad_len]], constant_values=1.0)
   out_padding = tf.nn.pool(
