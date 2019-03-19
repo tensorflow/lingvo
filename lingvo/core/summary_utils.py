@@ -166,18 +166,14 @@ def AddNormSummary(name, vs_gs):
 def CollectVarHistogram(vs_gs):
   """Adds histogram summaries for variables and gradients."""
 
-  def SummaryNamePrefix(n):
-    return n.split(':')[0].replace('/', '.') + '/'
-
-  for var, grad in vs_gs.Flatten():
-    with tf.device(
-        var.device), tf.name_scope(var.name.split(':')[0] + '/summary'):
-      name_prefix = SummaryNamePrefix(var.name)
+  for name, (var, grad) in vs_gs.FlattenItems():
+    with tf.device(var.device), tf.name_scope(name + '/summary'):
       if isinstance(grad, tf.IndexedSlices):
         var = tf.gather(var, grad.indices)
         grad = grad.values
       if var.dtype.is_complex:
         var = tf.abs(var)
         grad = tf.abs(grad)
-      histogram(name_prefix + 'var_hist', var)
-      histogram(name_prefix + 'grad_hist', grad)
+
+    histogram('var_hist/' + name, var)
+    histogram('grad_hist/' + name, grad)
