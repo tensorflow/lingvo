@@ -71,11 +71,15 @@ bool RecordIterator::Register(const string& type_name, FactoryMethod method) {
 RecordIterator* RecordIterator::New(const string& type_name,
                                     const string& filename) {
   Factory* factory = GetFactory();
-  MutexLock l(&factory->mu);
-  const auto iter = factory->methods.find(type_name);
-  CHECK(iter != factory->methods.end())
-      << "Unable to create RecordIterator for format \"" << type_name << "\"";
-  return iter->second(filename);
+  RecordIterator::FactoryMethod method;
+  {
+    MutexLock l(&factory->mu);
+    const auto iter = factory->methods.find(type_name);
+    CHECK(iter != factory->methods.end())
+        << "Unable to create RecordIterator for format \"" << type_name << "\"";
+    method = iter->second;
+  }
+  return method(filename);
 }
 
 RandomAccessFile* OpenOrDie(const string& filename) {
