@@ -253,7 +253,9 @@ def Save(value, filename_prefix, **kwargs):
 def HasRank(tensor, expected_rank):
   """Syntactic sugar for asserting that tensor has the expected rank."""
   if tensor.shape.ndims is not None and isinstance(expected_rank, int):
-    assert tensor.shape.ndims == expected_rank
+    assert tensor.shape.ndims == expected_rank, (
+        'Ranks did not match, got %d, '
+        'expected %d') % (tensor.shape.ndims, expected_rank)
     return tensor
   if FLAGS.enable_asserts:
     return with_dependencies([tf.assert_equal(tf.rank(tensor), expected_rank)],
