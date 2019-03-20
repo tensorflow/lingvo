@@ -2160,7 +2160,7 @@ def PadSequenceDimension(x, length, pad_val, shape=None):
     pad_len = length - slen
     pad = tf.scatter_nd([[1, 1]], [pad_len], [rank, 2])
   x = tf.pad(x, pad, constant_values=pad_val)
-  if x.shape.ndims is not None:
+  if x.shape.ndims is not None and isinstance(length, int):
     static_shape = x.shape.as_list()
     static_shape[1] = length
     x.set_shape(static_shape)
