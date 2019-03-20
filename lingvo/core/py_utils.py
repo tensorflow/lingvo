@@ -71,7 +71,7 @@ tf.flags.DEFINE_bool(
 
 tf.flags.DEFINE_bool(
     'no_identity_on_vars', False,
-    'Do not add tf.identity() on vars. This allows TPUPartionedCallOp to use'
+    'Do not add tf.identity() on vars. This allows TPUPartitionedCallOp to use'
     'variable handles directly for weight-sharing / multi-core '
     'inference on TPUs.')
 
