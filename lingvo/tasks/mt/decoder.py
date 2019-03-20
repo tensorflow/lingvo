@@ -169,9 +169,26 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     return ret_dict
 
   def ComputeLoss(self, theta, predictions, targets):
+    """Populates a metrics dictionary based on the output of ComputePredictions.
+
+    Args:
+      theta: Nested map describing decoder model parameters.
+      predictions: NestedMap describing the decoding process, requiring:
+        .softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+      targets: NestedMap describing the target sequences.
+
+    Returns:
+      Two dicts:
+      A map from metric name (a python string) to a tuple (value, weight).
+      Both value and weight are scalar Tensors.
+      A map from name to arbitrary tensors, where the first dimension must be
+      the batch index.
+    """
     segment_id = None
     if self.params.packed_input:
       segment_id = tf.transpose(targets.segment_ids)
+    if isinstance(predictions, py_utils.NestedMap):
+      predictions = predictions.softmax_input
     return self._FPropSoftmax(theta, predictions, tf.transpose(targets.labels),
                               tf.transpose(targets.weights),
                               tf.transpose(targets.paddings), segment_id), {}
@@ -423,7 +440,12 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         predict. Each tensor in targets is of shape [batch, time].
 
     Returns:
-      A Tensor with shape [time, batch, params.softmax.input_dim].
+      A `.NestedMap` containing information about the decoding process. At a
+      minimum, this should contain:
+        softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+        attention: `.NestedMap` of attention distributions of shape [batch,
+                   time, source_len].
+        source_enc_len: Lengths of source sentences. Tensor of shape [batch].
     """
     p = self.params
     source_paddings = encoder_outputs.padding
@@ -450,15 +472,20 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         inputs = self.ApplyDropout(inputs)
         self._emb_out = inputs
 
-        # Layer 0 interwines with attention.
-        (atten_ctxs, xs, atten_probs, _) = self.frnn_with_atten.FProp(
-            theta.frnn_with_atten,
-            source_encs,
-            source_paddings,
-            inputs,
-            target_paddings,
-            src_segment_id=getattr(encoder_outputs, 'segment_id', None),
-            segment_id=target_segment_id)
+        # Layer 0 intertwines with attention.
+        (accumulated_states, _,
+         side_info) = self.frnn_with_atten.AccumulateStates(
+             theta.frnn_with_atten,
+             source_encs,
+             source_paddings,
+             inputs,
+             target_paddings,
+             src_segment_id=getattr(encoder_outputs, 'segment_id', None),
+             segment_id=target_segment_id)
+
+        (atten_ctxs, xs, atten_probs) = self.frnn_with_atten.PostProcessStates(
+            accumulated_states, side_info)
+
         self._AddAttenProbsSummary(source_paddings, targets, [atten_probs])
 
         atten_ctxs = self.ApplyClipping(theta, atten_ctxs)
@@ -482,7 +509,31 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         if p.feed_attention_context_vec_to_softmax:
           xs = tf.concat([xs, atten_ctxs], 2)
 
-        return xs
+        # Get intermediate attention information
+        atten_states = accumulated_states.atten_state
+        if isinstance(atten_states, py_utils.NestedMap):
+          additional_atten_probs = sorted(
+              [(name, tensor)
+               for name, tensor in atten_states.FlattenItems()
+               if name.endswith('probs')])
+        else:
+          additional_atten_probs = []
+        attention_map = py_utils.NestedMap(probs=accumulated_states.atten_probs)
+        attention_map.update(additional_atten_probs)
+
+        # Transpose attention probs from [target_length, batch, source_length]
+        # to [batch, target_length, source_length]
+        def _TransposeAttentions(x):
+          return tf.transpose(x, [1, 0, 2])
+
+        attention_map = attention_map.Transform(_TransposeAttentions)
+        if isinstance(source_paddings, tf.Tensor):
+          source_enc_len = tf.reduce_sum(1 - source_paddings, axis=0)
+
+        return py_utils.NestedMap(
+            softmax_input=xs,
+            attention=attention_map,
+            source_enc_len=source_enc_len)
 
   @py_utils.NameScopeDecorator('MTDecoderV1/InitDecoder')
   def _InitDecoder(self, theta, encoder_outputs, num_hyps):
