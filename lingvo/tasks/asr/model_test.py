@@ -63,6 +63,16 @@ class AsrModelTest(tf.test.TestCase):
     p.name = 'test_mdl'
     return p
 
+  def testMakeDecoderTheta(self):
+    # Test that decoder theta returns a copy of theta.decoder without changes.
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.set_random_seed(93820985)
+      p = self._testParams()
+      mdl = p.cls(p)
+      mdl.FPropDefaultTheta()
+      decoder_theta = mdl._MakeDecoderTheta(mdl.theta)
+      mdl.BProp()
+      self.assertEqual(decoder_theta, mdl.theta.decoder)
 
   def testFPropBPropTargetKey(self, inline=True):
     # Compute loss for a model without target_key.

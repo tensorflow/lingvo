@@ -95,6 +95,29 @@ class AsrModel(base_model.BaseTask):
       if p.frontend:
         self.CreateChild('frontend', p.frontend)
 
+  def _MakeDecoderTheta(self, theta):
+    """Compute theta to be used by the decoder for computing metrics and loss.
+
+    This method can be over-ridden by child classes to add values to theta that
+    is passed to the decoder.
+
+    For example, to pass the one hot vector which indicates which data source
+    was selected a child class could over-ride this method as follows:
+
+    def _MakeDecoderTheta(self, theta):
+      decoder_theta = super(MyModel, self)._MakeDecoderTheta(theta)
+      decoder_theta.child_onehot = self.input_generator.GetInputSourceOneHot()
+      return decoder_theta
+
+    Args:
+      theta: A `.NestedMap` object containing variable values used to compute
+        loss and metrics.
+
+    Returns:
+      theta: A copy of the decoder theta.
+    """
+    return theta.decoder.DeepCopy()
+
   def ComputePredictions(self, theta, input_batch):
     p = self.params
     input_batch_src = input_batch.src
@@ -106,13 +129,15 @@ class AsrModel(base_model.BaseTask):
       tgt = input_batch.additional_tgts[p.target_key]
     else:
       tgt = input_batch.tgt
-    return self.decoder.ComputePredictions(theta.decoder, encoder_outputs, tgt)
+    decoder_theta = self._MakeDecoderTheta(theta)
+    return self.decoder.ComputePredictions(decoder_theta, encoder_outputs, tgt)
 
   def ComputeLoss(self, theta, input_batch, predictions):
     tgt = input_batch.tgt
     if self.params.target_key:
       tgt = input_batch.additional_tgts[self.params.target_key]
-    return self.decoder.ComputeLoss(theta.decoder, predictions, tgt)
+    decoder_theta = self._MakeDecoderTheta(theta)
+    return self.decoder.ComputeLoss(decoder_theta, predictions, tgt)
 
   def _FrontendAndEncoderFProp(self, theta, input_batch_src):
     """FProps through the frontend and encoder.
