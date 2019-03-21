@@ -489,7 +489,7 @@ class BaseLayer(object):
 
     Then, typically in `PostTrainingStepUpdate`::
 
-        acc = self.accumulator.mytracker.GetValue()
+        acc = self.accumulator.mytracker
         acc_value = acc.GetValue()
         # Do something with the value.
         acc.Reset()
