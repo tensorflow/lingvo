@@ -44,6 +44,9 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
              'computation.')
     p.Define('integer_source_max', None, 'Generate integers as source values '
              'with this value as an upper bound.')
+    p.Define(
+        'float_source_max', None, 'Generate floats as source values '
+        'with this value as an upper bound.')
     p.Define('for_mt', False, 'True if this is for mt models; '
              'this affects some parts of batch generation')
     p.Define('target_key', '', 'If non-empty, targets will be specified in '
@@ -122,15 +125,20 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     if p.cur_iter_in_seed:
       self._cur_iter += 1
 
-    if p.integer_source_max is None:
-      inputs = tf.random_normal(
-          p.source_shape, seed=p.random_seed + 1000 * self._cur_iter)
-    else:
+    if p.integer_source_max:
       inputs = tf.random_uniform(
           p.source_shape,
           maxval=p.integer_source_max,
           dtype=tf.int32,
           seed=p.random_seed + 1000 * self._cur_iter)
+    elif p.float_source_max:
+      inputs = tf.random_uniform(
+          p.source_shape,
+          maxval=p.float_source_max,
+          seed=p.random_seed + 1000 * self._cur_iter)
+    else:
+      inputs = tf.random_normal(
+          p.source_shape, seed=p.random_seed + 1000 * self._cur_iter)
 
     paddings = tf.cast(
         tf.cumsum(
