@@ -2302,12 +2302,13 @@ def PadOrTrimTo(x, shape, pad_val=0):
     'x' is padded with pad_val and sliced so that the result has the given
     shape.
   """
-  if isinstance(shape, list):
+  if isinstance(shape, (list, tuple)):
     expected_rank = len(shape)
   elif isinstance(shape, tf.TensorShape):
     expected_rank = shape.rank
   else:
-    expected_rank = tf.rank(shape)
+    shape = HasRank(shape, 1)
+    expected_rank = tf.size(shape)
   x = HasRank(x, expected_rank)
   # If dim-i is less than shape[i], pads on the right shape[i] -
   # dim-i.  Otherwise, pads [0, 0] for dim-i.

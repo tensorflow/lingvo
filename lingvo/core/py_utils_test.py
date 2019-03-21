@@ -1174,6 +1174,67 @@ class PadSequenceDimensionTest(tf.test.TestCase):
                         (32, 3, 4, 5))
 
 
+class PadOrTrimToTest(tf.test.TestCase):
+
+  def test2DConstantShape(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      x = tf.random_normal(shape=(3, 3), seed=123456)
+      shape = [4, 6]
+      padded_x = py_utils.PadOrTrimTo(x, shape, pad_val=0)
+      self.assertEqual(padded_x.shape.as_list(), [4, 6])
+      real_x = sess.run(padded_x)
+      expected_x = [
+          [0.38615, 2.975221, -0.852826, 0., 0., 0.],
+          [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
+          [0.255314, -0.985647, 1.461641, 0., 0., 0.],
+          [0., 0., 0., 0., 0., 0.],
+      ]
+      self.assertAllClose(expected_x, real_x)
+
+  def test2DStaticShape(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      x = tf.random_normal(shape=(3, 3), seed=123456)
+      y = tf.zeros(shape=(4, 6))
+      padded_x = py_utils.PadOrTrimTo(x, y.shape, pad_val=0)
+      self.assertEqual(padded_x.shape.as_list(), [4, 6])
+      real_x = sess.run(padded_x)
+      expected_x = [
+          [0.38615, 2.975221, -0.852826, 0., 0., 0.],
+          [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
+          [0.255314, -0.985647, 1.461641, 0., 0., 0.],
+          [0., 0., 0., 0., 0., 0.],
+      ]
+      self.assertAllClose(expected_x, real_x)
+
+  def test2DDynamicShape(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      x = tf.random_normal(shape=(3, 3), seed=123456)
+      y = tf.placeholder(dtype=tf.float32)
+      padded_x = py_utils.PadOrTrimTo(x, tf.shape(y), pad_val=0)
+      self.assertEqual(padded_x.shape, tf.TensorShape(None))
+      real_x = sess.run(padded_x, feed_dict={y: np.zeros((4, 6))})
+      expected_x = [
+          [0.38615, 2.975221, -0.852826, 0., 0., 0.],
+          [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
+          [0.255314, -0.985647, 1.461641, 0., 0., 0.],
+          [0., 0., 0., 0., 0., 0.],
+      ]
+      self.assertAllClose(expected_x, real_x)
+
+  def test4D(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      x = tf.random_normal(shape=(2, 2, 2, 2), seed=123456)
+      shape = (1, 1, 3, 3)
+      padded_x = py_utils.PadOrTrimTo(x, shape, pad_val=1)
+      real_x = sess.run(padded_x)
+      expected_x = [[[
+          [0.38615, 2.975221, 1.],
+          [-0.852826, -0.571142, 1.],
+          [1., 1., 1.],
+      ]]]
+      self.assertAllClose(expected_x, real_x)
+
+
 class ApplyPaddingTest(tf.test.TestCase):
 
   def testApplyPaddingToZeroWithBroadcast(self):
