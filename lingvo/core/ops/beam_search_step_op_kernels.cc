@@ -78,7 +78,7 @@ bool IsDuplicateHyp(const Hyp& cur_hyp, const Hyp& other_hyp,
 
 float LogSumExp(float a, float b) {
   const float m = std::max(a, b);
-  return m + log(std::exp(a - m) + std::exp(b - m));
+  return m + std::log(std::exp(a - m) + std::exp(b - m));
 }
 
 #ifdef __AVX__
@@ -764,8 +764,8 @@ class TopKTerminatedHypsOp : public OpKernel {
             .log()
             .sum().eval();
     const float coverage_penalty = penalty.scalar<float>()();
-    const float length_norm = pow(length + 5.0, length_normalization_) /
-                              pow(5.0, length_normalization_);
+    const float length_norm = std::pow(length + 5.0, length_normalization_) /
+                              std::pow(5.0, length_normalization_);
 
     float global_score = 0.0;
     for (const auto& score : hypothesis.scores()) {
