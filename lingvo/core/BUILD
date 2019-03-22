@@ -559,6 +559,12 @@ py_library(
 lingvo_py_binary(
     name = "predictor",
     srcs = ["predictor.py"],
+    deps = [":predictor_main_lib"],
+)
+
+py_library(
+    name = "predictor_main_lib",
+    srcs = ["predictor.py"],
     deps = [
         ":inference_graph_py_pb2",
         ":py_utils",
