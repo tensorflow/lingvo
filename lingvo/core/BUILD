@@ -694,6 +694,7 @@ py_library(
 py_test(
     name = "recurrent_test",
     srcs = ["recurrent_test.py"],
+    shard_count = 6,
     deps = [":recurrent_test_lib"],
 )
 

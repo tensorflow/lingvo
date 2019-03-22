@@ -158,6 +158,7 @@ lingvo_py_binary(
 
 py_test(
     name = "trainer_test",
+    size = "large",
     srcs = ["trainer_test.py"],
     shard_count = 5,
     tags = [

@@ -160,6 +160,7 @@ py_library(
 
 py_test(
     name = "model_test",
+    size = "large",
     srcs = ["model_test.py"],
     shard_count = 20,
     deps = [":model_test_lib"],
