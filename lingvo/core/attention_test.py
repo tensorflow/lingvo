@@ -1163,7 +1163,9 @@ class AttentionTest(tf.test.TestCase):
                                 source_padding)
 
       atten_init_state = tf.nn.softmax(
-          tf.constant(np.random.rand(6, 6), dtype=tf.float32))
+          tf.constant(
+              np.random.rand(6, len(params.location_features), 6),
+              dtype=tf.float32))
 
       atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
           atten.theta, query_vec, atten_init_state)
@@ -1261,10 +1263,8 @@ class AttentionTest(tf.test.TestCase):
     with self.session(tf.Graph(), use_gpu=True) as sess:
       np.random.seed(12345)
       dtype = tf.float32 if quantized else tf.float64
-      source_vecs = tf.stack(
-          [tf.constant(np.random.rand(3, 4), dtype=dtype) for _ in range(6)])
-      source_contexts = tf.stack(
-          [tf.constant(np.random.rand(3, 5), dtype=dtype) for _ in range(6)])
+      source_vecs = tf.constant(np.random.rand(6, 3, 4), dtype=dtype)
+      source_contexts = tf.constant(np.random.rand(6, 3, 5), dtype=dtype)
       source_padding = tf.transpose(
           tf.constant(
               [[0, 0, 1, 1, 0, 0], [1, 0, 0, 0, 1, 0], [0, 0, 1, 0, 1, 0]],
@@ -1302,7 +1302,8 @@ class AttentionTest(tf.test.TestCase):
                                 source_padding)
 
       atten_init_state = tf.nn.softmax(
-          tf.constant(np.random.rand(3, 6), dtype=dtype))
+          tf.constant(
+              np.random.rand(3, len(params.location_features), 6), dtype=dtype))
 
       atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
           atten.theta, query_vec, atten_init_state)
@@ -1673,7 +1674,7 @@ class AttentionTest(tf.test.TestCase):
     atten_state = tf.concat(
         [tf.ones([4, 1], tf.float32),
          tf.zeros([4, 5], tf.float32)], 1)
-    atten_state = tf.expand_dims(atten_state, 2)
+    atten_state = tf.expand_dims(atten_state, 1)
     atten = params.cls(params)
     prob_out, vec_out = self._testPerStepSourcePaddingHelper(
         atten, depth, atten_state=atten_state)
