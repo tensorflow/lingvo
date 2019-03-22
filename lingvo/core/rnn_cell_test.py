@@ -1829,6 +1829,48 @@ class RNNCellTest(tf.test.TestCase):
       self.assertAllClose(m_expected, m_v)
       self.assertAllClose(c_expected, c_v)
 
+  def _testLSTMZeroStateHelper(self, zero_state_init,
+                               expected_init_states=None):
+    with self.session(use_gpu=False) as sess:
+      params = rnn_cell.LSTMCellSimple.Params()
+      params.name = 'lstm'
+      params.params_init = py_utils.WeightInit.Constant(0.1)
+      params.num_input_nodes = 2
+      params.num_output_nodes = 3
+      params.forget_gate_bias = 2.0
+      params.bias_init = py_utils.WeightInit.Constant(0.1)
+      params.dtype = tf.float64
+      params.zero_state_init_params = zero_state_init
+
+      lstm = rnn_cell.LSTMCellSimple(params)
+
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      # Initialize all the variables, and then inspect.
+      tf.global_variables_initializer().run()
+      init_state_value = sess.run(lstm.zero_state(1))
+      tf.logging.info('testLSTMSimpleWithStateInitializationFn m = %s',
+                      np.array_repr(init_state_value['m']))
+      tf.logging.info('testLSTMSimpleWithStateInitializationFn c = %s',
+                      np.array_repr(init_state_value['c']))
+      self.assertAllClose(init_state_value['m'], expected_init_states['m'])
+      self.assertAllClose(init_state_value['c'], expected_init_states['c'])
+
+  def testLSTMSimpleZeroStateFnZeros(self):
+    m = [[0.0, 0.0, 0.0]]
+    c = [[0.0, 0.0, 0.0]]
+    self._testLSTMZeroStateHelper(py_utils.RNNCellStateInit.Zeros(), {
+        'm': m,
+        'c': c
+    })
+
+  def testLSTMSimpleZeroStateFnRandomNormal(self):
+    m = [[0.60012126, 0.86442365, -1.60866682]]
+    c = [[-0.08950075, 0.45675403, 0.81625902]]
+    self._testLSTMZeroStateHelper(py_utils.RNNCellStateInit.RandomNormal(), {
+        'm': m,
+        'c': c
+    })
+
 
 if __name__ == '__main__':
   tf.test.main()

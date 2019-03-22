@@ -1580,5 +1580,31 @@ class WeightInitTest(tf.test.TestCase):
       self.assertTrue(np.all(var_v <= bound))
 
 
+class RNNCellStateInitTest(tf.test.TestCase):
+
+  def testZeros(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.set_random_seed(12345678)
+      zero_state = py_utils.InitRNNCellState(
+          [2, 3], init=py_utils.RNNCellStateInit.Zeros(), dtype=tf.float32)
+      tf.global_variables_initializer().run()
+      zero_state_v = zero_state.eval()
+      expected_zero_state = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+      self.assertAllClose(zero_state_v, expected_zero_state)
+
+  def testRandomNormal(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.set_random_seed(12345678)
+      zero_state = py_utils.InitRNNCellState(
+          [2, 3],
+          init=py_utils.RNNCellStateInit.RandomNormal(),
+          dtype=tf.float32)
+      tf.global_variables_initializer().run()
+      zero_state_v = zero_state.eval()
+      expected_zero_state = [[1.771591, 1.049091, -0.107608],
+                             [-0.793243, -0.156613, -0.342937]]
+      self.assertAllClose(zero_state_v, expected_zero_state)
+
+
 if __name__ == '__main__':
   tf.test.main()

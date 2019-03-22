@@ -681,6 +681,64 @@ def ReadOnlyAttrDictView(backing):
   return Wrapper()
 
 
+class RNNCellStateInit(object):
+  """State initialization functions for RNN cell init state."""
+
+  @staticmethod
+  def _Params(method, seed):
+    p = hyperparams.Params()
+    p.Define('method', method,
+             'Initialization method. Should be one of zeros, random_normal.')
+    p.Define('seed', seed, 'Random seed used to generate initial values.')
+    p.Freeze()
+    return p
+
+  @staticmethod
+  def Zeros():
+    """tf.zeros()."""
+    return RNNCellStateInit._Params('zeros', seed=None)
+
+  @staticmethod
+  def RandomNormal(seed=None):
+    """tf.random.normal()."""
+    return RNNCellStateInit._Params('random_normal', seed)
+
+
+def DefaultRNNCellStateInit():
+  return RNNCellStateInit.Zeros()
+
+
+def InitRNNCellState(shape, init=None, dtype=None, name=None):
+  """Initial state definitions for RNN cell implementations.
+
+  Args:
+    shape: A array of ints for specifying the shape of the state.
+    init: Hyperparameters as returned by one of the static implemetaitons in
+      RNNCellStateInit.
+    dtype: The dype of the states. Defaults to tf.float32.
+    name: An optional name for the operation.
+
+  Returns:
+    A Tensor of the specified shape, and sampled from the distribution as
+    defined by the init parameters.
+  """
+  if init is None:
+    init = DefaultRNNCellStateInit()
+  if dtype is None:
+    dtype = tf.float32
+
+  method = init.method
+  if method in ['zeros']:
+    init_state = tf.zeros(shape=shape, dtype=dtype, name=name)
+  elif method in ['random_normal']:
+    init_state = tf.random.normal(
+        shape=shape, dtype=dtype, name=name, seed=init.seed)
+  else:
+    raise ValueError('zero_state method (%s) not supported.' % method)
+
+  return init_state
+
+
 class WeightInit(object):
   """Static class providing weight initialization config params."""
 
