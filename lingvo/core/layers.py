@@ -57,7 +57,8 @@ _ACTIVATIONS = {
     'RELU6': tf.nn.relu6,
     'SIGMOID': tf.sigmoid,
     'TANH': tf.tanh,
-    'GELU': Gelu
+    'GELU': Gelu,
+    'SWISH': tf.nn.swish,
 }
 
 # A subset of activation functions are supported by TFLite as fused activation

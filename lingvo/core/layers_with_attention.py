@@ -819,6 +819,7 @@ class EvolvedTransformerEncoderLayer(base_layer.BaseLayer):
       params.name = 'transformer_layer'
       params.source_dim = p.source_dim
       params.output_dim = p.source_dim
+      params.tr_fflayer_tpl.hidden_dim = 4 * p.source_dim
       # Decoder functionality is not supported so disable auxiliary attention.
       params.has_aux_atten = False
       params.tr_aux_atten_tpl = None
@@ -845,6 +846,207 @@ class EvolvedTransformerEncoderLayer(base_layer.BaseLayer):
         aux_paddings, source_segment_id, aux_segment_id)
 
     return hidden_state, atten_prob
+
+
+class EvolvedTransformerDecoderLayer(base_layer.BaseLayer):
+  """Evolved Transformer decoder layer.
+
+  An Evolved Transformer decoder layer as described in
+  https://arxiv.org/abs/1901.11117 .
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(EvolvedTransformerDecoderLayer, cls).Params()
+    p.Define('source_dim', 0, 'Dimension of the transformer block input.')
+    p.Define('tr_atten_tpl',
+             TransformerAttentionLayer.Params().Set(num_attention_heads=8),
+             'Transformer attention layer params.')
+    p.Define('tr_double_heads_atten_tpl',
+             TransformerAttentionLayer.Params().Set(num_attention_heads=16),
+             'Transformer double heads attention layer params.')
+    p.Define('branched_convs_tpl',
+             EvolvedTransformerDecoderBranchedConvsLayer.Params(),
+             'Evolved Transformer branched convolutional layers.')
+    p.Define('transformer_tpl', TransformerLayer.Params(), 'Transformer layer.')
+    p.Define(
+        'has_aux_atten', True,
+        'If set, introduces a second attention layer, which attends to'
+        ' the auxiliary source contexts.')
+    p.Define('tr_aux_atten_tpl', None, 'Transformer Attention Layer params.')
+    p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(EvolvedTransformerDecoderLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.source_dim
+
+    with tf.variable_scope(p.name):
+
+      # Initialize multi-headed self-attention.
+      params = p.tr_double_heads_atten_tpl.Copy()
+      params.name = 'self_atten_double_heads'
+      params.source_dim = p.source_dim
+      params.is_masked = p.mask_self_atten
+      # Packed input is not supported.
+      params.packed_input = False
+      self.CreateChild('self_atten_double_heads', params)
+
+      if p.has_aux_atten:
+        # Initialize masked-multi-headed encoder attention.
+        params = (
+            p.tr_aux_atten_tpl.Copy()
+            if p.tr_aux_atten_tpl is not None else p.tr_atten_tpl.Copy())
+        params.name = 'attend_to_encoder'
+        params.source_dim = p.source_dim
+        # Packed input is not supported.
+        params.packed_input = False
+        self.CreateChild('attend_to_encoder', params)
+
+      # Initialize branched convolutional layers.
+      params = p.branched_convs_tpl.Copy()
+      params.name = 'branched_convs'
+      params.input_dim = p.source_dim
+      self.CreateChild('branched_convs', params)
+
+      # Initialize transformer layer.
+      params = p.transformer_tpl.Copy()
+      params.name = 'transformer_layer'
+      params.source_dim = p.source_dim
+      params.output_dim = p.source_dim
+      params.tr_fflayer_tpl.hidden_dim = 4 * p.source_dim
+      params.tr_aux_atten_tpl = p.tr_aux_atten_tpl
+      params.has_aux_atten = p.has_aux_atten
+      params.mask_self_atten = p.mask_self_atten
+      params.tr_fflayer_tpl.activation = 'SWISH'
+      # Packed input is not supported.
+      params.packed_input = False
+      self.CreateChild('transformer_layer', params)
+
+  def FProp(self,
+            theta,
+            source_vecs,
+            source_paddings,
+            aux_vecs=None,
+            aux_paddings=None,
+            source_segment_id=None,
+            aux_segment_id=None):
+    p = self.params
+
+    if p.has_aux_atten:
+      assert aux_vecs is not None
+      assert aux_paddings is not None
+
+    with tf.name_scope('self_atten_double_heads'):
+      left_branch, _ = self.self_atten_double_heads.FProp(
+          theta.self_atten_double_heads,
+          source_vecs,
+          source_paddings,
+          query_segment_id=source_segment_id)
+
+    if p.has_aux_atten:
+      with tf.name_scope('attend_to_encoder'):
+        right_branch, _ = self.attend_to_encoder.FProp(
+            theta.attend_to_encoder, source_vecs, aux_paddings, aux_vecs,
+            source_segment_id, aux_segment_id)
+
+      hidden_state = left_branch + right_branch + source_vecs
+    else:
+      hidden_state = left_branch + source_vecs
+
+    hidden_state = self.branched_convs.FProp(theta.branched_convs, hidden_state,
+                                             source_paddings)
+
+    hidden_state, atten_prob = self.transformer_layer.FProp(
+        theta.transformer_layer, hidden_state, source_paddings, aux_vecs,
+        aux_paddings, source_segment_id, aux_segment_id)
+
+    return hidden_state, atten_prob
+
+  def ExtendStep(self,
+                 theta,
+                 source_vecs,
+                 prefix_states,
+                 aux_vecs=None,
+                 aux_paddings=None,
+                 t=None):
+    """Evolved Transformer decoder layer, extended one step in decoding.
+
+    This function is expected to be called during fast decoding of Evolved
+    Transformer models.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      source_vecs: [source_batch, dim].
+      prefix_states: dict, containing tensors which are the results of previous
+        attentions, used for fast decoding.
+      aux_vecs: [aux_time, aux_batch, dim]
+      aux_paddings: [aux_time, aux_batch]
+      t: a scalar, the current time step, 0-based.
+
+    Returns:
+      The attention context vector, [target_batch, source_dim].
+
+      The attention probability vector, [source_time, target_batch].
+
+      Updated prefix states.
+    """
+    p = self.params
+
+    if p.has_aux_atten:
+      assert aux_vecs is not None
+      assert aux_paddings is not None
+
+    inputs = tf.expand_dims(source_vecs, axis=0)
+    new_states = prefix_states
+
+    double_head_attention_states = prefix_states.double_head_attention_states
+    # First the self-attention layer.
+    (left_branch, _,
+     double_head_attention_states) = self.self_atten_double_heads.ExtendStep(
+         theta.self_atten_double_heads, source_vecs,
+         double_head_attention_states, t)
+    new_states.double_head_attention_states = double_head_attention_states
+    left_branch = tf.expand_dims(left_branch, axis=0)
+
+    hidden_state = left_branch + inputs
+
+    # Next the source attention layer.
+    if p.has_aux_atten:
+      hidden_state += self.attend_to_encoder.FProp(
+          theta.attend_to_encoder, inputs, aux_paddings, aux_vecs)[0]
+
+    branched_convs_input = prefix_states.branched_convs_input
+    branched_convs_input = tf.concat([branched_convs_input, hidden_state],
+                                     axis=0)
+    new_states.branched_convs_input = branched_convs_input
+    # The receptive field of the branched convs is 17 and so we do not need
+    # to consider inputs that come before that to compute the final position.
+    # TODO(davidso): Create an ExtendStep method for branched_convs to make this
+    # more efficient.
+    inputs_length = tf.minimum(tf.shape(branched_convs_input)[0], 17)
+    branched_convs_input = branched_convs_input[-inputs_length:, :, :]
+    hidden_state = self.branched_convs.FProp(theta.branched_convs,
+                                             branched_convs_input, None)
+
+    transformer_layer_input = tf.squeeze(hidden_state[-1, :, :])
+    transformer_layer_states = prefix_states.transformer_layer_states
+    (hidden_state, atten_prob,
+     transformer_layer_states) = self.transformer_layer.ExtendStep(
+         theta.transformer_layer,
+         transformer_layer_input,
+         transformer_layer_states,
+         aux_vecs=aux_vecs,
+         aux_paddings=aux_paddings,
+         t=t)
+
+    new_states.transformer_layer_states = transformer_layer_states
+
+    return hidden_state, atten_prob, new_states
 
 
 class MergerLayer(base_layer.BaseLayer):

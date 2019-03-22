@@ -484,7 +484,6 @@ class LayersWithAttentionTest(tf.test.TestCase):
       p.source_dim = depth
       p.has_aux_atten = True
       p.mask_self_atten = True
-      p.tr_fflayer_tpl.hidden_dim = 7
       p.tr_atten_tpl.num_attention_heads = 2
       transformer = layers_with_attention.TransformerLayer(p)
 
@@ -598,7 +597,6 @@ class LayersWithAttentionTest(tf.test.TestCase):
       p = layers_with_attention.EvolvedTransformerEncoderLayer.Params()
       p.name = 'evolved_transformer_encoder'
       p.source_dim = depth
-      p.transformer_tpl.tr_fflayer_tpl.hidden_dim = 7
       p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
       transformer = layers_with_attention.EvolvedTransformerEncoderLayer(p)
 
@@ -618,31 +616,149 @@ class LayersWithAttentionTest(tf.test.TestCase):
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_layer_output = [
-          [[ 0.32970679,  0.07163108,  2.27543545, -1.23836803],
-           [-1.1963284 , -1.68216836,  0.8141135 ,  1.22242999]],
-          [[ 0.33281779,  0.18915993,  2.21856713, -1.24962616],
-           [-0.39842927,  0.61820436,  0.13190651, -0.27921003]],
-          [[ 2.01548862,  0.57699746, -0.19467634, -1.54167116],
-           [-1.4074955 ,  0.02095264, -0.84756052,  0.59144902]],
-          [[-0.70480233, -0.51531404,  2.22327709, -0.4005008 ],
-           [ 0.78482121, -1.17252493, -1.61011922,  0.16484746]],
-          [[ 0.13012397,  0.5342291 ,  1.05864811, -0.61784816],
-           [-1.50333738, -0.31062198, -0.83974272,  1.92515945]]]
+          [[-1.66072488, -0.68993098,  2.21474361, -1.19416285],
+           [-1.19632852, -1.68216848,  0.81411338,  1.22243011]],
+          [[-1.63495326, -0.59461731,  2.21768641, -1.27701926],
+           [-1.21189928,  0.10466897, -0.2177283 ,  0.55320591]],
+          [[ 2.01548862,  0.57699752, -0.19467634, -1.54167104],
+           [-0.7504791 , -0.24882942, -1.03441   ,  1.34467971]],
+          [[-0.70480233, -0.51531398,  2.22327709, -0.40050077],
+           [ 1.80162501, -1.46674573, -1.71554327,  0.16294499]],
+          [[-1.31785309,  0.02877033,  0.77593923,  0.23810911],
+           [-1.5033375 , -0.3106221 , -0.83974278,  1.92515957]]]
       expected_prob_output = [
-          [[ 0.25908554,  0.25745448,  0.        ,  0.        ,  0.48345995],
-           [ 0.        ,  0.24002701,  0.24501088,  0.51496214,  0.        ]],
-          [[ 0.26010522,  0.2584973 ,  0.        ,  0.        ,  0.48139751],
-           [ 0.        ,  0.25460896,  0.42372373,  0.32166731,  0.        ]],
-          [[ 0.3834559 ,  0.3857061 ,  0.        ,  0.        ,  0.23083803],
-           [ 0.        ,  0.18320519,  0.39236432,  0.42443043,  0.        ]],
-          [[ 0.30031767,  0.29874057,  0.        ,  0.        ,  0.40094173],
-           [ 0.        ,  0.45309052,  0.30999154,  0.23691788,  0.        ]],
+          [[ 0.25908554,  0.25745451,  0.        ,  0.        ,  0.48345995],
+           [ 0.        ,  0.24002703,  0.24501085,  0.51496214,  0.        ]],
+          [[ 0.26010525,  0.2584973 ,  0.        ,  0.        ,  0.48139751],
+           [ 0.        ,  0.25460899,  0.4237237 ,  0.32166725,  0.        ]],
+          [[ 0.3834559 ,  0.38570607,  0.        ,  0.        ,  0.23083803],
+           [ 0.        ,  0.18320528,  0.39236429,  0.42443043,  0.        ]],
+          [[ 0.30031765,  0.29874057,  0.        ,  0.        ,  0.40094173],
+           [ 0.        ,  0.45309049,  0.3099916 ,  0.23691791,  0.        ]],
           [[ 0.18247566,  0.18200508,  0.        ,  0.        ,  0.63551933],
-           [ 0.        ,  0.16233803,  0.33563358,  0.50202835,  0.        ]]]
+           [ 0.        ,  0.16233809,  0.33563358,  0.50202835,  0.        ]]]
       # pyformat: enable
       # pylint: enable=bad-whitespace
       self.assertAllClose(expected_layer_output, actual_layer_output)
       self.assertAllClose(expected_prob_output, actual_prob_output)
+
+  def testEvolvedTransformerDecoderLayerConstruction(self):
+    p = layers_with_attention.EvolvedTransformerDecoderLayer.Params()
+    p.name = 'evolved_transformer_decoder'
+    p.source_dim = 16
+    p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+    p.has_aux_atten = True
+    p.mask_self_atten = True
+    _ = layers_with_attention.EvolvedTransformerDecoderLayer(p)
+
+  def testEvolvedTransformerDecoderLayerFProp(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.EvolvedTransformerDecoderLayer.Params()
+      p.name = 'evolved_transformer_decoder'
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+      p.tr_double_heads_atten_tpl.num_attention_heads = 2
+      p.tr_atten_tpl.num_attention_heads = 2
+      p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+      transformer = layers_with_attention.EvolvedTransformerDecoderLayer(p)
+
+      (source_vecs, source_padding, aux_vecs,
+       aux_paddings) = self._testTransformerAttentionLayerInputs(depth=depth)
+
+      h, probs = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings)
+
+      tf.global_variables_initializer().run()
+      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      tf.logging.info(np.array_repr(actual_layer_output))
+      tf.logging.info(np.array_repr(actual_prob_output))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_layer_output = [
+          [[-2.15843987,  0.54941475,  1.01636434,  0.13751736],
+           [-1.31648636, -0.9490751 ,  0.87473369,  0.5825901 ]],
+          [[-0.48339468,  2.73935509, -0.7249794 ,  0.38313258],
+           [-1.10127831, -1.39807224,  0.34523556,  0.42135555]],
+          [[ 0.55578727,  0.45714682, -0.5104562 , -1.37361968],
+           [-1.25782788, -1.21873033,  0.93250239,  0.03656423]],
+          [[-1.52875996, -0.97135425,  1.28484297,  0.32869172],
+           [ 0.20500244,  2.30189896,  0.24345911, -0.75997925]],
+          [[-1.27760804, -1.51032686,  0.2560831 ,  0.66362542],
+           [-1.63565814, -0.27384362, -0.42035246,  1.58936501]]]
+      expected_prob_output = [
+          [[ 0.28604817, 0., 0.24327257, 0., 0.26117378, 0., 0.20950545],
+           [ 0., 0.26642066, 0., 0.38120884, 0., 0.3523705 , 0.]],
+          [[ 0.24503553, 0., 0.24042624, 0., 0.2301898, 0., 0.28434837],
+           [ 0., 0.27049744, 0., 0.36453664, 0., 0.36496598, 0.]],
+          [[ 0.25672671, 0., 0.2508592, 0., 0.25038037, 0., 0.24203378],
+           [ 0., 0.27020746, 0., 0.38153058, 0., 0.34826195, 0.]],
+          [[ 0.27227223, 0., 0.25547835, 0., 0.27728963, 0., 0.19495982],
+           [ 0., 0.34053475, 0., 0.35592028, 0., 0.30354494, 0.]],
+          [[ 0.23994856, 0., 0.25427216, 0., 0.26202756, 0., 0.24375173],
+           [ 0., 0.30927902, 0., 0.32368731, 0., 0.36703369, 0.]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_layer_output, actual_layer_output)
+      self.assertAllClose(expected_prob_output, actual_prob_output)
+
+  def testEvolvedTransformerDecoderLayerExtendStep(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.EvolvedTransformerDecoderLayer.Params()
+      p.name = 'evolved_transformer_decoder'
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+      p.tr_double_heads_atten_tpl.num_attention_heads = 2
+      p.tr_atten_tpl.num_attention_heads = 2
+      p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+      et_decoder = layers_with_attention.EvolvedTransformerDecoderLayer(p)
+
+      (source_vecs, _, aux_vecs,
+       aux_paddings) = self._testTransformerAttentionLayerInputs(depth=depth)
+      source_padding = tf.zeros([5, 2])
+
+      h1, probs1 = et_decoder.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings)
+
+      h2 = []
+      probs2 = []
+
+      double_head_attention_states = py_utils.NestedMap(
+          key=tf.zeros([0, 2, 4]), value=tf.zeros([0, 2, 4]))
+      transformer_layer_states = py_utils.NestedMap(
+          key=tf.zeros([0, 2, 4]), value=tf.zeros([0, 2, 4]))
+      branched_convs_input = tf.zeros([0, 2, 4])
+
+      prefix_states = py_utils.NestedMap(
+          double_head_attention_states=double_head_attention_states,
+          transformer_layer_states=transformer_layer_states,
+          branched_convs_input=branched_convs_input)
+
+      for i in range(5):
+        h, probs, prefix_states = et_decoder.ExtendStep(
+            et_decoder.theta, source_vecs[i, :, :], prefix_states, aux_vecs,
+            aux_paddings)
+        h2.append(h)
+        probs2.append(probs)
+
+      h2 = tf.stack(h2)
+      probs2 = tf.concat(probs2, 0)
+
+      tf.global_variables_initializer().run()
+      h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
+      self.assertAllClose(h1_v, h2_v)
+      self.assertAllClose(probs1_v, probs2_v)
 
   def testMergerLayerMean(self):
     with self.session(use_gpu=True) as sess:
