@@ -294,11 +294,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       raise ValueError('min_prob_step (%d) <= prob_decay_start_step (%d)' %
                        (p.min_prob_step, p.prob_decay_start_step))
 
-    if p.random_seed:
-      self._prng_seed = p.random_seed
-    else:
-      self._prng_seed = py_utils.GenerateSeedFromName(p.name)
-
     self._font_properties = font_manager.FontProperties(
         fname=p.attention_plot_font_properties)
 
@@ -366,28 +361,21 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     additional_context_dim = self.contextualizer.GetContextDim()
     return audio_context_dim + additional_context_dim
 
-  def _ApplyDropout(self,
-                    x_in,
-                    deterministic=False,
-                    extra_seed=None,
-                    step_state=None):
+  def _ApplyDropout(self, x_in, deterministic=False, extra_seed=None):
     p = self.params
     assert 0 <= p.dropout_prob and p.dropout_prob < 1.0
     if p.is_eval or p.dropout_prob == 0.0:
       return x_in
 
-    seed = self._prng_seed
-    if extra_seed:
-      seed += extra_seed
     if deterministic:
-      assert isinstance(step_state, py_utils.NestedMap)
-      assert 'global_step' in step_state, step_state.DebugString()
-      assert 'time_step' in step_state, step_state.DebugString()
-      seeds = seed + tf.stack([step_state.global_step, step_state.time_step])
+      seeds = py_utils.GenerateStepSeedPair(p)
+      if extra_seed:
+        seeds += extra_seed
       return py_utils.DeterministicDropout(x_in, 1.0 - p.dropout_prob, seeds)
     else:
-      if not p.random_seed:
-        seed = None
+      seed = p.random_seed
+      if seed and extra_seed:
+        seed += extra_seed
       return tf.nn.dropout(x_in, 1.0 - p.dropout_prob, seed=seed)
 
   def _InitAttention(self, theta, encoder_outputs):
@@ -408,7 +396,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                     per_step_source_padding=None):
     """Returns initial state of RNNs, and attention."""
     p = self.params
-    step_state = misc_zero_states.step_state
     rnn_states = []
     for i in range(p.rnn_layers):
       rnn_states.append(self.rnn_cell[i].zero_state(bs))
@@ -423,7 +410,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
             tf.zeros([bs, p.rnn_cell_dim], dtype=py_utils.FPropDtype(p)),
             zero_atten_state,
             per_step_source_padding=per_step_source_padding,
-            step_state=step_state))
+            global_step=misc_zero_states.step_state.global_step))
     atten_context = self.contextualizer.ZeroAttention(
         theta.contextualizer, bs, misc_zero_states, atten_context, packed_src)
 
@@ -1049,6 +1036,12 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
       def RnnStep(recurrent_theta, state0, inputs):
         """Computes one rnn step."""
+        graph = tf.get_default_graph()
+        if not graph.get_collection(tf.GraphKeys.GLOBAL_STEP):
+          graph.add_to_collection(tf.GraphKeys.GLOBAL_STEP,
+                                  state0.misc_states.step_state.global_step)
+        # Set step_seed with the value propagated through the recurrent state.
+        py_utils.ResetStepSeed(state0.misc_states.step_state.step_seed)
         with tf.name_scope('single_decode_step'):
           step_outs, state1 = self.SingleDecodeStep(
               recurrent_theta.theta,
@@ -1069,7 +1062,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
           accumulated_states.misc_states.step_state.global_step,
           name='accumulated_global_steps')
       tf.identity(
-          accumulated_states.misc_states.step_state.time_step,
+          accumulated_states.misc_states.step_state.step_seed,
           name='accumulated_time_steps')
 
       if not p.softmax_uses_attention:
@@ -1177,7 +1170,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     misc_zero_state = py_utils.NestedMap(
         step_state=py_utils.NestedMap(
             global_step=py_utils.GetOrCreateGlobalStep(),
-            time_step=tf.constant(0, dtype=tf.int64)))
+            step_seed=py_utils.GetStepSeed()))
     p = self.params
     if self._max_label_prob > 0:
       misc_zero_state.prev_predicted_ids = tf.reshape(target_ids[:, 0], [bs])
@@ -1255,8 +1248,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         # pred_ids: [bs]
         pred_ids = tf.reshape(tf.to_int32(log_prob_sample), [bs])
         decoder_step_state.misc_states.prev_predicted_ids = pred_ids
-
-    decoder_step_state.misc_states.step_state.time_step += 1
+    # Retrieve the value of step_seed to pass onto the next iteration.
+    # The step_seed can have increased via calls to GenerateStepSeedPair().
+    decoder_step_state.misc_states.step_state.step_seed = py_utils.GetStepSeed()
     return decoder_step_state
 
 
@@ -1306,7 +1300,7 @@ class AsrDecoder(AsrDecoderBase):
         Varies with the type of attention, but is usually a Tensor or a
         NestedMap of Tensors of shape [batch_size, <state_dim>].
       per_step_src_padding: Source sequence padding to apply at this step.
-      step_state: A NestedMap containing 'global_step' and 'time_step'.
+      step_state: A NestedMap containing 'global_step'.
       query_segment_id: a tensor of shape [batch_size].
 
     Returns:
@@ -1323,7 +1317,7 @@ class AsrDecoder(AsrDecoderBase):
         rnn_out,
         attention_state=attention_state,
         per_step_source_padding=per_step_src_padding,
-        step_state=step_state,
+        global_step=step_state.global_step,
         query_segment_id=query_segment_id)
 
   def SingleDecodeStep(self,
@@ -1395,9 +1389,7 @@ class AsrDecoder(AsrDecoderBase):
       new_rnn_out = self._ApplyDropout(
           new_rnn_out,
           deterministic=use_deterministic_random,
-          # Use i * 1000 as extra seed to make dropout at every layer different.
-          extra_seed=i * 1000,
-          step_state=misc_states.step_state)
+          extra_seed=i * 1000)
       if i + 1 >= self.params.residual_start > 0:
         rnn_out += new_rnn_out
       else:

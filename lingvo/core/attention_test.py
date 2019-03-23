@@ -213,11 +213,8 @@ class AttentionTest(tf.test.TestCase):
       self.assertEqual(len(atten.vars.Flatten()), 3)
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
-      step_state = py_utils.NestedMap(
-          global_step=py_utils.GetOrCreateGlobalStep(),
-          time_step=tf.constant(0, dtype=tf.int64))
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
-          atten.theta, query_vec, step_state=step_state)
+          atten.theta, query_vec, global_step=py_utils.GetOrCreateGlobalStep())
 
       self._CheckStaticShapes(
           atten_vec,
@@ -901,12 +898,11 @@ class AttentionTest(tf.test.TestCase):
       atten_state = atten.ZeroAttentionState(2, 6)
       print('atten_state:', atten_state)
 
-      step_state = py_utils.NestedMap(
-          global_step=py_utils.GetOrCreateGlobalStep(),
-          time_step=tf.constant(0, dtype=tf.int64))
-
       atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
-          atten.theta, query_vec, atten_state, step_state=step_state)
+          atten.theta,
+          query_vec,
+          atten_state,
+          global_step=py_utils.GetOrCreateGlobalStep())
 
       tf.global_variables_initializer().run()
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])

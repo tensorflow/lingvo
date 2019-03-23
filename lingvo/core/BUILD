@@ -32,6 +32,7 @@ lingvo_cuda_py_test(
     deps = [
         ":attention",
         ":py_utils",
+        ":quant_utils",
         ":test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.

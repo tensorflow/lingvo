@@ -64,7 +64,7 @@ def SetOverWriteGlobalStep(tensor, graph=None):
     graph.add_to_collection(_OVERWRITE_GLOBAL_STEP_COLLECTION, tensor)
 
 
-def GenerateStepSeedPair(p, op_seed=None):
+def GenerateStepSeedPair(p, unused_global_step=None, op_seed=None):
   """Override py_utils.GenerateStepSeedPair to use GetOverWriteGlobalStep."""
   seed_dtype = tf.int32 if py_utils.use_tpu() else tf.int64
   if p.is_inference and p.random_seed is None:
