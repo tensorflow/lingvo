@@ -1395,13 +1395,13 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     mixed = tf.matmul(tf.concat(inputs.act + [state0.m], 1), theta.wm)
     return mixed
 
-  def _LayerNorm(self, x, scale, bias):
+  def _LayerNormGate(self, theta, gate_name, x):
     """Applies layer normalization on the last dimension of 'x'.
 
     Args:
+      theta: a NestedMap of layer params.
+      gate_name: the name of the gate, e.g., 'i_i', 'f_g', 'c', etc.
       x: activation tensor, where the last dimension represents channels.
-      scale: multiples to the noramlized results
-      bias: additions to the noramlized results for biasing
 
     Returns:
       Layer normalized 'x', with the same shape as the input.
@@ -1411,18 +1411,20 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     centered = x - mean
     variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
     normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+    scale = theta['ln_scale_%s' % gate_name] + 1.0
+    bias = theta['bias_%s' % gate_name]
     return normed * scale + bias
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
     p = self.params
     i_i, i_g, f_g, o_g = tf.split(value=xmw, num_or_size_splits=4, axis=1)
-    i_i = self._LayerNorm(i_i, theta.ln_scale_i_i + 1.0, theta.bias_i_i)
-    i_g = self._LayerNorm(i_g, theta.ln_scale_i_g + 1.0, theta.bias_i_g)
-    f_g = self._LayerNorm(f_g, theta.ln_scale_f_g + 1.0, theta.bias_f_g)
-    o_g = self._LayerNorm(o_g, theta.ln_scale_o_g + 1.0, theta.bias_o_g)
+    i_i = self._LayerNormGate(theta, 'i_i', i_i)
+    i_g = self._LayerNormGate(theta, 'i_g', i_g)
+    f_g = self._LayerNormGate(theta, 'f_g', f_g)
+    o_g = self._LayerNormGate(theta, 'o_g', o_g)
     new_c = tf.sigmoid(f_g) * state0.c + tf.sigmoid(i_g) * tf.tanh(i_i)
-    new_c_normed = self._LayerNorm(new_c, theta.ln_scale_c + 1.0, theta.bias_c)
+    new_c_normed = self._LayerNormGate(theta, 'c', new_c)
     new_m = tf.sigmoid(o_g) * tf.tanh(new_c_normed)
 
     if p.num_hidden_nodes:
