@@ -219,8 +219,7 @@ class RNMTModel(MTBaseModel):
   def BProp(self):
     super(RNMTModel, self).BProp()
 
-    p = self.params
-    if p.add_summary:
+    if self.cluster.add_summary:
       vg = self._var_grads
       # Computes gradients' norm and adds their summaries.
       emb_grads = []

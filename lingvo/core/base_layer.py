@@ -188,9 +188,6 @@ class BaseLayer(object):
         'at the expense of making some kinds of models or utilities '
         'hard/impossible to use. Setting this to True/False (versus None) '
         'causes the setting to apply to this layer and its children.')
-
-    # DEPRECATED params
-    p.Define('add_summary', True, 'DEPRECATED. Moved to Cluster.')
     return p
 
   @staticmethod
