@@ -30,6 +30,81 @@ from lingvo.core.gpipe import FeatureExtractionLayer
 from lingvo.core.gpipe import PipeliningLayer
 
 
+def _common_gpipe_transformer_params(p):
+  """Add GPipe params to layer."""
+  p.Define(
+      'is_transparent', False,
+      'If set, encoder outputs a list of layer outputs while decoder '
+      'expects a list of source input vectors.')
+  p.Define(
+      'num_transparent_outputs', 0,
+      'Number of transparent outputs. Only positive if this is the '
+      'last encoder')
+  p.Define('transparent_merger_tpl', None,
+           'Merger op for layer outputs. Not none if this is the last encoder')
+  return p
+
+
+def _common_gpipe_transformer_init(layer):
+  """Initialize a GPipe layer."""
+  p = layer.params
+  if p.is_transparent and p.num_transparent_outputs > 0:
+    transparent_params = []
+    for i in range(p.num_transparent_outputs):
+      transparent_param = p.transparent_merger_tpl.Copy()
+      transparent_param.name = 'transparent_%d' % i
+      transparent_params.append(transparent_param)
+    layer.CreateChildren('transparent_merger', transparent_params)
+  assert p.name
+
+
+def _common_gpipe_transformer_encoder_fprop(
+    layer, layer_class, theta, source_vecs, source_paddings, target_vecs,
+    target_paddings, source_segment_id, target_segment_id, *more_source_vecs):
+  """GPipe encoder FProp."""
+  p = layer.params
+  h, _ = super(layer_class, layer).FProp(
+      theta, source_vecs, source_paddings, source_segment_id=source_segment_id)
+  h.set_shape(source_vecs.shape)
+  if p.is_transparent:
+    more_source_vecs += (source_vecs,)
+    if p.num_transparent_outputs > 0:  # Merger layer.
+      transformer_output = []
+      for i in range(p.num_transparent_outputs):
+        merged_outputs = layer.transparent_merger[i].FProp(
+            theta.transparent_merger[i], list(more_source_vecs + (h,)))
+        transformer_output.append(merged_outputs)
+      h = transformer_output[0]
+      if p.num_transparent_outputs == 1:
+        more_source_vecs = ()
+      else:
+        more_source_vecs = tuple(transformer_output[1:])
+  return (h, source_paddings, target_vecs, target_paddings, source_segment_id,
+          target_segment_id) + more_source_vecs
+
+
+def _common_gpipe_transformer_fprop_meta(p, inputs, *args):
+  """GPipe FPropMeta function."""
+  # TODO(huangyp): return accurate estimate of flops.
+  py_utils.CheckShapes((inputs,))
+  flops_per_element = 5
+  src_time, source_batch, dim = inputs.as_list()
+  flops = flops_per_element * src_time * src_time * source_batch * dim
+  args = args if isinstance(args, tuple) else (args,)
+  if p.is_transparent:
+    if p.has_aux_atten:  # Decoder FPropMeta
+      args = args[:-1] if len(args) > 5 else args
+    else:
+      if p.num_transparent_outputs == 0:
+        args += (inputs,)
+      elif p.num_transparent_outputs == 1:
+        # Switch back to non-transparent mode for decoder.
+        args = args[:5]
+      else:
+        args += (inputs,) * (p.num_transparent_outputs - len(args) + 4)
+  return py_utils.NestedMap(flops=flops, out_shapes=(inputs,) + args)
+
+
 class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
   """GPipe compatible transformer layer."""
 
@@ -37,31 +112,12 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
   def Params(cls):
     """Configs for TransformerStack."""
     p = super(GPipeTransformerLayer, cls).Params()
-    p.Define(
-        'is_transparent', False,
-        'If set, encoder outputs a list of layer outputs while decoder '
-        'expects a list of source input vectors.')
-    p.Define(
-        'num_transparent_outputs', 0,
-        'Number of transparent outputs. Only positive if this is the '
-        'last encoder')
-    p.Define(
-        'transparent_merger_tpl', None,
-        'Merger op for layer outputs. Not none if this is the last encoder')
-    return p
+    return _common_gpipe_transformer_params(p)
 
   @base_layer.initializer
   def __init__(self, params):
     super(GPipeTransformerLayer, self).__init__(params)
-    p = self.params
-    if p.is_transparent and p.num_transparent_outputs > 0:
-      transparent_params = []
-      for i in range(p.num_transparent_outputs):
-        transparent_param = p.transparent_merger_tpl.Copy()
-        transparent_param.name = 'transparent_%d' % i
-        transparent_params.append(transparent_param)
-      self.CreateChildren('transparent_merger', transparent_params)
-    assert p.name
+    _common_gpipe_transformer_init(self)
 
   def FProp(self, theta, source_vecs, source_paddings, target_vecs,
             target_paddings, source_segment_id, target_segment_id,
@@ -86,48 +142,41 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
         return (source_vecs, source_paddings, h, target_paddings,
                 source_segment_id, target_segment_id) + more_source_vecs
       else:  # Encoder FProp
-        h, _ = super(GPipeTransformerLayer, self).FProp(
-            theta,
-            source_vecs,
-            source_paddings,
-            source_segment_id=source_segment_id)
-        h.set_shape(source_vecs.shape)
-        if p.is_transparent:
-          more_source_vecs += (source_vecs,)
-          if p.num_transparent_outputs > 0:  # Merger layer.
-            transformer_output = []
-            for i in range(p.num_transparent_outputs):
-              merged_outputs = self.transparent_merger[i].FProp(
-                  theta.transparent_merger[i], list(more_source_vecs + (h,)))
-              transformer_output.append(merged_outputs)
-            h = transformer_output[0]
-            if p.num_transparent_outputs == 1:
-              more_source_vecs = ()
-            else:
-              more_source_vecs = tuple(transformer_output[1:])
-        return (h, source_paddings, target_vecs, target_paddings,
-                source_segment_id, target_segment_id) + more_source_vecs
+        return _common_gpipe_transformer_encoder_fprop(
+            self, GPipeTransformerLayer, theta, source_vecs, source_paddings,
+            target_vecs, target_paddings, source_segment_id, target_segment_id,
+            *more_source_vecs)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
-    # TODO(huangyp): return accurate estimate of flops.
-    py_utils.CheckShapes((inputs,))
-    flops_per_element = 5
-    src_time, source_batch, dim = inputs.as_list()
-    flops = flops_per_element * src_time * src_time * source_batch * dim
-    args = args if isinstance(args, tuple) else (args,)
-    if p.is_transparent:
-      if p.has_aux_atten:  # Decoder FPropMeta
-        args = args[:-1] if len(args) > 5 else args
-      else:
-        if p.num_transparent_outputs == 0:
-          args += (inputs,)
-        elif p.num_transparent_outputs == 1:
-          # Switch back to non-transparent mode for decoder.
-          args = args[:5]
-        else:
-          args += (inputs,) * (p.num_transparent_outputs - len(args) + 4)
-    return py_utils.NestedMap(flops=flops, out_shapes=(inputs,) + args)
+    return _common_gpipe_transformer_fprop_meta(p, inputs, *args)
+
+
+class GPipeEvolvedTransformerEncoderLayer(
+    layers_with_attention.EvolvedTransformerEncoderLayer):
+  """GPipe-compatible Evolved Transformer encoder layer."""
+
+  @classmethod
+  def Params(cls):
+    p = super(GPipeEvolvedTransformerEncoderLayer, cls).Params()
+    return _common_gpipe_transformer_params(p)
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(GPipeEvolvedTransformerEncoderLayer, self).__init__(params)
+    _common_gpipe_transformer_init(self)
+
+  def FProp(self, theta, source_vecs, source_paddings, source_segment_id,
+            *more_source_vecs):
+    with tf.name_scope(self.params.name):
+      return _common_gpipe_transformer_encoder_fprop(
+          self, GPipeEvolvedTransformerEncoderLayer, theta, source_vecs,
+          source_paddings, None, None, source_segment_id, None,
+          *more_source_vecs)
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, *args):
+    return _common_gpipe_transformer_fprop_meta(p, inputs, *args)
 
 
 class GPipeTransformerStack(PipeliningLayer):

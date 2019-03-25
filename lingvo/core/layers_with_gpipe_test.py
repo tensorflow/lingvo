@@ -26,11 +26,12 @@ from lingvo.core import py_utils
 from lingvo.core.gpipe import FeatureExtractionLayer
 from lingvo.core.gpipe import PipeliningLayer
 from lingvo.core.layers_with_gpipe import DeterministicDropoutLayer
+from lingvo.core.layers_with_gpipe import GPipeEvolvedTransformerEncoderLayer
 from lingvo.core.layers_with_gpipe import GPipeTransformerLayer
 from lingvo.core.layers_with_gpipe import GPipeTransformerStack
 
 
-class GPipeTransformerLayerTest(tf.test.TestCase):
+class GPipeTransformerLayersTest(tf.test.TestCase):
 
   def _testInputs(self, depth=3, dtype=tf.float32):
     np.random.seed(505837249)
@@ -84,6 +85,49 @@ class GPipeTransformerLayerTest(tf.test.TestCase):
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(h1_v[2][1],
                           [1.10429943, -1.64884555, 0.15726769, -0.00250494])
+
+  def testEvolvedTransformerEncoderLayerConstruction(self):
+    p = GPipeEvolvedTransformerEncoderLayer.Params()
+    p.name = 'gpipe_evolved_transformer_encoder'
+    p.source_dim = 4
+    p.transformer_tpl.tr_fflayer_tpl.hidden_dim = 7
+    p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+    _ = GPipeEvolvedTransformerEncoderLayer(p)
+
+  def testEvolvedTransformerEncoderLayerFProp(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(6348575)
+      depth = 4
+      p = GPipeEvolvedTransformerEncoderLayer.Params()
+      p.name = 'gpipe_evolved_transformer_encoder'
+      p.source_dim = depth
+      p.transformer_tpl.tr_fflayer_tpl.hidden_dim = 7
+      p.transformer_tpl.tr_atten_tpl.num_attention_heads = 2
+      transformer = GPipeEvolvedTransformerEncoderLayer(p)
+
+      (source_vecs, source_padding, _, _) = self._testInputs(depth=depth)
+
+      h = transformer.FPropDefaultTheta(source_vecs, source_padding, None)[0]
+
+      tf.global_variables_initializer().run()
+      actual_layer_output = sess.run([h])[0]
+      tf.logging.info(np.array_repr(actual_layer_output))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_layer_output = [
+          [[-2.03854632, -1.07184005, -0.28417355,  0.17936069],
+           [-0.74067241, -1.48318326,  0.26369774,  0.62173623]],
+          [[-2.12831736, -0.86353737, -0.54453588,  0.13070297],
+           [-0.76326936, -0.04828247, -0.49510449,  1.20852029]],
+          [[ 0.85539216, -1.21577334, -1.28910851, -0.15619087],
+           [-1.45574117, -1.11208296,  0.71455258,  0.91494167]],
+          [[-1.21304905, -1.37239563,  0.7022025 ,  0.16537377],
+           [ 3.07106829,  1.35782909, -0.9944036 , -2.28987551]],
+          [[-0.13129801, -1.70681071, -0.42324018,  1.32114363],
+           [-1.53065133,  0.18422687, -0.93387115,  1.37142754]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_layer_output, actual_layer_output)
 
 
 class GPipeTransformerStackTest(tf.test.TestCase):

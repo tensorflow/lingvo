@@ -654,6 +654,7 @@ py_library(
 
 py_test(
     name = "layers_with_gpipe_test",
+    size = "large",
     srcs = ["layers_with_gpipe_test.py"],
     shard_count = 8,
     deps = [
