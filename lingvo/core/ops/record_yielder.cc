@@ -16,6 +16,7 @@ limitations under the License.
 #include <string>
 #include <unordered_map>
 
+#include "tensorflow/core/lib/core/status.h"
 #include "lingvo/core/ops/record_yielder.h"
 
 #include "tensorflow/core/lib/hash/hash.h"
@@ -35,7 +36,9 @@ namespace {
 
 struct Factory {
   Mutex mu;
-  std::unordered_map<string, RecordIterator::FactoryMethod> methods;
+  std::unordered_map<string, RecordIterator::FactoryMethod> creators;
+  std::unordered_map<string, RecordIterator::PatternParserMethod>
+      pattern_parsers;
 };
 
 Factory* GetFactory() {
@@ -58,13 +61,93 @@ string GetFilePatternPrefix(const string& file_pattern) {
   return file_pattern.substr(0, prefix_end);
 }
 
+// A sharded file pattern looks like /path/name@100, which is expanded to
+// a glob pattern /path/name-?????-of-00100 by this function. The number of
+// shards shouldn't exceed 5 digits.
+Status MaybeExpandShardedFilePattern(const string& file_pattern,
+                                     string* expanded) {
+  const auto pos = file_pattern.find('@');
+  if (pos == string::npos) {  // not a sharded file pattern
+    *expanded = file_pattern;
+    return Status::OK();
+  }
+
+  const string prefix = file_pattern.substr(0, pos);
+  const string suffix = file_pattern.substr(pos + 1);
+
+  uint32 num_shards = 0;
+  if (!strings::safe_strtou32(suffix, &num_shards)) {
+    return errors::InvalidArgument(
+        strings::StrCat("Invalid sharded file pattern: ", file_pattern));
+  }
+  if (num_shards > 99999) {
+    return errors::InvalidArgument(strings::StrCat(
+        "The number of shards should not exceed 5 digits: ", num_shards));
+  }
+
+  *expanded =
+      strings::Printf("%s-\?\?\?\?\?-of-%05d", prefix.c_str(), num_shards);
+  return Status::OK();
+}
+
+// ParallelFilePatterns look like this
+//  <path1>/a-*-of-10;<path2>/b-*-of-10,<path3>/c-*-of-10;<path4>/d-*-of-10
+// Each "," separated pattern is a parallel file pattern.
+// In a given parallel file pattern, all the ";" separated file patterns
+// should have the same number of shards. This method creates ";" separated
+// filenames aligning the shards. e,g. <path1>/a-01-of-10,<path2>/b-01-of-10
+// <path1>/a-02-of-10,<path2>/b-02-of-10
+// <path3>/c-01-of-10,<path2>/d-01-of-10
+// <path3>/c-02-of-10,<path2>/d-02-of-10
+Status MatchParallelFilePattern(const string& parallel_file_pattern,
+                                std::vector<string>* filenames) {
+  std::vector<string> parallel_filenames;
+  for (const auto& file_pattern : str_util::Split(parallel_file_pattern, ';')) {
+    string expanded_file_pattern;
+    TF_RETURN_IF_ERROR(
+        MaybeExpandShardedFilePattern(file_pattern, &expanded_file_pattern));
+    std::vector<string> filenames_per_pattern;
+    TF_RETURN_IF_ERROR(Env::Default()->GetMatchingPaths(
+        expanded_file_pattern, &filenames_per_pattern));
+    if (parallel_filenames.empty()) {
+      parallel_filenames.swap(filenames_per_pattern);
+      continue;
+    }
+    if (parallel_filenames.size() != filenames_per_pattern.size()) {
+      return Status(tensorflow::error::INVALID_ARGUMENT,
+                    "All file patterns in the parallel file pattern do not "
+                    "have the same number of elements.");
+    }
+    for (auto it1 = parallel_filenames.begin(),
+              it2 = filenames_per_pattern.begin();
+         it1 != parallel_filenames.end(); ++it1, ++it2) {
+      strings::StrAppend(&(*it1), ";", *it2);
+    }
+  }
+  filenames->insert(filenames->end(),
+                    std::make_move_iterator(parallel_filenames.begin()),
+                    std::make_move_iterator(parallel_filenames.end()));
+
+  return Status::OK();
+}
+
 }  // end namespace
 
 bool RecordIterator::Register(const string& type_name, FactoryMethod method) {
+  return RegisterWithPatternParser(type_name, std::move(method),
+                                   RecordIterator::PatternParserMethod());
+}
+
+bool RecordIterator::RegisterWithPatternParser(
+    const string& type_name, FactoryMethod method,
+    PatternParserMethod parser_method) {
   Factory* factory = GetFactory();
   MutexLock l(&factory->mu);
-  bool ret = factory->methods.insert({type_name, std::move(method)}).second;
+  bool ret = factory->creators.insert({type_name, std::move(method)}).second;
   CHECK(ret) << "Possibly duplicated registration: " << type_name;
+  if (parser_method) {
+    factory->pattern_parsers.insert({type_name, std::move(parser_method)});
+  }
   return ret;
 }
 
@@ -74,12 +157,37 @@ RecordIterator* RecordIterator::New(const string& type_name,
   RecordIterator::FactoryMethod method;
   {
     MutexLock l(&factory->mu);
-    const auto iter = factory->methods.find(type_name);
-    CHECK(iter != factory->methods.end())
+    const auto iter = factory->creators.find(type_name);
+    CHECK(iter != factory->creators.end())
         << "Unable to create RecordIterator for format \"" << type_name << "\"";
     method = iter->second;
   }
   return method(filename);
+}
+
+Status RecordIterator::ParsePattern(const string& type_name,
+                                    const string& file_pattern_list,
+                                    std::vector<string>* filenames) {
+  Factory* factory = GetFactory();
+  RecordIterator::PatternParserMethod parser_method;
+  {
+    MutexLock l(&factory->mu);
+    const auto iter = factory->pattern_parsers.find(type_name);
+    if (iter != factory->pattern_parsers.end()) {
+      parser_method = iter->second;
+    }
+  }
+  if (parser_method) {
+    return parser_method(file_pattern_list, filenames);
+  }
+  for (const auto& file_pattern : str_util::Split(file_pattern_list, ',')) {
+    std::vector<string> files_per_glob;
+    TF_RETURN_IF_ERROR(
+        MatchParallelFilePattern(file_pattern, &files_per_glob));
+    filenames->insert(filenames->end(), files_per_glob.begin(),
+                      files_per_glob.end());
+  }
+  return Status::OK();
 }
 
 RandomAccessFile* OpenOrDie(const string& filename) {
@@ -222,7 +330,8 @@ void BasicRecordYielder::MainLoop() {
 
     // Finds all files.
     std::vector<string> filenames;
-    Status s = MatchFiles(opts_.file_pattern, &filenames);
+    Status s = RecordIterator::ParsePattern(file_type_, opts_.file_pattern,
+                                            &filenames);
     if (ShouldFinish(s)) break;
 
     if (filenames.empty()) {
@@ -288,88 +397,6 @@ bool BasicRecordYielder::Add(std::vector<Rope>* values) {
   return stop_;
 }
 
-// A sharded file pattern looks like /path/name@100, which is expanded to
-// a glob pattern /path/name-?????-of-00100 by this function. The number of
-// shards shouldn't exceed 5 digits.
-Status MaybeExpandShardedFilePattern(const string& file_pattern,
-                                     string* expanded) {
-  const auto pos = file_pattern.find('@');
-  if (pos == string::npos) {  // not a sharded file pattern
-    *expanded = file_pattern;
-    return Status::OK();
-  }
-
-  const string prefix = file_pattern.substr(0, pos);
-  const string suffix = file_pattern.substr(pos + 1);
-
-  uint32 num_shards = 0;
-  if (!strings::safe_strtou32(suffix, &num_shards)) {
-    return errors::InvalidArgument(
-        strings::StrCat("Invalid sharded file pattern: ", file_pattern));
-  }
-  if (num_shards > 99999) {
-    return errors::InvalidArgument(strings::StrCat(
-        "The number of shards should not exceed 5 digits: ", num_shards));
-  }
-
-  *expanded =
-      strings::Printf("%s-\?\?\?\?\?-of-%05d", prefix.c_str(), num_shards);
-  return Status::OK();
-}
-
-// ParallelFilePatterns look like this
-//  <path1>/a-*-of-10;<path2>/b-*-of-10,<path3>/c-*-of-10;<path4>/d-*-of-10
-// Each "," separated pattern is a parallel file pattern.
-// In a given parallel file pattern, all the ";" separated file patterns should
-// have the same number of shards.
-// This method creates ";" separated filenames aligning the shards.
-// e,g.
-// <path1>/a-01-of-10,<path2>/b-01-of-10
-// <path1>/a-02-of-10,<path2>/b-02-of-10
-// <path3>/c-01-of-10,<path2>/d-01-of-10
-// <path3>/c-02-of-10,<path2>/d-02-of-10
-Status MatchParallelFilePattern(const string& parallel_file_pattern,
-                                std::vector<string>* filenames) {
-  std::vector<string> parallel_filenames;
-  for (const auto& file_pattern : str_util::Split(parallel_file_pattern, ';')) {
-    string expanded_file_pattern;
-    TF_RETURN_IF_ERROR(
-        MaybeExpandShardedFilePattern(file_pattern, &expanded_file_pattern));
-    std::vector<string> filenames_per_pattern;
-    TF_RETURN_IF_ERROR(Env::Default()->GetMatchingPaths(
-        expanded_file_pattern, &filenames_per_pattern));
-    if (parallel_filenames.empty()) {
-      parallel_filenames.swap(filenames_per_pattern);
-      continue;
-    }
-    if (parallel_filenames.size() != filenames_per_pattern.size()) {
-      return Status(tensorflow::error::INVALID_ARGUMENT,
-                    "All file patterns in the parallel file pattern do not "
-                    "have the same number of elements.");
-    }
-    for (auto it1 = parallel_filenames.begin(),
-              it2 = filenames_per_pattern.begin();
-         it1 != parallel_filenames.end(); ++it1, ++it2) {
-      strings::StrAppend(&(*it1), ";", *it2);
-    }
-  }
-  filenames->insert(filenames->end(),
-                    std::make_move_iterator(parallel_filenames.begin()),
-                    std::make_move_iterator(parallel_filenames.end()));
-
-  return Status::OK();
-}
-
-Status BasicRecordYielder::MatchFiles(const string& patterns,
-                                      std::vector<string>* filenames) {
-  for (const auto& file_pattern : str_util::Split(patterns, ',')) {
-    std::vector<string> files_per_glob;
-    TF_RETURN_IF_ERROR(MatchParallelFilePattern(file_pattern, &files_per_glob));
-    filenames->insert(filenames->end(), files_per_glob.begin(),
-                      files_per_glob.end());
-  }
-  return Status::OK();
-}
 
 void BasicRecordYielder::ShardLoop(Shard* shard) {
   std::vector<Rope> values;

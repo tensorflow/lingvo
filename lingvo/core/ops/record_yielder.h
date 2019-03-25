@@ -48,8 +48,21 @@ class RecordIterator {
   typedef std::function<RecordIterator*(const string&)> FactoryMethod;
   static bool Register(const string& type_name, FactoryMethod method);
 
+  // As above, but also register a custom method for parsing file_pattern
+  // strings into lists of shards.
+  typedef std::function<Status(const string&, std::vector<std::string>*)>
+      PatternParserMethod;
+  static bool RegisterWithPatternParser(const string& type_name,
+                                        FactoryMethod method,
+                                        PatternParserMethod parser_method);
+
   // Returns a record iterator for 'filename' of 'type_name'.
   static RecordIterator* New(const string& type_name, const string& filename);
+
+  // Parse a file pattern into a list of matching files.
+  static Status ParsePattern(const string& type_name,
+                             const string& file_pattern_list,
+                             std::vector<string>* filenames);
 };
 
 // RecordYielder defines an interface that should be used for producing value
@@ -143,7 +156,6 @@ class BasicRecordYielder : public RecordYielder {
     Status status;                  // Shard status.
   };
   void ShardLoop(Shard* shard);
-  Status MatchFiles(const string& patterns, std::vector<string>* filenames);
 
   // Returns true iff 's' indicates the yielder should stop.
   bool ShouldFinish(const Status& s);

@@ -19,6 +19,7 @@ limitations under the License.
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_writer.h"
+#include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/env.h"
 #include "lingvo/core/ops/input_common.h"
@@ -267,6 +268,46 @@ TEST(RecordYielder, MatchShardedFilePattern) {
   TF_CHECK_OK(yielder->Yield(&v));
   // End of the 2st epoch | start of the 3nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
+  yielder->Close();
+}
+
+namespace {
+
+class FakeIterator : public RecordIterator {
+ public:
+  FakeIterator(const string& pattern) : RecordIterator(), pattern_(pattern) {}
+  bool Next(string* key, Rope* value) {
+    if (pattern_.empty()) return false;
+    *key = pattern_;
+    *value = pattern_;
+    pattern_ = "";
+    return true;
+  }
+
+ private:
+  std::string pattern_;
+};
+
+bool register_fake_iterator = RecordIterator::RegisterWithPatternParser(
+    "fakeiter", [](const string& pattern) { return new FakeIterator(pattern); },
+    [](const string& file_pattern, std::vector<std::string>* shards) {
+      shards->push_back(file_pattern);
+      return Status::OK();
+    });
+
+}  // namespace
+
+TEST(RecordYielder, RegisterFakeIterator) {
+  ASSERT_TRUE(register_fake_iterator);
+  BasicRecordYielder::Options options;
+  options.file_pattern = "fakeiter:hello1";
+  BasicRecordYielder* yielder = BasicRecordYielder::New(options);
+  EXPECT_TRUE(yielder != nullptr);
+  Rope value;
+  EXPECT_TRUE(yielder->Yield(&value).ok());
+  EXPECT_EQ("hello1", value.ToString());
+  EXPECT_TRUE(yielder->Yield(&value).ok());
+  EXPECT_EQ("hello1", value.ToString());
   yielder->Close();
 }
 
