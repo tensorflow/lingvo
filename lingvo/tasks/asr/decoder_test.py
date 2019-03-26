@@ -44,9 +44,10 @@ class DecoderTest(tf.test.TestCase):
                      num_rnn_layers=1):
     """Create a small decoder for testing."""
     p = decoder.AsrDecoder.Params()
+    p.random_seed = 12345
 
     p.name = 'decoder'
-    uniform_init = py_utils.WeightInit.Uniform(0.1)
+    uniform_init = py_utils.WeightInit.Uniform(0.1, seed=12345)
 
     # Set up embedding params.
     p.emb.vocab_size = num_classes
@@ -240,7 +241,7 @@ class DecoderTest(tf.test.TestCase):
 
   def testDecoderFPropDeterministicAttentionDropout(self):
     """Verify that attention dropout is deterministic given fixed seeds."""
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       tf.set_random_seed(8372749040)
       p = self._DecoderParams(
           py_utils.VariationalNoiseParams(None, True, False, seed=1792))
@@ -259,11 +260,11 @@ class DecoderTest(tf.test.TestCase):
           ]))
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
-      self.assertAllClose([3.473008, 15.0], loss_val)
-      self.assertAllClose([13.563036, 10.053869, 10.362661, 18.115553],
+      self.assertAllClose([3.567466, 15.0], loss_val)
+      self.assertAllClose([13.762117, 10.278571, 10.660231, 18.811079],
                           per_sequence_loss_val)
       self.assertAllEqual([0, 0, 0, 0, 0], global_steps_val)
-      self.assertAllEqual([1, 2, 3, 4, 5], time_steps_val)
+      self.assertAllEqual([2, 3, 4, 5, 6], time_steps_val)
 
       # Run another step to test global_step and time_step are incremented
       # correctly.
@@ -275,11 +276,11 @@ class DecoderTest(tf.test.TestCase):
           ]))
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
-      self.assertAllClose([3.567736, 15.0], loss_val)
-      self.assertAllClose([14.730419, 10.176270, 10.73501, 17.87434578],
+      self.assertAllClose([3.56244, 15.0], loss_val)
+      self.assertAllClose([14.180107, 10.391582, 10.460568, 18.40435],
                           per_sequence_loss_val)
       self.assertAllEqual([1, 1, 1, 1, 1], global_steps_val)
-      self.assertAllEqual([1, 2, 3, 4, 5], time_steps_val)
+      self.assertAllEqual([2, 3, 4, 5, 6], time_steps_val)
 
   def testLabelSmoothing(self):
     """Verify that loss computation with label smoothing is as expected.."""
@@ -296,35 +297,35 @@ class DecoderTest(tf.test.TestCase):
       loss_val = sess.run(loss[0])
 
       print('loss = ', loss_val)
-      self.assertAllClose(loss_val, 3.449249)
+      test_utils.CompareToGoldenSingleFloat(self, 3.471763, loss_val)
 
   def testDecoderFPropFloatNoInline(self):
     actual_value = self._testDecoderFPropFloatHelper(func_inline=False)
-    test_utils.CompareToGoldenSingleFloat(self, 3.512219, actual_value)
+    test_utils.CompareToGoldenSingleFloat(self, 3.458980, actual_value)
 
   def testDecoderFPropFloatNoInlinePadTargetsToLongerLength(self):
     actual_value = self._testDecoderFPropFloatHelper(
         func_inline=False, target_seq_len=10)
-    test_utils.CompareToGoldenSingleFloat(self, 3.512219, actual_value)
+    test_utils.CompareToGoldenSingleFloat(self, 3.458980, actual_value)
 
   def testDecoderFPropFloatInline(self):
     actual_value = self._testDecoderFPropFloatHelper(func_inline=True)
-    test_utils.CompareToGoldenSingleFloat(self, 3.512219, actual_value)
+    test_utils.CompareToGoldenSingleFloat(self, 3.458980, actual_value)
 
   def testDecoderFPropFloatNoInline2Layers(self):
     actual_value = self._testDecoderFPropFloatHelper(
         func_inline=False, num_decoder_layers=2)
-    test_utils.CompareToGoldenSingleFloat(self, 3.512603, actual_value)
+    test_utils.CompareToGoldenSingleFloat(self, 3.457761, actual_value)
 
   def testDecoderFPropFloatInline2Layers(self):
     actual_value = self._testDecoderFPropFloatHelper(
         func_inline=True, num_decoder_layers=2)
-    test_utils.CompareToGoldenSingleFloat(self, 3.512603, actual_value)
+    test_utils.CompareToGoldenSingleFloat(self, 3.457761, actual_value)
 
   def testDecoderFPropFloat2LayersResidual(self):
     actual_value = self._testDecoderFPropFloatHelper(
         num_decoder_layers=2, residual_start=2)
-    test_utils.CompareToGoldenSingleFloat(self, 3.513235, actual_value)
+    test_utils.CompareToGoldenSingleFloat(self, 3.458294, actual_value)
 
   def testDecoderFPropDouble(self):
     with self.session(use_gpu=False):
@@ -370,9 +371,9 @@ class DecoderTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
 
-      test_utils.CompareToGoldenSingleFloat(self, 3.483581, loss.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 3.467679, loss.eval())
       # Second run to make sure the function is determistic.
-      test_utils.CompareToGoldenSingleFloat(self, 3.483581, loss.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 3.467679, loss.eval())
 
   def _testDecoderFPropGradientCheckerHelper(self, func_inline=False):
     config = tf.ConfigProto(
@@ -433,9 +434,9 @@ class DecoderTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
 
-      test_utils.CompareToGoldenSingleFloat(self, 3.493656, loss.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 3.458078, loss.eval())
       # Second run to make sure the function is determistic.
-      test_utils.CompareToGoldenSingleFloat(self, 3.493656, loss.eval())
+      test_utils.CompareToGoldenSingleFloat(self, 3.458078, loss.eval())
 
       symbolic_grads = [x.eval() for x in dense_grads if x is not None]
       numerical_grads = []
@@ -516,30 +517,30 @@ class DecoderTest(tf.test.TestCase):
 
     expected_str = """
       beam_id: 1
-      ids: 4
+      ids: 0
       ids: 6
       ids: 2
-      scores: -1.99632573128
-      scores: -1.99929893017
-      scores: -1.95849049091
+      scores: -2.021608
+      scores: -2.000098
+      scores: -2.036338
       atten_vecs {
-        prob: 0.332584857941
-        prob: 0.333580821753
-        prob: 0.333834320307
+        prob: 0.330158
+        prob: 0.342596
+        prob: 0.327246
         prob: 0.0
         prob: 0.0
       }
       atten_vecs {
-        prob: 0.33258497715
-        prob: 0.333580613136
-        prob: 0.333834379911
+        prob: 0.330158
+        prob: 0.342597
+        prob: 0.327245
         prob: 0.0
         prob: 0.0
       }
       atten_vecs {
-        prob: 0.332585155964
-        prob: 0.333580434322
-        prob: 0.333834439516
+        prob: 0.330158
+        prob: 0.342597
+        prob: 0.327245
         prob: 0.0
         prob: 0.0
       }
@@ -588,11 +589,11 @@ class DecoderTest(tf.test.TestCase):
       # pylint: disable=bad-whitespace,bad-continuation
       expected_ids = [[6, 2, 2, 2, 2],
                       [0, 0, 7, 5, 1],
-                      [6, 1, 5, 2, 2],
-                      [6, 7, 7, 4, 5]]
+                      [6, 1, 5, 1, 5],
+                      [6, 7, 7, 4, 4]]
       # pylint: enable=bad-whitespace,bad-continuation
       # pyformat: enable
-      expected_lens = [2, 5, 4, 5]
+      expected_lens = [2, 5, 5, 5]
       self.assertAllEqual(expected_lens, lens)
       self.assertAllEqual(expected_ids, decoder_output.ids)
 

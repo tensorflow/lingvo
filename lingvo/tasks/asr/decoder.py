@@ -425,6 +425,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     misc_zero_states = self.MiscZeroState(encoder_outputs, target_ids, bs)
     rnn_states, atten_context, atten_probs, atten_states, packed_src = (
         self.BaseZeroState(theta, encoder_outputs, bs, misc_zero_states))
+    misc_zero_states.step_state.step_seed = py_utils.GetStepSeed()
     return py_utils.NestedMap(
         rnn_states=rnn_states,
         atten_context=atten_context,
