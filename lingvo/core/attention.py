@@ -511,7 +511,7 @@ class AdditiveAttention(BaseAttentionLayer):
         source_padding: [sl, b]
         source_segment_id: [sl, b]
         concated_source_vecs: [sl, b, hidden_dim].
-        concated_source_contexts: [b, sl, hidden_dim]
+        concated_source_contexts: [b, sl, context_dim]
         query_vec: [b, query_dim]
         query_segment_id: [b]
         per_step_source_padding: [b, sl]
@@ -564,9 +564,9 @@ class AdditiveAttention(BaseAttentionLayer):
       # concated_source_vecs[i, :, :].
       # Reshaped probs is of shape [b, 1, sl]
       reshaped_probs = tf.expand_dims(probs, 1)
-      # [b, 1, sl] * [b, sl, hidden_dim] = [b, 1, hidden_dim]
+      # [b, 1, sl] * [b, sl, context_dim] = [b, 1, context_dim]
       contexts = tf.matmul(reshaped_probs, concated_source_contexts)
-      # Reshaped context is of shape [b, hidden_dim]
+      # Reshaped context is of shape [b, context_dim]
       contexts = tf.squeeze(contexts, axis=1)
       return contexts, probs
 

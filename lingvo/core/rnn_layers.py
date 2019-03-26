@@ -1211,7 +1211,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
     Returns:
       A tuple (atten_context, rnn_output, atten_probs).
 
-      - atten_context: a tensor of [time, batch, attention.hidden_dim].
+      - atten_context: a tensor of [time, batch, attention.context_dim].
       - rnn_output: a tensor of [time, batch, rcell.num_output_nodes].
       - atten_probs: a tensor of [time, batch, source_seq_length].
     """
@@ -1274,7 +1274,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
     Returns:
       A tuple (atten_context, rnn_output, atten_probs, final_state).
 
-      - atten_context: a tensor of [time, batch, attention.hidden_dim].
+      - atten_context: a tensor of [time, batch, attention.context_dim].
       - rnn_output: a tensor of [time, batch, rcell.num_output_nodes].
       - atten_probs: a tensor of [time, batch, source_seq_length].
       - final_state: The final recurrent state.
