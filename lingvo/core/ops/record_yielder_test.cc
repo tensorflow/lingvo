@@ -17,6 +17,7 @@ limitations under the License.
 
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/stringpiece.h"
+#include "tensorflow/core/lib/io/compression.h"
 #include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/record_writer.h"
 #include "tensorflow/core/lib/strings/strcat.h"
@@ -79,13 +80,16 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
   yielder->Close();
 }
 
-void GenerateTfRecordTestData(const string& prefix, int n, int m) {
+void GenerateTfRecordTestData(const string& prefix, int n, int m,
+                              const string& compression_type) {
   for (int i = 0; i < n; ++i) {
     std::unique_ptr<WritableFile> file;
     TF_CHECK_OK(Env::Default()->NewWritableFile(
         io::JoinPath("/tmp", strings::StrCat(prefix, ".", i)),
         &file));
-    io::RecordWriter writer(file.get());
+    io::RecordWriter writer(
+        file.get(),
+        io::RecordWriterOptions::CreateRecordWriterOptions(compression_type));
     for (int j = 0; j < m; ++j) {
       TF_CHECK_OK(writer.WriteRecord(strings::Printf("%010d", m * i + j)));
     }
@@ -106,13 +110,25 @@ void GenerateShardedTfRecordTestData(const string& prefix, int n, int m) {
   }
 }
 
-TEST(RecordYielderTest, TfRecordYielderBasicTest) {
+typedef testing::TestWithParam<string> TfRecordYielderTest;
+
+string PrefixFromCompressionType(const string& compression_type) {
+  if (compression_type == io::compression::kGzip) {
+    return "tfrecord_gzip:";
+  } else if (compression_type != io::compression::kNone) {
+    LOG(ERROR) << "Unknown compression type, using no compression";
+  }
+  return "tfrecord:";
+}
+
+TEST_P(TfRecordYielderTest, TfRecordYielderBasicTest) {
   const int N = 10;
   const int M = 1000;
-  GenerateTfRecordTestData("basic", N, M);
+  GenerateTfRecordTestData("basic", N, M, GetParam());
   BasicRecordYielder::Options opts;
   opts.file_pattern =
-      strings::StrCat("tfrecord:", io::JoinPath("/tmp", "basic.*"));
+      strings::StrCat(PrefixFromCompressionType(GetParam()),
+                      io::JoinPath("/tmp", "basic.*"));
   opts.seed = 301;
   opts.bufsize = 2000;
   opts.parallelism = 1;
@@ -156,13 +172,14 @@ int NumMatches(const std::vector<Rope>& vals1,
   return num_matches;
 }
 
-TEST(RecordYielderTest, ShufflesShard) {
+TEST_P(TfRecordYielderTest, ShufflesShard) {
   const int M = 32;
-  GenerateTfRecordTestData("oneshard", 1 /* num_shards */, M);
+  GenerateTfRecordTestData("oneshard", 1 /* num_shards */, M, GetParam());
 
   BasicRecordYielder::Options opts;
-  opts.file_pattern = strings::StrCat(
-      "tfrecord:", io::JoinPath("/tmp", "oneshard.0"));
+  opts.file_pattern =
+      strings::StrCat(PrefixFromCompressionType(GetParam()),
+                      io::JoinPath("/tmp", "oneshard.0"));
   opts.bufsize = M;
   opts.parallelism = 1;
 
@@ -211,15 +228,16 @@ TEST(RecordYielderDeathTest, Error) {
   }(), "Found no files at .*nothing");
 }
 
-TEST(RecordYielder, MatchFilesFromMultiplePatterns) {
+TEST_P(TfRecordYielderTest, MatchFilesFromMultiplePatterns) {
   const int N = 2;
   const int M = 32;
   GenerateTfRecordTestData("twoshard", N /* num_shards */,
-                           M /* record per shard */);
+                           M /* record per shard */, GetParam());
   BasicRecordYielder::Options opts;
   const string path0 = io::JoinPath("/tmp", "twoshard.0");
   const string path1 = io::JoinPath("/tmp", "twoshard.1");
-  opts.file_pattern = strings::StrCat("tfrecord:", path0, ",", path1);
+  opts.file_pattern =
+      strings::StrCat(PrefixFromCompressionType(GetParam()), path0, ",", path1);
   opts.bufsize = M;
   opts.parallelism = 1;
   std::vector<Rope> epoch;
@@ -240,6 +258,10 @@ TEST(RecordYielder, MatchFilesFromMultiplePatterns) {
   EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
   yielder->Close();
 }
+
+INSTANTIATE_TEST_SUITE_P(All, TfRecordYielderTest,
+                         testing::Values(io::compression::kNone,
+                                         io::compression::kGzip));
 
 TEST(RecordYielder, MatchShardedFilePattern) {
   const int num_shards = 16;

@@ -17,6 +17,7 @@ limitations under the License.
 #include <unordered_map>
 
 #include "tensorflow/core/lib/core/status.h"
+#include "tensorflow/core/lib/io/compression.h"
 #include "lingvo/core/ops/record_yielder.h"
 
 #include "tensorflow/core/lib/hash/hash.h"
@@ -222,8 +223,9 @@ class PlainTextIterator : public RecordIterator {
 
 class TFRecordIterator : public RecordIterator {
  public:
-  TFRecordIterator(const string& filename)
-      : file_(OpenOrDie(filename)), reader_(file_.get(), ReaderOptions()) {}
+  TFRecordIterator(const string& filename, const string& compression_type)
+      : file_(OpenOrDie(filename)),
+        reader_(file_.get(), ReaderOptions(compression_type)) {}
 
   bool Next(string* key, Rope* value) override {
     Status s = reader_.ReadRecord(&record_);
@@ -239,8 +241,9 @@ class TFRecordIterator : public RecordIterator {
   int64 num_ = 0;
   string record_;
 
-  io::RecordReaderOptions ReaderOptions() {
-    io::RecordReaderOptions opts;
+  io::RecordReaderOptions ReaderOptions(const string& compression_type) {
+    auto opts =
+        io::RecordReaderOptions::CreateRecordReaderOptions(compression_type);
     opts.buffer_size = 2LL << 20;  // 2MB.
     return opts;
   }
@@ -252,9 +255,15 @@ bool register_text_iterator = RecordIterator::Register(
     "text",
     [](const string& filename) { return new PlainTextIterator(filename); });
 
-bool register_tf_record_iterator = RecordIterator::Register(
-    "tfrecord",
-    [](const string& filename) { return new TFRecordIterator(filename); });
+bool register_tf_record_iterator =
+    RecordIterator::Register("tfrecord", [](const string& filename) {
+      return new TFRecordIterator(filename, io::compression::kNone);
+    });
+
+bool register_tf_record_gzip_iterator =
+    RecordIterator::Register("tfrecord_gzip", [](const string& filename) {
+      return new TFRecordIterator(filename, io::compression::kGzip);
+    });
 
 }  // namespace
 
