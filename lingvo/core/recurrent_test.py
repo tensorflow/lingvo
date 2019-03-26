@@ -628,7 +628,7 @@ class StackedRecurrentTest(RecurrentTest):
       o *= (1 - inputs.padding)
     loss = tf.reduce_sum(tf.square(o))
 
-    xs = recurrent._Flatten(thetas + [py_utils.NestedMap(x=inputs.x)])
+    xs = recurrent.Flatten(thetas + [py_utils.NestedMap(x=inputs.x)])
     dxs = tf.gradients(ys=loss, xs=xs)
 
     # Reference implementation using Recurrent().
