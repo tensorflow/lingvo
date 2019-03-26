@@ -116,7 +116,7 @@ def AddAttentionSummary(attention_tensors,
       source sequence.
     tgt_paddings: A tensor of binary paddings shaped [target_len, batch] for the
       target sequence.
-    transcripts: Optional, transcripts shaped [batch, target_len] for the source
+    transcripts: Optional, transcripts shaped [batch, source_len] for the source
       sequence.
     max_outputs: Integer maximum number of elements of the batch to plot.
   """
