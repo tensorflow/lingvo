@@ -123,7 +123,10 @@ class Predictor(object):
     """Updates self._sess with a new session."""
     sess = tf.Session(
         self._tf_master, graph=self._graph, config=py_utils.SessionConfig())
-    sess.run(self._graph.get_operation_by_name("init_all_tables"))
+    try:
+      sess.run(self._graph.get_operation_by_name("init_all_tables"))
+    except KeyError:
+      tf.logging.info("Could not find tables initializer in graph.")
     if self._device_type == "tpu":
       sess.run(self._graph.get_operation_by_name("tpu_init_op"))
     if self._checkpoint:

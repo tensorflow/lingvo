@@ -344,6 +344,7 @@ class InferenceGraphExporter(object):
     # Instantiate the graph.
     graph = tf.Graph()
     with graph.as_default():
+      tf.set_random_seed(random_seed)
       cluster = model_cfg.cluster.cls(model_cfg.cluster)
       device = cluster.GetPlacer()
       tpu_const_scope = _DummyScope()
@@ -411,6 +412,8 @@ class InferenceGraphExporter(object):
     tf.logging.info('Graph contains ops: %r',
                     [op.name for op in graph.get_operations()])
 
+    inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
+
     # Freezing.
     if freeze_defaults or freeze_checkpoint:
       output_op_names = GetOutputOpNames(
@@ -428,7 +431,6 @@ class InferenceGraphExporter(object):
     else:
       output_op_names = GetOutputOpNames(graph, inference_graph_proto)
 
-      inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
       # Prune the graph to just the parts we need.
       # To support restoring, we have to not prune out the restore node.
       output_op_names.append('init_all_tables')
