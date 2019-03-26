@@ -114,8 +114,17 @@ class BaseTask(base_layer.BaseLayer):
         'If not None, L1 regularization to apply to the weights. '
         'Otherwise, disable L1 regularization.')
     tp.Define('learning_rate', 0.0, 'learning rate to use.')
-    tp.Define('clip_gradient_norm_to_value', 0.0,
-              'Clip gradient norm to this value.')
+    tp.Define(
+        'clip_gradient_norm_to_value', 0.0,
+        'Clip gradient by global norm to this value. This is similar to '
+        'the bahaviour of tf.clip_by_global_norm, if you are looking for '
+        'tf.clip_by_norm refer to clip_gradient_single_norm_to_value. Note '
+        'these are mutually exclusive.')
+    tp.Define(
+        'clip_gradient_single_norm_to_value', 0.0,
+        'Clip gradient by single tensor norm to this value. This is '
+        'similar to the bahaviour of tf.clip_by_norm. Note this is mutually '
+        'exlusive to using clip_gradient_norm_to_value.')
     tp.Define('grad_norm_to_clip_to_zero', 0.0,
               'Clip gradient to 0 if its norm exceeds this value.')
     tp.Define('grad_norm_tracker', None, 'Params for GradNormTracker.')
@@ -169,7 +178,16 @@ class BaseTask(base_layer.BaseLayer):
               'Generates a checkpoint roughly once every this many seconds.')
     tp.Define('summary_interval_steps', 100,
               'Generates a checkpoint roughly once every this many steps.')
-
+    tp.Define(
+        'grad_aggregation_method', tf.AggregationMethod.EXPERIMENTAL_TREE,
+        'Specifies the method used to combine gradient terms. Accepted '
+        'values are constants defined in the class AggregationMethod.')
+    tp.Define(
+        'gate_gradients', False,
+        'If True, add a tuple around the gradients returned for an '
+        'operations. This avoids some race conditions.')
+    tp.Define('colocate_gradients_with_ops', True,
+              'If True, try colocating gradients with the corresponding op.')
     p.Define('eval', hyperparams.Params(),
              'Params to control how this task should be evaled.')
     ep = p.eval
@@ -522,6 +540,45 @@ class BaseTask(base_layer.BaseLayer):
         g, tf.IndexedSlices) else HasNanOrInf(g))
                           for (_, g) in var_grads.Flatten()])
 
+  def _GetGlobalGradScale(self, all_grad_norm, has_nan_or_inf):
+    """Returns a scaling factor for all gradients according to their norm.
+
+    In case there are NaN or Inf values the function will return 0.0.
+
+    Args:
+      all_grad_norm: A scalar represeting the total norm of all vars.
+      has_nan_or_inf: A scalar of 0 or 1, indicating whether there is any NaN or
+        Inf in input gradients.
+
+    Returns:
+      grad_scale: the gradient scale. 0 if gradient updates should be skipped
+        for the step.
+    """
+    p = self.params
+    tp = p.train
+    # Computes gradient's scale.
+    grad_scale = tf.constant(1.0)
+    if tp.clip_gradient_norm_to_value:
+      # If all_grad_norm > tp.clip_gradient_norm_to_value, scales
+      # all_grads so that the norm is 1.0.
+      grad_scale = tf.minimum(1.0,
+                              tp.clip_gradient_norm_to_value / all_grad_norm)
+
+    if tp.grad_norm_to_clip_to_zero:
+      # If all_grad_norm > tp.grad_norm_to_clip_to_zero, treats
+      # grad_scale as 0. This way, we ignore this step.
+      grad_scale *= tf.cast(all_grad_norm < tp.grad_norm_to_clip_to_zero,
+                            p.dtype)
+
+    if tp.grad_norm_tracker:
+      grad_scale *= self.grad_norm_tracker.FPropDefaultTheta(
+          all_grad_norm, has_nan_or_inf)
+
+    # Force grad_scale to be 0 if there is any NaN or Inf in gradients.
+    grad_scale = tf.where(has_nan_or_inf, 0.0, grad_scale)
+
+    return grad_scale
+
   def ScaleGradients(self, var_grads):
     """Scales gradients according to training params.
 
@@ -529,14 +586,14 @@ class BaseTask(base_layer.BaseLayer):
       var_grads: a `.NestedMap` whose values are (var, grad) pairs.
 
     Returns:
-      (has_nan_or_inf, grad_scale, final_var_grads).
-
+      A `.NestedMap` containing:
       - has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN
         or Inf in input gradients.
-      - grad_scale: the gradient scale. 0 if gradient updates should be skipped
-        for the step.
       - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs,
         where gradients have already been scaled.
+      - grad_scale: the gradient scale. 0 if gradient updates should be skipped
+        for the step. (Optional, only returned in case global norm clipping is
+        used.)
     """
     p = self.params
     tp = p.train
@@ -563,32 +620,28 @@ class BaseTask(base_layer.BaseLayer):
     # Grad norm can still be inf even if none of the individual grad is inf.
     has_nan_or_inf = tf.logical_or(has_nan_or_inf, grad_norm_is_nan_or_inf)
 
-    # Computes gradient's scale.
-    grad_scale = tf.constant(1.0)
-    if tp.clip_gradient_norm_to_value:
-      # If all_grad_norm > tp.clip_gradient_norm_to_value, scales
-      # all_grads so that the norm is 1.0.
-      grad_scale = tf.minimum(1.0,
-                              tp.clip_gradient_norm_to_value / all_grad_norm)
+    return_values = py_utils.NestedMap()
+    if tp.clip_gradient_single_norm_to_value:
+      # Currently using both types of clipping simultaneously is unsupported.
+      if tp.clip_gradient_norm_to_value:
+        raise ValueError('Cannot use clip_gradient_single_norm_to_value=%f and '
+                         'clip_gradient_norm_to_value=%f.' %
+                         (tp.clip_gradient_single_norm_to_value,
+                          tp.clip_gradient_norm_to_value))
+      final_var_grads = py_utils.ApplyGradNormCliping(
+          var_grads, tp.clip_gradient_single_norm_to_value)
 
-    if tp.grad_norm_to_clip_to_zero:
-      # If all_grad_norm > tp.grad_norm_to_clip_to_zero, treats
-      # grad_scale as 0. This way, we ignore this step.
-      grad_scale *= tf.cast(all_grad_norm < tp.grad_norm_to_clip_to_zero,
-                            p.dtype)
+    else:
+      grad_scale = self._GetGlobalGradScale(all_grad_norm, has_nan_or_inf)
+      self.AddEvalMetric('grad_norm/all', all_grad_norm, tf.constant(1.0))
+      self.AddEvalMetric('var_norm/all', all_var_norm, tf.constant(1.0))
+      self.AddEvalMetric('grad_scale_all', grad_scale, tf.constant(1.0))
+      final_var_grads = py_utils.ApplyGradMultiplier(var_grads, grad_scale)
+      return_values.grad_scale = grad_scale
 
-    if tp.grad_norm_tracker:
-      grad_scale *= self.grad_norm_tracker.FPropDefaultTheta(
-          all_grad_norm, has_nan_or_inf)
-
-    # Force grad_scale to be 0 if there is any NaN or Inf in gradients.
-    grad_scale = tf.where(has_nan_or_inf, 0.0, grad_scale)
-    self.AddEvalMetric('grad_norm/all', all_grad_norm, tf.constant(1.0))
-    self.AddEvalMetric('var_norm/all', all_var_norm, tf.constant(1.0))
-    self.AddEvalMetric('grad_scale_all', grad_scale, tf.constant(1.0))
-
-    final_var_grads = py_utils.ApplyGradMultiplier(var_grads, grad_scale)
-    return has_nan_or_inf, grad_scale, final_var_grads
+    return_values.has_nan_or_inf = has_nan_or_inf
+    return_values.final_var_grads = final_var_grads
+    return return_values
 
   def _BPropForVariables(self, vmap):
     """Constructs the backward graph for the given variables.
@@ -600,7 +653,9 @@ class BaseTask(base_layer.BaseLayer):
     tp = p.train
 
     # Compute gradients.
-    self._var_grads = py_utils.ComputeGradients(self.loss, vmap)
+    self._var_grads = py_utils.ComputeGradients(
+        self.loss, vmap, tp.grad_aggregation_method,
+        tp.colocate_gradients_with_ops, tp.gate_gradients)
 
     # L2 regularizer.
     if tp.l2_regularizer_weight is not None:
@@ -621,7 +676,9 @@ class BaseTask(base_layer.BaseLayer):
           self._var_grads, self._per_input_gradient_mask, bprop_onehot)
 
     # Apply gradient clipping.
-    has_nan_or_inf, _, self._var_grads = self.ScaleGradients(self._var_grads)
+    scaled_vars = self.ScaleGradients(self._var_grads)
+    has_nan_or_inf = scaled_vars.has_nan_or_inf
+    self._var_grads = scaled_vars.final_var_grads
 
     # Histogram summary.
     summary_utils.CollectVarHistogram(self._var_grads)

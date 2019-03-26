@@ -432,6 +432,20 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertEqual([_[0] for _ in var_grads.FlattenItems()], ['a'])
       self.assertEqual(var_grads.a[0].name, 'a:0')
 
+  def testClipSingleTensorGradients(self):
+
+    a = tf.get_variable('a', [])
+    b = tf.get_variable('b', [])
+    vs_gs = py_utils.NestedMap(
+        a=(a, tf.ones_like(a) * 10.0), b=(b, tf.ones_like(b) * 0.5))
+    clipped = py_utils.ApplyGradNormCliping(vs_gs, norm=1.0)
+    with self.session(use_gpu=False) as sess:
+      tf.global_variables_initializer().run()
+      clipped_np = sess.run(clipped)
+      # Each variable is clipped indipendently to grad scale of 1.
+      self.assertAllClose(clipped_np.a[1], 1.0)
+      self.assertAllClose(clipped_np.b[1], 0.5)
+
   def testMaskGradient(self):
     with self.session(use_gpu=False) as sess:
       a = tf.get_variable('a', [])

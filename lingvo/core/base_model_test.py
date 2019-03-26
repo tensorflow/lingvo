@@ -80,16 +80,17 @@ class BaseTaskTest(tf.test.TestCase):
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     var_grads = py_utils.NestedMap(a=(var_a, tf.ones_like(var_a)))
-    has_nan_or_inf, grad_scale, final_var_grads = task.ScaleGradients(var_grads)
+    scaled_grads_map = task.ScaleGradients(var_grads)
 
     FLAGS.enable_check_numerics = False
     with self.session():
       tf.global_variables_initializer().run()
-      self.assertFalse(has_nan_or_inf.eval())
-      self.assertEqual(1.0, grad_scale.eval())
+      self.assertFalse(scaled_grads_map.has_nan_or_inf.eval())
+      self.assertEqual(1.0, scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
-      self.assertFalse(tf.is_nan(final_var_grads.a[1]).eval())
-      self.assertTrue(tf.is_finite(final_var_grads.a[1]).eval())
+      self.assertFalse(tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+      self.assertTrue(
+          tf.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
 
   def testScaleGradientsInf(self):
     FLAGS.enable_check_numerics = False
@@ -102,15 +103,16 @@ class BaseTaskTest(tf.test.TestCase):
     var_a = task.theta.a
     # Infinite gradient.
     var_grads = py_utils.NestedMap(a=(var_a, tf.log(0.)))
-    has_nan_or_inf, grad_scale, final_var_grads = task.ScaleGradients(var_grads)
+    scaled_grads_map = task.ScaleGradients(var_grads)
 
     with self.session():
       tf.global_variables_initializer().run()
-      self.assertTrue(has_nan_or_inf.eval())
-      self.assertEqual(0., grad_scale.eval())
+      self.assertTrue(scaled_grads_map.has_nan_or_inf.eval())
+      self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
-      self.assertFalse(tf.is_nan(final_var_grads.a[1]).eval())
-      self.assertTrue(tf.is_finite(final_var_grads.a[1]).eval())
+      self.assertFalse(tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+      self.assertTrue(
+          tf.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
 
   def testScaleGradientsNaN(self):
     FLAGS.enable_check_numerics = False
@@ -123,15 +125,16 @@ class BaseTaskTest(tf.test.TestCase):
     var_a = task.theta.a
     # Make a NaN gradient.
     var_grads = py_utils.NestedMap(a=(var_a, 0. * tf.log(0.)))
-    has_nan_or_inf, grad_scale, final_var_grads = task.ScaleGradients(var_grads)
+    scaled_grads_map = task.ScaleGradients(var_grads)
 
     with self.session():
       tf.global_variables_initializer().run()
-      self.assertTrue(has_nan_or_inf.eval())
-      self.assertEqual(0., grad_scale.eval())
+      self.assertTrue(scaled_grads_map.has_nan_or_inf.eval())
+      self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
-      self.assertFalse(tf.is_nan(final_var_grads.a[1]).eval())
-      self.assertTrue(tf.is_finite(final_var_grads.a[1]).eval())
+      self.assertFalse(tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+      self.assertTrue(
+          tf.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
 
   def testScaleGradientsCheckNumerics(self):
     """ScaleGradients when enable_check_numerics=True."""
@@ -145,17 +148,60 @@ class BaseTaskTest(tf.test.TestCase):
     var_a = task.theta.a
     # Make a NaN gradient.
     var_grads = py_utils.NestedMap(a=(var_a, 0. * tf.log(0.)))
-    has_nan_or_inf, grad_scale, final_var_grads = task.ScaleGradients(var_grads)
+    scaled_grads_map = task.ScaleGradients(var_grads)
 
     with self.session():
       tf.global_variables_initializer().run()
       with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
                                    'is not finite'):
-        self.assertTrue(has_nan_or_inf.eval())
-        self.assertEqual(0., grad_scale.eval())
+        self.assertTrue(scaled_grads_map.has_nan_or_inf.eval())
+        self.assertEqual(0., scaled_grads_map.grad_scale.eval())
         # The final gradient must be finite.
-        self.assertFalse(tf.is_nan(final_var_grads.a[1]).eval())
-        self.assertTrue(tf.is_finite(final_var_grads.a[1]).eval())
+        self.assertFalse(
+            tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+        self.assertTrue(
+            tf.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
+
+  def testScaleGradientsError(self):
+    p = self.TestParams()
+    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    p.train.clip_gradient_single_norm_to_value = 1.0
+    p.train.clip_gradient_norm_to_value = 1.0
+    task = p.cls(p)
+    task.CreateVariable(
+        'a',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+    var_a = task.theta.a
+    var_grads = py_utils.NestedMap(a=(var_a, tf.ones_like(var_a)))
+    self.assertRaises(ValueError, task.ScaleGradients, var_grads)
+
+  def testScaleGradientsSingleTensorNorm(self):
+    p = self.TestParams()
+    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    p.train.clip_gradient_single_norm_to_value = 1.0
+    p.train.clip_gradient_norm_to_value = None
+    task = p.cls(p)
+    task.CreateVariable(
+        'a',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+    task.CreateVariable(
+        'b',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+
+    var_a = task.theta.a
+    var_b = task.theta.b
+    var_grads = py_utils.NestedMap(
+        a=(var_a, tf.ones_like(var_a) * 10.0),
+        b=(var_b, tf.ones_like(var_b) * 0.5))
+    scaled_grads_map = task.ScaleGradients(var_grads)
+
+    FLAGS.enable_check_numerics = False
+    with self.session():
+      tf.global_variables_initializer().run()
+
+      # Each variable is clipped indipendently to grad scale of 1.
+      self.assertAllClose(scaled_grads_map.final_var_grads.a[1].eval(), 1.0)
+      self.assertAllClose(scaled_grads_map.final_var_grads.b[1].eval(), 0.5)
 
 
 class TeacherTask(base_model.BaseTask):
@@ -331,7 +377,7 @@ class MultiTaskModelTest(tf.test.TestCase):
   def _setUpTestSampleTask(self):
     np.random.seed(_NUMPY_RANDOM_SEED)
 
-    # define and initalize tasks, model and params
+    # define and initialize tasks, model and params
     p = base_model.MultiTaskModel.Params()
     p.name = 'MultiTaskModel'
     p0 = BaseTaskTest.TestParams()

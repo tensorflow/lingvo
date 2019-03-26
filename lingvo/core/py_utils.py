@@ -1342,15 +1342,18 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
   tf.logging.info('Model variables overridden: %s', vars_overridden)
 
 
-def _ComputeGradientsSimple(loss, all_vars):
+def _ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
+                            colocate_gradients_with_ops, gate_gradients):
   return tf.gradients(
       loss,
       all_vars,
-      aggregation_method=1,  # Tree
-      colocate_gradients_with_ops=True)
+      aggregation_method=grad_aggregation_method,
+      colocate_gradients_with_ops=colocate_gradients_with_ops,
+      gate_gradients=gate_gradients)
 
 
-def _ComputeGradientsTpu(loss, all_vars):
+def _ComputeGradientsTpu(loss, all_vars, grad_aggregation_method,
+                         colocate_gradients_with_ops, gate_gradients):
   """Computes gradients for local loss across whole TPU cluster."""
   # Scale the loss to account for the full batch size.
   shards = tpu_function.get_tpu_context().number_of_shards
@@ -1359,7 +1362,9 @@ def _ComputeGradientsTpu(loss, all_vars):
 
   # Computes the gradients.
   # Sum the grads so that we can compute statistics across the whole batch.
-  all_grads = _ComputeGradientsSimple(loss, all_vars)
+  all_grads = _ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
+                                      colocate_gradients_with_ops,
+                                      gate_gradients)
 
   # NOTE: We can't use tpu_optimizer.CrossShardOptimizer since
   # we need to scale the grads *after* the cross_replica_sum to
@@ -1378,7 +1383,12 @@ def _ComputeGradientsTpu(loss, all_vars):
   return aggregated_grads
 
 
-def ComputeGradients(loss, vmap):
+def ComputeGradients(
+    loss,
+    vmap,
+    grad_aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE,
+    colocate_gradients_with_ops=True,
+    gate_gradients=False):
   """Computes gradients of variables in vmap w.r.t.
 
   to loss.
@@ -1386,6 +1396,13 @@ def ComputeGradients(loss, vmap):
   Args:
     loss: A scalar Tensor.
     vmap: A `.NestedMap` of variables.
+    grad_aggregation_method: Specifies the method used to combine gradient
+      terms. Accepted values are constants defined in the class
+      AggregationMethod.
+    colocate_gradients_with_ops: If True, try colocating gradients with the
+      corresponding op.
+    gate_gradients: If True, add a tuple around the gradients returned for an
+      operations. This avoids some race conditions.
 
   Returns:
     var_grad - a `.NestedMap` of (variable, gradient). You can view
@@ -1422,7 +1439,8 @@ def ComputeGradients(loss, vmap):
 
   # tpu vs non-tpu is slightly different.
   take_grad = _ComputeGradientsTpu if use_tpu() else _ComputeGradientsSimple
-  grads = take_grad(loss, filtered_vlist)
+  grads = take_grad(loss, filtered_vlist, grad_aggregation_method,
+                    colocate_gradients_with_ops, gate_gradients)
 
   # Formulate pairs of (var, grad) and pack them into the same
   # structure as filtered_vmap.
@@ -1500,6 +1518,40 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
     return (var, grad)
 
   return vs_gs_scale.Transform(Scale)
+
+
+def ApplyGradNormCliping(vs_gs, norm=1.0):
+  """Clip gradients to norm on same device as corresponding variables.
+
+  Args:
+    vs_gs: A `.NestedMap` of (variable, gradient).
+    norm: Each tensor's gradient will be scaled down to have a maximum L2-norm
+      value of `norm`.
+
+  Returns:
+    A `.NestedMap` of (variable, scaled_gradient). In particular, if
+    grad_scale is 0, the result gradient is always 0, even if the input
+    gradient is inf or nan.
+  """
+  vs_gs_norm = vs_gs.Transform(lambda v_g: (v_g[0], v_g[1], norm))
+
+  def ClipByNorm(var, grad, norm):
+    grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
+    return tf.clip_by_norm(grad, norm)
+
+  def Clip(item):
+    """Scales the gradient."""
+    var, grad, norm = item
+    assert grad is not None, ('No grad found for ', var.name)
+    with tf.device(var.device):
+      if isinstance(grad, tf.IndexedSlices):
+        grad = tf.IndexedSlices(
+            ClipByNorm(var, grad.values, norm), grad.indices, grad.dense_shape)
+      else:
+        grad = ClipByNorm(var, grad, norm)
+    return (var, grad)
+
+  return vs_gs_norm.Transform(Clip)
 
 
 SKIP_LP_REGULARIZATION = '__lingvo_skip_lp_regularization'
