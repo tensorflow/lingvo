@@ -52,7 +52,11 @@ class Bfloat16VariableSaveable(saver.BaseSaverBuilder.SaveableObject):
       return var
 
     spec = saver.BaseSaverBuilder.SaveSpec(
-        _make_callable_var, slice_spec, name, dtype=orig_dtype)
+        _make_callable_var,
+        slice_spec,
+        name,
+        dtype=orig_dtype,
+        device=var.device)
     super(Bfloat16VariableSaveable, self).__init__(var, [spec], name)
 
   def restore(self, restored_tensors, restored_shapes):
