@@ -164,7 +164,7 @@ class AsrModel(base_model.BaseTask):
 
     if ids is not None:
       decoded = self.input_generator.IdsToStrings(ids, lens - 1)
-      decoded = tf.identity(decoded, name='top_k_decoded')
+      decoded = tf.identity(decoded, name='top_k_decoded%s' % tag)
       decoded = tf.reshape(decoded, tf.shape(hyps))
     if scores is not None and hyps is not None:
       scores = tf.reshape(scores, tf.shape(hyps))
