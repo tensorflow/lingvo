@@ -453,6 +453,7 @@ class BaseTask(base_layer.BaseLayer):
     # Loss.
     self._loss, self._num_predictions = metrics['loss']
     self._loss = py_utils.CheckNumerics(self._loss)
+    self._metrics = metrics
     summary_utils.scalar('num_predictions', self._num_predictions)
 
   def GetInputBatch(self):
