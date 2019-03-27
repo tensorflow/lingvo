@@ -83,6 +83,29 @@ def _common_gpipe_transformer_encoder_fprop(
           target_segment_id) + more_source_vecs
 
 
+def _common_gpipe_transformer_decoder_fprop(
+    layer, layer_class, params, theta, source_vecs, source_paddings,
+    target_vecs, target_paddings, source_segment_id, target_segment_id,
+    *more_source_vecs):
+  """GPipe decoder FProp."""
+  assert target_vecs is not None
+  assert target_paddings is not None
+  h, _ = super(layer_class, layer).FProp(
+      theta,
+      target_vecs,
+      target_paddings,
+      aux_vecs=source_vecs,
+      aux_paddings=source_paddings,
+      source_segment_id=target_segment_id,
+      aux_segment_id=source_segment_id)
+  h.set_shape(target_vecs.shape)
+  if params.is_transparent and more_source_vecs:
+    source_vecs = more_source_vecs[0]
+    more_source_vecs = more_source_vecs[1:]
+  return (source_vecs, source_paddings, h, target_paddings, source_segment_id,
+          target_segment_id) + more_source_vecs
+
+
 def _common_gpipe_transformer_fprop_meta(p, inputs, *args):
   """GPipe FPropMeta function."""
   # TODO(huangyp): return accurate estimate of flops.
@@ -125,22 +148,10 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
     p = self.params
     with tf.name_scope(p.name):
       if p.has_aux_atten:  # Decoder FProp
-        assert target_vecs is not None
-        assert target_paddings is not None
-        h, _ = super(GPipeTransformerLayer, self).FProp(
-            theta,
-            target_vecs,
-            target_paddings,
-            aux_vecs=source_vecs,
-            aux_paddings=source_paddings,
-            source_segment_id=target_segment_id,
-            aux_segment_id=source_segment_id)
-        h.set_shape(target_vecs.shape)
-        if p.is_transparent and more_source_vecs:
-          source_vecs = more_source_vecs[0]
-          more_source_vecs = more_source_vecs[1:]
-        return (source_vecs, source_paddings, h, target_paddings,
-                source_segment_id, target_segment_id) + more_source_vecs
+        return _common_gpipe_transformer_decoder_fprop(
+            self, GPipeTransformerLayer, p, theta, source_vecs, source_paddings,
+            target_vecs, target_paddings, source_segment_id, target_segment_id,
+            *more_source_vecs)
       else:  # Encoder FProp
         return _common_gpipe_transformer_encoder_fprop(
             self, GPipeTransformerLayer, theta, source_vecs, source_paddings,
@@ -173,6 +184,34 @@ class GPipeEvolvedTransformerEncoderLayer(
           self, GPipeEvolvedTransformerEncoderLayer, theta, source_vecs,
           source_paddings, None, None, source_segment_id, None,
           *more_source_vecs)
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, *args):
+    return _common_gpipe_transformer_fprop_meta(p, inputs, *args)
+
+
+class GPipeEvolvedTransformerDecoderLayer(
+    layers_with_attention.EvolvedTransformerDecoderLayer):
+  """GPipe-compatible Evolved Transformer decoder layer."""
+
+  @classmethod
+  def Params(cls):
+    p = super(GPipeEvolvedTransformerDecoderLayer, cls).Params()
+    return _common_gpipe_transformer_params(p)
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(GPipeEvolvedTransformerDecoderLayer, self).__init__(params)
+    _common_gpipe_transformer_init(self)
+
+  def FProp(self, theta, source_vecs, source_paddings, target_vecs,
+            target_paddings, source_segment_id, target_segment_id,
+            *more_source_vecs):
+    with tf.name_scope(self.params.name):
+      return _common_gpipe_transformer_decoder_fprop(
+          self, GPipeEvolvedTransformerDecoderLayer, self.params, theta,
+          source_vecs, source_paddings, target_vecs, target_paddings,
+          source_segment_id, target_segment_id, *more_source_vecs)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
