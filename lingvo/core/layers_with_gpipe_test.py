@@ -251,6 +251,40 @@ class GPipeTransformerStackTest(tf.test.TestCase):
     params.num_micro_batches = num_micro_batches
     params.splits = splits
     params.random_seed = 0
+    params.state_dtype = tf.float32
+    return params
+
+  def _TransformerParamsWithEmbeddings(self,
+                                       num_decoder_layers=0,
+                                       num_encoder_layers=4,
+                                       splits=1,
+                                       num_micro_batches=1):
+    model_dim = 4
+    params = GPipeTransformerStack.Params()
+    params.name = 'transformer'
+    params.model_dim = model_dim
+    params.num_decoder_layers = num_decoder_layers
+    params.decoder_tpl.tr_atten_tpl.num_attention_heads = 1
+    params.decoder_tpl.tr_fflayer_tpl.hidden_dim = model_dim
+    params.num_encoder_layers = num_encoder_layers
+    params.encoder_tpl.tr_atten_tpl.num_attention_heads = 1
+    params.encoder_tpl.tr_fflayer_tpl.hidden_dim = model_dim
+    params.num_micro_batches = num_micro_batches
+    params.use_pipelined_embeddings = True
+    params.state_dtype = tf.float32
+
+    emb_params = params.emb_tpl
+    # Default config for the token embedding.
+    emb_params.token_emb.use_matmul = True
+    emb_params.token_emb.use_3d_weight_tensor = False
+    emb_params.token_emb.vocab_size = 10
+    emb_params.token_emb.embedding_dim = model_dim
+
+    # Default config for the position embedding.
+    emb_params.position_emb.embedding_dim = model_dim
+    emb_params.position_emb.trainable_scaling = False
+    params.splits = splits
+    params.random_seed = 0
     return params
 
   def _random_inputs(self, batch):
@@ -268,6 +302,29 @@ class GPipeTransformerStackTest(tf.test.TestCase):
     inputs = tf.constant(input_arr.tolist(), dtype=tf.float32)
     paddings = tf.constant(paddings_arr.tolist(), dtype=tf.float32)
     tgt_inputs = tf.constant(tgt_input_arr.tolist(), dtype=tf.float32)
+    tgt_paddings = tf.constant(tgt_paddings_arr.tolist(), dtype=tf.float32)
+    return inputs, paddings, tgt_inputs, tgt_paddings
+
+  def _random_inputs_vecs(self, batch):
+    input_arr = np.array([[[0, 1, 1, -1]] * batch, [[0, 2, 7, 1]] * batch])
+    paddings_arr = np.array([[0] * batch] * 2)
+    tgt_input_arr = np.array([[[1, 2, 0, 1]] * batch, [[1, -1, 1, 0]] * batch,
+                              [[2, 1, 2, 1]] * batch])
+    tgt_paddings_arr = np.array([[0] * batch] * 3)
+    inputs = tf.constant(input_arr.tolist(), dtype=tf.float32)
+    paddings = tf.constant(paddings_arr.tolist(), dtype=tf.float32)
+    tgt_inputs = tf.constant(tgt_input_arr.tolist(), dtype=tf.float32)
+    tgt_paddings = tf.constant(tgt_paddings_arr.tolist(), dtype=tf.float32)
+    return inputs, paddings, tgt_inputs, tgt_paddings
+
+  def _random_inputs_ids(self, batch):
+    input_arr = np.array([[6] * batch, [4] * batch])
+    paddings_arr = np.array([[0] * batch] * 2)
+    tgt_input_arr = np.array([[3] * batch, [7] * batch, [9] * batch])
+    tgt_paddings_arr = np.array([[0] * batch] * 3)
+    inputs = tf.constant(input_arr.tolist(), dtype=tf.int32)
+    paddings = tf.constant(paddings_arr.tolist(), dtype=tf.float32)
+    tgt_inputs = tf.constant(tgt_input_arr.tolist(), dtype=tf.int32)
     tgt_paddings = tf.constant(tgt_paddings_arr.tolist(), dtype=tf.float32)
     return inputs, paddings, tgt_inputs, tgt_paddings
 
@@ -318,6 +375,29 @@ class GPipeTransformerStackTest(tf.test.TestCase):
                                           [[0.21085747, 0.60925347]] * batch],
                                          output)
 
+  def _testGPipeTransformerStackFPropWithEmbeddings(self,
+                                                    splits=1,
+                                                    num_micro_batches=1):
+    batch = 4
+    tf.flags.FLAGS.tpu_compatible = True
+    with self.session() as sess:
+      params = self._TransformerParamsWithEmbeddings(
+          splits=splits, num_micro_batches=num_micro_batches)
+      params.dtype = tf.float32
+      params.fprop_dtype = tf.float32
+      xformer = GPipeTransformerStack(params)
+
+      inputs, paddings, _, _ = self._random_inputs_ids(batch)
+
+      output = xformer.FProp(xformer.theta, inputs, paddings)
+
+      tf.global_variables_initializer().run()
+      output = sess.run(output)
+
+      self.assertAllCloseAccordingToType(
+          [[[-1.67121327, -1.24759686, 1.41572773, 2.42515182]] * batch,
+           [[-1.71240354, -1.1253252, 0.23407015, 3.40547156]] * batch], output)
+
   def _testGPipeTransformerFPropPackedInput(self, splits=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
@@ -347,6 +427,50 @@ class GPipeTransformerStackTest(tf.test.TestCase):
         packed_output = packed_xformer.FProp(
             packed_xformer.theta, packed_inputs, packed_paddings,
             packed_tgt_inputs, packed_tg_paddings, segment_ids, tgt_segment_id)
+        packed_output = tf.reshape(packed_output, output.shape)
+
+        tf.global_variables_initializer().run()
+        output, packed_output = sess.run([output, packed_output])
+        self.assertAllClose(output, packed_output)
+
+  def _testGPipeTransformerFPropPackedInputWithEmbeddings(self, splits=1):
+    batch = 4
+    tf.flags.FLAGS.tpu_compatible = True
+    with self.session() as sess:
+      with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
+        params = self._TransformerParamsWithEmbeddings(
+            splits=splits, num_decoder_layers=2)
+        params.dtype = tf.float32
+        params.fprop_dtype = tf.float32
+        packed_params = params.Copy()
+        packed_params.packed_input = True
+        xformer = GPipeTransformerStack(params)
+        packed_xformer = GPipeTransformerStack(packed_params)
+        # Prepare inputs
+        inputs, paddings, tgt_inputs, tgt_paddings = self._random_inputs_ids(
+            batch)
+        packed_inputs = tf.reshape(inputs, [-1, 1])
+        packed_tgt_inputs = tf.reshape(tgt_inputs, [-1, 1])
+        packed_paddings = tf.reshape(paddings, [-1, 1])
+        packed_tg_paddings = tf.reshape(tgt_paddings, [-1, 1])
+        segment_ids = tf.transpose(
+            tf.constant([[0, 1, 2, 3, 0, 1, 2, 3]], dtype=tf.float32))
+        tgt_segment_id = tf.transpose(
+            tf.constant([[0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3]],
+                        dtype=tf.float32))
+        segment_pos_id = tf.transpose(
+            tf.constant([[0, 0, 0, 0, 1, 1, 1, 1]], dtype=tf.int32))
+        tgt_segment_pos_id = tf.transpose(
+            tf.constant([[0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2]], dtype=tf.int32))
+
+        output = xformer.FProp(xformer.theta, inputs, paddings, tgt_inputs,
+                               tgt_paddings)
+        packed_output = packed_xformer.FProp(packed_xformer.theta,
+                                             packed_inputs, packed_paddings,
+                                             packed_tgt_inputs,
+                                             packed_tg_paddings, segment_ids,
+                                             tgt_segment_id, segment_pos_id,
+                                             tgt_segment_pos_id)
         packed_output = tf.reshape(packed_output, output.shape)
 
         tf.global_variables_initializer().run()
@@ -387,6 +511,44 @@ class GPipeTransformerStackTest(tf.test.TestCase):
           dec_out,
           [[[2.926736, -4.090812]] * batch, [[-1.69508219, 1.75891459]] * batch,
            [[-1.6950829, 1.75891507]] * batch])
+
+  def _testGPipeTransformerStackTrainTransparentFPropWithEmbeddings(
+      self, splits=1, num_micro_batches=1):
+    # time = 2,
+    batch = 4
+    with self.session() as sess:
+      params = self._TransformerParamsWithEmbeddings(
+          splits=splits,
+          num_micro_batches=num_micro_batches,
+          num_decoder_layers=3,
+          num_encoder_layers=1)
+      params.is_transparent = True
+      params.num_transparent_outputs = 3
+      params.transparent_merger_dropout_prob = 0.0
+      xformer = GPipeTransformerStack(params)
+
+      input_ids, id_paddings, tgt_inputs, tgt_paddings = self._random_inputs_ids(
+          batch=batch)
+      inputs, paddings, _, _ = self._random_inputs_vecs(batch=batch)
+      py_utils.GetOrCreateGlobalStep()
+      tf.set_random_seed(1234)
+      tf.global_variables_initializer().run()
+      enc_outputs = xformer.EncoderFPropDefaultTheta(inputs, paddings)
+      dec_output = xformer.FProp(xformer.theta, input_ids, id_paddings,
+                                 tgt_inputs, tgt_paddings)
+      enc_out_1, enc_out_2, enc_out_3 = sess.run(enc_outputs)
+      dec_out = sess.run(dec_output)
+      self.assertAllClose(enc_out_1, enc_out_2)
+      self.assertAllClose(enc_out_2, enc_out_3)
+      self.assertAllClose(
+          [[[0.68660116, 0.947429, 0.78953624, -1.20142817]] * batch,
+           [[0.57919669, 1.12979364, 4.29336643, 0.45106331]] * batch],
+          enc_out_1)
+      self.assertAllClose(
+          [[[-0.46651918, -1.62957835, 1.15657926, 1.08397353]] * batch,
+           [[-0.34674695, -1.65999401, 1.08431196, 1.07384491]] * batch,
+           [[-0.41073492, -1.60431314, 1.04607999, 1.08858371]] * batch],
+          dec_out)
 
   def _testGPipeTransformerStackTrainEncoderTransparentFProp(
       self, splits=1, num_micro_batches=1):
@@ -489,6 +651,33 @@ class GPipeTransformerStackTest(tf.test.TestCase):
                                           [[-3.36382723, -0.74492997]] * batch],
                                          output_val)
 
+  def _testGPipeTransformerDecoderStackFPropWithEmbeddings(
+      self, splits=1, num_micro_batches=1):
+    batch = 4
+    tf.flags.FLAGS.tpu_compatible = True
+    with self.session() as sess:
+      params = self._TransformerParamsWithEmbeddings(
+          num_decoder_layers=4,
+          num_encoder_layers=0,
+          splits=splits,
+          num_micro_batches=num_micro_batches)
+      params.dtype = tf.float32
+      xformer = GPipeTransformerStack(params)
+
+      inputs, paddings, tgt_inputs, tgt_paddings = self._random_inputs_ids(
+          batch)
+
+      output = xformer.FProp(xformer.theta, inputs, paddings, tgt_inputs,
+                             tgt_paddings)
+
+      tf.global_variables_initializer().run()
+      output_val = sess.run(output)
+      self.assertAllCloseAccordingToType(
+          [[[-2.29650807, 0.25992393, 1.81951356, 1.52897644]] * batch,
+           [[-2.14101386, 0.32607365, 1.73413348, 1.51806736]] * batch,
+           [[-2.18863297, 0.34420109, 1.65913653, 1.58703828]] * batch],
+          output_val)
+
   def testGPipeTransformerEncoderFProp(self):
     self._testGPipeTransformerEncoderFPropDefaultTheta(
         splits=2, num_micro_batches=2)
@@ -502,6 +691,12 @@ class GPipeTransformerStackTest(tf.test.TestCase):
 
   def testGPipeTransformerFPropPackedInputTwoSplits(self):
     self._testGPipeTransformerFPropPackedInput(splits=2)
+
+  def testGPipeTransformerFPropPackedInputWithEmbs(self):
+    self._testGPipeTransformerFPropPackedInputWithEmbeddings()
+
+  def testGPipeTransformerFPropPackedInputTwoSplitsWithEmbs(self):
+    self._testGPipeTransformerFPropPackedInputWithEmbeddings(splits=2)
 
   def testGPipeTransformerStackFPropNoSplit(self):
     self._testGPipeTransformerStackFProp()
@@ -530,6 +725,19 @@ class GPipeTransformerStackTest(tf.test.TestCase):
   def testGPipeTransformerStackFPropFourSplitsFourMicroBatches(self):
     self._testGPipeTransformerStackFProp(splits=4, num_micro_batches=4)
 
+  def testGPipeTransformerStackFPropNoSplitWithEmbs(self):
+    self._testGPipeTransformerStackFPropWithEmbeddings()
+
+  def testGPipeTransformerStackFPropNoSplitTwoMicroBatchesWithEmbs(self):
+    self._testGPipeTransformerStackFPropWithEmbeddings(num_micro_batches=2)
+
+  def testGPipeTransformerStackFPropTwoSplitsWithEmbs(self):
+    self._testGPipeTransformerStackFPropWithEmbeddings(splits=2)
+
+  def testGPipeTransformerStackFPropTwoSplitsTwoMicroBatchesWithEmbs(self):
+    self._testGPipeTransformerStackFPropWithEmbeddings(
+        splits=2, num_micro_batches=2)
+
   def testGPipeTransformerDecoderStackFPropNoSplit(self):
     self._testGPipeTransformerDecoderStackFProp()
 
@@ -557,6 +765,21 @@ class GPipeTransformerStackTest(tf.test.TestCase):
   def testGPipeTransformerDecoderStackFPropFourSplitsFourMicroBatches(self):
     self._testGPipeTransformerDecoderStackFProp(splits=4, num_micro_batches=4)
 
+  def testGPipeTransformerDecoderStackFPropNoSplitWithEmbs(self):
+    self._testGPipeTransformerDecoderStackFPropWithEmbeddings()
+
+  def testGPipeTransformerDecoderStackFPropNoSplitTwoMicroBatchesWithEmbs(self):
+    self._testGPipeTransformerDecoderStackFPropWithEmbeddings(
+        num_micro_batches=2)
+
+  def testGPipeTransformerDecoderStackFPropTwoSplitsWithEmbs(self):
+    self._testGPipeTransformerDecoderStackFPropWithEmbeddings(splits=2)
+
+  def testGPipeTransformerDecoderStackFPropTwoSplitsTwoMicroBatchesWithEmbs(
+      self):
+    self._testGPipeTransformerDecoderStackFPropWithEmbeddings(
+        splits=2, num_micro_batches=2)
+
   def testGPipeTransformerStackTrainTransparentFProp(self):
     self._testGPipeTransformerStackTrainTransparentFProp()
 
@@ -581,6 +804,22 @@ class GPipeTransformerStackTest(tf.test.TestCase):
   def testGPipeTransformerStackTrainTransparentFPropFourSplitsMB4(self):
     self._testGPipeTransformerStackTrainTransparentFProp(
         splits=4, num_micro_batches=4)
+
+  def testGPipeTransformerStackTrainTransparentFPropWithEmbs(self):
+    self._testGPipeTransformerStackTrainTransparentFPropWithEmbeddings()
+
+  def testGPipeTransformerStackTrainTransparentFPropMB2WithEmbs(self):
+    self._testGPipeTransformerStackTrainTransparentFPropWithEmbeddings(
+        num_micro_batches=2)
+
+  def testGPipeTransformerStackTrainTransparentFPropTwoSplitsMB2WithEmbs(self):
+    self._testGPipeTransformerStackTrainTransparentFPropWithEmbeddings(
+        splits=2, num_micro_batches=2)
+
+  def testGPipeTransformerStackTrainTransparentFPropTwoManualSplitsMB2WithEmbs(
+      self):
+    self._testGPipeTransformerStackTrainTransparentFPropWithEmbeddings(
+        splits=[3, 4], num_micro_batches=2)
 
   def testGPipeTransformerStackTrainEncoderTransparentFProp(self):
     self._testGPipeTransformerStackTrainEncoderTransparentFProp()

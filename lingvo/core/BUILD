@@ -646,6 +646,7 @@ py_library(
     deps = [
         ":base_layer",
         ":gpipe",
+        ":layers",
         ":layers_with_attention",
         ":py_utils",
         # Implicit tensorflow dependency.

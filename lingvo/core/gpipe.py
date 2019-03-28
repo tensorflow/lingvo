@@ -271,6 +271,7 @@ class PipeliningLayer(SeqLayer):
     p = super(PipeliningLayer, cls).Params()
     p.Define('num_micro_batches', 1, 'Number of micro batches.')
     p.Define('batch_dim', 0, 'The batch dimension.')
+    p.Define('state_dtype', None, 'Externally specify dtype for states.')
     return p
 
   def _CalculateOutputShapes(self, input_shapes):
@@ -342,7 +343,10 @@ class PipeliningLayer(SeqLayer):
     # Compute shapes of input and output tenors.
     input_tenors = _ToTuple(args)
     mini_batch_size = input_tenors[0].get_shape().as_list()[p.batch_dim]
-    input_dtype = input_tenors[0].dtype
+    if p.state_dtype:
+      state_dtype = p.state_dtype
+    else:
+      state_dtype = input_tenors[0].dtype
     if p.num_micro_batches > mini_batch_size:
       p.num_micro_batches = mini_batch_size
     micro_batch_size = mini_batch_size // p.num_micro_batches
@@ -403,12 +407,12 @@ class PipeliningLayer(SeqLayer):
       cell_fns.append(GetCellFn(cell_idx))
       thetas.append(theta[cell_name])
       init_state = py_utils.NestedMap()
-      init_state[_MICRO_BATCH_STATE_NAME] = tf.cast(0, dtype=input_dtype)
+      init_state[_MICRO_BATCH_STATE_NAME] = tf.cast(0, dtype=state_dtype)
       for output_idx in range(len(state_shapes[cell_idx + 1])):
         name = 's{}'.format(output_idx)
         if state_shapes[cell_idx + 1][output_idx] is not None:
           init_state[name] = tf.zeros(
-              state_shapes[cell_idx + 1][output_idx], dtype=input_dtype)
+              state_shapes[cell_idx + 1][output_idx], dtype=state_dtype)
       init_states.append(init_state)
       devices.append(cluster.WorkerDeviceInModelSplit(cell_idx))
 
@@ -424,7 +428,7 @@ class PipeliningLayer(SeqLayer):
       inputs = py_utils.NestedMap()
       gs_tensor = py_utils.GetOrCreateGlobalStep()
       inputs[_MICRO_BATCH_STATE_NAME] = tf.stack([
-          tf.cast(gs_tensor * p.num_micro_batches + t, dtype=input_dtype)
+          tf.cast(gs_tensor * p.num_micro_batches + t, dtype=state_dtype)
           for t in range(p.num_micro_batches)
       ])
 
