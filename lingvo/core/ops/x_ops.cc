@@ -84,8 +84,8 @@ REGISTER_OP("BestStep")
 
 Determines the best global step from a history file.
 
-best_step: Shape [2]. best_step[0] if scalar value for best global step. best_
-  step[1] is scalar value for last global step.
+best_step: Shape [2]. best_step[0] if scalar value for best global step.
+  best_step[1] is scalar value for last global step.
 hist_file: A text file containing 'step score' records, or a file pattern that
     matches tf event files in the format of /path_to_file/events.out.tfevents*.
 tol: Difference between previous best score and current score must be greater
