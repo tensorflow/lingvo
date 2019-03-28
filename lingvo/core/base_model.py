@@ -148,7 +148,7 @@ class BaseTask(base_layer.BaseLayer):
         'If not None, a dictionary with keys corresponding to a checkpoint '
         'path and values corresponding to variable loading rules is expected. '
         'Each key is expected to be a path to a checkpoint from which to '
-        'initialize part of the model. Variables are only loaded form this '
+        'initialize part of the model. Variables are only loaded from this '
         'path during initialization and will override values provided by '
         'initialization.'
         'The corresponding values (loading_rules) are expected to be a tuple '
