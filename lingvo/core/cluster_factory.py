@@ -47,17 +47,17 @@ def ForTestingWorker(mode=None,
                      add_summary=None):
   """Returns a Cluster for unittesting with a worker."""
   p = Cluster.Params()
-  if mode:
+  if mode is not None:
     p.mode = mode
-  if job:
+  if job is not None:
     p.job = job
-  if gpus:
+  if gpus is not None:
     p.worker.gpus_per_replica = gpus
-  if tpus:
+  if tpus is not None:
     p.worker.tpus_per_replica = tpus
     p.worker.num_tpu_hosts = 1
-  if split_size:
+  if split_size is not None:
     p.worker.devices_per_split = split_size
-  if add_summary:
+  if add_summary is not None:
     p.add_summary = add_summary
   return p.cls(p)
