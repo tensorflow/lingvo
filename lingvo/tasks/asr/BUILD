@@ -8,6 +8,7 @@ py_library(
     name = "frontend",
     srcs = ["frontend.py"],
     deps = [
+        # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:py_utils",
     ],

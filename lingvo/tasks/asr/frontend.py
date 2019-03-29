@@ -320,14 +320,22 @@ class MelAsrFrontend(BaseAsrFrontend):
           [batch, time, ...].
         - 'paddings': a 0/1 tensor of shape [batch, time].
     """
-    p = self.params
+
     pcm_audio_data, pcm_audio_paddings = self._ReshapeToMono2D(
         input_batch.src_inputs, input_batch.paddings)
 
-    batch_size = py_utils.GetShape(pcm_audio_data)[0]
     mel_spectrogram, mel_spectrogram_paddings = self._FPropChunk(
         theta, pcm_audio_data, pcm_audio_paddings)
 
+    mel_spectrogram, mel_spectrogram_paddings = self._PadAndReshapeSpec(
+        mel_spectrogram, mel_spectrogram_paddings)
+
+    return py_utils.NestedMap(
+        src_inputs=mel_spectrogram, paddings=mel_spectrogram_paddings)
+
+  def _PadAndReshapeSpec(self, mel_spectrogram, mel_spectrogram_paddings):
+    p = self.params
+    batch_size = py_utils.GetShape(mel_spectrogram)[0]
     # Stack and sub-sample. Only subsampling with a stride of the stack size
     # is supported.
     if p.stack_left_context > 0:
@@ -361,9 +369,7 @@ class MelAsrFrontend(BaseAsrFrontend):
 
     # Add feature dim. Shape = [batch, time, features, 1]
     mel_spectrogram = tf.expand_dims(mel_spectrogram, -1)
-
-    return py_utils.NestedMap(
-        src_inputs=mel_spectrogram, paddings=mel_spectrogram_paddings)
+    return mel_spectrogram, mel_spectrogram_paddings
 
   def _ApplyPreemphasis(self, framed_signal):
     p = self.params
@@ -371,15 +377,21 @@ class MelAsrFrontend(BaseAsrFrontend):
         framed_signal[:, :, 1:] - p.preemph * framed_signal[:, :, 0:-1])
     return preemphasized
 
+  def _GetMelPadding(self, pcm_audio_paddings):
+    p = self.params
+    # shape: [batch, time, _frame_size]
+    framed_paddings = tf.signal.frame(pcm_audio_paddings, self._frame_size,
+                                      self._frame_step, p.pad_end)
+    # Pad spectrograms that have any padded frames.
+    mel_spectrogram_paddings = tf.reduce_max(framed_paddings, axis=2)
+    return mel_spectrogram_paddings
+
   def _FPropChunk(self, theta, pcm_audio_chunk, pcm_audio_paddings):
     p = self.params
     pcm_audio_chunk = tf.cast(pcm_audio_chunk, tf.float32)
     # shape: [batch, time, _frame_size]
     framed_signal = tf.signal.frame(pcm_audio_chunk, self._frame_size,
                                     self._frame_step, p.pad_end)
-    # shape: [batch, time, _frame_size]
-    framed_paddings = tf.signal.frame(pcm_audio_paddings, self._frame_size,
-                                      self._frame_step, p.pad_end)
 
     # Pre-emphasis.
     if p.preemph != 1.0:
@@ -405,9 +417,6 @@ class MelAsrFrontend(BaseAsrFrontend):
 
     mel_spectrogram = self._MelSpectrogram(windowed_signal)
 
-    # Pad spectrograms that have any padded frames.
-    mel_spectrogram_paddings = tf.reduce_max(framed_paddings, axis=2)
-
     output_floor = 1.0
     mel_spectrogram_log = tf.log(
         tf.maximum(float(output_floor), mel_spectrogram))
@@ -416,7 +425,7 @@ class MelAsrFrontend(BaseAsrFrontend):
     mel_spectrogram_norm = (
         (mel_spectrogram_log - tf.convert_to_tensor(p.per_bin_mean)) /
         tf.convert_to_tensor(p.per_bin_stddev))
-    return mel_spectrogram_norm, mel_spectrogram_paddings
+    return mel_spectrogram_norm, self._GetMelPadding(pcm_audio_paddings)
 
   def _MelSpectrogram(self, signal):
     """Computes the mel spectrogram from a waveform signal.
