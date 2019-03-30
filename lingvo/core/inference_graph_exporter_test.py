@@ -38,6 +38,8 @@ class DummyLegacyModel(base_model.BaseTask):
     return p
 
   def Inference(self):
+    if py_utils.use_tpu():
+      raise NotImplementedError('TPU is not supported.')
     with tf.name_scope('inference'):
       feed1 = tf.placeholder(name='feed1_node', dtype=tf.float32, shape=[1])
       fetch1 = tf.identity(feed1, name='fetch1_node')
@@ -138,6 +140,21 @@ class InferenceGraphExporterTest(tf.test.TestCase):
     self.assertEqual(subgraph.feeds['feed1'], 'inference/feed1_node:0')
     self.assertEqual(subgraph.fetches['fetch1'], 'inference/fetch1_node:0')
     self.assertEqual(subgraph.fetches['fetch_op'], 'inference/fetch1_node')
+
+  def testExportModelDoesNotAffectFlagsOnException(self):
+    initial_flags = {k: tf.flags.FLAGS[k].value for k in tf.flags.FLAGS}
+    params = model_registry.GetParams('test.DummyLegacyModelParams', 'Test')
+    with self.assertRaises(NotImplementedError):
+      inference_graph_exporter.InferenceGraphExporter.Export(
+          params,
+          device_options=inference_graph_exporter.InferenceDeviceOptions(
+              device='tpu',
+              retain_device_placement=False,
+              var_options=None,
+              gen_init_op=True,
+              dtype_override=None))
+    self.assertDictEqual(initial_flags,
+                         {k: tf.flags.FLAGS[k].value for k in tf.flags.FLAGS})
 
 
 class NoConstGuaranteeScopeTest(tf.test.TestCase):
