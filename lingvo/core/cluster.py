@@ -51,9 +51,10 @@ class _Cluster(object):
     p.Define('name', '/job:localhost',
              'TensorFlow job spec, e.g., /job:trainer, /job:ps')
     p.Define('replicas', replicas, 'The number of tasks of a job.')
-    p.Define(
-        'gpus_per_replica', 0, 'The number of GPU devices to use per '
-        'replica. If 0, we assume each replica has 1 CPU device.')
+    p.Define('cpus_per_replica', 1, 'The number of CPU devices to use per '
+             'replica.')
+    p.Define('gpus_per_replica', 0, 'The number of GPU devices to use per '
+             'replica.')
     p.Define(
         'devices_per_split', 1, 'Devices of a replica are grouped into '
         'splits. Each split contains these many devices. One split is a '
@@ -127,9 +128,11 @@ class _Cluster(object):
       devices.
     """
     if not job_spec.gpus_per_replica:
-      ret = np.empty((job_spec.replicas, 1), np.object)
+      cpus = job_spec.cpus_per_replica
+      ret = np.empty((job_spec.replicas, cpus), np.object)
       for i in range(job_spec.replicas):
-        ret[i, 0] = cls._MakeDeviceString(job_spec.name, i, 'CPU', 0)
+        for j in range(cpus):
+          ret[i, j] = cls._MakeDeviceString(job_spec.name, i, 'CPU', j)
     else:
       ret = np.empty((job_spec.replicas, job_spec.gpus_per_replica), np.object)
       for i in range(job_spec.replicas):
@@ -246,18 +249,16 @@ class _Cluster(object):
 
   @property
   def num_devices_per_replica(self):
-    num = self._job_spec.gpus_per_replica or self._job_spec.tpus_per_replica
-    if num == 0:
-      return 1  # cpu:0 only.
-    else:
-      return num
+    return (self._job_spec.gpus_per_replica or
+            self._job_spec.tpus_per_replica or self._job_spec.cpus_per_replica)
 
   @property
   def total_worker_devices(self):
     """Return the total number of discrete worker devices in the cluster."""
     worker_spec = self.params.worker
     devices_per_replica = (
-        worker_spec.gpus_per_replica or worker_spec.tpus_per_replica or 1)
+        worker_spec.gpus_per_replica or worker_spec.tpus_per_replica or
+        self._job_spec.cpus_per_replica)
     num_replicas = worker_spec.replicas
     return devices_per_replica * num_replicas
 

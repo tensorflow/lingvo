@@ -239,6 +239,28 @@ class ClusterTest(tf.test.TestCase):
         c._MakeDeviceString(
             job_name='/job:trainer', task_id=0, device_name='CPU', device_id=0))
 
+  def testDeviceListOneRepliaCpu(self):
+    p = cluster_factory.Cluster.Params()
+    p.mode = 'async'
+    p.job = 'trainer'
+    p.worker.cpus_per_replica = 2
+    c = cluster_factory.Cluster(p)
+    cpu_devices = c.available_devices
+    expected_cpu_devices = [[
+        c._MakeDeviceString(
+            job_name='/job:localhost',
+            task_id=0,
+            device_name='CPU',
+            device_id=0),
+        c._MakeDeviceString(
+            job_name='/job:localhost',
+            task_id=0,
+            device_name='CPU',
+            device_id=1),
+    ]]
+    print(expected_cpu_devices)
+    self.assertAllEqual(cpu_devices, expected_cpu_devices)
+
   def testDeviceListOneReplicaGpu(self):
     p = cluster_factory.Cluster.Params()
     p.mode = 'async'
