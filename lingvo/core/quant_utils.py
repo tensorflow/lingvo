@@ -622,8 +622,8 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
       self.CreateVariable('clip_ratio', clip_ratio_pc, trainable=False)
       fq_ratio_pc = py_utils.WeightParams(
           shape=[],
-          init=py_utils.WeightInit.Constant(-1.0
-                                            if p.quant_start_step > 0 else 0.0),
+          init=py_utils.WeightInit.Constant(
+              -1.0 if p.quant_start_step > 0 else 1.0),
           dtype=tf.float32,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('fq_ratio', fq_ratio_pc, trainable=False)
@@ -807,8 +807,9 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
 
     # Will be negative if before clipping starts.
     new_clip_ratio = (
-        tf.minimum(clip_end_step - clip_start_step, global_step -
-                   clip_start_step) / (clip_end_step - clip_start_step))
+        tf.minimum(clip_end_step - clip_start_step,
+                   global_step - clip_start_step) /
+        tf.maximum(1.0, clip_end_step - clip_start_step))
     # Currently fq is either on (1.0) or off (-1.0). Progressive quantization
     # may later occupy 0..1.0.
     new_fq_ratio = tf.where(global_step < quant_start_step, -1.0, 1.0)
