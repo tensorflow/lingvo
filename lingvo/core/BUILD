@@ -413,6 +413,13 @@ lingvo_cuda_py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
     shard_count = 20,
+    deps = [":layers_test_main_lib"],
+)
+
+py_library(
+    name = "layers_test_main_lib",
+    testonly = True,
+    srcs = ["layers_test.py"],
     deps = [
         ":layers",
         ":py_utils",
@@ -970,6 +977,13 @@ lingvo_cuda_py_test(
     size = "large",
     srcs = ["rnn_layers_test.py"],
     shard_count = 15,
+    deps = [":rnn_layers_test_main_lib"],
+)
+
+py_library(
+    name = "rnn_layers_test_main_lib",
+    testonly = True,
+    srcs = ["rnn_layers_test.py"],
     deps = [
         ":attention",
         ":base_layer",
