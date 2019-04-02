@@ -230,7 +230,7 @@ class GPipeTransformerLayersTest(tf.test.TestCase):
       self.assertAllClose(h1_v, h2_v)
 
 
-class GPipeTransformerStackTest(tf.test.TestCase):
+class GPipeTransformerStackTest(tf.test.TestCase, parameterized.TestCase):
   """Tests for GPipeTransformerStack layer."""
 
   def _TransformerParams(self,
@@ -328,9 +328,22 @@ class GPipeTransformerStackTest(tf.test.TestCase):
     tgt_paddings = tf.constant(tgt_paddings_arr.tolist(), dtype=tf.float32)
     return inputs, paddings, tgt_inputs, tgt_paddings
 
-  def _testGPipeTransformerEncoderFPropDefaultTheta(self,
-                                                    splits=1,
-                                                    num_micro_batches=1):
+  @parameterized.named_parameters({
+      'testcase_name': '_one_split',
+      'splits': 1,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_two_splits',
+      'splits': 2,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_manual_splits',
+      'splits': [4, 8],
+      'num_micro_batches': 1
+  })
+  def testGPipeTransformerEncoderFPropDefaultTheta(self,
+                                                   splits=1,
+                                                   num_micro_batches=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
     with self.session() as sess:
@@ -354,7 +367,44 @@ class GPipeTransformerStackTest(tf.test.TestCase):
                                           [[0.21085747, 0.60925347]] * batch],
                                          output)
 
-  def _testGPipeTransformerStackFProp(self, splits=1, num_micro_batches=1):
+  @parameterized.named_parameters({
+      'testcase_name': '_split1',
+      'splits': 1,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split1_nmb2',
+      'splits': 1,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split1_nmb4',
+      'splits': 1,
+      'num_micro_batches': 4
+  }, {
+      'testcase_name': '_split2_nmb1',
+      'splits': 2,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split2_nmb2',
+      'splits': 2,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split2_nmb4',
+      'splits': 2,
+      'num_micro_batches': 4
+  }, {
+      'testcase_name': '_split4_nmb1',
+      'splits': 4,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split4_nmb2',
+      'splits': 4,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split4_nmb4',
+      'splits': 4,
+      'num_micro_batches': 4
+  })
+  def testGPipeTransformerStackFProp(self, splits=1, num_micro_batches=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
     with self.session() as sess:
@@ -375,9 +425,26 @@ class GPipeTransformerStackTest(tf.test.TestCase):
                                           [[0.21085747, 0.60925347]] * batch],
                                          output)
 
-  def _testGPipeTransformerStackFPropWithEmbeddings(self,
-                                                    splits=1,
-                                                    num_micro_batches=1):
+  @parameterized.named_parameters({
+      'testcase_name': '_split1',
+      'splits': 1,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split1_nmb2',
+      'splits': 1,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split2_nmb1',
+      'splits': 2,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split2_nmb2',
+      'splits': 2,
+      'num_micro_batches': 2
+  })
+  def testGPipeTransformerStackFPropWithEmbeddings(self,
+                                                   splits=1,
+                                                   num_micro_batches=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
     with self.session() as sess:
@@ -398,7 +465,14 @@ class GPipeTransformerStackTest(tf.test.TestCase):
           [[[-1.67121327, -1.24759686, 1.41572773, 2.42515182]] * batch,
            [[-1.71240354, -1.1253252, 0.23407015, 3.40547156]] * batch], output)
 
-  def _testGPipeTransformerFPropPackedInput(self, splits=1):
+  @parameterized.named_parameters({
+      'testcase_name': '_one_split',
+      'splits': 1
+  }, {
+      'testcase_name': '_two_splits',
+      'splits': 2
+  })
+  def testGPipeTransformerFPropPackedInput(self, splits=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
     with self.session() as sess:
@@ -433,7 +507,14 @@ class GPipeTransformerStackTest(tf.test.TestCase):
         output, packed_output = sess.run([output, packed_output])
         self.assertAllClose(output, packed_output)
 
-  def _testGPipeTransformerFPropPackedInputWithEmbeddings(self, splits=1):
+  @parameterized.named_parameters({
+      'testcase_name': '_one_split',
+      'splits': 1
+  }, {
+      'testcase_name': '_two_splits',
+      'splits': 2
+  })
+  def testGPipeTransformerFPropPackedInputWithEmbeddings(self, splits=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
     with self.session() as sess:
@@ -475,11 +556,40 @@ class GPipeTransformerStackTest(tf.test.TestCase):
 
         tf.global_variables_initializer().run()
         output, packed_output = sess.run([output, packed_output])
-        self.assertAllClose(output, packed_output)
+        self.assertAllClose(output, packed_output, rtol=1e-05, atol=1e-05)
 
-  def _testGPipeTransformerStackTrainTransparentFProp(self,
-                                                      splits=1,
-                                                      num_micro_batches=1):
+  @parameterized.named_parameters({
+      'testcase_name': '_split1',
+      'splits': 1,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split1_nmb2',
+      'splits': 1,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split1_nmb4',
+      'splits': 1,
+      'num_micro_batches': 4
+  }, {
+      'testcase_name': '_split2_nmb2',
+      'splits': 2,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split_manual_nmb2',
+      'splits': [3, 4],
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split4_nmb2',
+      'splits': 4,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split4_nmb4',
+      'splits': 4,
+      'num_micro_batches': 4
+  })
+  def testGPipeTransformerStackTrainTransparentFProp(self,
+                                                     splits=1,
+                                                     num_micro_batches=1):
     # time = 2,
     batch = 4
     with self.session() as sess:
@@ -512,7 +622,24 @@ class GPipeTransformerStackTest(tf.test.TestCase):
           [[[2.926736, -4.090812]] * batch, [[-1.69508219, 1.75891459]] * batch,
            [[-1.6950829, 1.75891507]] * batch])
 
-  def _testGPipeTransformerStackTrainTransparentFPropWithEmbeddings(
+  @parameterized.named_parameters({
+      'testcase_name': '_split1',
+      'splits': 1,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split1_nmb2',
+      'splits': 1,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split2_nmb2',
+      'splits': 2,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split_manual_nmb2',
+      'splits': [3, 4],
+      'num_micro_batches': 2
+  })
+  def testGPipeTransformerStackTrainTransparentFPropWithEmbeddings(
       self, splits=1, num_micro_batches=1):
     # time = 2,
     batch = 4
@@ -550,7 +677,36 @@ class GPipeTransformerStackTest(tf.test.TestCase):
            [[-0.41073492, -1.60431314, 1.04607999, 1.08858371]] * batch],
           dec_out)
 
-  def _testGPipeTransformerStackTrainEncoderTransparentFProp(
+  @parameterized.named_parameters({
+      'testcase_name': '_split1',
+      'splits': 1,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split1_nmb2',
+      'splits': 1,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split1_nmb4',
+      'splits': 1,
+      'num_micro_batches': 4
+  }, {
+      'testcase_name': '_split2_nmb2',
+      'splits': 2,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split_manual_nmb2',
+      'splits': [1, 4],
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split2_nmb4',
+      'splits': 2,
+      'num_micro_batches': 4
+  }, {
+      'testcase_name': '_split4_nmb4',
+      'splits': 2,
+      'num_micro_batches': 4
+  })
+  def testGPipeTransformerStackTrainEncoderTransparentFProp(
       self, splits=1, num_micro_batches=1):
     # time = 2,
     batch = 4
@@ -624,9 +780,45 @@ class GPipeTransformerStackTest(tf.test.TestCase):
       self.assertAllClose(enc_out, [[[0.18823329, 0.71548849]] * batch,
                                     [[0.76032472, -0.82791042]] * batch])
 
-  def _testGPipeTransformerDecoderStackFProp(self,
-                                             splits=1,
-                                             num_micro_batches=1):
+  @parameterized.named_parameters({
+      'testcase_name': '_split1',
+      'splits': 1,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split1_nmb2',
+      'splits': 1,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split1_nmb4',
+      'splits': 1,
+      'num_micro_batches': 4
+  }, {
+      'testcase_name': '_split2_nmb1',
+      'splits': 2,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split2_nmb2',
+      'splits': 2,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split2_nmb4',
+      'splits': 2,
+      'num_micro_batches': 4
+  }, {
+      'testcase_name': '_split4_nmb1',
+      'splits': 4,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split4_nmb2',
+      'splits': 4,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split4_nmb4',
+      'splits': 4,
+      'num_micro_batches': 4
+  })
+  def testGPipeTransformerDecoderStackFProp(self, splits=1,
+                                            num_micro_batches=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
     with self.session() as sess:
@@ -651,7 +843,24 @@ class GPipeTransformerStackTest(tf.test.TestCase):
                                           [[-3.36382723, -0.74492997]] * batch],
                                          output_val)
 
-  def _testGPipeTransformerDecoderStackFPropWithEmbeddings(
+  @parameterized.named_parameters({
+      'testcase_name': '_split1',
+      'splits': 1,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split1_nmb2',
+      'splits': 1,
+      'num_micro_batches': 2
+  }, {
+      'testcase_name': '_split2_nmb1',
+      'splits': 2,
+      'num_micro_batches': 1
+  }, {
+      'testcase_name': '_split2_nmb2',
+      'splits': 2,
+      'num_micro_batches': 2
+  })
+  def testGPipeTransformerDecoderStackFPropWithEmbeddings(
       self, splits=1, num_micro_batches=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
@@ -677,176 +886,6 @@ class GPipeTransformerStackTest(tf.test.TestCase):
            [[-2.14101386, 0.32607365, 1.73413348, 1.51806736]] * batch,
            [[-2.18863297, 0.34420109, 1.65913653, 1.58703828]] * batch],
           output_val)
-
-  def testGPipeTransformerEncoderFProp(self):
-    self._testGPipeTransformerEncoderFPropDefaultTheta(
-        splits=2, num_micro_batches=2)
-
-  def testGPipeTransformerEncoderFPropWithManualSplits(self):
-    self._testGPipeTransformerEncoderFPropDefaultTheta(
-        splits=[4, 8], num_micro_batches=2)
-
-  def testGPipeTransformerFPropPackedInput(self):
-    self._testGPipeTransformerFPropPackedInput()
-
-  def testGPipeTransformerFPropPackedInputTwoSplits(self):
-    self._testGPipeTransformerFPropPackedInput(splits=2)
-
-  def testGPipeTransformerFPropPackedInputWithEmbs(self):
-    self._testGPipeTransformerFPropPackedInputWithEmbeddings()
-
-  def testGPipeTransformerFPropPackedInputTwoSplitsWithEmbs(self):
-    self._testGPipeTransformerFPropPackedInputWithEmbeddings(splits=2)
-
-  def testGPipeTransformerStackFPropNoSplit(self):
-    self._testGPipeTransformerStackFProp()
-
-  def testGPipeTransformerStackFPropNoSplitTwoMicroBatches(self):
-    self._testGPipeTransformerStackFProp(num_micro_batches=2)
-
-  def testGPipeTransformerStackFPropNoSplitFourMicroBatches(self):
-    self._testGPipeTransformerStackFProp(num_micro_batches=4)
-
-  def testGPipeTransformerStackFPropTwoSplits(self):
-    self._testGPipeTransformerStackFProp(splits=2)
-
-  def testGPipeTransformerStackFPropTwoSplitsTwoMicroBatches(self):
-    self._testGPipeTransformerStackFProp(splits=2, num_micro_batches=2)
-
-  def testGPipeTransformerStackFPropTwoSplitsFourMicroBatches(self):
-    self._testGPipeTransformerStackFProp(splits=2, num_micro_batches=4)
-
-  def testGPipeTransformerStackFPropFourSplits(self):
-    self._testGPipeTransformerStackFProp(splits=4)
-
-  def testGPipeTransformerStackFPropFourSplitsTwoMicroBatches(self):
-    self._testGPipeTransformerStackFProp(splits=4, num_micro_batches=2)
-
-  def testGPipeTransformerStackFPropFourSplitsFourMicroBatches(self):
-    self._testGPipeTransformerStackFProp(splits=4, num_micro_batches=4)
-
-  def testGPipeTransformerStackFPropNoSplitWithEmbs(self):
-    self._testGPipeTransformerStackFPropWithEmbeddings()
-
-  def testGPipeTransformerStackFPropNoSplitTwoMicroBatchesWithEmbs(self):
-    self._testGPipeTransformerStackFPropWithEmbeddings(num_micro_batches=2)
-
-  def testGPipeTransformerStackFPropTwoSplitsWithEmbs(self):
-    self._testGPipeTransformerStackFPropWithEmbeddings(splits=2)
-
-  def testGPipeTransformerStackFPropTwoSplitsTwoMicroBatchesWithEmbs(self):
-    self._testGPipeTransformerStackFPropWithEmbeddings(
-        splits=2, num_micro_batches=2)
-
-  def testGPipeTransformerDecoderStackFPropNoSplit(self):
-    self._testGPipeTransformerDecoderStackFProp()
-
-  def testGPipeTransformerDecoderStackFPropNoSplitTwoMicroBatches(self):
-    self._testGPipeTransformerDecoderStackFProp(num_micro_batches=2)
-
-  def testGPipeTransformerDecoderStackFPropNoSplitFourMicroBatches(self):
-    self._testGPipeTransformerDecoderStackFProp(num_micro_batches=4)
-
-  def testGPipeTransformerDecoderStackFPropTwoSplits(self):
-    self._testGPipeTransformerDecoderStackFProp(splits=2)
-
-  def testGPipeTransformerDecoderStackFPropTwoSplitsTwoMicroBatches(self):
-    self._testGPipeTransformerDecoderStackFProp(splits=2, num_micro_batches=2)
-
-  def testGPipeTransformerDecoderStackFPropTwoSplitsFourMicroBatches(self):
-    self._testGPipeTransformerDecoderStackFProp(splits=2, num_micro_batches=4)
-
-  def testGPipeTransformerDecoderStackFPropFourSplits(self):
-    self._testGPipeTransformerDecoderStackFProp(splits=4)
-
-  def testGPipeTransformerDecoderStackFPropFourSplitsTwoMicroBatches(self):
-    self._testGPipeTransformerDecoderStackFProp(splits=4, num_micro_batches=2)
-
-  def testGPipeTransformerDecoderStackFPropFourSplitsFourMicroBatches(self):
-    self._testGPipeTransformerDecoderStackFProp(splits=4, num_micro_batches=4)
-
-  def testGPipeTransformerDecoderStackFPropNoSplitWithEmbs(self):
-    self._testGPipeTransformerDecoderStackFPropWithEmbeddings()
-
-  def testGPipeTransformerDecoderStackFPropNoSplitTwoMicroBatchesWithEmbs(self):
-    self._testGPipeTransformerDecoderStackFPropWithEmbeddings(
-        num_micro_batches=2)
-
-  def testGPipeTransformerDecoderStackFPropTwoSplitsWithEmbs(self):
-    self._testGPipeTransformerDecoderStackFPropWithEmbeddings(splits=2)
-
-  def testGPipeTransformerDecoderStackFPropTwoSplitsTwoMicroBatchesWithEmbs(
-      self):
-    self._testGPipeTransformerDecoderStackFPropWithEmbeddings(
-        splits=2, num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainTransparentFProp(self):
-    self._testGPipeTransformerStackTrainTransparentFProp()
-
-  def testGPipeTransformerStackTrainTransparentFPropMB2(self):
-    self._testGPipeTransformerStackTrainTransparentFProp(num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainTransparentFPropMB4(self):
-    self._testGPipeTransformerStackTrainTransparentFProp(num_micro_batches=4)
-
-  def testGPipeTransformerStackTrainTransparentFPropTwoSplitsMB2(self):
-    self._testGPipeTransformerStackTrainTransparentFProp(
-        splits=2, num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainTransparentFPropTwoManualSplitsMB2(self):
-    self._testGPipeTransformerStackTrainTransparentFProp(
-        splits=[3, 4], num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainTransparentFPropTwoSplits2MB4(self):
-    self._testGPipeTransformerStackTrainTransparentFProp(
-        splits=2, num_micro_batches=4)
-
-  def testGPipeTransformerStackTrainTransparentFPropFourSplitsMB4(self):
-    self._testGPipeTransformerStackTrainTransparentFProp(
-        splits=4, num_micro_batches=4)
-
-  def testGPipeTransformerStackTrainTransparentFPropWithEmbs(self):
-    self._testGPipeTransformerStackTrainTransparentFPropWithEmbeddings()
-
-  def testGPipeTransformerStackTrainTransparentFPropMB2WithEmbs(self):
-    self._testGPipeTransformerStackTrainTransparentFPropWithEmbeddings(
-        num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainTransparentFPropTwoSplitsMB2WithEmbs(self):
-    self._testGPipeTransformerStackTrainTransparentFPropWithEmbeddings(
-        splits=2, num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainTransparentFPropTwoManualSplitsMB2WithEmbs(
-      self):
-    self._testGPipeTransformerStackTrainTransparentFPropWithEmbeddings(
-        splits=[3, 4], num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainEncoderTransparentFProp(self):
-    self._testGPipeTransformerStackTrainEncoderTransparentFProp()
-
-  def testGPipeTransformerStackTrainEncoderTransparentFPropMB2(self):
-    self._testGPipeTransformerStackTrainEncoderTransparentFProp(
-        num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainEncoderTransparentFPropMB4(self):
-    self._testGPipeTransformerStackTrainEncoderTransparentFProp(
-        num_micro_batches=4)
-
-  def testGPipeTransformerStackTrainEncoderTransparentFPropTwoSplitsMB2(self):
-    self._testGPipeTransformerStackTrainEncoderTransparentFProp(
-        splits=2, num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainEncoderTransparentFPropManualSplitMB2(self):
-    self._testGPipeTransformerStackTrainEncoderTransparentFProp(
-        splits=[1, 4], num_micro_batches=2)
-
-  def testGPipeTransformerStackTrainEncoderTransparentFPropTwoSplits2MB4(self):
-    self._testGPipeTransformerStackTrainEncoderTransparentFProp(
-        splits=2, num_micro_batches=4)
-
-  def testGPipeTransformerStackTrainEncoderTransparentFPropFourSplitsMB4(self):
-    self._testGPipeTransformerStackTrainEncoderTransparentFProp(
-        splits=4, num_micro_batches=4)
 
 
 class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
