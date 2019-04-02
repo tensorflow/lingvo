@@ -218,7 +218,7 @@ def Log(value, prefix, **kwargs):
 
 
 def _Save(steps, prefix, key, val):
-  filename = '%s.%08d.%s.npy' % (prefix, steps, key)
+  filename = '%s.%08d.%s.npy' % (prefix.decode(), steps, key.decode())
   with tf.gfile.Open(filename, 'w') as outfile:
     np.save(outfile, val)
 

@@ -1502,7 +1502,7 @@ class SequencesToDebugStrings(tf.test.TestCase):
 
   def testSequencesToDebugStrings(self):
     with self.session():
-      self.assertAllEqual(['[1 2 3]', '[100 200]'],
+      self.assertAllEqual([b'[1 2 3]', b'[100 200]'],
                           py_utils.SequencesToDebugStrings(
                               tf.constant([[1, 2, 3], [100, 200, 300]],
                                           dtype=tf.int32),
