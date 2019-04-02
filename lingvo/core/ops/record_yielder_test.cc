@@ -259,9 +259,9 @@ TEST_P(TfRecordYielderTest, MatchFilesFromMultiplePatterns) {
   yielder->Close();
 }
 
-INSTANTIATE_TEST_SUITE_P(All, TfRecordYielderTest,
-                         testing::Values(io::compression::kNone,
-                                         io::compression::kGzip));
+INSTANTIATE_TEST_CASE_P(All, TfRecordYielderTest,
+                        testing::Values(io::compression::kNone,
+                                        io::compression::kGzip));
 
 TEST(RecordYielder, MatchShardedFilePattern) {
   const int num_shards = 16;
@@ -327,9 +327,9 @@ TEST(RecordYielder, RegisterFakeIterator) {
   EXPECT_TRUE(yielder != nullptr);
   Rope value;
   EXPECT_TRUE(yielder->Yield(&value).ok());
-  EXPECT_EQ("hello1", value.ToString());
+  EXPECT_EQ("hello1", value);
   EXPECT_TRUE(yielder->Yield(&value).ok());
-  EXPECT_EQ("hello1", value.ToString());
+  EXPECT_EQ("hello1", value);
   yielder->Close();
 }
 
