@@ -92,7 +92,7 @@ def _tensorflow_solib_repo_impl(repo_ctx):
         content = """
 cc_library(
     name = "framework_lib",
-    srcs = ["tensorflow_solib/libtensorflow_framework.so"],
+    srcs = ["tensorflow_solib/libtensorflow_framework.so.1"],
     visibility = ["//visibility:public"],
 )
 """,
