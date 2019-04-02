@@ -229,6 +229,12 @@ class StackedRNNBase(base_layer.BaseLayer):
 class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
   """An implemention of StackedRNNBase which computes layer-by-layer."""
 
+  @classmethod
+  def Params(cls):
+    p = super(StackedFRNNLayerByLayer, cls).Params()
+    p.Define('rnn_tpl', FRNN.Params(), 'Rnn cell default params.')
+    return p
+
   @base_layer.initializer
   def __init__(self, params):
     super(StackedFRNNLayerByLayer, self).__init__(params)
@@ -237,7 +243,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     rnn_params = []
     with tf.name_scope(p.name):
       for (i, cell_tpl) in enumerate(self._GetCellTpls()):
-        params = FRNN.Params()
+        params = p.rnn_tpl.Copy()
         params.packed_input = p.packed_input
         params.allow_implicit_capture = p.allow_implicit_capture
         params.name = 'frnn_%d' % i
