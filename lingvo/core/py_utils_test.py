@@ -1511,8 +1511,7 @@ class SequencesToDebugStrings(tf.test.TestCase):
 
 class StepSeedTest(tf.test.TestCase):
 
-  def testStepSeed(self):
-    p = base_layer.BaseLayer.Params()
+  def _testStepSeedHelper(self, sess, step_fn, expected_starting_step_seed):
     state0 = py_utils.NestedMap(
         input=tf.constant(0, dtype=tf.int64),
         seed_pair=tf.zeros(2, dtype=tf.int64),
@@ -1520,11 +1519,28 @@ class StepSeedTest(tf.test.TestCase):
         global_step=py_utils.GetOrCreateGlobalStep())
     inputs = py_utils.NestedMap(input=tf.range(10, dtype=tf.int64))
 
+    accumulated_states, _ = recurrent.Recurrent(py_utils.NestedMap(), state0,
+                                                inputs, step_fn)
+
+    sess.run(tf.global_variables_initializer())
+    accumulated_states = accumulated_states.Pack(
+        sess.run(accumulated_states.Flatten()))
+    self.assertAllEqual(np.arange(10), accumulated_states.input)
+    self.assertAllEqual(np.zeros(10), accumulated_states.global_step)
+    # The step seed in the state is actually for the **next** step.
+    expected_step_seeds = expected_starting_step_seed + np.arange(10)
+    self.assertAllEqual(expected_step_seeds + 1, accumulated_states.step_seed)
+    self.assertAllEqual(
+        np.stack((np.zeros(10), expected_step_seeds), axis=1),
+        accumulated_states.seed_pair)
+
+  def testStepSeed(self):
+    p = base_layer.BaseLayer.Params()
+
     def RecurrentStep(unused_theta, state0, inputs):
       graph = tf.get_default_graph()
       if not graph.get_collection(tf.GraphKeys.GLOBAL_STEP):
         graph.add_to_collection(tf.GraphKeys.GLOBAL_STEP, state0.global_step)
-      py_utils.ResetStepSeed(state0.step_seed)
 
       state1 = py_utils.NestedMap()
       state1.input = inputs.input
@@ -1533,20 +1549,26 @@ class StepSeedTest(tf.test.TestCase):
       state1.global_step = py_utils.GetOrCreateGlobalStep()
       return state1, py_utils.NestedMap()
 
-    accumulated_states, _ = recurrent.Recurrent(py_utils.NestedMap(), state0,
-                                                inputs, RecurrentStep)
+    with self.session(graph=tf.Graph()) as sess:
+      self._testStepSeedHelper(sess, RecurrentStep, 0)
+      # Second recurrent inside the same graph has different step_seeds.
+      self._testStepSeedHelper(sess, RecurrentStep, 641992038)
 
-    with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
-      accumulated_states = accumulated_states.Pack(
-          sess.run(accumulated_states.Flatten()))
-      self.assertAllEqual(np.arange(10), accumulated_states.input)
-      self.assertAllEqual(np.zeros(10), accumulated_states.global_step)
-      # The step seed in the state is actually for the **next** step.
-      self.assertAllEqual(np.arange(1, 11), accumulated_states.step_seed)
-      self.assertAllEqual(
-          np.stack((np.zeros(10), np.arange(10)), axis=1),
-          accumulated_states.seed_pair)
+    # After a reset, the step_seeds are the same even with a slightly
+    # different RecurrentStep function.
+    def RecurrentStep2(theta, state0, inputs):
+      with tf.control_dependencies([tf.no_op()]):
+        return RecurrentStep(theta, state0, inputs)
+
+    with self.session(graph=tf.Graph()) as sess:
+      self._testStepSeedHelper(sess, RecurrentStep2, 0)
+      self._testStepSeedHelper(sess, RecurrentStep2, 641992038)
+
+    with self.session(graph=tf.Graph()) as sess:
+      # But a different name_scope changes it.
+      with tf.name_scope('test'):
+        self._testStepSeedHelper(sess, RecurrentStep2, 0)
+        self._testStepSeedHelper(sess, RecurrentStep2, 1169426261)
 
 
 class WeightInitTest(tf.test.TestCase):

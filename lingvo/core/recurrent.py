@@ -44,6 +44,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import zlib
 
 from six.moves import range
 from six.moves import zip
@@ -822,6 +823,9 @@ class _Recurrent(object):
       del acc_state.accumulators
       del final_state.accumulators
 
+    del acc_state['_step_seed']
+    py_utils.ResetStepSeed(final_state.pop('_step_seed'))
+
     return acc_state, final_state
 
 
@@ -954,6 +958,13 @@ def _AugmentState(state0, accumulator_layer):
     if 'accumulators' in state0:
       raise ValueError('accumulators is a private state key used by Recurrent.')
     state0.accumulators = accumulator_layer.GetAccumulatorValues()
+
+  # _step_seed is used for seeding stateless random ops.
+  # See py_utils.GenerateStepSeedPair for more details.
+  if '_step_seed' in state0:
+    raise ValueError('_step_seed is a private state key used by Recurrent.')
+  state0['_step_seed'] = py_utils.GetStepSeed()
+
   return state0
 
 
@@ -999,11 +1010,47 @@ def _WrapAccumulatorCellGradFn(accumulator_layer, cell_grad):
   return WrappedCellGradFn
 
 
+def _WrapCellFnWithStepSeed(cell_fn):
+  """Wrap a cell_fn to initialize the step seed."""
+
+  def WrappedCellFn(theta, state0, *args, **kwargs):
+    """The wrapper function."""
+    # The _step_seed state should be transparent to cell_fn.
+    state0_step_seed = state0.pop('_step_seed')
+    py_utils.ResetStepSeed(state0_step_seed)
+    state1, extras = cell_fn(theta, state0, *args, **kwargs)
+    state0['_step_seed'] = state0_step_seed
+    state1['_step_seed'] = py_utils.GetStepSeed()
+    return state1, extras
+
+  return WrappedCellFn
+
+
+def _WrapCellGradFnWithStepSeed(cell_grad):
+  """Wrap a cell grad function to handle step seed in state."""
+
+  def WrappedCellGradFn(theta, state0, inputs, extras, dstate1):
+    """The wrapper function."""
+    # The _step_seed state should be transparent to cell_grad.
+    state0_step_seed = state0.pop('_step_seed')
+    dstep_seed = dstate1.pop('_step_seed')
+    py_utils.ResetStepSeed(state0_step_seed)
+    dtheta, dstate0, dinputs, dcaptures = cell_grad(theta, state0, inputs,
+                                                    extras, dstate1)
+    state0['_step_seed'] = state0_step_seed
+    dstate0['_step_seed'] = dstep_seed
+    dstate1['_step_seed'] = dstep_seed
+    return dtheta, dstate0, dinputs, dcaptures
+
+  return WrappedCellGradFn
+
+
 def _DecorateCellFn(cell_fn, accumulator_layer):
   """Decorates cell_fn with additional state information."""
   if accumulator_layer:
     # Wrap the cell_fn so that it knows how to propagate accumulators.
     cell_fn = _WrapAccumulatorCellFn(accumulator_layer, cell_fn)
+  cell_fn = _WrapCellFnWithStepSeed(cell_fn)
   return cell_fn
 
 
@@ -1012,6 +1059,7 @@ def _DecorateCellGrad(cell_grad, accumulator_layer):
   if accumulator_layer:
     # Wrap the cell_grad so it disables accumulators.
     cell_grad = _WrapAccumulatorCellGradFn(accumulator_layer, cell_grad)
+  cell_grad = _WrapCellGradFnWithStepSeed(cell_grad)
   return cell_grad
 
 
@@ -1126,8 +1174,11 @@ def Recurrent(theta,
 
   with tf.name_scope('recurrent_cellfn_extras'):
     # Derives 'extras' so that we can allocate extras' accumulator.
+    # Not a real call to cell_fn, so make sure it doesn't affect step_seed.
+    step_seed = py_utils.GetStepSeed()
     # Make sure not to modify the original state0.
     _, actual_extras = cell_fn(theta, state0.DeepCopy(), _Index(inputs, 0))
+    py_utils.ResetStepSeed(step_seed)
   if extras is None:
     extras = actual_extras.Transform(tf.zeros_like)
   else:
@@ -1136,7 +1187,7 @@ def Recurrent(theta,
       extras = py_utils.NestedMap()
     _AssertIsCompatible(extras, actual_extras)
 
-  return _Recurrent(
+  acc_state, final_state = _Recurrent(
       cell_fn=cell_fn,
       cell_grad=cell_grad,
       stop_fn=stop_fn,
@@ -1146,6 +1197,14 @@ def Recurrent(theta,
       extras=extras,
       accumulator_layer=accumulator_layer,
       implicit_captures=implicit_captures).Compute()
+
+  # TODO(b/129159299): The ResetStepSeed below is needed to work around this
+  # bug, which is a problem with global tensors being shared by different
+  # inference graphs. It should be removed once the bug is fixed.
+  py_utils.ResetStepSeed(
+      zlib.adler32(tf.no_op(name='new_step_seed').name.encode()))
+
+  return acc_state, final_state
 
 
 class _Link(object):
@@ -1558,12 +1617,13 @@ def StackedRecurrent(devices,
     expected_output_by_layers = []
     xs = _Index(inputs, 0)
     for i in range(num_layers):
-      # Disable accumulators since this is not a real call to cell_fns[i].
-      # They will be re-enabled in _Recurrent.
+      # Disable accumulators and step_seed since this is not a real call to
+      # cell_fns[i]. They will be re-enabled in _Recurrent.<F24><F25>
       if accumulator_layers[i]:
         accumulator_layers[i].accumulators.Transform(lambda x: x.Disable())
-
+      step_seed = py_utils.GetStepSeed()
       state1, extras = cell_fns[i](thetas[i], init_states[i], xs)
+      py_utils.ResetStepSeed(step_seed)
       # only dtype and shape is needed.
       xs = cell_outs[i](state1)
       expected_output_by_layers += [
@@ -1674,5 +1734,11 @@ def StackedRecurrent(devices,
   # final output does not change its numerical value.
   with tf.device(devices[-1]):
     outputs = cell_outs[-1](acc_states.Transform(lambda x: x + anchor))
+
+  # TODO(b/129159299): The ResetStepSeed below is needed to work around this
+  # bug, which is a problem with global tensors being shared by different
+  # inference graphs. It should be removed once the bug is fixed.
+  py_utils.ResetStepSeed(
+      zlib.adler32(tf.no_op(name='new_step_seed').name.encode()))
 
   return outputs, final_states

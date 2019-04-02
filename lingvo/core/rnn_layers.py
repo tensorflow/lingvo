@@ -1068,8 +1068,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
 
     zero_atten_state = atten.ZeroAttentionState(s_seq_len, batch_size)
     state0.step_state = py_utils.NestedMap(
-        global_step=py_utils.GetOrCreateGlobalStep(),
-        step_seed=py_utils.GetStepSeed())
+        global_step=py_utils.GetOrCreateGlobalStep())
     if p.use_zero_atten_state:
       zero_atten_context = tf.zeros([batch_size, p.atten_context_dim],
                                     dtype=py_utils.FPropDtype(p))
@@ -1156,8 +1155,6 @@ class FRNNWithAttention(base_layer.BaseLayer):
 
     def CellFn(theta, state0, inputs):
       """Computes one step forward."""
-      # Set step_seed with the value propagated through the recurrent state.
-      py_utils.ResetStepSeed(state0.step_state.step_seed)
       if p.packed_input:
         state0_mod = state0.DeepCopy()
         state0_mod = self.reset_atten_state(theta, state0_mod, inputs)
@@ -1181,9 +1178,6 @@ class FRNNWithAttention(base_layer.BaseLayer):
               state0_mod.atten_state,
               global_step=state0_mod.step_state.global_step,
               query_segment_id=tf.squeeze(inputs.segment_id, 1)))
-      # Retrieve the value of step_seed to pass onto the next iteration.
-      # The step_seed can have increased via calls to GenerateStepSeedPair().
-      state1.step_state.step_seed = py_utils.GetStepSeed()
       return state1, py_utils.NestedMap()
 
     if p.packed_input:
@@ -1414,8 +1408,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
     ctxs0 = []
     packed_srcs = py_utils.NestedMap()
     state0.step_state = py_utils.NestedMap(
-        global_step=py_utils.GetOrCreateGlobalStep(),
-        step_seed=py_utils.GetStepSeed())
+        global_step=py_utils.GetOrCreateGlobalStep())
     for i, src_name in enumerate(p.source_names):
       att_idx = (0 if p.share_attention else i)
 
@@ -1500,8 +1493,6 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
 
     def CellFn(theta, state0, inputs):
       """Computes one step forward."""
-      # Set step_seed with the value propagated through the recurrent state.
-      py_utils.ResetStepSeed(state0.step_state.step_seed)
       state1 = py_utils.NestedMap(step_state=state0.step_state)
       state1.rnn, _ = rcell.FProp(
           theta.rnn, state0.rnn,
@@ -1522,9 +1513,6 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
             global_step=state0.step_state.global_step)[0])
       state1.atten = self.atten_merger.FProp(theta.atten_merger, local_ctxs,
                                              query_vec)
-      # Retrieve the value of step_seed to pass onto the next iteration.
-      # The step_seed can have increased via calls to GenerateStepSeedPair().
-      state1.step_state.step_seed = py_utils.GetStepSeed()
       return state1, py_utils.NestedMap()
 
     # Note that, we have a NestedMap for each parameter.

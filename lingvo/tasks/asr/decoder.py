@@ -425,7 +425,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     misc_zero_states = self.MiscZeroState(encoder_outputs, target_ids, bs)
     rnn_states, atten_context, atten_probs, atten_states, packed_src = (
         self.BaseZeroState(theta, encoder_outputs, bs, misc_zero_states))
-    misc_zero_states.step_state.step_seed = py_utils.GetStepSeed()
     return py_utils.NestedMap(
         rnn_states=rnn_states,
         atten_context=atten_context,
@@ -1041,8 +1040,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         if not graph.get_collection(tf.GraphKeys.GLOBAL_STEP):
           graph.add_to_collection(tf.GraphKeys.GLOBAL_STEP,
                                   state0.misc_states.step_state.global_step)
-        # Set step_seed with the value propagated through the recurrent state.
-        py_utils.ResetStepSeed(state0.misc_states.step_state.step_seed)
         with tf.name_scope('single_decode_step'):
           step_outs, state1 = self.SingleDecodeStep(
               recurrent_theta.theta,
@@ -1062,9 +1059,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       tf.identity(
           accumulated_states.misc_states.step_state.global_step,
           name='accumulated_global_steps')
-      tf.identity(
-          accumulated_states.misc_states.step_state.step_seed,
-          name='accumulated_time_steps')
 
       if not p.softmax_uses_attention:
         step_out, _ = tf.split(
@@ -1170,8 +1164,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     del encoder_outputs
     misc_zero_state = py_utils.NestedMap(
         step_state=py_utils.NestedMap(
-            global_step=py_utils.GetOrCreateGlobalStep(),
-            step_seed=py_utils.GetStepSeed()))
+            global_step=py_utils.GetOrCreateGlobalStep()))
     p = self.params
     if self._max_label_prob > 0:
       misc_zero_state.prev_predicted_ids = tf.reshape(target_ids[:, 0], [bs])
@@ -1249,9 +1242,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         # pred_ids: [bs]
         pred_ids = tf.reshape(tf.to_int32(log_prob_sample), [bs])
         decoder_step_state.misc_states.prev_predicted_ids = pred_ids
-    # Retrieve the value of step_seed to pass onto the next iteration.
-    # The step_seed can have increased via calls to GenerateStepSeedPair().
-    decoder_step_state.misc_states.step_state.step_seed = py_utils.GetStepSeed()
     return decoder_step_state
 
 

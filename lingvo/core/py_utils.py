@@ -1925,12 +1925,12 @@ def GetStepSeed():
 
 def ResetStepSeed(seed=0):
   """Resets step_seed to specified value."""
+  new_step_seed = tf.convert_to_tensor(seed, dtype=tf.int64)
   step_seed_tensors = tf.get_default_graph().get_collection_ref('step_seed')
   if len(step_seed_tensors) == 1:
-    step_seed_tensors[0] = tf.convert_to_tensor(seed, dtype=tf.int64)
+    step_seed_tensors[0] = new_step_seed
   elif not step_seed_tensors:
-    tf.add_to_collection('step_seed', tf.convert_to_tensor(
-        seed, dtype=tf.int64))
+    tf.add_to_collection('step_seed', new_step_seed)
   else:
     raise ValueError('Multiple tensors in step_seed collection.')
 
@@ -1951,7 +1951,7 @@ def GenerateStepSeedPair(p, global_step=None, op_seed=None):
   global step and step seed. The step seed ensures this function returns a
   unique seed pair on each call: calling this function automatically increments
   the step seed. The step seed is automatically reset at the beginning of each
-  global step in the model's FProp.
+  global step in the model's FProp and works transparently through recurrent.py.
 
   Args:
     p: A hyperparams.Params object, containing keys 'random_seed' and
