@@ -792,6 +792,16 @@ class WeightInit(object):
     return WeightInit._Params('gaussian_sqrt_dim', scale, seed)
 
   @staticmethod
+  def GaussianSqrtFanIn(scale=1.0, seed=None):
+    """scale * tf.random_normal(0, 1 / sqrt(fan_in))."""
+    return WeightInit._Params('gaussian_sqrt_fanin', scale, seed)
+
+  @staticmethod
+  def GaussianSqrtFanOut(scale=1.0, seed=None):
+    """scale * tf.random_normal(0, 1 / sqrt(fan_out))."""
+    return WeightInit._Params('gaussian_sqrt_fanout', scale, seed)
+
+  @staticmethod
   def UniformSqrtDim(scale=1.0, seed=None):
     """scale * tf.uniform(-1 / sqrt(dim0), 1 / sqrt(dim0))."""
     return WeightInit._Params('uniform_sqrt_dim', scale, seed)
@@ -805,6 +815,16 @@ class WeightInit(object):
   def TruncatedGaussianSqrtDim(scale=1.0, seed=None):
     """scale * tf.truncated_normal(0, 1 / sqrt(dim0))."""
     return WeightInit._Params('truncated_gaussian_sqrt_dim', scale, seed)
+
+  @staticmethod
+  def TruncatedGaussianSqrtFanIn(scale=1.0, seed=None):
+    """scale * tf.truncated_normal(0, 1 / sqrt(fan_in))."""
+    return WeightInit._Params('truncated_gaussian_sqrt_fanin', scale, seed)
+
+  @staticmethod
+  def TruncatedGaussianSqrtFanOut(scale=1.0, seed=None):
+    """scale * tf.truncated_normal(0, 1 / sqrt(fan_out))."""
+    return WeightInit._Params('truncated_gaussian_sqrt_fanout', scale, seed)
 
   @staticmethod
   def KaimingUniformFanInRelu(scale=1.0, seed=None):
@@ -972,6 +992,24 @@ _ALL_VARS_KEY = ('__lingvo_all_vars',)
 _get_all_vars = _CollectionGetter(_ALL_VARS_KEY, lambda: {})
 
 
+def GetFanInFanOut(shape):
+  """Returns (fan_in, fan_out) of a weight variable of the give shape."""
+  if not shape:
+    return None, None
+  if len(shape) < 1:
+    return 1, 1
+  elif len(shape) == 1:
+    # Question: shouldn't fan-out be 1?
+    return shape[0], shape[0]
+  else:
+    receptive_field_size = 1
+    for s in shape[:-2]:
+      receptive_field_size *= s
+    fan_in = shape[-2] * receptive_field_size
+    fan_out = shape[-1] * receptive_field_size
+    return fan_in, fan_out
+
+
 # TODO(yonghui): Add support for partitioned Variables.
 def CreateVariable(name,
                    params,
@@ -1029,10 +1067,28 @@ def CreateVariable(name,
   if (method in [
       'gaussian_sqrt_dim', 'uniform_sqrt_dim', 'truncated_gaussian_sqrt_dim'
   ]):
+    if len(shape) > 2:
+      # This is probably not the right method to use when len(shape) > 2,
+      # e.g. dim0 will be 3 with a 3x3 conv2d kernel.
+      tf.logging.warn(
+          'Initializing %s of shape %s with method %s: dim0=%s. '
+          'Make sure that it is intended.', name, shape, method, dim0)
     scale *= 1.0 / math.sqrt(dim0)
 
+  if method in ['gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanin']:
+    fan_in, _ = GetFanInFanOut(shape)
+    if fan_in is not None:
+      scale *= 1.0 / math.sqrt(fan_in)
+  if method in ['gaussian_sqrt_fanout', 'truncated_gaussian_sqrt_fanout']:
+    _, fan_out = GetFanInFanOut(shape)
+    if fan_out is not None:
+      scale *= 1.0 / math.sqrt(fan_out)
+
   init_dtype = dtype.real_dtype
-  if method in ['gaussian', 'gaussian_sqrt_dim']:
+  if method in [
+      'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
+      'gaussian_sqrt_fanout'
+  ]:
     v_init = tf.random_normal_initializer(
         mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
   elif method in ['uniform', 'uniform_sqrt_dim']:
@@ -1044,7 +1100,10 @@ def CreateVariable(name,
   elif method in ['uniform_unit_scaling']:
     v_init = tf.uniform_unit_scaling_initializer(
         factor=scale, seed=seed, dtype=init_dtype)
-  elif method in ['truncated_gaussian', 'truncated_gaussian_sqrt_dim']:
+  elif method in [
+      'truncated_gaussian', 'truncated_gaussian_sqrt_dim',
+      'truncated_gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanout'
+  ]:
     v_init = tf.truncated_normal_initializer(
         mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
   elif method in ['constant']:
@@ -1056,18 +1115,7 @@ def CreateVariable(name,
       if not shape:
         raise ValueError(
             '\'shape\' must not be \'None\' or 0 for XavierUniform')
-      if len(shape) < 1:
-        fan_in = 1
-        fan_out = 1
-      elif len(shape) == 1:
-        fan_in = shape[0]
-        fan_out = shape[0]
-      else:
-        receptive_field_size = 1
-        for s in shape[:-2]:
-          receptive_field_size *= s
-        fan_in = shape[-2] * receptive_field_size
-        fan_out = shape[-1] * receptive_field_size
+      fan_in, fan_out = GetFanInFanOut(shape)
       if method == 'xavier':
         limit = math.sqrt(6. / (fan_in + fan_out))
       elif method == 'geo_mean_xavier':
@@ -1588,6 +1636,10 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
 
   def Skip(v_g):
     return v_g[0] not in tf.get_collection(SKIP_LP_REGULARIZATION)
+
+  filtered_var_grads = var_grads.Filter(Skip)
+  for k, (v, _) in filtered_var_grads.FlattenItems():
+    tf.logging.info('AdjustGradientsWithLpLoss: %s: %s', k, v)
 
   if p == 2.0:
     lp_loss = 0.5 * lp_regularizer_weight * SumSquared(

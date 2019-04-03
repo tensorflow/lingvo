@@ -54,9 +54,11 @@ class PyUtilsTest(tf.test.TestCase):
           py_utils.WeightInit.UniformSqrtDim,
           py_utils.WeightInit.UniformUnitScaling,
           py_utils.WeightInit.TruncatedGaussianSqrtDim,
+          py_utils.WeightInit.TruncatedGaussianSqrtFanIn,
+          py_utils.WeightInit.TruncatedGaussianSqrtFanOut,
       ]
       dtypes = [tf.float32, tf.float64, tf.complex64]
-      shapes = [[], [3], [2, 4]]
+      shapes = [[], [3], [2, 4], [3, 3, 2, 4]]
       collections = ['col1', 'col2']
 
       all_vars = []
@@ -146,6 +148,43 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertAllClose(v1_v_expted, v1_v.tolist())
       self.assertAllClose(v2_v_expted, v2_v.tolist())
       self.assertAllClose(v3_v_expted, v3_v.tolist())
+
+  def testCreateVariableSqrtFanInOut(self):
+    with self.session() as sess:
+      tf.set_random_seed(832124)
+      methods = [
+          py_utils.WeightInit.GaussianSqrtFanIn,
+          py_utils.WeightInit.TruncatedGaussianSqrtFanIn,
+          py_utils.WeightInit.GaussianSqrtFanOut,
+          py_utils.WeightInit.TruncatedGaussianSqrtFanOut,
+      ]
+      dtypes = [tf.float32]
+      shapes = [[1, 1, 2, 3]]
+      all_vars = []
+      for i, (dt, m,
+              sp) in enumerate(itertools.product(dtypes, methods, shapes)):
+        pc = py_utils.WeightParams(sp, m(scale=2), dt)
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+
+      tf.global_variables_initializer().run()
+      var_values = sess.run(all_vars)
+      tf.logging.info('var_values=%s', var_values)
+      self.assertAllClose(
+          [
+              # GaussianSqrtFanIn.
+              [[[[-2.08201575, 1.35793388, -0.27236053],
+                 [-0.65320235, 1.43985856, 0.09011276]]]],
+              # TruncatedGaussianSqrtFanIn.
+              [[[[-1.72450912, -1.37630582, 1.65029943],
+                 [-0.15342039, -0.7636584, -0.97026265]]]],
+              # GaussianSqrtFanOut.
+              [[[[1.16101539, 1.4432559, -0.03035267],
+                 [0.9992612, 1.01232362, 2.30517101]]]],
+              # TruncatedGaussianSqrtFanOut.
+              [[[[-0.049076, -0.25183302, -1.79192507],
+                 [0.93166995, -0.83121753, -1.40264213]]]],
+          ],
+          var_values)
 
   def testCreateVariableException(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
