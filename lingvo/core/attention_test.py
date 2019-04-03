@@ -96,7 +96,7 @@ class AttentionTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
 
-      all_vars = tf.all_variables()
+      all_vars = tf.trainable_variables()
       for v in all_vars:
         print(v.eval())
 
@@ -153,7 +153,7 @@ class AttentionTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
 
-      all_vars = tf.all_variables()
+      all_vars = tf.trainable_variables()
       for v in all_vars:
         print(v.eval())
 
@@ -228,7 +228,7 @@ class AttentionTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
 
-      all_vars = tf.all_variables()
+      all_vars = tf.trainable_variables()
       for v in all_vars:
         print(v.eval())
 
@@ -338,7 +338,7 @@ class AttentionTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
 
-      all_vars = tf.all_variables()
+      all_vars = tf.trainable_variables()
       for v in all_vars:
         print(v.eval())
 
@@ -420,7 +420,7 @@ class AttentionTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
 
-      all_vars = tf.all_variables()
+      all_vars = tf.trainable_variables()
       for v in all_vars:
         print(v.eval())
 
@@ -471,7 +471,7 @@ class AttentionTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
 
-      all_vars = tf.all_variables()
+      all_vars = tf.trainable_variables()
       for v in all_vars:
         print(v.eval())
 

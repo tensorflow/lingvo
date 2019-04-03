@@ -68,7 +68,7 @@ class PyUtilsTest(tf.test.TestCase):
       # To reuse existing variables
       tf.get_variable_scope().reuse_variables()
 
-      self.assertEqual(len(tf.all_variables()), len(all_vars))
+      self.assertEqual(len(tf.trainable_variables()), len(all_vars))
 
       all_vars_copy = []
       for i, (m, dt, sp) in enumerate(

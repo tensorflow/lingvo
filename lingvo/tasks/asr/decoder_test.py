@@ -412,7 +412,7 @@ class DecoderTest(tf.test.TestCase):
       })
       metrics = dec.FPropDefaultTheta(encoder_outputs, targets)
       loss = metrics['loss'][0]
-      all_vars = tf.all_variables()
+      all_vars = tf.trainable_variables()
       grads = tf.gradients(loss, all_vars)
 
       def DenseGrad(var, grad):
