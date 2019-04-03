@@ -52,7 +52,7 @@ class WeightedMixRecordYielder : public RecordYielder {
  public:
   ~WeightedMixRecordYielder() override;
   void Close() override;
-  Status Yield(Rope* value) override;
+  Status Yield(Rope* value, int* source_id) override;
 
   // Creates new WeightedMixRecordYielder and takes ownership over yielders
   // provided. Those yielders should be properly initialized already and will be

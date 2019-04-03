@@ -258,7 +258,7 @@ void RecordBatcher::ProcessorLoop() {
 
     // Get the next record.
     Rope record;
-    Status s = yielder_->Yield(&record);
+    Status s = yielder_->Yield(&record, nullptr);
     if (!s.ok()) {
       LOG(WARNING) << s;
       continue;

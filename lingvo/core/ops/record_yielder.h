@@ -91,8 +91,14 @@ class RecordYielder {
  public:
   virtual ~RecordYielder();
 
-  // Yields one 'value'.
-  virtual Status Yield(Rope* value) = 0;
+  // Yields one 'value' and the id of the source.
+  // source_id is useful to specify the source when reading from multiple input
+  // sources. To read from multiple input sources and keep track of the
+  // source id, create a WeightedRecordYielder and create a BasicRecordYielder
+  // for each source. Each BasicRecordYielder can be assigned a source_id,
+  // which is assigned to the argument here.
+  // A nullptr can be provided as input for source_id.
+  virtual Status Yield(Rope* value, int* source_id) = 0;
 
   // Stop this yielder and then delete it.
   virtual void Close() = 0;
@@ -126,6 +132,9 @@ class BasicRecordYielder : public RecordYielder {
 
     // Uses this many concurrent iterators to iterate through files.
     int32 parallelism = 1;
+
+    // Source id to be supplied with yield.
+    int32 source_id = 0;
   };
 
   // Returns a record yielder according to 'opts'. A caller is responsible for
@@ -133,8 +142,8 @@ class BasicRecordYielder : public RecordYielder {
   // delete the yielder.
   static BasicRecordYielder* New(Options opts);
 
-  // Yields one 'value'.
-  Status Yield(Rope* value) override;
+  // Yields one 'value' and 'source_id' from which the value was read.
+  Status Yield(Rope* value, int* source_id) override;
 
   // Stop this yielder and then delete it.
   void Close() override;

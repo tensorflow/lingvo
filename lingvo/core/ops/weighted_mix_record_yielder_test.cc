@@ -61,7 +61,7 @@ std::unordered_map<std::string, float> ComputeInputSourceDistribution(
 
 class MockRecordYielder : public RecordYielder {
  public:
-  MOCK_METHOD1(Yield, Status(Rope* value));
+  MOCK_METHOD2(Yield, Status(Rope* value, int* source_id));
   MOCK_METHOD0(Close, void());
   MOCK_CONST_METHOD0(current_epoch, int64());
 };
@@ -93,7 +93,7 @@ TEST(RecordYielderTest, WeightedMixerBasicTest) {
   std::vector<string> vals;
   Rope v;
   for (int i = 0; i < 2 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
     VLOG(1) << i << " " << v;
     vals.emplace_back(string(v));
   }
@@ -124,6 +124,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   opts1.seed = 301;
   opts1.bufsize = 2000;
   opts1.parallelism = 1;
+  opts1.source_id = 0;
   BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
@@ -132,21 +133,29 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   opts2.seed = 301;
   opts2.bufsize = 2000;
   opts2.parallelism = 1;
+  opts2.source_id = 1;
   BasicRecordYielder* yielder2 = BasicRecordYielder::New(opts2);
   WeightedMixRecordYielder* yielder =
       WeightedMixRecordYielder::New(301, {yielder1, yielder2}, {0.3, 0.7});
 
   std::vector<string> vals;
+  std::vector<int> source_ids;
   Rope v;
+  int32 yielder_id;
   for (int i = 0; i < 2 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, &yielder_id));
     VLOG(1) << i << " " << v;
     vals.emplace_back(string(v));
+    source_ids.emplace_back(yielder_id);
   }
 
   auto input_source_distribution = ComputeInputSourceDistribution(vals);
   ASSERT_NEAR(input_source_distribution["yielder1"], 0.3, 0.01);
   ASSERT_NEAR(input_source_distribution["yielder2"], 0.7, 0.01);
+
+  int32 sum_of_elems = std::accumulate(source_ids.begin(), source_ids.end(), 0);
+  float ratio = (float)(sum_of_elems) / (float)(source_ids.size());
+  ASSERT_NEAR(ratio, 0.7, 0.01);
 
   // Take couple 1024-sized batches from the vals, they should have roughly the
   // same distribution.
@@ -190,7 +199,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
   Rope v;
   // Iterate 8 times the total record count.
   for (int i = 0; i < 8 * 5 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
     VLOG(1) << i << " " << v;
     vals.emplace_back(string(v));
   }
@@ -218,13 +227,13 @@ TEST(RecordYielderTest, RecordYielderRetryLoop) {
   // Yielder1 always returns OK. Yielder2 returns DEADLINE_EXCEEDED 3 times in a
   // row and then returns OK.
   // Each of them yields max of 5 records and then saturates.
-  EXPECT_CALL(yielder1, Yield(testing::_))
+  EXPECT_CALL(yielder1, Yield(testing::_, testing::_))
       .Times(5)
       .WillRepeatedly(testing::Return(Status::OK()));
-  EXPECT_CALL(yielder2, Yield(testing::_))
+  EXPECT_CALL(yielder2, Yield(testing::_, testing::_))
       .Times(5)
       .WillRepeatedly(testing::Return(Status::OK()));
-  EXPECT_CALL(yielder2, Yield(testing::_))
+  EXPECT_CALL(yielder2, Yield(testing::_, testing::_))
       .Times(3)
       .WillRepeatedly(testing::Return(Status(error::DEADLINE_EXCEEDED, "")))
       .RetiresOnSaturation();
@@ -236,7 +245,7 @@ TEST(RecordYielderTest, RecordYielderRetryLoop) {
   for (int i = 0; i < 10; ++i) {
     // Thanks to the seed selected every child yielder will be selected exactly
     // 5 times.
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
   }
   EXPECT_CALL(yielder1, Close());
   EXPECT_CALL(yielder2, Close());

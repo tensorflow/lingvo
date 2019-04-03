@@ -55,7 +55,7 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
   std::vector<string> vals;
   Rope v;
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
     VLOG(1) << i << " " << v;
     vals.emplace_back(string(v));
   }
@@ -67,12 +67,12 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
 
   // Iterates another two epochs.
   for (int i = 0; i < 2 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
   }
 
   // Iterates another 34 epochs.
   for (int i = 0; i < 2 * 17 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
   }
 
   // End of the 37th epoch | start of the 38th epoch.
@@ -137,7 +137,7 @@ TEST_P(TfRecordYielderTest, TfRecordYielderBasicTest) {
   std::vector<string> vals;
   Rope v;
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
     VLOG(1) << i << " " << v;
     vals.emplace_back(string(v));
   }
@@ -149,12 +149,12 @@ TEST_P(TfRecordYielderTest, TfRecordYielderBasicTest) {
 
   // Iterates another two epochs.
   for (int i = 0; i < 2 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
   }
 
   // Iterates another 34 epochs.
   for (int i = 0; i < 2 * 17 * N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
   }
 
   // End of the 37th epoch | start of the 38th epoch.
@@ -190,12 +190,12 @@ TEST_P(TfRecordYielderTest, ShufflesShard) {
     auto yielder = BasicRecordYielder::New(opts);
     for (int i = 0; i < M; ++i) {
       Rope v;
-      TF_CHECK_OK(yielder->Yield(&v));
+      TF_CHECK_OK(yielder->Yield(&v, nullptr));
       epoch1.push_back(v);
     }
     for (int i = 0; i < M; ++i) {
       Rope v;
-      TF_CHECK_OK(yielder->Yield(&v));
+      TF_CHECK_OK(yielder->Yield(&v, nullptr));
       epoch2.push_back(v);
     }
     yielder->Close();
@@ -209,7 +209,7 @@ TEST_P(TfRecordYielderTest, ShufflesShard) {
     auto yielder = BasicRecordYielder::New(opts);
     for (int i = 0; i < M; ++i) {
       Rope v;
-      TF_CHECK_OK(yielder->Yield(&v));
+      TF_CHECK_OK(yielder->Yield(&v, nullptr));
       epoch1_different_seed.push_back(v);
     }
     yielder->Close();
@@ -224,7 +224,7 @@ TEST(RecordYielderDeathTest, Error) {
         "tfrecord:", io::JoinPath("/tmp", "nothing.*"));
     auto yielder = BasicRecordYielder::New(opts);
     Rope v;
-    auto unused = yielder->Yield(&v);
+    auto unused = yielder->Yield(&v, nullptr);
   }(), "Found no files at .*nothing");
 }
 
@@ -244,7 +244,7 @@ TEST_P(TfRecordYielderTest, MatchFilesFromMultiplePatterns) {
   auto yielder = BasicRecordYielder::New(opts);
   Rope v;
   for (int i = 0; i < N * M; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
     epoch.emplace_back(string(v));
   }
   auto new_end = std::unique(epoch.begin(), epoch.end());
@@ -253,7 +253,7 @@ TEST_P(TfRecordYielderTest, MatchFilesFromMultiplePatterns) {
   EXPECT_EQ(new_end, epoch.end());
   // End of the 1st epoch | start of the 2nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
-  TF_CHECK_OK(yielder->Yield(&v));
+  TF_CHECK_OK(yielder->Yield(&v, nullptr));
   // End of the 2st epoch | start of the 3nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
   yielder->Close();
@@ -278,7 +278,7 @@ TEST(RecordYielder, MatchShardedFilePattern) {
   auto yielder = BasicRecordYielder::New(opts);
   Rope v;
   for (int i = 0; i < num_shards * records_per_shard; ++i) {
-    TF_CHECK_OK(yielder->Yield(&v));
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
     epoch.emplace_back(string(v));
   }
   auto new_end = std::unique(epoch.begin(), epoch.end());
@@ -287,7 +287,7 @@ TEST(RecordYielder, MatchShardedFilePattern) {
   EXPECT_EQ(new_end, epoch.end());
   // End of the 1st epoch | start of the 2nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
-  TF_CHECK_OK(yielder->Yield(&v));
+  TF_CHECK_OK(yielder->Yield(&v, nullptr));
   // End of the 2st epoch | start of the 3nd epoch.
   EXPECT_TRUE(yielder->current_epoch() == 2 || yielder->current_epoch() == 3);
   yielder->Close();
@@ -326,9 +326,9 @@ TEST(RecordYielder, RegisterFakeIterator) {
   BasicRecordYielder* yielder = BasicRecordYielder::New(options);
   EXPECT_TRUE(yielder != nullptr);
   Rope value;
-  EXPECT_TRUE(yielder->Yield(&value).ok());
+  EXPECT_TRUE(yielder->Yield(&value, nullptr).ok());
   EXPECT_EQ("hello1", value);
-  EXPECT_TRUE(yielder->Yield(&value).ok());
+  EXPECT_TRUE(yielder->Yield(&value, nullptr).ok());
   EXPECT_EQ("hello1", value);
   yielder->Close();
 }

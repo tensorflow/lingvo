@@ -51,6 +51,7 @@ RecordYielder* ConstructYielder(const string& file_pattern,
     }
     yopts.bufsize = file_buffer_size;
     yopts.parallelism = file_parallelism;
+    yopts.source_id = i;
     yielders.push_back(BasicRecordYielder::New(yopts));
   }
 

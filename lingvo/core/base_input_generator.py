@@ -60,6 +60,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     super(BaseInputGenerator, self).__init__(params)
     self._made_tpu_infeed = False
     # parameter to tell the bprop one hot for all the files.
+    # TODO(ankurbpn): Initialize when using sources from mixed record yielders.
     self._bprop_onehot = tf.constant([1], dtype=tf.float32)
     # Each entry is a regular expression specifying the set of variables
     # to bprop per data source.
