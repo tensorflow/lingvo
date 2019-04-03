@@ -188,6 +188,12 @@ class BaseLayer(object):
         'at the expense of making some kinds of models or utilities '
         'hard/impossible to use. Setting this to True/False (versus None) '
         'causes the setting to apply to this layer and its children.')
+    p.Define(
+        'skip_lp_regularization', None,
+        'If True, all variables in this layer will skip Lp regularization. '
+        'If None/False, only variables explicitly in the '
+        'SKIP_LP_REGULARIZATION collection will skip Lp regularization. '
+        'Also propagated to child layers with default settings (None).')
     return p
 
   @staticmethod
@@ -208,6 +214,8 @@ class BaseLayer(object):
       to_params.is_inference = from_params.is_inference
     if to_params.allow_implicit_capture is None:
       to_params.allow_implicit_capture = from_params.allow_implicit_capture
+    if to_params.skip_lp_regularization is None:
+      to_params.skip_lp_regularization = from_params.skip_lp_regularization
 
     # Only copy from base when vn config is using the default setting.
     if to_params.vn == DefaultVN():
@@ -548,6 +556,14 @@ class BaseLayer(object):
       **kwargs: Keyword args passed to `.py_utils.CreateVariable`.
     """
     self._CheckName(name)
+    if (self.params.skip_lp_regularization and
+        py_utils.SKIP_LP_REGULARIZATION not in var_params.collections):
+      var_params = py_utils.WeightParams(
+          shape=var_params.shape,
+          dtype=var_params.dtype,
+          init=var_params.init,
+          collections=(var_params.collections +
+                       [py_utils.SKIP_LP_REGULARIZATION]))
     value, var = py_utils.CreateVariable(name, var_params, *args, **kwargs)
     self._private_vars[name] = var
     if theta_fn is not None:

@@ -21,6 +21,7 @@ from __future__ import print_function
 import tensorflow as tf
 
 from lingvo.core import base_layer
+from lingvo.core import py_utils
 
 
 class AddingAccumulator(base_layer.Accumulator):
@@ -36,6 +37,32 @@ def EvalAndFlatten(nmap):
   return nmap.Transform(lambda x: x.eval()).FlattenItems()
 
 
+class TestLayer(base_layer.BaseLayer):
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TestLayer, self).__init__(params)
+    p = self.params
+    with tf.variable_scope(p.name):
+      self.CreateVariable(
+          'w',
+          py_utils.WeightParams(
+              shape=[4, 4],
+              dtype=p.dtype,
+              init=p.params_init,
+              collections=[self.__class__.__name__ + '_vars']))
+      self.CreateVariable(
+          'b',
+          py_utils.WeightParams(
+              shape=[4],
+              dtype=p.dtype,
+              init=py_utils.WeightInit.Constant(),
+              collections=[
+                  self.__class__.__name__ + '_vars',
+                  py_utils.SKIP_LP_REGULARIZATION
+              ]))
+
+
 class BaseLayerTest(tf.test.TestCase):
 
   def testCopyBaseParams(self):
@@ -47,21 +74,25 @@ class BaseLayerTest(tf.test.TestCase):
     from_param.is_eval = False
     from_param.vn.global_vn = True
     from_param.random_seed = 1234
+    from_param.skip_lp_regularization = True
     # Target use default, overwrite.
     base_layer.BaseLayer.CopyBaseParams(from_param, to_param)
     self.assertEqual(False, to_param.is_eval)
     self.assertTrue(to_param.vn.global_vn)
     self.assertEqual(1234, to_param.random_seed)
+    self.assertTrue(to_param.skip_lp_regularization)
     to_param = layer_base_p.Copy()
     to_param.is_eval = True
     to_param.vn.per_step_vn = True
     to_param.random_seed = 4321
+    to_param.skip_lp_regularization = False
     # Target does not use default, should not overwrite.
     base_layer.BaseLayer.CopyBaseParams(from_param, to_param)
     self.assertEqual(True, to_param.is_eval)
     self.assertTrue(to_param.vn.per_step_vn)
     self.assertFalse(to_param.vn.global_vn)
     self.assertEqual(4321, to_param.random_seed)
+    self.assertFalse(to_param.skip_lp_regularization)
 
   def testCreateChildren(self):
     layer_p = base_layer.BaseLayer.Params()
@@ -74,6 +105,25 @@ class BaseLayerTest(tf.test.TestCase):
     self.assertEqual(len(layer.vars.a[1]), 2)
     self.assertEqual(len(layer.theta.a), 3)
     self.assertEqual(len(layer.theta.a[1]), 2)
+
+  def testCreateVariable(self):
+    layer_p = TestLayer.Params().Set(name='test')
+    layer = layer_p.cls(layer_p)
+    self.assertEqual('test/w/var:0', layer.vars.w.name)
+    self.assertEqual('test/b/var:0', layer.vars.b.name)
+    self.assertNotIn(layer.vars.w,
+                     tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
+    # 'b' always skips Lp regularization.
+    self.assertIn(layer.vars.b,
+                  tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
+
+  def testCreateVariableSkipLpRegularization(self):
+    layer_p = TestLayer.Params().Set(name='test', skip_lp_regularization=True)
+    layer = layer_p.cls(layer_p)
+    self.assertIn(layer.vars.w,
+                  tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
+    self.assertIn(layer.vars.b,
+                  tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
 
   def testGetDescendant(self):
     q = base_layer.BaseLayer.Params()
