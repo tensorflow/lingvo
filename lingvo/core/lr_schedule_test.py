@@ -90,6 +90,18 @@ class LearningRateScheduleTest(tf.test.TestCase):
       self.assertAllClose(decay.Value(1200).eval(), 0.5)
       self.assertAllClose(decay.Value(1300).eval(), 0.25)
 
+  def testStepwiseExponentialSchedule(self):
+    p = lr_schedule.StepwiseExponentialSchedule.Params()
+    p.decay = 0.5
+    p.num_steps_per_decay = 1000
+    decay = p.cls(p)
+    with self.session():
+      self.assertAllClose(decay.Value(0).eval(), 1.0)
+      self.assertAllClose(decay.Value(999).eval(), 1.0)
+      self.assertAllClose(decay.Value(1000).eval(), 0.5)
+      self.assertAllClose(decay.Value(1999).eval(), 0.5)
+      self.assertAllClose(decay.Value(2000).eval(), 0.25)
+
   def testTransformerLearningRateSchedule(self):
     p = lr_schedule.TransformerLearningRateSchedule.Params()
     p.warmup_steps = 4000

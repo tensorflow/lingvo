@@ -211,6 +211,27 @@ class ExponentialLearningRateSchedule(BaseLearningRateSchedule):
     return self._exp(tf.cast(current_step, dtype=self.params.dtype))
 
 
+class StepwiseExponentialSchedule(BaseLearningRateSchedule):
+  """Exponential decay every N steps."""
+
+  @classmethod
+  def Params(cls):
+    p = super(StepwiseExponentialSchedule, cls).Params()
+    p.Define('decay', 0.99, 'Decay factor.')
+    p.Define('num_steps_per_decay', 1000, 'Number of steps between decays.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(StepwiseExponentialSchedule, self).__init__(params)
+
+  def FProp(self, theta, current_step):
+    p = self.params
+    num_decays = tf.floor(
+        tf.div(tf.cast(current_step, tf.float32), float(p.num_steps_per_decay)))
+    return tf.pow(p.decay, num_decays)
+
+
 class CombinedMinimumLearningRateSchedule(BaseLearningRateSchedule):
   """Combine a few learning rate decay schedules and takes the min."""
 

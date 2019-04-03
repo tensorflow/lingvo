@@ -447,6 +447,7 @@ py_library(
 py_test(
     name = "lr_schedule_test",
     size = "small",
+    timeout = "moderate",
     srcs = ["lr_schedule_test.py"],
     deps = [
         ":cluster_factory",
