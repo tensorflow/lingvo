@@ -276,8 +276,9 @@ class AUCMetric(BaseMetric):
     self._samples = samples
     self._label = []
     self._prob = []
+    self._weight = []
 
-  def Update(self, label, prob):
+  def Update(self, label, prob, weight=None):
     """Updates the metrics.
 
     Args:
@@ -285,16 +286,26 @@ class AUCMetric(BaseMetric):
         either 0 or 1.
       prob: An array to specify the prediction probabilities. Values must be
         within [0, 1.0].
+      weight: An array to specify the sample weight for the auc computation.
     """
     self._label += label
     self._prob += prob
+    if weight:
+      self._weight += weight
     if self._samples > 0:
       self._label = self._label[-self._samples:]
       self._prob = self._prob[-self._samples:]
+      self._weight = self._weight[-self._samples:]
 
   @property
   def value(self):
-    if self._mode == 'roc':
-      return sklearn.metrics.roc_auc_score(self._label, self._prob)
+    if self._weight:
+      weight = self._weight
     else:
-      return sklearn.metrics.average_precision_score(self._label, self._prob)
+      weight = None
+    if self._mode == 'roc':
+      return sklearn.metrics.roc_auc_score(
+          self._label, self._prob, sample_weight=weight)
+    else:
+      return sklearn.metrics.average_precision_score(
+          self._label, self._prob, sample_weight=weight)
