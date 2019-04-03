@@ -421,6 +421,7 @@ py_library(
     testonly = True,
     srcs = ["layers_test.py"],
     deps = [
+        ":gpipe",
         ":layers",
         ":py_utils",
         ":quant_utils",

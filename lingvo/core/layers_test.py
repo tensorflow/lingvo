@@ -20,12 +20,14 @@ from __future__ import print_function
 
 import math
 
+from absl.testing import parameterized
 import numpy as np
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
 
 from tensorflow.python.framework import ops
+from lingvo.core import gpipe
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
@@ -2836,6 +2838,204 @@ class FeedForwardNetTest(tf.test.TestCase):
       x, xd = sess.run([x, xd])
 
       self.assertAllEqual(xd, x)
+
+
+class AddingAccumulatorTest(tf.test.TestCase):
+  """Test for AddingAccumulator."""
+
+  def testAddingAccumulator(self):
+    with self.session():
+      layer_p = layers.IdentityLayer.Params()
+      layer_p.name = 'test'
+      layer = layer_p.cls(layer_p)
+
+      layer.RegisterAccumulator('acc1', layers.AddingAccumulator([],
+                                                                 tf.float32))
+
+      # Initial value.
+      self.assertEqual(0.0, layer.accumulators.acc1.GetValue().eval())
+
+      # Update/merge.
+      layer.accumulators.acc1.Update(1.0)
+      layer.accumulators.acc1.Update(1.0)
+      self.assertEqual(2.0, layer.accumulators.acc1.GetValue().eval())
+
+      # Reset.
+      layer.accumulators.Transform(lambda acc: acc.Reset())
+      self.assertEqual(0.0, layer.accumulators.acc1.GetValue().eval())
+
+
+class BatchNormLayerNoPaddingTest(tf.test.TestCase, parameterized.TestCase):
+
+  def testBatchNormLayerNoPaddingConstruction(self):
+    tf.set_random_seed(398847392)
+    np.random.seed(12345)
+    params = layers.BatchNormLayerNoPadding.Params()
+    params.name = 'bn'
+    params.dim = 2
+    params.params_init = py_utils.WeightInit.Gaussian(0.1)
+    params.is_eval = False
+    layers.BatchNormLayerNoPadding(params)
+    bn_vars = tf.get_collection('BatchNormLayerNoPadding_vars')
+    bn_var_names = [x.name for x in bn_vars]
+    expected_var_names = [
+        'bn/beta/var:0', 'bn/gamma/var:0', 'bn/moving_mean/var:0',
+        'bn/moving_variance/var:0'
+    ]
+    self.assertEqual(expected_var_names, bn_var_names)
+
+  @parameterized.named_parameters({
+      'testcase_name': '_eval',
+      'is_eval': True,
+  }, {
+      'testcase_name': '_train',
+      'is_eval': False,
+  })
+  def testBatchNormLayerNoPaddingFProp(self, is_eval):
+    tf.set_random_seed(398847392)
+    np.random.seed(12345)
+    params = layers.BatchNormLayerNoPadding.Params()
+    params.name = 'bn'
+    params.dim = 3
+    params.params_init = py_utils.WeightInit.Gaussian(0.1)
+    params.is_eval = is_eval
+
+    bn_layer = layers.BatchNormLayerNoPadding(params)
+    bn_in1 = tf.constant(
+        np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
+
+    bn_out = bn_layer.FPropDefaultTheta(bn_in1)
+    sig1 = tf.reduce_sum(bn_out)
+    sig2 = tf.reduce_sum(bn_out * bn_out)
+    expected_sig1 = 2.6593573 if is_eval else 0
+    expected_sig2 = 15.4642076 if is_eval else 47.850193
+    with self.session(use_gpu=True):
+      tf.global_variables_initializer().run()
+      self.assertAllClose(expected_sig1, sig1.eval(), atol=1e-5)
+      self.assertAllClose(expected_sig2, sig2.eval(), atol=1e-5)
+
+  def testBatchNormLayerNoPaddingFPropUseGlobalStatsForTraining(self):
+    tf.set_random_seed(398847392)
+    np.random.seed(12345)
+    params = layers.BatchNormLayerNoPadding.Params()
+    params.name = 'bn'
+    params.dim = 3
+    params.params_init = py_utils.WeightInit.Gaussian(0.1)
+    params.is_eval = False
+
+    bn_layer = layers.BatchNormLayerNoPadding(params)
+    bn_in1 = tf.constant(
+        np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
+
+    bn_out = bn_layer.FPropDefaultTheta(bn_in1)
+    sig1 = tf.reduce_sum(bn_out)
+    sig2 = tf.reduce_sum(bn_out * bn_out)
+    with self.session(use_gpu=True):
+      tf.global_variables_initializer().run()
+      self.assertAllClose(1.19209289551e-06, sig1.eval(), atol=1e-5)
+      self.assertAllClose(47.8501930237, sig2.eval(), atol=1e-5)
+
+  def testBatchNormLayerNoPaddingFPropForConv(self):
+    tf.set_random_seed(398847392)
+    np.random.seed(12345)
+    params = layers.BatchNormLayerNoPadding.Params()
+    params.name = 'bn_conv'
+    params.dim = 32
+    params.params_init = py_utils.WeightInit.Gaussian(0.1)
+    params.is_eval = False
+
+    bn_layer = layers.BatchNormLayerNoPadding(params)
+    bn_in1 = tf.constant(
+        np.random.normal(0.1, 0.5, [2, 8, 4, 32]), dtype=tf.float32)
+
+    bn_out = bn_layer.FPropDefaultTheta(bn_in1)
+    sig1 = tf.reduce_sum(bn_out)
+    sig2 = tf.reduce_sum(bn_out * bn_out)
+    with self.session(use_gpu=True):
+      tf.global_variables_initializer().run()
+      self.assertAllClose(0.0, sig1.eval(), atol=1e-4)
+      self.assertAllClose(2039.398681, sig2.eval())
+
+  def _BuildDummyStackedBNLayer(self, splits):
+    num_micro_batches = 8
+    if splits == 0:
+      endpoint = layers.BatchNormLayerNoPadding.Params().Set(
+          decay=0.997, name='bn', dim=1)
+    else:
+      cell_tpl = []
+      for split in range(splits):
+        nets_to_split = [
+            layers.BatchNormLayerNoPadding.Params().Set(
+                decay=0.997, name='bn_{}'.format(split), dim=1),
+        ]
+        split_layer = gpipe.FeatureExtractionLayer.Params().Set(
+            name='split_{}'.format(split), sub=nets_to_split)
+        cell_tpl.append(split_layer)
+      endpoint = gpipe.PipeliningLayer.Params().Set(
+          name='pipeline',
+          num_micro_batches=num_micro_batches,
+          cell_tpl=cell_tpl,
+          before_tpl=[])
+    layer = endpoint.cls(endpoint)
+    return layer
+
+  @parameterized.named_parameters({
+      'testcase_name': '_baseline',
+      'splits': 0,
+  }, {
+      'testcase_name': '_two_splits',
+      'splits': 2,
+  }, {
+      'testcase_name': '_four_splits',
+      'splits': 4,
+  })
+  def testBatchNormLayerNoPaddingAccumulators(self, splits):
+    batch_size = 1024
+    g = tf.Graph()
+    with g.as_default():
+      # Construct a network where loss = w * x + b
+      global_step = py_utils.GetOrCreateGlobalStep()
+      inputs = tf.concat([
+          tf.ones([batch_size // 2, 1, 1, 1]),
+          tf.zeros([batch_size // 2, 1, 1, 1])
+      ],
+                         axis=0)
+      net = self._BuildDummyStackedBNLayer(splits)
+      logits = net.FPropDefaultTheta(inputs)
+      loss = tf.reduce_mean(logits)
+      grads = tf.gradients(loss, tf.trainable_variables())
+      # Check the accumulator values
+      counts = []
+      means = []
+      variances = []
+      for i in range(splits):
+        l = net.children['split_{}'.format(i)].children['bn_{}'.format(i)]
+        counts.append(l.accumulators.counts.GetValue())
+        means.append(l.accumulators.mean_ss.GetValue())
+        variances.append(l.accumulators.variance_ss.GetValue())
+      if splits == 0:
+        counts.append(net.accumulators.counts.GetValue())
+        means.append(net.accumulators.mean_ss.GetValue())
+        variances.append(net.accumulators.variance_ss.GetValue())
+      post_training_step_updates = net.PostTrainingStepUpdate(global_step)
+    with self.session(graph=g) as sess:
+      sess.run(tf.global_variables_initializer())
+      _, count_vals, mean_vals, var_vals = sess.run(
+          [grads, counts, means, variances])
+
+      self.assertSameElements(count_vals, {batch_size})
+
+      self.assertEqual(batch_size // 2, mean_vals[0])
+      if len(mean_vals) > 1:
+        self.assertSameElements(mean_vals[1:], {0})
+
+      self.assertEqual(batch_size // 2, var_vals[0])
+      if len(var_vals) > 1:
+        self.assertSameElements(var_vals[1:], {0})
+      sess.run(post_training_step_updates)
+      moving_vars = sess.run(tf.get_collection('moving_vars'))
+    self.assertEqual(0.0015, moving_vars[0])
+    self.assertNear(0.997750, moving_vars[1], err=1.0e-6)
 
 
 class LayerNormTest(tf.test.TestCase):

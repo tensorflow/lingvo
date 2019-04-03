@@ -24,6 +24,7 @@ import six
 from six.moves import range
 import tensorflow as tf
 
+from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.python.framework import function
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
@@ -70,6 +71,7 @@ _TFLITE_FUSED_ACTIVATION_NAMES = (
 )
 
 LOG_SCALE_CLAMP_BOUND = 20.0
+_BN_FLOPS_PER_ELEMENT = 10
 
 
 class IdentityLayer(base_layer.BaseLayer):
@@ -318,9 +320,9 @@ class BatchNormLayer(base_layer.BaseLayer):
   @classmethod
   def FPropMeta(cls, p, inputs, padding=None):
     py_utils.CheckShapes((inputs,))
-    flops_per_element = 10  # Approximately 10 flops per element.
     return py_utils.NestedMap(
-        flops=inputs.num_elements() * flops_per_element, out_shapes=(inputs,))
+        flops=inputs.num_elements() * _BN_FLOPS_PER_ELEMENT,
+        out_shapes=(inputs,))
 
 
 def _ComputeConvOutputShape(in_shape,
@@ -3292,6 +3294,202 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
     outputs = tf.TensorShape([b, oh, ow, oc])
 
     return py_utils.NestedMap(flops=flops, out_shapes=(outputs,))
+
+
+class AddingAccumulator(base_layer.Accumulator):
+  """Accumulator for the sufficient statistics."""
+
+  def __init__(self, shape, dtype):
+    super(AddingAccumulator, self).__init__()
+    self.dtype = dtype
+    self.shape = shape
+
+  def DefaultValue(self):
+    """Returns the default value of the accumulator."""
+    return tf.zeros(self.shape, dtype=self.dtype)
+
+  def Update(self, value):
+    """Adds value to the accumulator."""
+    self.SetValue(self.GetValue() + tf.cast(value, self.dtype))
+
+
+class BatchNormLayerNoPadding(base_layer.BaseLayer):
+  """Batchnorm layer without padding."""
+
+  @classmethod
+  def Params(cls):
+    """Parameters for BatchNormLayerNoPadding."""
+    p = super(BatchNormLayerNoPadding, cls).Params()
+    p.Define('dim', 0, 'Depth of the input/output.')
+    p.Define(
+        'decay', 0.997,
+        'Decay in updating the mean and variance moving average used in'
+        ' batch normalization.')
+    p.Define('epsilon', 0.001,
+             'Small float added to variance to avoid dividing by zero.')
+    p.Define(
+        'bn_group_size', 1,
+        'The number of shards participating in normalization when distributed'
+        ' batchnorm is used. Only used for TPU.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(BatchNormLayerNoPadding, self).__init__(params)
+    p = self.params
+    assert p.name, 'Name of BatchNormLayerNoPadding is not set.'
+    assert p.dim > 0, 'dim should be positive'
+    p.fprop_dtype = None
+    # Accumulate bn sufficient stats over micro-batches.
+    self.RegisterAccumulator('counts', AddingAccumulator([], p.dtype))
+    self.RegisterAccumulator('mean_ss', AddingAccumulator([p.dim], p.dtype))
+    self.RegisterAccumulator('variance_ss', AddingAccumulator([p.dim], p.dtype))
+
+    # Skip L-P regularization for these variables.
+    collections = [
+        self.__class__.__name__ + '_vars', py_utils.SKIP_LP_REGULARIZATION
+    ]
+    pc = py_utils.WeightParams(
+        shape=[p.dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=collections)
+
+    with tf.variable_scope(p.name):
+      self.CreateVariable('beta', pc)
+      # Note, The real gamma to use is 1 + gamma.
+      self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
+
+      moving_collections = [
+          'moving_vars', tf.GraphKeys.MOVING_AVERAGE_VARIABLES,
+          self.__class__.__name__ + '_vars'
+      ]
+      mva = py_utils.WeightParams(
+          shape=[p.dim],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=moving_collections)
+      # Two statistics computed from sufficient stats.
+      self.CreateVariable('moving_mean', mva, trainable=False)
+      mvv = py_utils.WeightParams(
+          shape=[p.dim],
+          init=py_utils.WeightInit.Constant(1.0),
+          dtype=p.dtype,
+          collections=moving_collections)
+      self.CreateVariable('moving_variance', mvv, trainable=False)
+
+  def PostTrainingStepUpdate(self, global_step):
+    """Updates moving_mean, moving_variance after each training step."""
+    p = self.params
+    # Get sufficient stats that accumulates over microbatches.
+    counts = self.accumulators.counts.GetValue()
+    mean_ss = self.accumulators.mean_ss.GetValue()
+    variance_ss = self.accumulators.variance_ss.GetValue()
+    # Compute batch mean and batch variance from sufficient stats
+    mean, variance = tf.nn.normalize_moments(counts, mean_ss, variance_ss, None)
+    decay = tf.convert_to_tensor(1.0 - p.decay, p.dtype)
+    # Update moving_mean, moving_variance from  batch mean and batch variance.
+    with tf.name_scope(p.name) as scope:
+      with tf.colocate_with(self.vars.moving_mean):
+        mean_update = tf.assign_sub(
+            self.vars.moving_mean,
+            (self.vars.moving_mean - tf.cast(mean, p.dtype)) * decay,
+            name='moving_mean_update')
+      with tf.colocate_with(self.vars.moving_variance):
+        var_update = tf.assign_sub(
+            self.vars.moving_variance,
+            (self.vars.moving_variance - tf.cast(variance, p.dtype)) * decay,
+            name='moving_variance_update')
+      py_utils.CheckNumerics(
+          self.vars.moving_mean,
+          'moving mean of {} failed numeric check'.format(scope))
+      py_utils.CheckNumerics(
+          self.vars.moving_variance,
+          'moving variance of {} failed numeric check'.format(scope))
+    self.accumulators.counts.Reset()
+    self.accumulators.mean_ss.Reset()
+    self.accumulators.variance_ss.Reset()
+    return tf.group(mean_update, var_update)
+
+  def _Moments(self, inputs, group_size):
+    """Computes mean and variance over N,H,W dimensions in inputs."""
+    counts, mean_ss, variance_ss, _, = tf.nn.sufficient_statistics(
+        inputs, axes=[0, 1, 2], keep_dims=False)
+    self.accumulators.counts.Update(counts)
+    self.accumulators.mean_ss.Update(mean_ss)
+    self.accumulators.variance_ss.Update(variance_ss)
+    # Distributed batch norm that computes sufficient statistics from group_size
+    # replicas. This is useful when batch_size_per_replica is too small to
+    # compute reliable sufficient statistics.
+    if py_utils.use_tpu() and group_size > 1:
+      group_assignment = None
+      num_shards = tpu_function.get_tpu_context().number_of_shards
+      if num_shards is not None:
+        if num_shards < group_size:
+          raise ValueError('TPU shards={} less than bn_gropu_size={}.'.format(
+              num_shards, group_size))
+        if num_shards % group_size:
+          raise ValueError(
+              'TPU shards={} not divisible by bn_group_size={}.'.format(
+                  num_shards, group_size))
+        num_groups = num_shards // group_size
+        group_assignment = []
+        for g in range(num_groups):
+          replica_ids = [g * group_size + i for i in range(group_size)]
+          group_assignment.append(replica_ids)
+        counts *= group_size
+      mean_ss = tf.contrib.tpu.cross_replica_sum(mean_ss, group_assignment)
+      variance_ss = tf.contrib.tpu.cross_replica_sum(variance_ss,
+                                                     group_assignment)
+    # At each micro-step, batch_mean and batch_variance are computed
+    # to normalize inputs. But they are not used to update moving_mean and
+    # moving_variance variables until the last micro batch.
+    mean, variance = tf.nn.normalize_moments(counts, mean_ss, variance_ss, None)
+    return mean, variance
+
+  def FProp(self, theta, inputs):
+    """Applies batch normalization.
+
+    Using the implementation in github.com/
+    tensorflow/tpu/blob/master/models/official/amoeba_net/network_utils.py#L550
+
+    Args:
+      theta: A nested map object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor.  Shaped [..., dim].
+
+    Returns:
+      Output after applying batch normalization, with the same shape as
+      'inputs'.
+    """
+    p = self.params
+    inputs_dtype = inputs.dtype
+    inputs = tf.cast(inputs, p.dtype)
+    inputs = py_utils.with_dependencies(
+        [py_utils.assert_shape_match([tf.shape(inputs)[-1]], [p.dim])], inputs)
+    with tf.name_scope(p.name) as scope:
+      if p.is_eval:
+        outputs = tf.nn.batch_normalization(inputs, self.vars.moving_mean,
+                                            self.vars.moving_variance,
+                                            theta.beta, theta.gamma, p.epsilon)
+      else:
+        mean, variance = self._Moments(inputs, p.bn_group_size)
+        mean = py_utils.CheckNumerics(
+            mean, 'mean of {} failed numeric check'.format(scope))
+        variance = py_utils.CheckNumerics(
+            variance, 'variance of {} failed numeric check'.format(scope))
+        outputs = tf.nn.batch_normalization(inputs, mean, variance, theta.beta,
+                                            theta.gamma, p.epsilon)
+      outputs.set_shape(inputs.get_shape())
+      return tf.cast(outputs, inputs_dtype)
+
+  @classmethod
+  def FPropMeta(cls, p, inputs):
+    """Returns metadata about the `FProp` computation for this layer."""
+    py_utils.CheckShapes((inputs,))
+    return py_utils.NestedMap(
+        flops=inputs.num_elements() * _BN_FLOPS_PER_ELEMENT,
+        out_shapes=(inputs,))
 
 
 class FetchLayer(base_layer.BaseLayer):
