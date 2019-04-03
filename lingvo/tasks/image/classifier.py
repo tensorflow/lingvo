@@ -195,7 +195,6 @@ class ModelV1(BaseClassifier):
     return rets, {}
 
   def Decode(self, input_batch):
-    p = self.params
     with tf.name_scope('decode'):
       return self.FPropDefaultTheta(input_batch)[0]
 
@@ -261,8 +260,11 @@ class ModelV2(BaseClassifier):
         'log_pplx': (xent.avg_xent, batch),
         'num_preds': (batch, 1),
     }
-    if p.is_eval:
+    if self._compute_accuracy():
       acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
       acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
       rets.update(accuracy=(acc1, batch), acc5=(acc5, batch))
     return rets, {}
+
+  def _compute_accuracy(self):
+    return self.params.is_eval
