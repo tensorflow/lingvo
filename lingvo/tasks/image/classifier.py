@@ -216,6 +216,7 @@ class ModelV2(BaseClassifier):
   def Params(cls):
     p = super(ModelV2, cls).Params()
     p.Define('extract', None, 'Param for the layer to extract image features.')
+    p.Define('label_smoothing', 0., 'Smooth the labels towards 1/num_classes.')
     return p
 
   @base_layer.initializer
@@ -241,11 +242,17 @@ class ModelV2(BaseClassifier):
       tf.logging.info("{}'s device: {}".format(act, act.device))
       # Softmax
       labels = tf.to_int64(input_batch.label)
+      onehot_labels = tf.one_hot(labels, p.softmax.num_classes)
+      if p.label_smoothing > 0:
+        smooth_positives = 1.0 - p.label_smoothing
+        smooth_negatives = p.label_smoothing / p.softmax.num_classes
+        onehot_labels = onehot_labels * smooth_positives + smooth_negatives
+
       xent = self.softmax.FProp(
           theta=theta.softmax,
           inputs=act,
           class_weights=input_batch.weight,
-          class_ids=labels)
+          class_probabilities=onehot_labels)
 
     self._AddSummary(input_batch, xent.per_example_argmax)
 

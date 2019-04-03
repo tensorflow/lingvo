@@ -23,11 +23,29 @@ import shutil
 import tensorflow as tf
 from lingvo import model_registry
 from lingvo.core import cluster_factory
+from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
 from lingvo.tasks.image import classifier
 from lingvo.tasks.image import input_generator
 from lingvo.tasks.image.params import mnist
+
+
+@model_registry.RegisterSingleTaskModel
+class MnistV2(mnist.Base):
+  """A test MNIST model for classifier.ModelV2."""
+
+  @classmethod
+  def Task(cls):
+    p = classifier.ModelV2.Params()
+    p.name = 'testv2'
+    p.extract = layers.Conv2DLayerNoPadding.Params().Set(
+        filter_shape=(5, 5, 1, 50), filter_stride=(2, 2))
+    p.label_smoothing = 0.1
+    p.softmax.input_dim = 50
+    p.softmax.num_classes = 10
+    p.train.learning_rate = 0.1
+    return p
 
 
 class ClassifierTest(tf.test.TestCase):
@@ -58,6 +76,22 @@ class ClassifierTest(tf.test.TestCase):
       sess.run(tf.global_variables_initializer())
       CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model, sess))
       CompareToGoldenSingleFloat(self, 2.302405, self._runOneStep(model, sess))
+
+  def testMnistV2(self):
+    g = tf.Graph()
+    with g.as_default():
+      tf.set_random_seed(1618)
+      p = model_registry.GetParams('test.MnistV2', 'Test')
+      p.random_seed = 73234288
+      p.input.ckpt = self.data_path
+      p.task.params_init = py_utils.WeightInit.Uniform(0.1, seed=73234288)
+      with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
+        model = p.cls(p)
+        model.ConstructFPropBPropGraph()
+    with self.session(graph=g) as sess:
+      sess.run(tf.global_variables_initializer())
+      CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model, sess))
+      CompareToGoldenSingleFloat(self, 2.142516, self._runOneStep(model, sess))
 
 
 if __name__ == '__main__':
