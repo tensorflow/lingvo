@@ -999,7 +999,7 @@ def GetFanInFanOut(shape):
   if len(shape) < 1:
     return 1, 1
   elif len(shape) == 1:
-    # Question: shouldn't fan-out be 1?
+    # Following _compute_fans() from TF's init_ops.py.
     return shape[0], shape[0]
   else:
     receptive_field_size = 1
@@ -1643,10 +1643,10 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
 
   if p == 2.0:
     lp_loss = 0.5 * lp_regularizer_weight * SumSquared(
-        var_grads.Filter(Skip).Transform(GetVar).Flatten())
+        filtered_var_grads.Transform(GetVar).Flatten())
   elif p == 1.0:
     lp_loss = lp_regularizer_weight * SumAbs(
-        var_grads.Filter(Skip).Transform(GetVar).Flatten())
+        filtered_var_grads.Transform(GetVar).Flatten())
 
   def LpGrad(item):
     """Adjusts item's grad w/ Lp loss term."""
