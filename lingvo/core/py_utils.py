@@ -51,6 +51,8 @@ tf.flags.DEFINE_bool('print_debug_tensors', False,
 tf.flags.DEFINE_string(
     'xla_device', '', 'If non-empty, can be cpu, gpu, or tpu (case sensitive)')
 
+tf.flags.DEFINE_bool('nas_run', False, 'If True, this is a NAS training run.')
+
 tf.flags.DEFINE_bool(
     'use_resource_var', False,
     'Use ResourceVariable instead of Variable; this option is '
@@ -314,6 +316,10 @@ def use_tpu():  # pylint: disable=invalid-name
   if res:
     assert not FLAGS.enable_asserts  # asserts not supported on tpu
   return res
+
+
+def nas_run():  # pylint: disable=invalid-name
+  return FLAGS.nas_run
 
 
 def tpu_compat():  # pylint: disable=invalid-name
@@ -1431,6 +1437,63 @@ def _ComputeGradientsTpu(loss, all_vars, grad_aggregation_method,
   return aggregated_grads
 
 
+def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
+                            colocate_gradients_with_ops, gate_gradients):
+  """Computes gradients for local loss across whole TPU cluster.
+
+  This implementation specializes for the case where weight params maybe used
+  for different number of times in the forward computation, so that gradients
+  should be normalized by the actual number of times they are being computed.
+
+  TODO(yonghui): Maybe merge this implementation with the _ComputeGradientsTpu
+  one.
+
+  Args:
+    loss: The loss to backprop from.
+    all_vars: Vars with respect to which gradients are to be computed.
+    grad_aggregation_method: aggregation method to use when calling
+      tf.gradients.
+    colocate_gradients_with_ops: boolean, whether or not to colocate gradient op
+      with the original op.
+    gate_gradients: boolean, flag to be passed to tf.gradients.
+  Returns:
+    gradients to be passed back.
+  """
+  # Computes the gradients.
+  # Sum the grads so that we can compute statistics across the whole batch.
+  all_grads = _ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
+                                      colocate_gradients_with_ops,
+                                      gate_gradients)
+
+  # NOTE: We can't use tpu_optimizer.CrossShardOptimizer since
+  # we need to scale the grads *after* the cross_replica_sum to
+  # match GPU version!
+
+  # TODO(cwhipkey): should we do something different here? - we could do
+  # some operations on the gradients before the aggregation (see comments in
+  # tensorflow/contrib/tpu/python/tpu/tpu_optimizer.py - see compute_gradients -
+  # for some more details).
+
+  aggregated_grads = []
+  for g in all_grads:
+    if g is not None:
+      with tf.colocate_with(g):
+        # Q(yonghui): Is there a better way to detect a non-zero gradient?
+        # Note(yonghui): gradient of a weight param can be all zero if that
+        # weight param is not used in the forward computation, e.g. as in
+        # switchable layers in neural architecture search.
+        zero_threashold = 1e-8
+        g_is_non_zero = tf.cast(
+            tf.reduce_sum(tf.math.abs(g)) > zero_threashold, g.dtype)
+        num_updates = tf.maximum(
+            tf.contrib.tpu.cross_replica_sum(g_is_non_zero), 1.0)
+        normalized_g = tf.contrib.tpu.cross_replica_sum(g) / num_updates
+        aggregated_grads.append(normalized_g)
+    else:
+      aggregated_grads.append(None)
+  return aggregated_grads
+
+
 def ComputeGradients(
     loss,
     vmap,
@@ -1486,7 +1549,14 @@ def ComputeGradients(
   filtered_vlist = filtered_vmap.Flatten()
 
   # tpu vs non-tpu is slightly different.
-  take_grad = _ComputeGradientsTpu if use_tpu() else _ComputeGradientsSimple
+  if use_tpu():
+    if nas_run():
+      take_grad = _ComputeGradientsTpuNas
+    else:
+      take_grad = _ComputeGradientsTpu
+  else:
+    take_grad = _ComputeGradientsSimple
+
   grads = take_grad(loss, filtered_vlist, grad_aggregation_method,
                     colocate_gradients_with_ops, gate_gradients)
 
