@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 
 #include "lingvo/core/ops/input_common.h"
+#include "lingvo/core/ops/sequential_record_yielder.h"
 #include "lingvo/core/ops/weighted_mix_record_yielder.h"
 
 namespace tensorflow {
@@ -22,7 +23,8 @@ namespace lingvo {
 RecordYielder* ConstructYielder(const string& file_pattern,
                                 const std::vector<float>& input_source_weights,
                                 int64 file_random_seed, int64 file_buffer_size,
-                                int64 file_parallelism) {
+                                int64 file_parallelism,
+                                bool require_sequential_order) {
   std::vector<string> file_patterns;
   if (input_source_weights.empty()) {
     LOG(INFO) << "Input source weights are empty, fall back to legacy "
@@ -37,22 +39,28 @@ RecordYielder* ConstructYielder(const string& file_pattern,
   }
   std::vector<RecordYielder*> yielders;
   for (int i = 0; i < file_patterns.size(); ++i) {
-    BasicRecordYielder::Options yopts;
-    yopts.file_pattern = file_patterns[i];
-    if (file_random_seed == 0) {
-      yopts.seed = 0;  // Let the yielder pick a random seed.
+    if (require_sequential_order) {
+      CHECK_EQ(file_patterns.size(), 1)
+          << "require_sequential_order does not support record mixing.";
+      yielders.push_back(SequentialRecordYielder::New(file_patterns[i]));
     } else {
-      yopts.seed =
-          (file_random_seed + i) % (std::numeric_limits<int32>::max() - 1);
-      if (yopts.seed == 0) {
-        // Add 1 to avoid 0.
-        ++yopts.seed;
+      BasicRecordYielder::Options yopts;
+      yopts.file_pattern = file_patterns[i];
+      if (file_random_seed == 0) {
+        yopts.seed = 0;  // Let the yielder pick a random seed.
+      } else {
+        yopts.seed =
+            (file_random_seed + i) % (std::numeric_limits<int32>::max() - 1);
+        if (yopts.seed == 0) {
+          // Add 1 to avoid 0.
+          ++yopts.seed;
+        }
       }
+      yopts.bufsize = file_buffer_size;
+      yopts.parallelism = file_parallelism;
+      yopts.source_id = i;
+      yielders.push_back(BasicRecordYielder::New(yopts));
     }
-    yopts.bufsize = file_buffer_size;
-    yopts.parallelism = file_parallelism;
-    yopts.source_id = i;
-    yielders.push_back(BasicRecordYielder::New(yopts));
   }
 
   RecordYielder* yielder = nullptr;

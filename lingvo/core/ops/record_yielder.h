@@ -59,6 +59,10 @@ class RecordIterator {
   // Returns a record iterator for 'filename' of 'type_name'.
   static RecordIterator* New(const string& type_name, const string& filename);
 
+  // Returns the prefix in a file pattern, or an empty string if not exist.
+  // Example: "tfrecord:data_dir/data.tfrecord" => "tfrecord"
+  static string GetFilePatternPrefix(const string& file_pattern);
+
   // Parse a file pattern into a list of matching files.
   static Status ParsePattern(const string& type_name,
                              const string& file_pattern_list,

@@ -47,21 +47,6 @@ Factory* GetFactory() {
   return factory;
 }
 
-// Returns the prefix in a file pattern, or an empty string if not exist.
-// Example: "tfrecord:data_dir/data.tfrecord" => "tfrecord"
-string GetFilePatternPrefix(const string& file_pattern) {
-  const auto prefix_end = file_pattern.find(':');
-  if (prefix_end == string::npos) {
-    return "";
-  }
-  // The prefix should not contain '/'. If so, it's likely part of the path.
-  const auto first_slash = file_pattern.find('/');
-  if (first_slash != string::npos && first_slash < prefix_end) {
-    return "";
-  }
-  return file_pattern.substr(0, prefix_end);
-}
-
 // A sharded file pattern looks like /path/name@100, which is expanded to
 // a glob pattern /path/name-?????-of-00100 by this function. The number of
 // shards shouldn't exceed 5 digits.
@@ -164,6 +149,21 @@ RecordIterator* RecordIterator::New(const string& type_name,
     method = iter->second;
   }
   return method(filename);
+}
+
+// Returns the prefix in a file pattern, or an empty string if not exist.
+// Example: "tfrecord:data_dir/data.tfrecord" => "tfrecord"
+string RecordIterator::GetFilePatternPrefix(const string& file_pattern) {
+  const auto prefix_end = file_pattern.find(':');
+  if (prefix_end == string::npos) {
+    return "";
+  }
+  // The prefix should not contain '/'. If so, it's likely part of the path.
+  const auto first_slash = file_pattern.find('/');
+  if (first_slash != string::npos && first_slash < prefix_end) {
+    return "";
+  }
+  return file_pattern.substr(0, prefix_end);
 }
 
 Status RecordIterator::ParsePattern(const string& type_name,
@@ -290,7 +290,7 @@ BasicRecordYielder::BasicRecordYielder(const Options& opts)
     LOG(INFO) << "Randomly seed RecordYielder.";
     rnd_.seed(std::random_device{}());
   }
-  file_type_ = GetFilePatternPrefix(opts_.file_pattern);
+  file_type_ = RecordIterator::GetFilePatternPrefix(opts_.file_pattern);
   if (!file_type_.empty()) {
     opts_.file_pattern.erase(0, file_type_.size() + 1);
   }

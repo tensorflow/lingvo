@@ -17,7 +17,7 @@ limitations under the License.
 #define LINGVO_CORE_OPS_X_OPS_HELPER_H_
 
 #define INPUT_ATTRS                                   \
-      Attr("file_pattern: string")                    \
+  Attr("file_pattern: string")                        \
       .Attr("input_source_weights: list(float) = []") \
       .Attr("file_random_seed: int = 301")            \
       .Attr("file_buffer_size: int = 10000")          \
@@ -27,15 +27,16 @@ limitations under the License.
       .Attr("bucket_adjust_every_n: int = 0")         \
       .Attr("flush_every_n: int = 0")                 \
       .Attr("num_threads: int = 1")                   \
+      .Attr("require_sequential_order: bool = False") \
       .SetIsStateful()
 
 #define INPUT_DOCS \
   R"( \
-file_pattern: A comma-separated list of glob patterns or sharded file patterns \
-  for the data files. A sharded file pattern looks like /path/name@100. \
+file_pattern: A comma-separated list of glob patterns or sharded file patterns\
+  for the data files. A sharded file pattern looks like /path/name@100.\
 input_source_weights: A list of input sources weights that control the input\
-  example mix. The records will be sampled from inputs proportionally to these \
-  weights. When empty list is provided, no mix weighting will be done. \
+  example mix. The records will be sampled from inputs proportionally to these\
+  weights. When empty list is provided, no mix weighting will be done.\
   Defaults to empty list.\
 file_random_seed: Random seeds used to produce randomized records.\
 file_buffer_size: The randomization shuffling buffer.\
@@ -47,9 +48,13 @@ bucket_adjust_every_n: If non-zero, optimize the values of bucket_upper_bound\
   except the last one after every N records based on the current input length\
   distribution.\
 flush_every_n: If non-zero, flushes all batches buffered so far every these\
-    many records are yielded.\
-num_threads: Number of threads to use for the record batcher. Each thread fills\
-    separate batches based on bucket limits.\
+  many records are yielded.\
+num_threads: Number of threads to use for the record batcher. Each thread\
+  fills separate batches based on bucket limits.\
+require_sequential_order: If true, the input op is required to process the file\
+  glob as well as the contents of each file in a deterministic sequential order.\
+  Setting this automatically disables file_random_seed, file_buffer_size,\
+  file_parallelism, num_threads, and requires a single file_pattern.\
 )"
 
 #endif  // LINGVO_CORE_OPS_X_OPS_HELPER_H_

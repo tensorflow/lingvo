@@ -248,6 +248,13 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     p.Define('num_batcher_threads', 1, 'Number of threads to use for input '
              'record batcher.')
     p.Define(
+        'require_sequential_order', False,
+        'If true, the input op is required to process the file glob as '
+        'well as the contents of each file in a deterministic sequential order.'
+        ' This is intended for unit tests. Setting this automatically disables '
+        'file_random_seed, file_buffer_size, file_parallelism, '
+        'num_batcher_threads, and requires a single file_pattern.')
+    p.Define(
         'use_within_batch_mixing', False, 'Whether to mix records from '
         'different input sources within batch or across batches (the '
         'default option). This option only takes effect when file_pattern'
@@ -272,6 +279,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         'bucket_adjust_every_n': p.bucket_adjust_every_n,
         'flush_every_n': p.flush_every_n,
         'num_threads': p.num_batcher_threads,
+        'require_sequential_order': p.require_sequential_order,
     })
     args.update(self._InputOpBucketingArgs())
     return args

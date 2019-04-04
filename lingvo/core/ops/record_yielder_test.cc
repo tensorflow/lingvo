@@ -15,6 +15,7 @@ limitations under the License.
 
 #include "lingvo/core/ops/record_yielder.h"
 
+#include <gtest/gtest-spi.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/compression.h"
@@ -24,6 +25,7 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/env.h"
 #include "lingvo/core/ops/input_common.h"
+#include "lingvo/core/ops/sequential_record_yielder.h"
 
 namespace tensorflow {
 namespace lingvo {
@@ -77,6 +79,26 @@ TEST(RecordYielderTest, PlainTextYielderBasicTest) {
 
   // End of the 37th epoch | start of the 38th epoch.
   EXPECT_TRUE(yielder->current_epoch() == 37 || yielder->current_epoch() == 38);
+  yielder->Close();
+}
+
+TEST(SequentialRecordYielderTest, SequentialRecordYielderBasicTest) {
+  const int N = 10;
+  const int M = 1000;
+  GeneratePlainTextTestData("basic", N, M);
+  const string& file_pattern =
+      strings::StrCat("text:", io::JoinPath("/tmp", "basic.*"));
+
+  SequentialRecordYielder* yielder = SequentialRecordYielder::New(file_pattern);
+  Rope v;
+  for (int i = 0; i < N * M; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    ASSERT_EQ(string(v), strings::Printf("%010d", i));
+  }
+
+  // Cannot iterate past first epoch.
+  EXPECT_DEATH(TF_CHECK_OK(yielder->Yield(&v, nullptr)),
+               "No more records to yield.");
   yielder->Close();
 }
 

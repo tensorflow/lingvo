@@ -91,11 +91,13 @@ lingvo_cc_library(
         "record_batcher.cc",
         "record_debug.cc",
         "record_yielder.cc",
+        "sequential_record_yielder.cc",
         "weighted_mix_record_yielder.cc",
     ],
     hdrs = [
         "record_batcher.h",
         "record_yielder.h",
+        "sequential_record_yielder.h",
         "weighted_mix_record_yielder.h",
     ],
     deps = [
