@@ -61,7 +61,21 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
              'language code (e.g. "zh-CN") are acceptted.')
     p.Define('align_label_with_frame', False,
              'Whether to generate label-frame alignments.')
-    p.Define('bprop_filter', '', 'The filter to apply to one of the sources.')
+    p.Define(
+        'bprop_filters', [], 'If set, simulates a multi source'
+        'input and sets filters for each source i.e the first filter'
+        'corresponds to the first source etc. The number of sources is set'
+        'to the length of this param.')
+    p.Define(
+        'number_sources', None, 'Integer which specifies the number of'
+        'sources. Cannot be used along with bprop_filters.')
+    p.Define(
+        'source_selected', None, 'Integer which specifies the index of the'
+        'source selected. Corresponds to the data source that would be'
+        'sampled by the input_generator when given multiple file_patterns.'
+        'This has an effect only when number_sources is set and greater than 1.'
+        'Can use either constant values or a tensor like'
+        'tf.mod(tf.train.get_or_create_global_step(), num_sources)')
     p.Define('target_transcript', 'dummy_transcript',
              'Text to use for transcript.')
     return p
@@ -81,10 +95,17 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
                        '(%d) when both have to be set.' %
                        (p.target_key_target_shape[0], p.target_shape[0]))
     self._cur_iter = 0
-    if p.bprop_filter:
-      self._bprop_variable_filters = ['', p.bprop_filter, p.bprop_filter]
+    if p.bprop_filters and p.number_sources:
+      raise ValueError(
+          'Number of sources will be set to length of bprop_filters, the param'
+          'number_sources should not be used when bprop_filters is set.')
+    number_sources = p.number_sources
+    if p.bprop_filters:
+      self._bprop_variable_filters = p.bprop_filters
+      number_sources = len(p.bprop_filters)
+    if number_sources and number_sources > 1:
       self._bprop_onehot = tf.one_hot(
-          2, len(self._bprop_variable_filters), dtype=tf.float32)
+          p.source_selected, number_sources, dtype=tf.float32)
 
   def _check_paddings(self, paddings):
     with tf.name_scope('check_paddings'):
@@ -229,9 +250,10 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     # The data are laid out in the channel-major order. In order to move channel
     # to the last dimension, a tf.transpose of the data is needed.
     src_inputs = tf.transpose(
-        tf.reshape(src_inputs,
-                   tf.concat([tf.shape(src_inputs)[:-1], [p.num_channels, -1]],
-                             0)), [0, 1, 3, 2])
+        tf.reshape(
+            src_inputs,
+            tf.concat([tf.shape(src_inputs)[:-1], [p.num_channels, -1]], 0)),
+        [0, 1, 3, 2])
     return src_inputs, src_paddings, labels
 
   def SetBpropType(self):
