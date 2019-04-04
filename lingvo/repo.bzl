@@ -116,7 +116,7 @@ def cc_tf_configure():
     make_tflib_repo(name = "tensorflow_solib")
 
 def lingvo_testonly_deps():
-    if "com_google_googletest" not in native.existing_rules():
+    if not native.existing_rule("com_google_googletest"):
         http_archive(
             name = "com_google_googletest",
             build_file_content = """
