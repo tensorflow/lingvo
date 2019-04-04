@@ -28,7 +28,6 @@ from tensorflow.python.framework import function
 from lingvo.core import attention
 from lingvo.core import base_decoder
 from lingvo.core import base_layer
-from lingvo.core import cluster_factory
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import model_helper
@@ -225,18 +224,43 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     return targets
 
   def _AddAttenProbsSummary(self, source_paddings, targets, atten_probs):
+    """Add summary of attention probs.
+
+    Args:
+      source_paddings: source padding, of shape [src_len, src_batch].
+      targets: A dict of string to tensors representing the targets one try to
+        predict. Each tensor in targets is of shape [tgt_batch, tgt_len].
+      atten_probs: a list of attention probs, each element is of shape [tgt_len,
+        tgt_batch, src_len].
+    """
+    if not self.cluster.add_summary:
+      return
+
+    self._AddAttenProbsImageSummary(source_paddings, targets, atten_probs)
+    self._AddAttenProbsHistogramSummary(atten_probs)
+
+  def _AddAttenProbsHistogramSummary(self, atten_probs):
+    """Add histogram summary of attention probs.
+
+    Args:
+      atten_probs: a list of attention probs, each element is of shape [tgt_len,
+        tgt_batch, src_len].
+    """
+    for i, probs in enumerate(atten_probs):
+      # a prefix from the context will be used, which looks like
+      # fprop/wmt14_en_de_transformer/tower_0_0/dec/
+      summary_utils.histogram('atten{}'.format(i + 1), probs)
+
+  def _AddAttenProbsImageSummary(self, source_paddings, targets, atten_probs):
     """Add image summary of attention probs.
 
     Args:
       source_paddings: source padding, of shape [src_len, src_batch].
       targets: A dict of string to tensors representing the targets one try to
-          predict. Each tensor in targets is of shape [tgt_batch, tgt_len].
-      atten_probs: a list of attention probs, each element is of shape
-          [tgt_len, tgt_batch, src_len].
+        predict. Each tensor in targets is of shape [tgt_batch, tgt_len].
+      atten_probs: a list of attention probs, each element is of shape [tgt_len,
+        tgt_batch, src_len].
     """
-    if not self.cluster.add_summary:
-      return
-
     num_rows = len(atten_probs)
     fig = plot.MatplotlibFigureSummary(
         'decoder_example',
@@ -1092,7 +1116,7 @@ class TransformerDecoder(MTBaseDecoder):
       seq_len = 0
 
     prefix_states = py_utils.NestedMap({
-        'layer_%d' % layer: py_utils.NestedMap({
+        'layer_%d' % layer: py_utils.NestedMap({  # pylint:disable=g-complex-comprehension
             'key':
                 tf.zeros([seq_len, batch_size, atten_hidden_dim],
                          dtype=py_utils.FPropDtype(p)),
@@ -1185,3 +1209,115 @@ class TransformerDecoder(MTBaseDecoder):
         self.theta, encoder_outputs, num_hyps_per_beam_override,
         self._InitBeamSearchStateCallback, self._PreBeamSearchStepCallback,
         self._PostBeamSearchStepCallback)
+
+  def _AddAttenProbsScalarSummary(self, source_paddings, targets, atten_probs):
+    """Add scalar summary of multi-headed transformer attention probs.
+
+    This summary is primarily used to show statistics of the multi-headed
+    attention that reveals potential sparsity related properties. The
+    multi-headed attention probability tensors are exposed by
+    `MultiHeadedAttention.ComputeContextVectorWithSource` with the name
+    `multi_headed_atten_prob`. The following statistics are summarized:
+
+    - 1_v_2: margin of the largest value vs. the 2nd largest
+    - 1_v_3: similar, but vs the 3rd largest
+    - mean: mean of the attention probs. NOTE: the sequences in a mini-batch
+        are not always of the same length. The attention probability for the
+        padded time index in target sequences are removed. However, the padding
+        for the source sequences are left unchanged. As a result, the atten
+        probs vectors will have some extra zero entries, so the mean calculated
+        here will be smaller than the true mean.
+    - source_padding_ratio: as explained above, the source paddings are not
+        handled when computing the mean. This summary show the average ratio
+        of time-steps that are padded values in the source sequences, to give
+        a reference of roughly how much the mean summarized above should be
+        adjusted.
+    - 1_v_mean: margin of the largest value vs the mean value.
+    - sum: the sum of the attention prob vectors. Should always be 1, for sanity
+        check only.
+
+    The quantity above are computed for each sequence in the mini-batch, each
+    valid (target) sequence index, and each attention head, and then the
+    average value is reported to the tensorboard as a scalar summary.
+
+    Args:
+      source_paddings: source padding, of shape [src_len, src_batch].
+      targets: A dict of string to tensors representing the targets one try to
+        predict. Each tensor in targets is of shape [tgt_batch, tgt_len].
+      atten_probs: a list of attention probs, each element is of shape [tgt_len,
+        tgt_batch, src_len].
+    """
+    default_graph = tf.get_default_graph()
+    # looks like fprop/wmt14_en_de_transformer/tower_0_0/dec
+    name_scope = default_graph.get_name_scope()
+    # NOTE: shapes
+    # source_paddings: [src_len, src_batch]
+    # targets.paddings: [tgt_batch, tgt_len].
+    source_time = tf.shape(source_paddings)[0]
+    source_batch = tf.shape(source_paddings)[1]
+    target_time = tf.shape(targets.paddings)[1]
+    target_batch = tf.shape(targets.paddings)[0]
+    num_heads = self.trans[0].self_atten.params.num_attention_heads
+    with tf.control_dependencies([tf.assert_equal(source_batch, target_batch)]):
+      target_batch = tf.identity(target_batch)
+
+    source_padding_ratio = tf.cast(
+        tf.reduce_sum(source_paddings, axis=0), tf.float32)
+    source_padding_ratio /= tf.cast(tf.shape(source_paddings)[0], tf.float32)
+    summary_utils.scalar('source_padding_ratio',
+                         tf.reduce_mean(source_padding_ratio))
+
+    for i in range(len(atten_probs)):
+      suffix = '_{}'.format(i) if i > 0 else ''
+      # Tensor exported from MultiHeadedAttention.ComputeContextVectorWithSource
+      # shape [target_time * batch_size, num_heads, source_time]
+      mha_probs = default_graph.get_tensor_by_name(
+          name_scope + ('/aux_atten{}/MultiHeadedAttention/'
+                        'ComputeContextVectorWithSource/'
+                        'multi_headed_atten_prob:0').format(suffix))
+      mha_probs = tf.reshape(
+          mha_probs, (target_time, target_batch, num_heads, source_time))
+
+      # remove time padding from target_time
+      # (tgt_t, batch, n_heads, src_t) => (n_valid, n_heads, src_t)
+      # explicit reshape is used here to give masks static ndims, otherwise
+      # tf.boolean_mask will fail
+      masks = tf.reshape(
+          tf.equal(targets.paddings, 0), (target_time, target_batch))
+      mha_probs = tf.boolean_mask(mha_probs, masks)
+
+      # note we did not remove invalid entries according to source_paddings,
+      # because the result will no longer be a rectangular tensor, just
+      # remember when interpreting some statistics like mean, there are some
+      # padded zero entries due to non-uniform sequence lengths
+
+      # (n_valid, n_heads, src_t) => (n_valid*n_heads, src_t)
+      mha_probs = tf.reshape(mha_probs, (-1, tf.shape(mha_probs)[-1]))
+
+      probs_top3, _ = tf.math.top_k(mha_probs, k=3)
+      probs_mean = tf.math.reduce_mean(mha_probs, axis=1)
+      probs_sum = tf.math.reduce_sum(mha_probs, axis=1)  # sanity check
+
+      margins_12 = tf.reduce_mean(probs_top3[:, 0] - probs_top3[:, 1])
+      margins_13 = tf.reduce_mean(probs_top3[:, 0] - probs_top3[:, 2])
+      margins_1m = tf.reduce_mean(probs_top3[:, 0] - probs_mean)
+      summary_utils.scalar('1_v_2/atten{}'.format(i), margins_12)
+      summary_utils.scalar('1_v_3/atten{}'.format(i), margins_13)
+      summary_utils.scalar('1_v_mean/atten{}'.format(i), margins_1m)
+      summary_utils.scalar('mean/atten{}'.format(i), tf.reduce_mean(probs_mean))
+      summary_utils.scalar('sum/atten{}'.format(i), tf.reduce_mean(probs_sum))
+
+  def _AddAttenProbsSummary(self, source_paddings, targets, atten_probs):
+    """Add summary of attention probs.
+
+    Args:
+      source_paddings: source padding, of shape [src_len, src_batch].
+      targets: A dict of string to tensors representing the targets one try to
+        predict. Each tensor in targets is of shape [tgt_batch, tgt_len].
+      atten_probs: a list of attention probs, each element is of shape [tgt_len,
+        tgt_batch, src_len].
+    """
+    super(TransformerDecoder,
+          self)._AddAttenProbsSummary(source_paddings, targets, atten_probs)
+    if self.cluster.add_summary:
+      self._AddAttenProbsScalarSummary(source_paddings, targets, atten_probs)

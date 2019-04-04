@@ -1434,10 +1434,13 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           ctx_vec, fns.qweight(theta.ctx_post_proj), qt='ctx_post_proj_matmul')
       ctx_vec = fns.qadd(
           ctx_vec, fns.qweight(theta.ctx_post_proj_b), qt='ctx_post_proj_add')
+
+    # explicitly name this tensor for potential future reference
+    multi_headed_atten_prob = tf.reshape(
+        prob, [batch_size, num_heads, -1], name='multi_headed_atten_prob')
     # TODO(laurenzo): Use a better named range function (we want to represent
     # 0..1 probs).
-    prob = self.QRSoftmax(
-        tf.reduce_mean(tf.reshape(prob, [batch_size, num_heads, -1]), 1))
+    prob = self.QRSoftmax(tf.reduce_mean(multi_headed_atten_prob, 1))
     att_state = _RecursiveReshape(att_state, [batch_size, -1])
 
     return ctx_vec, prob, att_state
