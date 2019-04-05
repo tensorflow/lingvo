@@ -761,8 +761,8 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
         # NOTE: this may be slightly inaccurate when p.dilation_rate[0] > 1.
         # But there's likely no real problems. Trying to set it gives an error:
         # pooling with SAME padding is not implemented for dilation_rate > 1.
-        # NOTE: we use window=p.filter_stride[0] to be compatible with legacy
-        # implementation.  Consider updating it to be the actual shape.
+        # NOTE: window=p.filter_stride[0] means output i will be padded if any
+        # input in the stride between the two conv centers are padded.
         conv_padding = _ComputeConvOutputPadding(
             paddings, window=p.filter_stride[0], stride=p.filter_stride[0])
 
