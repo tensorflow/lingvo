@@ -1346,8 +1346,8 @@ class ProjectionLayerTest(tf.test.TestCase):
       if quantized:
         cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
             clip_end_step=1, quant_start_step=1)
-        qdomain_default = quant_utils.SymetricScheduledClipQDomain.Params().Set(
-            cc_schedule=cc_schedule.Copy())
+        qdomain_default = quant_utils.SymmetricScheduledClipQDomain.Params(
+        ).Set(cc_schedule=cc_schedule.Copy())
         params.qdomain.default = qdomain_default.Copy()
       params.is_eval = is_eval
 
@@ -2481,7 +2481,7 @@ class SoftmaxLayerTest(tf.test.TestCase):
       self.assertNear(log_perplexity, 3.46426, 1e-4)
 
   def testSimpleFullSoftmax_FakeQuantized(self):
-    default_qdomain = quant_utils.SymetricScheduledClipQDomain.Params()
+    default_qdomain = quant_utils.SymmetricScheduledClipQDomain.Params()
     default_qdomain.cc_schedule = quant_utils.FakeQuantizationSchedule.Params(
     ).Set(
         clip_start_step=0, clip_end_step=2, quant_start_step=2)
@@ -2690,7 +2690,7 @@ class FeedForwardNetTest(tf.test.TestCase):
           quant_start_step=2,
           start_cap=8.0,
           end_cap=2.0)
-      proj_qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+      proj_qdomain = quant_utils.SymmetricScheduledClipQDomain.Params().Set(
           cc_schedule=cc_schedule)
 
       p = layers.FeedForwardNet.Params().Set(

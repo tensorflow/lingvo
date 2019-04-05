@@ -283,14 +283,14 @@ class RNNCellTest(tf.test.TestCase):
           quant_start_step=0,
           start_cap=1.0,
           end_cap=1.0)
-      params.qdomain.default = quant_utils.SymetricScheduledClipQDomain.Params(
+      params.qdomain.default = quant_utils.SymmetricScheduledClipQDomain.Params(
       ).Set(cc_schedule=cc_schedule.Copy())
-      params.qdomain.c_state = quant_utils.SymetricScheduledClipQDomain.Params(
+      params.qdomain.c_state = quant_utils.SymmetricScheduledClipQDomain.Params(
       ).Set(cc_schedule=cc_schedule.Copy())
-      params.qdomain.m_state = quant_utils.SymetricScheduledClipQDomain.Params(
+      params.qdomain.m_state = quant_utils.SymmetricScheduledClipQDomain.Params(
       ).Set(cc_schedule=cc_schedule.Copy())
       params.qdomain.fullyconnected = (
-          quant_utils.SymetricScheduledClipQDomain.Params().Set(
+          quant_utils.SymmetricScheduledClipQDomain.Params().Set(
               cc_schedule=cc_schedule.Copy()))
 
       params.cell_value_cap = None
@@ -1537,25 +1537,25 @@ class RNNCellTest(tf.test.TestCase):
           start_cap=5.0,
           end_cap=1.0)
 
-      qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+      qdomain = quant_utils.SymmetricScheduledClipQDomain.Params().Set(
           cc_schedule=cc_schedule)
       params.qdomain.default = qdomain
 
       # M state uses the default 8-bit quantziation.
       cc_schedule = cc_schedule.Copy()
-      qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+      qdomain = quant_utils.SymmetricScheduledClipQDomain.Params().Set(
           cc_schedule=cc_schedule)
       params.qdomain.m_state = qdomain
 
       # C state uses 16 bit quantization..
       cc_schedule = cc_schedule.Copy().Set(bits=16)
-      qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+      qdomain = quant_utils.SymmetricScheduledClipQDomain.Params().Set(
           cc_schedule=cc_schedule)
       params.qdomain.c_state = qdomain
 
       # Fully connected layer clips slightly differently.
       cc_schedule = cc_schedule.Copy().Set(start_cap=64.0, end_cap=8.0)
-      qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+      qdomain = quant_utils.SymmetricScheduledClipQDomain.Params().Set(
           cc_schedule=cc_schedule)
       params.qdomain.fullyconnected = qdomain
 

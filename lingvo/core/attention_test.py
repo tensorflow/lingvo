@@ -1288,7 +1288,7 @@ class AttentionTest(tf.test.TestCase):
             quant_start_step=14000,
             start_cap=8.0,
             end_cap=1.0)
-        qdomain = quant_utils.SymetricScheduledClipQDomain.Params().Set(
+        qdomain = quant_utils.SymmetricScheduledClipQDomain.Params().Set(
             cc_schedule=cc_schedule.Copy())
         params.qdomain.default = qdomain.Copy()
         params.qdomain.atten_context = qdomain.Copy()

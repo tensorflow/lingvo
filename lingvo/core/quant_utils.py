@@ -942,28 +942,28 @@ class QDomain(base_layer.BaseLayer):
     raise NotImplementedError('Abstract method: NormalizeTensors')
 
 
-class SymetricScheduledClipQDomain(QDomain):
-  """A quantization domain that does symetric scheduled clipping.
+class SymmetricScheduledClipQDomain(QDomain):
+  """A quantization domain that does symmetric scheduled clipping.
 
   This contains a BaseClippingCapSchedule which handles the actual clipping. It
   defaults to a FakeQuantizationSchedule.
 
   This clipping domain will aid in quantizing layers that are known to tolerate
   operation within known ranges (such as LSTM cells). The clipping range will
-  converge over a range of steps and is setup to match ideal, symetric ranges
+  converge over a range of steps and is setup to match ideal, symmetric ranges
   for quantized types.
   """
 
   @classmethod
   def Params(cls):
-    p = super(SymetricScheduledClipQDomain, cls).Params()
+    p = super(SymmetricScheduledClipQDomain, cls).Params()
     p.Define('cc_schedule', FakeQuantizationSchedule.Params(),
              'Quantization clipping schedule.')
     return p
 
   @base_layer.initializer
   def __init__(self, params):
-    super(SymetricScheduledClipQDomain, self).__init__(params)
+    super(SymmetricScheduledClipQDomain, self).__init__(params)
     p = self.params
 
     with tf.variable_scope(p.name):
@@ -979,7 +979,7 @@ class SymetricScheduledClipQDomain(QDomain):
   def QuantizeNaturalRange(self, t, min_value, max_value):
     # Note: We apply the scheduled clip here, completely overriding the
     # known natural range. This is intentional and assumes that when this
-    # layer is used for symetric clipping, it is applied uniformly to all
+    # layer is used for symmetric clipping, it is applied uniformly to all
     # active elements.
     return self.cc_schedule.ApplyClipping(self.theta.cc_schedule, t)
 
@@ -1023,7 +1023,7 @@ class _CountedMinMaxAccumulator(base_layer.Accumulator):
 
 
 class PassiveAsymQDomain(QDomain):
-  """A quantization domain that does passive, asymetric quantization.
+  """A quantization domain that does passive, asymmetric quantization.
 
   See: https://arxiv.org/abs/1712.05877
 

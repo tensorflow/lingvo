@@ -253,7 +253,7 @@ class QuantizableLayerTest(tf.test.TestCase):
           not_expected=self.NO_QDOMAIN_EXPECTED,
           global_step=9)
 
-  def testLayerWithSymetricScheduledClipQDomain(self):
+  def testLayerWithSymmetricScheduledClipQDomain(self):
     # pyformat: disable
     expected = [
        [[ 0.       , -0.0390625, -0.015625 , -0.0078125],
@@ -268,14 +268,14 @@ class QuantizableLayerTest(tf.test.TestCase):
 
     with self.session() as sess:
       p = SampleQuantizedProjectionLayer.Params()
-      p.qdomain.default = quant_utils.SymetricScheduledClipQDomain.Params()
+      p.qdomain.default = quant_utils.SymmetricScheduledClipQDomain.Params()
       p.qdomain.default.cc_schedule.Set(
           clip_start_step=0,
           clip_end_step=5,
           quant_start_step=10,
       )
       self._testLayerHelper(
-          'testLayerWithSymetricScheduledClipQDomain',
+          'testLayerWithSymmetricScheduledClipQDomain',
           sess,
           p,
           expected=expected,
