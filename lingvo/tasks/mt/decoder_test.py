@@ -27,6 +27,7 @@ from lingvo.core import input_generator_helper as ig_helper
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
+from lingvo.core.ops.hyps_pb2 import Hypothesis
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
 from lingvo.tasks.mt import decoder
 
@@ -355,12 +356,13 @@ class TransformerDecoderTestCaseBase(tf.test.TestCase):
     np.random.seed(_NUMPY_RANDOM_SEED)
     src_time = 5
     src_batch = 4
+    num_hyps = 2
     emb_dims = 4
     src_enc = tf.constant(
         np.random.normal(size=[src_time, src_batch, emb_dims]), dtype=dtype)
     src_paddings = tf.zeros([src_time, src_batch], dtype=dtype)
     tgt_time = 5
-    tgt_batch = 8
+    tgt_batch = src_batch * num_hyps
     self.tgt_batch = tgt_batch
 
     tgt_ids = tf.constant(
@@ -377,7 +379,38 @@ class TransformerDecoderTestCaseBase(tf.test.TestCase):
     })
     encoder_outputs = py_utils.NestedMap(
         encoded=src_enc, padding=src_paddings, segment_id=None)
-    return (encoder_outputs, tgts)
+    return (encoder_outputs, tgts, num_hyps)
+
+  def _InputsForAttentionTest(self, dtype=tf.float32):
+    np.random.seed(_NUMPY_RANDOM_SEED)
+    src_time = 5
+    src_batch = 2
+    num_hyps = 2
+    emb_dims = 4
+    src_enc = tf.constant(
+        np.random.normal(size=[src_time, src_batch, emb_dims]), dtype=dtype)
+    src_paddings = tf.constant(
+        [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [0.0, 1.0]],
+        dtype=dtype)
+    tgt_time = 5
+    tgt_batch = src_batch * num_hyps
+    self.tgt_batch = tgt_batch
+
+    tgt_ids = tf.constant(
+        np.random.randint(20, size=[tgt_batch, tgt_time]), dtype=tf.int32)
+    tgt_labels = tf.constant(
+        np.random.randint(20, size=[tgt_batch, tgt_time]), dtype=tf.int32)
+    tgt_paddings = tf.zeros([tgt_batch, tgt_time], dtype=dtype)
+    tgt_weights = 1.0 - tgt_paddings
+    tgts = py_utils.NestedMap({
+        'ids': tgt_ids,
+        'labels': tgt_labels,
+        'weights': tgt_weights,
+        'paddings': tgt_paddings
+    })
+    encoder_outputs = py_utils.NestedMap(
+        encoded=src_enc, padding=src_paddings, segment_id=None)
+    return (encoder_outputs, tgts, num_hyps)
 
 
 class TransformerDecoderTest(TransformerDecoderTestCaseBase):
@@ -441,14 +474,14 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     src_time = 5
     src_batch = 4
     emb_dims = 4
-    encoder_outputs, tgts = self._Inputs(dtype)
+    encoder_outputs, tgts, num_hyps = self._Inputs(dtype)
     src_enc = tf.constant(
         np.random.normal(size=[src_time, src_batch, emb_dims, num_layers]),
         dtype=dtype)
     if not is_eval_mode:
       src_enc = tf.unstack(src_enc, axis=3)
     encoder_outputs.encoded = src_enc
-    return (encoder_outputs, tgts)
+    return (encoder_outputs, tgts, num_hyps)
 
   def testDecoderFPropWithPacking(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
@@ -483,17 +516,62 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       dec = decoder.TransformerDecoder(p)
-      encoder_outputs, targets = self._testTransparentInputs(dtype=dtype)
+      encoder_outputs, targets, _ = self._testTransparentInputs(dtype=dtype)
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
       tf.global_variables_initializer().run()
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
       self.assertAlmostEqual(15.864315, actual_loss, delta=0.0001)
 
-  def _testExtendStep(self, sess, dec, encoder_outputs, tgts):
-    p = self._DecoderParams()
-    l_out1 = dec._FProp(dec.theta, encoder_outputs, tgts)
+  def test_ExpandToNumHyps(self, dtype=tf.float32):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(is_transparent=True, dtype=dtype)
+      dec = decoder.TransformerDecoder(p)
 
+      src_enc_len = tf.constant([3, 2, 1])
+      num_hyps = 2
+      expected = tf.constant([3, 2, 1, 3, 2, 1])
+      expanded = dec._ExpandToNumHyps(src_enc_len, num_hyps)
+      expanded_v, expected_v = sess.run([expanded, expected])
+      self.assertAllEqual(expanded_v, expected_v)
+
+  def test_RemoveEOSProbs(self, dtype=tf.float32):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(is_transparent=True, dtype=dtype)
+      dec = decoder.TransformerDecoder(p)
+
+      src_enc_len = tf.constant([5, 3, 5])
+
+      # [batch, target_len, source_len]
+      probs = tf.constant([[[0.2, 0.2, 0.2, 0.2, 0.2]],
+                           [[0.2, 0.3, 0.5, 0.0, 0.0]],
+                           [[0.0, 0.0, 0.0, 0.0, 1.0]]])
+      new_probs = dec._RemoveEOSProbs(p, probs, src_enc_len)
+      new_probs_v = sess.run([new_probs])
+
+      expected_probs = tf.constant([[[0.25, 0.25, 0.25, 0.25, 0.0]],
+                                    [[0.4, 0.6, 0.0, 0.0, 0.0]],
+                                    [[0.0, 0.0, 0.0, 0.0, 0.0]]])
+
+      new_probs_v, expected_probs_v = sess.run([new_probs, expected_probs])
+
+      self.assertAllClose(expected_probs_v, new_probs_v)
+
+  def _testExtendStep(self, sess, dec, encoder_outputs, tgts, num_hyps):
+    p = self._DecoderParams()
+
+    # Infer true source encoder length from the padding.
+    src_enc_len = tf.reduce_sum(1 - encoder_outputs.padding, axis=0)
+    src_enc_len = dec._ExpandToNumHyps(src_enc_len, num_hyps)
+
+    # Run Fprop
+    fprop_out = dec._FProp(dec.theta, encoder_outputs, tgts)
+    l_out1 = fprop_out.softmax_input
+    attention_map_fprop = fprop_out.attention
+
+    # run ExtendStep
     prefix_states = py_utils.NestedMap()
     for i in range(6):
       layer_i_states = py_utils.NestedMap()
@@ -504,24 +582,52 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       prefix_states['layer_%i' % i] = layer_i_states
 
     l_out2 = []
+    per_step_atten_probs = []
     for i in range(5):
-      l_i_out, prefix_states = dec.ExtendStep(dec.theta, encoder_outputs,
-                                              tgts.ids[:, i], i, prefix_states)
+      l_i_out, prefix_states, atten_probs = dec.ExtendStep(
+          dec.theta, encoder_outputs, tgts.ids[:, i], i, prefix_states)
       l_out2.append(l_i_out)
-
+      per_step_atten_probs.append(atten_probs)
     l_out2 = tf.stack(l_out2)
+    bs_atten_probs = tf.stack(per_step_atten_probs)
+
+    attention_map_bs = py_utils.NestedMap(probs=bs_atten_probs)
+
+    def _TransposeAttentions(x):
+      return tf.transpose(x, [1, 0, 2])
+
+    attention_map_bs = attention_map_bs.Transform(_TransposeAttentions)
 
     tf.global_variables_initializer().run()
-    l_out1_v, l_out2_v = sess.run([l_out1, l_out2])
+
+    l_out1_v, l_out2_v, attention_map_fprop_v, attention_map_bs_v, src_enc_len_v = sess.run(
+        [l_out1, l_out2, attention_map_fprop, attention_map_bs, src_enc_len])
+
+    # Ensure that FProp and BeamSearch output are the same.
     self.assertAllClose(l_out1_v, l_out2_v)
+
+    # Ensure that FProp and BeamSearch attention matrix is the same.
+    self.assertAllClose(attention_map_fprop_v.probs, attention_map_bs_v.probs)
+
+    print('attention map', attention_map_fprop_v.probs)
+
+    # End-to-end test attention probs -- ensure EOS symbol and positions
+    # behind EOS have 0 probability.
+    for i in range(0, len(src_enc_len_v)):
+      pos = int(src_enc_len_v[i]) - 1
+      self.assertEqual(
+          np.count_nonzero(attention_map_fprop_v.probs[i][:, pos:]), 0)
 
   def testDecoderExtendStep(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
-      encoder_outputs, targets = self._Inputs(dtype=dtype)
-      self._testExtendStep(sess, dec, encoder_outputs, targets)
+      encoder_outputs, targets, num_hyps = self._Inputs(dtype=dtype)
+      encoder_outputs, targets, num_hyps = (
+          self._InputsForAttentionTest(dtype=dtype))
+
+      self._testExtendStep(sess, dec, encoder_outputs, targets, num_hyps)
 
   def testTransparentDecoderExtendStep(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
@@ -529,9 +635,9 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       p.is_eval = True
       dec = decoder.TransformerDecoder(p)
-      encoder_outputs, targets = self._testTransparentInputs(
+      encoder_outputs, targets, num_hyps = self._testTransparentInputs(
           dtype=dtype, is_eval_mode=True)
-      self._testExtendStep(sess, dec, encoder_outputs, targets)
+      self._testExtendStep(sess, dec, encoder_outputs, targets, num_hyps)
 
   def testDecoderFPropSplitBatch(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
@@ -539,7 +645,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
 
-      encoder_outputs, targets = self._Inputs(dtype=dtype)
+      encoder_outputs, targets, _ = self._Inputs(dtype=dtype)
       src_enc1, src_enc2 = tf.split(encoder_outputs.encoded, 2, 1)
       src_paddings1, src_paddings2 = tf.split(encoder_outputs.padding, 2, 1)
 
@@ -581,10 +687,10 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     src_time = 5
     p = self._DecoderParams(dtype=dtype)
     p.beam_search.num_hyps_per_beam = 2
-    p.beam_search.coverage_penalty = 0
+    p.beam_search.coverage_penalty = 0.0
     p.beam_search.length_normalization = 0
     dec = decoder.TransformerDecoder(p)
-    encoder_outputs, _ = self._Inputs(dtype=dtype)
+    encoder_outputs, _, _ = self._Inputs(dtype=dtype)
     decode = dec.BeamSearchDecode(encoder_outputs)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
     # sess.run(decode).
@@ -617,9 +723,31 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     expected_topk_scores = [[-2.226787, -4.215915], [-2.232645, -4.228243],
                             [-5.217594, -7.671792], [0., 0.]]
 
+    # Assert expected IDs etc
     self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
     self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
+
+    # Assert expected attention probs.
+    hypstr = actual_decode.topk_hyps.flatten()[1]
+    hyp = Hypothesis()
+    hyp.ParseFromString(hypstr)
+    print('HYP:', hyp)
+
+    atten_vec_0 = list(np.expand_dims(np.array(hyp.atten_vecs[0].prob), 0)[0])
+    atten_vec_1 = list(np.expand_dims(np.array(hyp.atten_vecs[1].prob), 0)[0])
+
+    expected_atten_vec_0 = [0.273083, 0.337312, 0.202556, 0.187049, 0.0]
+    expected_atten_vec_1 = [
+        0.19762064516544342, 0.32778304815292358, 0.24845050275325775,
+        0.22614581882953644, 0.0
+    ]
+
+    self.assertAllClose(atten_vec_0, expected_atten_vec_0)
+    self.assertAllClose(atten_vec_1, expected_atten_vec_1)
+
+    # Test normalized scores of hypotheses.
+    self.assertAlmostEqual(hyp.normalized_score, -4.21591472626, places=4)
 
 
 if __name__ == '__main__':

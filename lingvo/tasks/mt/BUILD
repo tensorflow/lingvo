@@ -109,6 +109,7 @@ py_library(
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
+        "//lingvo/core/ops:hyps_py_pb2",
     ],
 )
 
