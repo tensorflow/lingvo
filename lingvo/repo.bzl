@@ -66,6 +66,26 @@ cc_library(
         executable = False,
     )
 
+def _absl_includes_repo_impl(repo_ctx):
+    tf_include_path = _find_tf_include_path(repo_ctx)
+    repo_ctx.symlink(
+        tf_include_path + "/external/com_google_absl",
+        "com_google_absl",
+    )
+    repo_ctx.file(
+        "BUILD",
+        content = """
+cc_library(
+    name = "includes",
+    hdrs = glob(["com_google_absl/absl/**/*.h",
+                 "com_google_absl/absl/**/*.inc"]),
+    includes = ["com_google_absl"],
+    visibility = ["//visibility:public"],
+)
+""",
+        executable = False,
+    )
+
 def _tensorflow_includes_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
     repo_ctx.symlink(tf_include_path, "tensorflow_includes")
@@ -106,6 +126,10 @@ def cc_tf_configure():
         implementation = _nsync_includes_repo_impl,
     )
     make_nsync_repo(name = "nsync_includes")
+    make_absl_repo = repository_rule(
+        implementation = _absl_includes_repo_impl,
+    )
+    make_absl_repo(name = "absl_includes")
     make_tfinc_repo = repository_rule(
         implementation = _tensorflow_includes_repo_impl,
     )

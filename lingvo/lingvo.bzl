@@ -17,6 +17,7 @@ def lingvo_cc_library(name, srcs = [], hdrs = [], deps = []):
         srcs = srcs,
         hdrs = hdrs,
         deps = [
+            "@absl_includes//:includes",
             "@tensorflow_includes//:includes",
         ] + deps,
     )
@@ -27,6 +28,7 @@ def lingvo_cc_binary(name, srcs = [], deps = []):
         copts = tf_copts(),
         srcs = srcs,
         deps = [
+            "@absl_includes//:includes",
             "@tensorflow_includes//:includes",
             "@tensorflow_solib//:framework_lib",
         ] + deps,
@@ -38,6 +40,7 @@ def lingvo_cc_test(name, srcs, deps = []):
         copts = tf_copts(),
         srcs = srcs,
         deps = [
+            "@absl_includes//:includes",
             "@tensorflow_includes//:includes",
             "@tensorflow_solib//:framework_lib",
             "@com_google_googletest//:gtest_main",
@@ -57,6 +60,7 @@ def custom_kernel_library(name, op_def_lib, srcs, hdrs = [], deps = []):
         hdrs = hdrs,
         copts = tf_copts(),
         deps = [
+            "@absl_includes//:includes",
             "@tensorflow_includes//:includes",
         ] + deps + op_def_lib,
         alwayslink = 1,
@@ -68,6 +72,7 @@ def gen_op_cclib(name, srcs, deps):
         name = name,
         srcs = srcs,
         deps = [
+            "@absl_includes//:includes",
             "@tensorflow_includes//:includes",
             "@tensorflow_solib//:framework_lib",
         ] + deps,
