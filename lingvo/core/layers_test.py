@@ -3094,7 +3094,7 @@ class LayerNormTest(tf.test.TestCase):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
 
 
-class DeterministicDropoutTest(tf.test.TestCase):
+class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
 
   def testDeterministicDropoutLayer(self):
     params = layers.DeterministicDropoutLayer.Params().Set(keep_prob=0.7)
@@ -3138,6 +3138,88 @@ class DeterministicDropoutTest(tf.test.TestCase):
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
       self.assertAllClose(x_expected, x_val)
+
+  def testNoiseShapeBroadcastDims(self):
+    params = layers.DeterministicDropoutLayer.Params().Set(
+        keep_prob=0.7, noise_shape_broadcast_dims=[-1])
+    params.name = 'drop'
+    dropout = layers.DropoutLayer(params)
+
+    x = tf.ones([4, 6])
+    x_expected = np.array([
+        [1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0],
+    ]) / 0.7
+
+    with self.session():
+      tf.assign(py_utils.GetOrCreateGlobalStep(), 1234).eval()
+      py_utils.ResetStepSeed(seed=5678)
+      x_val = dropout.FPropDefaultTheta(x).eval()
+      self.assertEqual(5678, py_utils.GetStepSeed().eval())
+    self.assertAllClose(x_expected, x_val)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'baseline',
+          'splits': 1,
+          'num_micro_batches': 1
+      },
+      {
+          'testcase_name': 'OneSplitTwoMicroBatches',
+          'splits': 1,
+          'num_micro_batches': 2
+      },
+      {
+          'testcase_name': 'TwoSplitsOneMicroBatch',
+          'splits': 2,
+          'num_micro_batches': 1
+      },
+      {
+          'testcase_name': 'TwoSplitsTwoMicroBatches',
+          'splits': 2,
+          'num_micro_batches': 2
+      },
+  )
+  def testDropoutInRecurrent(self, splits=1, num_micro_batches=1):
+    """Test to verify the drop mask used in fprop and bprop is identical."""
+    assert splits in [1, 2, 4]
+    with self.session() as sess:
+      tf.set_random_seed(12345)
+      num_layers = 4
+      py_utils.GetOrCreateGlobalStep()
+      # Build a model with 4 dropout layers.
+      blocks = []
+      for l in range(num_layers):
+        blocks.append(layers.DeterministicDropoutLayer.Params().Set(
+            name='dropout_{}'.format(l), keep_prob=0.7))
+      # Divide the model into splits partitions.
+      cell_tpl = []
+      blocks_per_split = num_layers // splits
+      for i in range(splits):
+        sub = blocks[i * blocks_per_split:(i + 1) * blocks_per_split]
+        cell_tpl.append(gpipe.FeatureExtractionLayer.Params().Set(
+            name='cell_{}'.format(i), sub=sub))
+      # Parallelize partitions using pipeline.
+      p = gpipe.PipeliningLayer.Params().Set(
+          name='pipeline',
+          num_micro_batches=num_micro_batches,
+          cell_tpl=cell_tpl)
+      # Fake input
+      x = tf.ones([2, 3])
+      # Construct weights.
+      w = tf.get_variable(
+          'w', shape=[2, 3], initializer=tf.constant_initializer([[1] * 3] * 2))
+      mdl = p.cls(p)
+      y = mdl.FPropDefaultTheta(x * w)
+      # Construct loss function such that gradients = final activation.
+      loss = tf.reduce_sum(y)
+      grads = py_utils.ComputeGradients(loss, py_utils.NestedMap(w=w))
+      tf.global_variables_initializer().run()
+      y_val = sess.run(y)
+      grads_val = sess.run(grads)['w'][1]
+      self.assertAllClose(y_val, grads_val)
 
 
 class GradNormTrackerTest(tf.test.TestCase):

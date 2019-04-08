@@ -21,6 +21,7 @@ from __future__ import print_function
 import contextlib
 import hashlib
 import math
+import numbers
 import re
 import traceback
 
@@ -2111,14 +2112,16 @@ def GenerateStepSeedPair(p, global_step=None, op_seed=None):
   return seeds
 
 
-def DeterministicDropout(x, keep_prob, seeds, name=None):
+def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
   """Similar to `tf.nn.dropout()`, but fully deterministic.
 
   Args:
     x: A float Tensor on which to apply dropout.
-    keep_prob: A scalar of keep probability.
+    keep_prob: A scalar `Tensor` of keep probability.
     seeds: A Tensor of shape [2]. 2 seeds for deterministic random number
-      generator.
+           generator.
+    noise_shape: A 1-D `Tensor` of type `int32`, representing the shape for
+                  randomly generated keep/drop flags.
     name: An optional name for this operation.
 
   Returns:
@@ -2127,12 +2130,13 @@ def DeterministicDropout(x, keep_prob, seeds, name=None):
   Raises:
     InvalidArgumentError: if keep_prob is invalid.
   """
-  if keep_prob <= 0 or keep_prob > 1:
-    raise tf.errors.InvalidArgumentError(
-        'keep_prob must be in range (0, 1]. Value: {}'.format(keep_prob))
+  if isinstance(keep_prob, numbers.Real):
+    if keep_prob <= 0 or keep_prob > 1:
+      raise tf.errors.InvalidArgumentError(
+          'keep_prob must be in range (0, 1]. Value: {}'.format(keep_prob))
 
-  if keep_prob == 1:
-    return x
+    if keep_prob == 1:
+      return x
   with tf.name_scope(name, 'dropout', [x]) as name:
     if use_tpu():
       seeds = tf.cast(seeds, tf.int32)
@@ -2141,8 +2145,9 @@ def DeterministicDropout(x, keep_prob, seeds, name=None):
     # uniform in [keep_prob, 1.0 + keep_prob)
     # StatelessRandomUniform op does not support non-float (e.g. bfloat16) dtype
     # and non-int32 seed types.
+    noise_shape = noise_shape or GetShape(x)
     random_tensor = keep_prob + tf.contrib.stateless.stateless_random_uniform(
-        GetShape(x), seed=seeds, dtype=tf.float32)
+        noise_shape, seed=seeds, dtype=tf.float32)
     # 0. if [keep_prob, 1.0) and 1. if [1.0, 1.0 + keep_prob)
     binary_tensor = tf.floor(random_tensor)
     if x.dtype != tf.float32:

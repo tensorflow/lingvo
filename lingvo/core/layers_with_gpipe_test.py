@@ -23,9 +23,6 @@ import numpy as np
 import tensorflow as tf
 
 from lingvo.core import py_utils
-from lingvo.core.gpipe import FeatureExtractionLayer
-from lingvo.core.gpipe import PipeliningLayer
-from lingvo.core.layers_with_gpipe import DeterministicDropoutLayer
 from lingvo.core.layers_with_gpipe import GPipeEvolvedTransformerDecoderLayer
 from lingvo.core.layers_with_gpipe import GPipeEvolvedTransformerEncoderLayer
 from lingvo.core.layers_with_gpipe import GPipeTransformerLayer
@@ -886,70 +883,6 @@ class GPipeTransformerStackTest(tf.test.TestCase, parameterized.TestCase):
            [[-2.14101386, 0.32607365, 1.73413348, 1.51806736]] * batch,
            [[-2.18863297, 0.34420109, 1.65913653, 1.58703828]] * batch],
           output_val)
-
-
-class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
-  """Tests for DeterministicDropoutLayer."""
-
-  @parameterized.named_parameters(
-      {
-          'testcase_name': 'baseline',
-          'splits': 1,
-          'num_micro_batches': 1
-      },
-      {
-          'testcase_name': 'OneSplitTwoMicroBatches',
-          'splits': 1,
-          'num_micro_batches': 2
-      },
-      {
-          'testcase_name': 'TwoSplitsOneMicroBatch',
-          'splits': 2,
-          'num_micro_batches': 1
-      },
-      {
-          'testcase_name': 'TwoSplitsTwoMicroBatches',
-          'splits': 2,
-          'num_micro_batches': 2
-      },
-  )
-  def testDropoutInRecurrent(self, splits=1, num_micro_batches=1):
-    assert splits in [1, 2, 4]
-    with self.session() as sess:
-      tf.set_random_seed(12345)
-      num_layers = 4
-      py_utils.GetOrCreateGlobalStep()
-      # Build a model with 4 dropout layers.
-      layers = []
-      for l in range(num_layers):
-        layers.append(DeterministicDropoutLayer.Params().Set(
-            name='dropout_{}'.format(l), keep_prob=0.7))
-      # Divide the model into splits partitions.
-      cell_tpl = []
-      layers_per_split = num_layers // splits
-      for i in range(splits):
-        sub = layers[i * layers_per_split:(i + 1) * layers_per_split]
-        cell_tpl.append(FeatureExtractionLayer.Params().Set(
-            name='cell_{}'.format(i), sub=sub))
-      # Parallelize partitions using pipeline.
-      p = PipeliningLayer.Params().Set(
-          name='pipeline',
-          num_micro_batches=num_micro_batches,
-          cell_tpl=cell_tpl)
-      # Fake input
-      x = tf.ones([2, 3])
-      # Construct weights.
-      w = tf.get_variable(
-          'w', shape=[2, 3], initializer=tf.constant_initializer([[1] * 3] * 2))
-      mdl = p.cls(p)
-      y = mdl.FPropDefaultTheta(x * w)
-      # Construct loss function such that gradients = final activation.
-      loss = tf.reduce_sum(y)
-      grads = py_utils.ComputeGradients(loss, py_utils.NestedMap(w=w))
-      tf.global_variables_initializer().run()
-      y_val = sess.run(y)
-      grads_val = sess.run(grads)['w'][1]
-      self.assertAllClose(y_val, grads_val)
 
 
 if __name__ == '__main__':

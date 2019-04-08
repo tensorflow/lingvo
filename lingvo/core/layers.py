@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import math
+import numbers
 import numpy as np
 import six
 from six.moves import range
@@ -2368,15 +2369,28 @@ class DropoutLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super(DropoutLayer, cls).Params()
     p.Define('keep_prob', 1.0, 'Keep probability.')
+    # noise_shape is unknown when building layer params.
     p.Define(
         'noise_shape', None, 'A 1-D `Tensor` of type `int32`, representing'
         ' the shape for randomly generated keep/drop flags.')
+    p.Define(
+        'noise_shape_broadcast_dims', None,
+        'A list of dimension where the noise shape is broadcasted. For '
+        'example, noise_shape = [n, h, w, 1] when '
+        'noise_shape_broadcast_dims=[-1] ')
     # We typically want to replace dropout by expectation during eval.
     # However, in certain cases E(f(x)) != f(E(x)), and replacing dropout by its
     # expectation during eval leads to worse quality.
     p.Define('dropout_at_eval', False,
              'Whether or not to also perform dropout at eval time.')
     return p
+
+  def _Dropout(self, inputs, noise_shape):
+    return tf.nn.dropout(
+        inputs,
+        keep_prob=self.params.keep_prob,
+        noise_shape=noise_shape,
+        seed=self.params.random_seed)
 
   def FProp(self, theta, inputs):
     """Apply dropout to inputs.
@@ -2390,12 +2404,20 @@ class DropoutLayer(base_layer.BaseLayer):
       inputs with dropout applied at training time.
     """
     p = self.params
-    if p.keep_prob < 1.0 and (not p.is_eval or p.dropout_at_eval):
-      return tf.nn.dropout(
-          inputs,
-          keep_prob=p.keep_prob,
-          noise_shape=p.noise_shape,
-          seed=p.random_seed)
+    if not p.is_eval or p.dropout_at_eval:
+      if isinstance(p.keep_prob, numbers.Real) and p.keep_prob == 1.0:
+        return inputs
+      if p.noise_shape_broadcast_dims:
+        noise_shape = p.noise_shape or py_utils.GetShape(inputs)
+        for dim in p.noise_shape_broadcast_dims:
+          if dim >= len(noise_shape):
+            raise ValueError('Invalid broadcasted dim {}'.format(dim))
+          noise_shape[dim] = 1
+      else:
+        noise_shape = p.noise_shape
+      ret = self._Dropout(inputs, noise_shape)
+      ret.set_shape(inputs.get_shape())
+      return ret
     else:
       return inputs
 
@@ -2407,37 +2429,15 @@ class DropoutLayer(base_layer.BaseLayer):
         flops=inputs.num_elements() * flops_per_element, out_shapes=(inputs,))
 
 
-class DeterministicDropoutLayer(base_layer.BaseLayer):
+class DeterministicDropoutLayer(DropoutLayer):
   """Apply dropout during trainig."""
 
-  @classmethod
-  def Params(cls):
-    p = super(DeterministicDropoutLayer, cls).Params()
-    p.Define('keep_prob', 1.0, 'Keep probability.')
-    # We typically want to replace dropout by expectation during eval.
-    # However, in certain cases E(f(x)) != f(E(x)), and replacing dropout by its
-    # expectation during eval leads to worse quality.
-    p.Define('dropout_at_eval', False,
-             'Whether or not to also perform dropout at eval time.')
-    return p
-
-  def FProp(self, theta, inputs):
-    """Apply dropout to inputs.
-
-    Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
-      inputs: The inputs tensor.
-
-    Returns:
-      inputs with dropout applied at training time.
-    """
-    p = self.params
-    if p.keep_prob < 1.0 and (not p.is_eval or p.dropout_at_eval):
-      return py_utils.DeterministicDropout(inputs, p.keep_prob,
-                                           py_utils.GenerateStepSeedPair(p))
-    else:
-      return inputs
+  def _Dropout(self, inputs, noise_shape):
+    return py_utils.DeterministicDropout(
+        inputs,
+        keep_prob=self.params.keep_prob,
+        seeds=py_utils.GenerateStepSeedPair(self.params),
+        noise_shape=noise_shape)
 
 
 class LayerNorm(base_layer.BaseLayer):

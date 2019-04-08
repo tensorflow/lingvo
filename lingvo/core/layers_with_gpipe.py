@@ -22,7 +22,6 @@ from six.moves import xrange  # pylint: disable=redefined-builtin
 import tensorflow as tf
 
 from lingvo.core import base_layer
-from lingvo.core import gpipe
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
@@ -439,7 +438,7 @@ class GPipeTransformerStack(PipeliningLayer):
       # Encoder Embedding layer.
       if p.use_pipelined_embeddings:
         if len(p.splits) > 1 or p.num_micro_batches > 1:
-          p.emb_tpl.dropout_tpl = DeterministicDropoutLayer.Params()
+          p.emb_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
         p.emb_tpl.packed_input = p.packed_input
         p.emb_tpl.is_transparent = p.is_transparent
         p.emb_tpl.add_tgt_embedding_layer = (p.num_decoder_layers > 0)
@@ -507,14 +506,14 @@ class GPipeTransformerStack(PipeliningLayer):
   def SetupDeterministicDropout(self, params):
     """Replaced dropout layers in transformer with deterministic ones."""
     params.tr_atten_tpl.residual_dropout_tpl = (
-        DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params())
     params.tr_atten_tpl.atten_tpl.atten_dropout_deterministic = True
     params.tr_atten_tpl.atten_tpl.inner_atten_params \
     .atten_dropout_deterministic = True
     params.tr_fflayer_tpl.residual_dropout_tpl = (
-        DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params())
     params.tr_fflayer_tpl.fflayer_tpl.dropout = (
-        DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params())
     return params
 
   def GetEncoders(self):
@@ -765,83 +764,6 @@ class TupleLayer(base_layer.BaseLayer):
     return py_utils.NestedMap(flops=0, out_shapes=(inputs, inputs))
 
 
-class DeterministicDropoutLayer(base_layer.BaseLayer):
-  """Dropout fully deterministic by scope_name and time step."""
-
-  @classmethod
-  def Params(cls):
-    p = super(DeterministicDropoutLayer, cls).Params()
-    p.Define('keep_prob', 1.0, 'Keep probability.')
-    p.Define(
-        'burn_in_steps', 0,
-        'The droppath keep probability will increase linearly with time '
-        'until drop_path_burn_in_steps')
-    p.Define(
-        'noise_shape_dim', None, 'Set noise_shape to input shape if -1 '
-        'Otherwise noise_shape[noise_shape_dim]=inputs[noise_shape_dim]')
-    p.Define('num_micro_batches', 128, 'Maximum number of micro-batches')
-    return p
-
-  @base_layer.initializer
-  def __init__(self, params):
-    super(DeterministicDropoutLayer, self).__init__(params)
-    p = self.params
-    assert p.keep_prob >= 0.0
-    assert p.burn_in_steps >= 0
-    cluster_params = self.cluster.params.Copy()
-    if p.burn_in_steps > 0 and cluster_params.mode == 'sync':
-      cluster_params.job = 'trainer_client'
-      my_cluster = cluster_params.cls(cluster_params)
-      splits = my_cluster.num_splits_per_client
-      p.burn_in_steps /= splits
-
-  def FProp(self, theta, inputs):
-    """Apply dropout to inputs.
-
-    Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
-      inputs: The inputs tensor.
-
-    Returns:
-      inputs with dropout applied at training time.
-    """
-    p = self.params
-    if p.keep_prob >= 1.0 or p.is_eval:
-      return inputs
-
-    with tf.name_scope(p.name):
-      mb_tensor = gpipe.GetOverWriteGlobalStep()
-      if p.burn_in_steps > 0:
-        current_step = tf.cast(mb_tensor // p.num_micro_batches, inputs.dtype)
-        current_ratio = current_step / tf.cast(p.burn_in_steps, inputs.dtype)
-        current_ratio = tf.minimum(tf.cast(1.0, inputs.dtype), current_ratio)
-        keep_prob = (1 - current_ratio * (1 - p.keep_prob))
-      else:
-        keep_prob = tf.cast(p.keep_prob, inputs.dtype)
-
-      seeds = gpipe.GenerateStepSeedPair(p)
-      noise_shape = py_utils.GetShape(inputs)
-      if p.noise_shape_dim and p.noise_shape_dim < inputs.shape.ndims:
-        for d in range(inputs.shape.ndims):
-          if d != p.noise_shape_dim:
-            noise_shape[d] = 1
-      random_tensor = (
-          tf.cast(keep_prob, tf.float32) +
-          tf.contrib.stateless.stateless_random_uniform(
-              noise_shape, seed=seeds, dtype=tf.float32))
-      binary_tensor = tf.cast(tf.floor(random_tensor), inputs.dtype)
-      ret = tf.div(inputs, keep_prob) * binary_tensor
-      ret.set_shape(inputs.get_shape())
-      return ret
-
-  @classmethod
-  def FPropMeta(cls, p, inputs):
-    py_utils.CheckShapes((inputs,))
-    return py_utils.NestedMap(
-        flops=inputs.num_elements() * 5, out_shapes=(inputs,))
-
-
 class DeterministicWeightedSumLayer(base_layer.BaseLayer):
   """WeightedSumLayer with deterministic dropout."""
 
@@ -857,7 +779,8 @@ class DeterministicWeightedSumLayer(base_layer.BaseLayer):
         'layer on top of the weights for normalization.')
     p.Define('global_weight_scale', 1.0, 'A global scale put on weights.')
     p.Define('minimal_prob', 0.0, 'The minimal weight for each component.')
-    p.Define('dropout_tpl', DeterministicDropoutLayer.Params(), 'Dropout layer')
+    p.Define('dropout_tpl', layers.DeterministicDropoutLayer.Params(),
+             'Dropout layer')
     return p
 
   @base_layer.initializer
