@@ -30,5 +30,6 @@ for topic in \
     'Speech translation';  do
   echo -e "\n\n## ${topic}"
   bib2bib -c "annote='${topic}'" publications.bib \
-      | bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf "pdf"
+      | bibtex2html -s ieeetr -nodoc -nobibsource -nofooter \
+        -nf pdf "pdf" -nf sound_examples "sound examples"
 done >> ${OUTPUT_FILE}

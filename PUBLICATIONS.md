@@ -7,7 +7,7 @@
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -81,7 +81,7 @@ Y.&nbsp;Wu, M.&nbsp;Schuster, Z.&nbsp;Chen, Q.&nbsp;V. Le, M.&nbsp;Norouzi, W.&n
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -341,7 +341,7 @@ U.&nbsp;Alon, G.&nbsp;Pundak, and T.&nbsp;N. Sainath, &ldquo;Contextual speech r
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -395,7 +395,7 @@ P.&nbsp;Haghani, A.&nbsp;Narayanan, M.&nbsp;Bacchiani, G.&nbsp;Chuang, N.&nbsp;G
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -410,7 +410,8 @@ J.&nbsp;Shen, R.&nbsp;Pang, R.&nbsp;J. Weiss, M.&nbsp;Schuster, N.&nbsp;Jaitly, 
   Y.&nbsp;Wu, &ldquo;Natural TTS synthesis by conditioning WaveNet on mel spectrogram
   predictions,&rdquo; in <em>Proc. IEEE International Conference on Acoustics,
   Speech, and Signal Processing (ICASSP)</em>, 2018.
-[&nbsp;<a href="https://arxiv.org/abs/1703.10135">pdf</a>&nbsp;]
+[&nbsp;<a href="https://google.github.io/tacotron/publications/tacotron2/index.html">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/1703.10135">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -425,7 +426,8 @@ J.&nbsp;Chorowski, R.&nbsp;J. Weiss, R.&nbsp;A. Saurous, and S.&nbsp;Bengio, &ld
   backpropagation for speech texture generation and voice conversion,&rdquo; in <em>
   Proc. IEEE International Conference on Acoustics, Speech, and Signal
   Processing (ICASSP)</em>, 2018.
-[&nbsp;<a href="https://arxiv.org/abs/1712.08363">pdf</a>&nbsp;]
+[&nbsp;<a href="https://google.github.io/speech_style_transfer/samples.html">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/1712.08363">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -440,7 +442,8 @@ Y.&nbsp;Jia, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Q.&nbsp;Wang, J.&nbsp;Shen, F.&nbs
   R.&nbsp;Pang, I.&nbsp;Lopez-Moreno, and Y.&nbsp;Wu, &ldquo;Transfer learning from speaker
   verification to multispeaker text-to-speech synthesis,&rdquo; in <em>Advances in
   Neural Information Processing Systems</em>, 2018.
-[&nbsp;<a href="https://arxiv.org/abs/1806.04558">pdf</a>&nbsp;]
+[&nbsp;<a href="https://google.github.io/tacotron/publications/speaker_adaptation/index.html">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/1806.04558">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -455,7 +458,8 @@ W.&nbsp;N. Hsu, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, H.&nbsp;Zen, Y.&nbsp;Wu, Y.&nbs
   Z.&nbsp;Chen, J.&nbsp;Shen, P.&nbsp;Nguyen, and R.&nbsp;Pang, &ldquo;Hierarchical generative modeling
   for controllable speech synthesis,&rdquo; in <em>Proc. International Conference
   on Learning Representations (ICLR)</em>, 2019.
-[&nbsp;<a href="https://arxiv.org/abs/1810.07217">pdf</a>&nbsp;]
+[&nbsp;<a href="https://google.github.io/tacotron/publications/gmvae_controllable_tts/index.html">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/1810.07217">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -481,7 +485,7 @@ W.&nbsp;N. Hsu, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;A. Chung, Y.&nbsp;Wang,
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
 
 
 <table>
