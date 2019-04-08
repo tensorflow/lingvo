@@ -1867,12 +1867,13 @@ class RNNCellTest(tf.test.TestCase):
     })
 
   def testLSTMSimpleZeroStateFnRandomNormal(self):
-    m = [[0.60012126, 0.86442365, -1.60866682]]
-    c = [[-0.08950075, 0.45675403, 0.81625902]]
-    self._testLSTMZeroStateHelper(py_utils.RNNCellStateInit.RandomNormal(), {
-        'm': m,
-        'c': c
-    })
+    m = [[-0.630551, -1.208959, -0.348799]]
+    c = [[-0.630551, -1.208959, -0.348799]]
+    self._testLSTMZeroStateHelper(
+        py_utils.RNNCellStateInit.RandomNormal(seed=12345), {
+            'm': m,
+            'c': c
+        })
 
 
 if __name__ == '__main__':

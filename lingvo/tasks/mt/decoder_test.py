@@ -86,6 +86,7 @@ class DecoderTestCaseBase(tf.test.TestCase):
     p.per_word_avg_loss = per_word_avg_loss
     p.dtype = dtype
     p.target_seq_len = 5
+    p.random_seed = 12345
 
     for lp in base_layer.RecursiveFindLayerParams(p):
       lp.dtype = dtype
