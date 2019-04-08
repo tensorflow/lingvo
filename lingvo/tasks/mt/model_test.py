@@ -125,8 +125,8 @@ class TransformerModelTest(tf.test.TestCase):
     p.file_pattern = 'tfrecord:' + input_file
     p.file_random_seed = 31415
     p.file_parallelism = 1
-    p.bucket_upper_bound = [20, 40]
-    p.bucket_batch_limit = [4, 8]
+    p.bucket_upper_bound = [40]
+    p.bucket_batch_limit = [8]
     p.source_max_length = 200
     p.target_max_length = 200
 
@@ -208,11 +208,13 @@ class TransformerModelTest(tf.test.TestCase):
         vals += [sess.run((loss, logp))]
 
       print('actual vals = %s' % np.array_repr(np.array(vals)))
-      self.assertAllClose(
-          vals, [(189.22296, 10.368382), (282.57202, 10.369616),
-                 (142.55638, 10.367737), (139.9939, 10.369918),
-                 (293.08011, 10.374517)],
-          atol=1e-6, rtol=1e-6)
+      self.assertAllClose(vals, [
+          [233.337143, 10.370541],
+          [235.853119, 10.367168],
+          [217.87796, 10.375141],
+          [217.822205, 10.372487],
+          [159.483185, 10.37289],
+      ])
 
   def testFPropEvalMode(self):
     with self.session() as sess:
@@ -228,10 +230,13 @@ class TransformerModelTest(tf.test.TestCase):
       for _ in range(5):
         vals += [sess.run((loss, logp))]
       print('actual vals = ', vals)
-      self.assertAllClose(
-          vals, [(189.22296, 10.368382), (282.57202, 10.369616),
-                 (142.55638, 10.367737), (139.9939, 10.369918),
-                 (293.08011, 10.374517)])
+      self.assertAllClose(vals, [
+          [233.337143, 10.370541],
+          [235.853119, 10.367168],
+          [217.87796, 10.375141],
+          [217.822205, 10.372487],
+          [159.483185, 10.37289],
+      ])
 
   def testBProp(self):
     with self.session() as sess:
@@ -248,9 +253,13 @@ class TransformerModelTest(tf.test.TestCase):
       for _ in range(5):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
       print('BProp actual vals = ', vals)
-      expected_vals = [(189.22296, 10.368382), (282.54092, 10.368474),
-                       (142.48544, 10.362577), (139.91856, 10.364338),
-                       (292.86707, 10.366976)]
+      expected_vals = [
+          [233.337143, 10.370541],
+          [235.809311, 10.365245],
+          [217.793747, 10.371132],
+          [217.679932, 10.365711],
+          [159.340271, 10.363596],
+      ]
       self.assertAllClose(vals, expected_vals)
 
   def testBPropWithAccumComparison(self):
@@ -348,7 +357,7 @@ class TransformerModelTest(tf.test.TestCase):
       loss = mdl.loss
       tf.global_variables_initializer().run()
       _ = sess.run(loss)
-      self.assertEqual(mdl.input_generator.scaled_bucket_batch_limit, [20, 40])
+      self.assertEqual(mdl.input_generator.scaled_bucket_batch_limit, [40])
 
   def testDecode(self):
     with self.session(use_gpu=False) as sess:
@@ -362,7 +371,7 @@ class TransformerModelTest(tf.test.TestCase):
       metrics_dict = mdl.CreateDecoderMetrics()
       key_value_pairs = mdl.PostProcessDecodeOut(dec_out, metrics_dict)
       self.assertNear(0.0, metrics_dict['corpus_bleu'].value, 1.0e-5)
-      self.assertEqual(4, len(key_value_pairs))
+      self.assertLen(key_value_pairs, 8)
       for k, v in key_value_pairs:
         self.assertIn(k, v)
 
@@ -378,8 +387,8 @@ class RNMTModelTest(tf.test.TestCase):
     p.file_pattern = 'tfrecord:' + input_file
     p.file_random_seed = 31415
     p.file_parallelism = 1
-    p.bucket_upper_bound = [20, 40]
-    p.bucket_batch_limit = [4, 8]
+    p.bucket_upper_bound = [40]
+    p.bucket_batch_limit = [8]
     p.source_max_length = 200
     p.target_max_length = 200
 
@@ -450,9 +459,13 @@ class RNMTModelTest(tf.test.TestCase):
       vals = []
       for _ in range(5):
         vals += [sess.run((loss, logp))]
-      self.assertAllClose(vals, [(189.31619, 10.37349), (282.67767, 10.373495),
-                                 (142.6355, 10.37349), (140.04213, 10.373491),
-                                 (293.05115, 10.373494)])
+      self.assertAllClose(vals, [
+          [233.403564, 10.373495],
+          [235.996948, 10.373494],
+          [217.843338, 10.373493],
+          [217.843338, 10.373491],
+          [159.492432, 10.373494],
+      ])
 
   def testFPropEvalMode(self):
     with self.session() as sess:
@@ -467,9 +480,13 @@ class RNMTModelTest(tf.test.TestCase):
       vals = []
       for _ in range(5):
         vals += [sess.run((loss, logp))]
-      self.assertAllClose(vals, [(189.31619, 10.37349), (282.67767, 10.373495),
-                                 (142.6355, 10.37349), (140.04213, 10.373491),
-                                 (293.05115, 10.373494)])
+      self.assertAllClose(vals, [
+          [233.403564, 10.373495],
+          [235.996948, 10.373494],
+          [217.843338, 10.373493],
+          [217.843338, 10.373491],
+          [159.492432, 10.373494],
+      ])
 
   def testBProp(self):
     with self.session() as sess:
@@ -485,9 +502,13 @@ class RNMTModelTest(tf.test.TestCase):
       vals = []
       for _ in range(5):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
-      expected_vals = [(189.31619, 10.37349), (269.60449, 9.8937426),
-                       (119.08695, 8.6608696), (163.95612, 12.144897),
-                       (402.47745, 14.246991)]
+      expected_vals = [
+          [233.403564, 10.373495],
+          [219.442184, 9.645809],
+          [181.665314, 8.650729],
+          [185.266647, 8.822222],
+          [157.343857, 10.233747],
+      ]
       self.assertAllClose(vals, expected_vals, atol=1e-3)
 
   def testDecode(self):
@@ -503,7 +524,7 @@ class RNMTModelTest(tf.test.TestCase):
       metrics_dict = mdl.CreateDecoderMetrics()
       key_value_pairs = mdl.PostProcessDecodeOut(dec_out, metrics_dict)
       self.assertNear(0.0, metrics_dict['corpus_bleu'].value, 1.0e-5)
-      self.assertEqual(4, len(key_value_pairs))
+      self.assertLen(key_value_pairs, 8)
       for k, v in key_value_pairs:
         self.assertIn(k, v)
 
@@ -544,7 +565,7 @@ class RNMTModelTest(tf.test.TestCase):
       loss = mdl.loss
       tf.global_variables_initializer().run()
       _ = sess.run(loss)
-      self.assertEqual(mdl.input_generator.scaled_bucket_batch_limit, [20, 40])
+      self.assertEqual(mdl.input_generator.scaled_bucket_batch_limit, [40])
 
 
 if __name__ == '__main__':
