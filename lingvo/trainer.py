@@ -56,8 +56,8 @@ from lingvo.core import metrics
 from lingvo.core import py_utils
 
 tf.flags.DEFINE_string(
-    'model', '', 'Name of the model class to train. Must be one of those'
-    ' defined in models.py.')
+    'model', '', 'Name of the model class to train.'
+    'Must be a model defined in the model_registry.')
 tf.flags.DEFINE_string(
     'model_task_name', '', 'For multitask models: '
     'select task to train/evaluate/decode. '

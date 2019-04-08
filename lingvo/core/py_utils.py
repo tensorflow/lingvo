@@ -1501,9 +1501,7 @@ def ComputeGradients(
     grad_aggregation_method=tf.AggregationMethod.EXPERIMENTAL_TREE,
     colocate_gradients_with_ops=True,
     gate_gradients=False):
-  """Computes gradients of variables in vmap w.r.t.
-
-  to loss.
+  """Computes gradients of variables in vmap w.r.t loss.
 
   Args:
     loss: A scalar Tensor.
@@ -1573,9 +1571,7 @@ def ComputeGradients(
 
 
 def MaskGradients(var_grad, grad_mask, grad_onehot):
-  """Computes gradients of variables in vmap w.r.t.
-
-  loss.
+  """Computes gradients of non-masked variables in vmap w.r.t loss.
 
   Args:
     var_grad: A `.NestedMap` of (variable, gradient)
@@ -1583,7 +1579,7 @@ def MaskGradients(var_grad, grad_mask, grad_onehot):
     grad_onehot: A 1-hot vector of the current data source selected.
 
   Returns:
-    var_grad - a `.NestedMap` of (variable, mask *  gradient).
+    var_grad - a `.NestedMap` of (variable, mask * gradient).
   """
 
   def ApplyMask(entry):
