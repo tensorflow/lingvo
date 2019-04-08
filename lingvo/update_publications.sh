@@ -27,7 +27,7 @@ for topic in \
     'Speech recognition' \
     'Language understanding' \
     'Speech synthesis' \
-    'Speech-to-text translation';  do
+    'Speech translation';  do
   echo -e "\n\n## ${topic}"
   bib2bib -c "annote='${topic}'" publications.bib \
       | bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf "pdf"

@@ -476,7 +476,7 @@ W.&nbsp;N. Hsu, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;A. Chung, Y.&nbsp;Wang,
 </tr>
 </table>
 
-## Speech-to-text translation
+## Speech translation
 
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
