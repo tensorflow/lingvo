@@ -158,6 +158,19 @@ py_library(
     ],
 )
 
+py_library(
+    name = "bn_layers",
+    srcs = ["bn_layers.py"],
+    deps = [
+        ":base_layer",
+        ":cluster_factory",
+        ":hyperparams",
+        ":py_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
 py_test(
     name = "base_layer_test",
     size = "small",
@@ -399,6 +412,24 @@ py_library(
     srcs = ["layers.py"],
     deps = [
         ":base_layer",
+        ":bn_layers",
+        ":conv_layers_with_time_padding",
+        ":py_utils",
+        ":quant_utils",
+        ":recurrent",
+        ":summary_utils",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "conv_layers_with_time_padding",
+    srcs = ["conv_layers_with_time_padding.py"],
+    deps = [
+        ":base_layer",
+        ":bn_layers",
         ":py_utils",
         ":quant_utils",
         ":recurrent",
@@ -416,11 +447,18 @@ lingvo_cuda_py_test(
     deps = [":layers_test_main_lib"],
 )
 
+lingvo_cuda_py_test(
+    name = "conv_layers_with_time_padding_test",
+    srcs = ["conv_layers_with_time_padding_test.py"],
+    deps = [":layers_test_main_lib"],
+)
+
 py_library(
     name = "layers_test_main_lib",
     testonly = True,
     srcs = ["layers_test.py"],
     deps = [
+        ":conv_layers_with_time_padding",
         ":gpipe",
         ":layers",
         ":py_utils",
