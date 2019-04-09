@@ -151,6 +151,7 @@ class RecordBatcher {
   void MergerLoop();
 
   void AdjustBuckets() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void FlushAllBuckets() EXCLUSIVE_LOCKS_REQUIRED(mu_);
   void IncrementHistogram(int64 bucket) EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // For performance debugging.

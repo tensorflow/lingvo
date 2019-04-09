@@ -246,6 +246,17 @@ void RecordBatcher::AdjustBuckets() {
             << (best_cost - static_cast<float>(ideal_cost)) / best_cost;
 }
 
+void RecordBatcher::FlushAllBuckets() {
+  for (int i = 0; i < buckets_.size(); ++i) {
+    if (!buckets_[i].empty()) {
+      CHECK_LE(static_cast<int64>(buckets_[i].size()),
+               opts_.bucket_batch_limit[i]);
+      to_flush_.push_back({i, std::move(buckets_[i])});
+      buckets_[i].clear();
+    }
+  }
+}
+
 void RecordBatcher::ProcessorLoop() {
   // Multiply next_status_update_duration_seconds_ by 2 every update.
   const int64 status_update_duration_multiplier = 2;
@@ -300,45 +311,31 @@ void RecordBatcher::ProcessorLoop() {
       }
       ++total_records_skipped_;
     } else {
-      if (opts_.flush_every_n > 0 && records_yielded_ >= opts_.flush_every_n) {
-        WaitForToFlushEmpty();
-        if (stop_) return;
-        if (opts_.flush_every_n > 0 &&
-            records_yielded_ >= opts_.flush_every_n) {
-          CHECK(to_flush_.empty());
-
-          // Need to flush all buckets.
-          records_yielded_ = 0;
-          for (int i = 0; i < buckets_.size(); ++i) {
-            if (!buckets_[i].empty()) {
-              CHECK_LE(static_cast<int64>(buckets_[i].size()),
-                       opts_.bucket_batch_limit[i]);
-              to_flush_.push_back({i, std::move(buckets_[i])});
-              buckets_[i].clear();
-            }
-          }
-        }
-      }
-
       // Figure out which buckets we should return to the consumer.
       // A bucket (id-th) is full.
       const int id = iter - bucket_upper_bound_.begin();
       const int64 batch_limit = opts_.bucket_batch_limit[id];
-      CHECK_LE(buckets_[id].size(), batch_limit);  // invariant.
-      while (buckets_[id].size() == batch_limit) {
-        if (!to_flush_.empty()) {
-          WaitForToFlushEmpty();
-          if (stop_) return;
-          continue;
-        }
+      if (buckets_[id].size() + 1 == batch_limit) {
+        WaitForToFlushEmpty();
+        if (stop_) return;
+      }
+      // Invariant is either we don't need to flush this bucket after adding a
+      // new element to it, or to_flush_ is empty and we can flush this bucket.
+      CHECK(buckets_[id].size() + 1 < batch_limit || to_flush_.empty());
+      buckets_[id].push_back(std::move(sample));
+      if (buckets_[id].size() == batch_limit) {
         to_flush_.push_back({id, std::move(buckets_[id])});
         buckets_[id].clear();
       }
-      buckets_[id].push_back(std::move(sample));
-      CHECK_LE(buckets_[id].size(), batch_limit);  // invariant.
+      CHECK_LT(buckets_[id].size(), batch_limit);  // invariant.
 
       ++records_yielded_;
       ++total_records_yielded_;
+
+      if (opts_.flush_every_n > 0 && records_yielded_ >= opts_.flush_every_n) {
+        FlushAllBuckets();
+        records_yielded_ = 0;
+      }
     }
 
     std::time_t current_time = std::time(nullptr);
@@ -370,8 +367,8 @@ void RecordBatcher::MergerLoop() {
       to_flush_.clear();
     }
 
-    // Now, flush out batches we accumulated.  Typically, to_flush has
-    // only 1 batch unless flush_every_n is > 0.
+    // Now, flush out batches we accumulated. Typically, to_flush has only 1
+    // batch unless flush_every_n is > 0.
     for (auto& p : to_flush) {
       const int64 id = p.first;
       auto* samples = &p.second;
