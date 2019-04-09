@@ -3143,13 +3143,13 @@ class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
     params = layers.DeterministicDropoutLayer.Params().Set(
         keep_prob=0.7, noise_shape_broadcast_dims=[-1])
     params.name = 'drop'
-    dropout = layers.DropoutLayer(params)
+    dropout = layers.DeterministicDropoutLayer(params)
 
     x = tf.ones([4, 6])
     x_expected = np.array([
         [1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1, 1],
+        [0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0],
         [0, 0, 0, 0, 0, 0],
     ]) / 0.7
 
@@ -3157,7 +3157,7 @@ class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
       tf.assign(py_utils.GetOrCreateGlobalStep(), 1234).eval()
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
-      self.assertEqual(5678, py_utils.GetStepSeed().eval())
+      self.assertEqual(5679, py_utils.GetStepSeed().eval())
     self.assertAllClose(x_expected, x_val)
 
   @parameterized.named_parameters(
