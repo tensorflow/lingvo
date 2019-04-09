@@ -86,6 +86,26 @@ cc_library(
         executable = False,
     )
 
+def _protobuf_includes_repo_impl(repo_ctx):
+    tf_include_path = _find_tf_include_path(repo_ctx)
+    repo_ctx.symlink(
+        tf_include_path + "/external/protobuf_archive/src",
+        "protobuf_archive",
+    )
+    repo_ctx.file(
+        "BUILD",
+        content = """
+cc_library(
+    name = "includes",
+    hdrs = glob(["protobuf_archive/**/*.h",
+                 "protobuf_archive/**/*.inc"]),
+    includes = ["protobuf_archive"],
+    visibility = ["//visibility:public"],
+)
+""",
+        executable = False,
+    )
+
 def _tensorflow_includes_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
     repo_ctx.symlink(tf_include_path, "tensorflow_includes")
@@ -97,7 +117,9 @@ cc_library(
     hdrs = glob(["tensorflow_includes/**/*.h",
                  "tensorflow_includes/third_party/eigen3/**"]),
     includes = ["tensorflow_includes"],
-    deps = ["@eigen_archive//:includes"],
+    deps = ["@absl_includes//:includes",
+            "@eigen_archive//:includes",
+            "@protobuf_archive//:includes",],
     visibility = ["//visibility:public"],
 )
 """,
@@ -130,6 +152,10 @@ def cc_tf_configure():
         implementation = _absl_includes_repo_impl,
     )
     make_absl_repo(name = "absl_includes")
+    make_protobuf_repo = repository_rule(
+        implementation = _protobuf_includes_repo_impl,
+    )
+    make_protobuf_repo(name = "protobuf_archive")
     make_tfinc_repo = repository_rule(
         implementation = _tensorflow_includes_repo_impl,
     )
@@ -193,7 +219,7 @@ filegroup(
 )
 """,
         urls = [
-            "https://github.com/google/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip",
+            "https://github.com/protocolbuffers/protobuf/releases/download/v3.7.1/protoc-3.7.1-linux-x86_64.zip",
         ],
-        sha256 = "6003de742ea3fcf703cfec1cd4a3380fd143081a2eb0e559065563496af27807",
+        sha256 = "24ea6924faaf94d4a0c5850fdb278290a326eff9a68f36ee5809654faccd0e10",
     )
