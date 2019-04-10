@@ -36,8 +36,10 @@ class SequentialRecordYielder : public RecordYielder {
   explicit SequentialRecordYielder(const string& file_pattern);
 
  private:
-  std::vector<std::unique_ptr<RecordIterator> > record_iterators_;
-  int cur_record_iterator_ = 0;
+  const string file_type_;
+  std::vector<string> filenames_;
+  int cur_file_index_ = 0;
+  std::unique_ptr<RecordIterator> record_iterator_;
 };
 
 }  // namespace lingvo

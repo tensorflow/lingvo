@@ -15,7 +15,6 @@ limitations under the License.
 
 #include "lingvo/core/ops/record_yielder.h"
 
-#include <gtest/gtest-spi.h>
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/compression.h"
@@ -96,9 +95,12 @@ TEST(SequentialRecordYielderTest, SequentialRecordYielderBasicTest) {
     ASSERT_EQ(string(v), strings::Printf("%010d", i));
   }
 
-  // Cannot iterate past first epoch.
-  EXPECT_DEATH(TF_CHECK_OK(yielder->Yield(&v, nullptr)),
-               "No more records to yield.");
+  // Iterate another epoch.
+  for (int i = 0; i < N * M; ++i) {
+    TF_CHECK_OK(yielder->Yield(&v, nullptr));
+    ASSERT_EQ(string(v), strings::Printf("%010d", i));
+  }
+
   yielder->Close();
 }
 

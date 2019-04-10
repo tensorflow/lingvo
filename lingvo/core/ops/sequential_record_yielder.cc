@@ -21,30 +21,23 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-SequentialRecordYielder::SequentialRecordYielder(
-    const string& file_pattern) {
+SequentialRecordYielder::SequentialRecordYielder(const string& file_pattern)
+    : file_type_(RecordIterator::GetFilePatternPrefix(file_pattern)) {
   LOG(INFO) << this << "Sequential record yielder start";
   string mutable_file_pattern(file_pattern);
-  const string& file_type =
-      RecordIterator::GetFilePatternPrefix(mutable_file_pattern);
-  if (!file_type.empty()) {
-    mutable_file_pattern.erase(0, file_type.size() + 1);
+  if (!file_type_.empty()) {
+    mutable_file_pattern.erase(0, file_type_.size() + 1);
   }
-
   // Finds all files.
-  std::vector<string> filenames;
-  TF_CHECK_OK(RecordIterator::ParsePattern(file_type, mutable_file_pattern,
-                                           &filenames));
-  std::sort(filenames.begin(), filenames.end());
-  if (filenames.empty()) {
+  TF_CHECK_OK(RecordIterator::ParsePattern(file_type_, mutable_file_pattern,
+                                           &filenames_));
+  std::sort(filenames_.begin(), filenames_.end());
+  if (filenames_.empty()) {
     LOG(FATAL) << "Found no files at " << file_pattern;
   }
 
-  record_iterators_.resize(filenames.size());
-  for (int i = 0; i < filenames.size(); ++i) {
-    record_iterators_[i] = std::unique_ptr<RecordIterator>(
-        RecordIterator::New(file_type, filenames[i]));
-  }
+  record_iterator_ = std::unique_ptr<RecordIterator>(
+      RecordIterator::New(file_type_, filenames_[0]));
 }
 
 SequentialRecordYielder* SequentialRecordYielder::New(
@@ -60,16 +53,14 @@ void SequentialRecordYielder::Close() {
 }
 
 Status SequentialRecordYielder::Yield(Rope* value, int* source_id) {
-  if (cur_record_iterator_ >= record_iterators_.size()) {
-    LOG(FATAL) << "No more records to yield.";
-  }
-
   string key;
-  if (record_iterators_[cur_record_iterator_]->Next(&key, value)) {
+  if (record_iterator_->Next(&key, value)) {
     return Status::OK();
   } else {
     // No more records from current iterator, advance to next iterator.
-    ++cur_record_iterator_;
+    cur_file_index_ = (cur_file_index_ + 1) % filenames_.size();
+    record_iterator_ = std::unique_ptr<RecordIterator>(
+        RecordIterator::New(file_type_, filenames_[cur_file_index_]));
     return Yield(value, source_id);
   }
 }
