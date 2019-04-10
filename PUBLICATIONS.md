@@ -7,7 +7,7 @@
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -81,7 +81,7 @@ Y.&nbsp;Wu, M.&nbsp;Schuster, Z.&nbsp;Chen, Q.&nbsp;V. Le, M.&nbsp;Norouzi, W.&n
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -341,7 +341,7 @@ U.&nbsp;Alon, G.&nbsp;Pundak, and T.&nbsp;N. Sainath, &ldquo;Contextual speech r
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -395,7 +395,7 @@ P.&nbsp;Haghani, A.&nbsp;Narayanan, M.&nbsp;Bacchiani, G.&nbsp;Chuang, N.&nbsp;G
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
@@ -478,6 +478,21 @@ W.&nbsp;N. Hsu, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;A. Chung, Y.&nbsp;Wang,
 
 </td>
 </tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="zen2019libritts">6</a>]
+</td>
+<td class="bibtexitem">
+H.&nbsp;Zen, V.&nbsp;Dang, R.&nbsp;Clark, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;Jia, Z.&nbsp;Chen, and Y.&nbsp;Wu,
+  &ldquo;LibriTTS: A corpus derived from LibriSpeech for text-to-speech,&rdquo; in
+  <em>submitted to Interspeech</em>, 2019.
+[&nbsp;<a href="http://www.openslr.org/60">data</a>&nbsp;| 
+<a href="https://arxiv.org/abs/1904.02882">pdf</a>&nbsp;]
+
+</td>
+</tr>
 </table>
 
 ## Speech translation
@@ -485,7 +500,7 @@ W.&nbsp;N. Hsu, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;A. Chung, Y.&nbsp;Wang,
 <!-- This document was automatically generated with bibtex2html 1.98
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf sound_examples "sound examples"  -->
+     /usr/bin/bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
 
 
 <table>
