@@ -14,7 +14,20 @@
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="chen2018best">1</a>]
+[<a name="freitag2019text">1</a>]
+</td>
+<td class="bibtexitem">
+M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Text Repair Model for Neural
+  Machine Translation,&rdquo; <em>arXiv e-prints</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1904.04790">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chen2018best">2</a>]
 </td>
 <td class="bibtexitem">
 M.&nbsp;X. Chen, O.&nbsp;Firat, A.&nbsp;Bapna, M.&nbsp;Johnson, W.&nbsp;Macherey, G.&nbsp;Foster, L.&nbsp;Jones,
@@ -30,7 +43,7 @@ M.&nbsp;X. Chen, O.&nbsp;Firat, A.&nbsp;Bapna, M.&nbsp;Johnson, W.&nbsp;Macherey
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="cherry2018revisiting">2</a>]
+[<a name="cherry2018revisiting">3</a>]
 </td>
 <td class="bibtexitem">
 C.&nbsp;Cherry, G.&nbsp;Foster, A.&nbsp;Bapna, O.&nbsp;Firat, and W.&nbsp;Macherey, &ldquo;Revisiting
@@ -45,7 +58,7 @@ C.&nbsp;Cherry, G.&nbsp;Foster, A.&nbsp;Bapna, O.&nbsp;Firat, and W.&nbsp;Macher
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="bapna2018training">3</a>]
+[<a name="bapna2018training">4</a>]
 </td>
 <td class="bibtexitem">
 A.&nbsp;Bapna, M.&nbsp;X. Chen, O.&nbsp;Firat, Y.&nbsp;Cao, and Y.&nbsp;Wu, &ldquo;Training deeper neural
@@ -60,7 +73,7 @@ A.&nbsp;Bapna, M.&nbsp;X. Chen, O.&nbsp;Firat, Y.&nbsp;Cao, and Y.&nbsp;Wu, &ldq
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="wu2016google">4</a>]
+[<a name="wu2016google">5</a>]
 </td>
 <td class="bibtexitem">
 Y.&nbsp;Wu, M.&nbsp;Schuster, Z.&nbsp;Chen, Q.&nbsp;V. Le, M.&nbsp;Norouzi, W.&nbsp;Macherey, M.&nbsp;Krikun,
