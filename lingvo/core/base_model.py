@@ -443,7 +443,7 @@ class BaseTask(base_layer.BaseLayer):
   def _FPropResult(self, metrics, per_example):
     # Adds stats about the input batch.
     metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
-        self.input_generator.InputBatchSize()), tf.constant(1.0))
+        self.input_generator.GlobalBatchSize()), tf.constant(1.0))
     # Generates summaries.
     for name, (value, weight) in six.iteritems(metrics):
       self.AddEvalMetric(name, value, weight)
@@ -884,7 +884,7 @@ class BaseTask(base_layer.BaseLayer):
         self._total_examples = StatsCounter('total_samples')
     if value is None:
       assert self.input_generator is not None, ('No input generator defined')
-      value = self.input_generator.InputBatchSize()
+      value = self.input_generator.GlobalBatchSize()
     return self._total_examples.IncBy(p, value)
 
   def IncrementTotalNans(self, value):

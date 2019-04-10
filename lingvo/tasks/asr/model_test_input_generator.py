@@ -210,7 +210,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
           tf.int32)
     return d
 
-  def InputBatchSize(self):
+  def GlobalBatchSize(self):
     p = self.params
     return tf.constant(p.target_shape[0])
 

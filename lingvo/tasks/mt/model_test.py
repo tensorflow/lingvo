@@ -53,7 +53,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     super(TestInputGenerator, self).__init__(params)
     self._step = 0
 
-  def InputBatchSize(self):
+  def GlobalBatchSize(self):
     if self.params.split:
       return 10 / 2
 

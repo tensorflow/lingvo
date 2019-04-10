@@ -77,14 +77,19 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """Get the current bprop type of the input generator batch."""
     return self._bprop_onehot
 
-  def InputBatchSize(self):
-    """Returns the batch size for the current step."""
+  def GlobalBatchSize(self):
+    """Returns the number of samples for the current step, used for stats."""
+    return self.params.batch_size * self.cluster.num_splits_per_client
+
+  def InfeedBatchSize(self):
+    """Returns the number of samples in InputBatch."""
     p = self.params
     cluster = self.cluster
-
+    # Here we do not call self.GlobalBatchSize() since it can be overridden,
+    # e.g., when packed inputs are used.
+    batch_per_input = p.batch_size * cluster.num_splits_per_client
     # If use_per_host_infeed, each input op is only responsible
     # for generating a subset of the whole batch.
-    batch_per_input = p.batch_size * cluster.num_splits_per_client
     if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
       tf.logging.info('batch_size %d cluster.num_tpu_hosts %d', batch_per_input,
                       cluster.num_tpu_hosts)
@@ -287,7 +292,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
   def _InputOpBucketingArgs(self):
     return {
         'bucket_upper_bound': [1000000000],
-        'bucket_batch_limit': [self.InputBatchSize()],
+        'bucket_batch_limit': [self.InfeedBatchSize()],
     }
 
   def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
@@ -478,10 +483,26 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
         ]
     return self._scaled_bucket_batch_limit
 
-  def InputBatchSize(self):
+  def GlobalBatchSize(self):
+    # TODO(rpang): rename self._input_batch_size to _global_input_batch_size.
     if self._input_batch_size is None:
       raise ValueError('No input batch size is defined.')
     return self._input_batch_size
+
+  def InfeedBatchSize(self):
+    p = self.params
+    cluster = self.cluster
+    if self._input_batch_size is None:
+      raise ValueError('No input batch size is defined.')
+    batch_per_input = self._input_batch_size
+    # If use_per_host_infeed, each input op is only responsible
+    # for generating a subset of the whole batch.
+    if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
+      tf.logging.info('batch_size %d cluster.num_tpu_hosts %d', batch_per_input,
+                      cluster.num_tpu_hosts)
+      batch_per_input //= cluster.num_tpu_hosts
+    tf.logging.info('batch_per_input: %d', batch_per_input)
+    return batch_per_input
 
   def _InputOpBucketingArgs(self):
     p = self.params
@@ -595,7 +616,7 @@ class BaseTinyDatasetInput(BaseInputGenerator):
 
     # Loads data and label into memory and keep it around.
     data, label = py_x_ops.cached_call(f=ReadData, T=[tf.float32, tf.float32])
-    b, shape = self.InputBatchSize(), list(p.data_shape)
+    b, shape = self.InfeedBatchSize(), list(p.data_shape)
     data = tf.reshape(data, [-1] + shape)
     label = tf.reshape(label, [-1])
     label = py_utils.HasShape(label, [tf.shape(data)[0]])
