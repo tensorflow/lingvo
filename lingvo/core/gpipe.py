@@ -153,9 +153,8 @@ class FeatureExtractionLayer(base_layer.BaseLayer):
     for sub in p.sub:
       assert sub.name
       sub.name = p.variable_name_prefix + sub.name
-      child = sub.cls(self.CopyBaseParams(p, sub.Copy()))
-      self.AddChild(sub.name, child)
-      self._seq.append((sub.name, child))
+      self.CreateChild(sub.name, sub)
+      self._seq.append((sub.name, self.children[sub.name]))
 
   def FProp(self, theta, *args):
     p = self.params
@@ -225,15 +224,13 @@ class SeqLayer(base_layer.BaseLayer):
     for l in p.before_tpl:
       with tf.device(before_tpl_device):
         assert l.name
-        child = l.cls(self.CopyBaseParams(p, l.Copy()))
-        self.AddChild(l.name, child)
-        self._before_layers.append((l.name, child))
+        self.CreateChild(l.name, l)
+        self._before_layers.append((l.name, self.children[l.name]))
     for i, l in enumerate(p.cell_tpl):
       with tf.device(cell_devices[i]):
         assert l.name
-        child = l.cls(self.CopyBaseParams(p, l.Copy()))
-        self.AddChild(l.name, child)
-        self._cells.append((l.name, child))
+        self.CreateChild(l.name, l)
+        self._cells.append((l.name, self.children[l.name]))
 
   def FProp(self, theta, *args):
     """Round-robin every children cells in cell_tpl among worker devices.
