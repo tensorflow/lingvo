@@ -143,7 +143,9 @@ def SetupTransformerParams(p,
                            relu_dropout_prob=0.0,
                            label_smoothing_uncertainty=0.1,
                            is_transparent=False,
-                           activation='RELU'):
+                           activation='RELU',
+                           num_encoder_layers=None,
+                           num_decoder_layers=None):
   """Common model setup for different transformer models.
 
   Args:
@@ -172,6 +174,8 @@ def SetupTransformerParams(p,
     is_transparent: If set, decoder layers attend to weighted combinations of
         encoder layers.
     activation: Non-linearity for feed-forward layers.
+    num_encoder_layers: to set a different number of layers for the encoder.
+    num_decoder_layers: to set a different number of layers for the decoder.
 
   Returns:
     A Params object containing the parameters that specify a transformer model
@@ -181,15 +185,19 @@ def SetupTransformerParams(p,
   p.name = name
 
   # Transformer encoder and decoder setup
-  p.encoder = SetupTransformerEncoder(
-      model_dim, vocab_size, num_layers, num_heads, hidden_dim,
-      residual_dropout_prob, input_dropout_prob, atten_dropout_prob,
-      relu_dropout_prob, is_transparent, activation)
-  p.decoder = SetupTransformerDecoder(
-      model_dim, vocab_size, num_layers, num_heads, hidden_dim,
-      residual_dropout_prob, input_dropout_prob, atten_dropout_prob,
-      relu_dropout_prob, label_smoothing_uncertainty, is_transparent,
-      activation)
+  num_encoder_layers = num_encoder_layers or num_layers
+  num_decoder_layers = num_decoder_layers or num_layers
+  p.encoder = SetupTransformerEncoder(model_dim, vocab_size, num_encoder_layers,
+                                      num_heads, hidden_dim,
+                                      residual_dropout_prob, input_dropout_prob,
+                                      atten_dropout_prob, relu_dropout_prob,
+                                      is_transparent, activation)
+  p.decoder = SetupTransformerDecoder(model_dim, vocab_size, num_decoder_layers,
+                                      num_heads, hidden_dim,
+                                      residual_dropout_prob, input_dropout_prob,
+                                      atten_dropout_prob, relu_dropout_prob,
+                                      label_smoothing_uncertainty,
+                                      is_transparent, activation)
 
   p.train.Set(
       learning_rate=learning_rate,
