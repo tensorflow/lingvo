@@ -228,16 +228,19 @@ class ModelV2(BaseClassifier):
       self.CreateChild('extract', p.extract)
       self.CreateChild('softmax', p.softmax)
 
-  def FPropTower(self, theta, input_batch):
-    p = self.params
-    batch = tf.shape(input_batch.data)[0]
-
+  def ComputePredictions(self, theta, input_batch):
     # Forward through layers.
     act = self.extract.FProp(theta.extract, input_batch.data)
+    # Avg pool
+    act = tf.reduce_mean(act, axis=[1, 2])
+    logits = self.softmax.Logits(theta.softmax, act)
+    return py_utils.NestedMap(act=act, logits=logits)
 
+  def ComputeLoss(self, theta, input_batch, predictions):
+    p = self.params
+    batch = tf.shape(input_batch.data)[0]
+    act = predictions.act
     with tf.colocate_with(act):
-      # Avg pool
-      act = tf.reduce_mean(act, axis=[1, 2])
       tf.logging.info("{}'s device: {}".format(act, act.device))
       # Softmax
       labels = tf.to_int64(input_batch.label)
