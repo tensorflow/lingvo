@@ -27,8 +27,8 @@ class SimpleWerTest(tf.test.TestCase):
   def testWerIgnorePunctuation(self):
     hyp = 'hello  world. today is a good day, how are you'
     ref = '(Hello world)!    [Today] is a good day! How are you?'
-    ne, nw = simple_wer.ComputeWER(hyp, ref)
-    self.assertEqual(ne, 0)
+    errs, nw, _ = simple_wer.ComputeWER(hyp, ref)
+    self.assertEqual(sum(errs.values()), 0)
     self.assertEqual(nw, 10)
 
 
