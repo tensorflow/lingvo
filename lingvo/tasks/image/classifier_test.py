@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import shutil
 
+import numpy as np
 import tensorflow as tf
 from lingvo import model_registry
 from lingvo.core import cluster_factory
@@ -92,6 +93,28 @@ class ClassifierTest(tf.test.TestCase):
       sess.run(tf.global_variables_initializer())
       CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model, sess))
       CompareToGoldenSingleFloat(self, 2.142516, self._runOneStep(model, sess))
+
+  def testInference(self):
+    with self.session() as sess:
+      tf.set_random_seed(1618)
+      p = model_registry.GetParams('test.MnistV2', 'Test')
+      p.random_seed = 73234288
+      p.input.ckpt = self.data_path
+      p.task.params_init = py_utils.WeightInit.Uniform(0.1, seed=73234288)
+      model = p.cls(p)
+      subgraphs = model.GetTask().Inference()
+      self.assertCountEqual(['default'], subgraphs.keys())
+      fetches, feeds = subgraphs['default']
+      self.assertCountEqual(['normalized_image'], feeds.keys())
+      self.assertCountEqual(['logits', 'probs', 'prediction'], fetches.keys())
+      tf.global_variables_initializer().run()
+      fetch_results = sess.run(
+          fetches, {feeds['normalized_image']: np.zeros(p.input.data_shape)})
+      self.assertAllEqual([p.task.softmax.num_classes],
+                          fetch_results['logits'].shape)
+      self.assertAllEqual([p.task.softmax.num_classes],
+                          fetch_results['probs'].shape)
+      self.assertAllEqual([], fetch_results['prediction'].shape)
 
 
 if __name__ == '__main__':

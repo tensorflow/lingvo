@@ -271,3 +271,44 @@ class ModelV2(BaseClassifier):
 
   def _compute_accuracy(self):
     return self.params.is_eval
+
+  def Inference(self):
+    """Constructs inference subgraphs.
+
+    Returns:
+      A dictionary of the form {'subgraph_name': (fetches, feeds)}. Each of
+      fetches and feeds is itself a dictionary which maps a string name (which
+      describes the tensor) to a corresponding tensor in the inference graph
+      which should be fed/fetched from.
+    """
+    subgraphs = {}
+    with tf.name_scope('inference'):
+      subgraphs['default'] = self._InferenceSubgraph_Default()
+    return subgraphs
+
+  def _InferenceSubgraph_Default(self):
+    """Constructs graph for single-image inference.
+
+    Returns:
+      (fetches, feeds) where both fetches and feeds are dictionaries. Each
+      dictionary consists of keys corresponding to tensor names, and values
+      corresponding to a tensor in the graph which should be input/read from.
+    """
+    p = self.params
+    with tf.name_scope('default'):
+      normalized_image = tf.placeholder(
+          dtype=p.dtype, shape=p.input.data_shape, name='normalized_image')
+      inputs = py_utils.NestedMap(data=normalized_image[tf.newaxis, ...])
+      logits = tf.reshape(
+          self.ComputePredictions(self.theta, inputs).logits,
+          [p.softmax.num_classes],
+          name='logits')
+      feeds = {
+          'normalized_image': normalized_image,
+      }
+      fetches = {
+          'logits': logits,
+          'probs': tf.nn.softmax(logits, name='probs'),
+          'prediction': tf.argmax(logits, name='prediction'),
+      }
+      return fetches, feeds

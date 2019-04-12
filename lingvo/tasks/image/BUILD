@@ -28,9 +28,11 @@ py_test(
     deps = [
         ":classifier",
         ":input_generator",
+        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
         "//lingvo:model_registry",
         "//lingvo/core:cluster_factory",
+        "//lingvo/core:layers",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         "//lingvo/tasks/image/params:mnist",
