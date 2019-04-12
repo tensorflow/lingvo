@@ -83,7 +83,7 @@ def ComputeEditDistanceMatrix(hs, rs):
   return dists
 
 
-def _PreprocessTxtBeforeWER(txt):
+def PreprocessTxtBeforeWER(txt):
   """Preprocess text before WER caculation."""
 
   # Lowercase, remove \t and new line.
@@ -183,8 +183,8 @@ def ComputeWER(hyp, ref, diagnosis=False):
     aligned html string for diagnois (empty if diagnosis = False)
   """
 
-  hyp = _PreprocessTxtBeforeWER(hyp)
-  ref = _PreprocessTxtBeforeWER(ref)
+  hyp = PreprocessTxtBeforeWER(hyp)
+  ref = PreprocessTxtBeforeWER(ref)
 
   # Compute edit distance.
   hs = hyp.split()
