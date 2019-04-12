@@ -25,6 +25,7 @@ from six.moves import zip
 import tensorflow as tf
 
 from tensorflow.python.framework import function
+from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import test_utils
@@ -75,6 +76,24 @@ def _Poly(theta, state, inputs):
   return next_state, py_utils.NestedMap()
 
 
+class _IncrementAccumulator(base_layer.Accumulator):
+
+  def DefaultValue(self):
+    return tf.convert_to_tensor(0.0)
+
+  def Update(self, increment_by):
+    initial = self.GetValue()
+    self.SetValue(initial + tf.convert_to_tensor(increment_by))
+
+
+class _SampleAccumulatorLayer(base_layer.BaseLayer):
+
+  def __init__(self, params):
+    super(_SampleAccumulatorLayer, self).__init__(params)
+    self.accumulator_name = 'sample_accumulator'
+    self.RegisterAccumulator(self.accumulator_name, _IncrementAccumulator())
+
+
 class RecurrentTest(tf.test.TestCase):
 
   def testBasic(self):
@@ -116,6 +135,68 @@ class RecurrentTest(tf.test.TestCase):
       # 4 + 6*x
       self.assertAllClose(dx_val, 16.)
       self.assertAllClose(d_coeff_val, [3., 4., 4.])
+
+  def testBasicWithAccumulator(self):
+
+    with self.session() as sess:
+
+      p = _SampleAccumulatorLayer.Params()
+      p.name = 'sample'
+      accum_layer = _SampleAccumulatorLayer(p)
+
+      theta = py_utils.NestedMap()
+      theta.x = tf.constant(2.0)
+      state = py_utils.NestedMap()
+      state.value = tf.constant(0.0)
+      state.x_power = tf.constant(1.0)
+      inputs = py_utils.NestedMap()
+      inputs.coeff = tf.constant([1., 2., 3.])
+
+      def _CellFn(theta, state, inputs):
+        accum_layer.accumulators[accum_layer.accumulator_name].Update(
+            inputs.coeff)
+        return _Poly(theta, state, inputs)
+
+      # x = 2
+      # 1 + 2*x + 3*x^2
+      ret = recurrent.Recurrent(
+          theta, state, inputs, _CellFn, accumulator_layer=accum_layer)
+
+      # Verify bprop.
+      y = ret[1].value
+      dx, d_coeff = tf.gradients(ys=[y], xs=[theta.x, inputs.coeff])
+      dx_val, d_coeff_val = sess.run([dx, d_coeff])
+
+      # 2 + 6*x
+      self.assertAllClose(dx_val, 14.)
+      self.assertAllClose(d_coeff_val, [1., 2., 4.])
+
+      # acc = [1, 1+2x, 1+2x+3x^2]
+      # sum(acc) = 3 + 4x + 3x^2
+      acc = ret[0].value
+      dx, d_coeff = tf.gradients(
+          ys=[tf.reduce_sum(acc)], xs=[theta.x, inputs.coeff])
+      dx_val, d_coeff_val = sess.run([dx, d_coeff])
+      # 4 + 6*x
+      self.assertAllClose(dx_val, 16.)
+      self.assertAllClose(d_coeff_val, [3., 4., 4.])
+
+      # Verify fprop.
+      (acc, state), accum_value = sess.run(
+          (ret,
+           accum_layer.accumulators[accum_layer.accumulator_name].GetValue()))
+
+      # Verify that accumulators don't change fprop results.
+      self.assertAllClose(acc.value, [1., 5., 17.])
+      self.assertAllClose(acc.x_power, [2., 4., 8.])
+      self.assertAllClose(state.value, 17.)
+      self.assertAllClose(state.x_power, 8.)
+
+      # Verify accumulator (should be 1 + 2 + 3).
+      self.assertEqual(
+          0,
+          accum_layer.accumulators[accum_layer.accumulator_name]._disable_count)
+      self.assertAllClose([accum_value], [6.0])
 
   def testTimeBasedStopFn(self):
 

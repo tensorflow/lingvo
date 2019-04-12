@@ -759,12 +759,14 @@ py_library(
     testonly = True,
     srcs = ["recurrent_test.py"],
     deps = [
+        ":base_layer",
         ":py_utils",
         ":recurrent",
         ":test_utils",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
+        # Implicit tensorflow python framework_for_generated_wrappers dependency.
     ],
 )
 
