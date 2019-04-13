@@ -23,6 +23,7 @@ import tensorflow as tf
 
 from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 
 
 class ConvLayerTest(tf.test.TestCase):
@@ -177,6 +178,79 @@ class ConvLayerTest(tf.test.TestCase):
       tf.global_variables_initializer().run()
       v1, v2 = sess.run([out, out_padding])
       print(v1, v2)
+
+  def _testNormalizedDepthwiseConv2DHelper(self,
+                                           is_causal=False,
+                                           dropconnect_prob=0):
+    if is_causal:
+      conv_cls = (
+          conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer)
+    else:
+      conv_cls = conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer
+    tf.set_random_seed(398847392)
+    np.random.seed(12345)
+    params = conv_cls.Params().Set(
+        name='conv',
+        weight_tiling_factor=2,
+        filter_shape=[3, 1, 2, 1],
+        dropconnect_prob=dropconnect_prob,
+        deterministic_dropout=True)
+    conv_layer = conv_cls(params)
+    in_padding = tf.zeros([2, 4], dtype=tf.float32)
+    inputs = tf.constant(
+        np.random.normal(0.1, 0.5, [2, 4, 1, 4]), dtype=tf.float32)
+    output, _ = conv_layer.FPropDefaultTheta(inputs, in_padding)
+    return output
+
+  def testNormalizedDepthwiseConv2DLayerFProp(self):
+    expected_output = [[0.91136134, 1.25781929, 1.76708317, 0.9021343],
+                       [0.52296412, 0.7703352, 0.65711987, 0.23177178]]
+    with self.session(use_gpu=True) as sess:
+      output = self._testNormalizedDepthwiseConv2DHelper()
+      output_sum = tf.squeeze(tf.reduce_sum(output, -1))
+      tf.global_variables_initializer().run()
+      output_sum_val = sess.run(output_sum)
+    self.assertAllClose(expected_output, output_sum_val)
+
+  def testCausalNormalizedDepthwiseConv2DLayerFProp(self):
+    expected_output = [[0.00819603, 0.91136134, 1.25781929, 1.76708317],
+                       [-0.07673456, 0.52296412, 0.7703352, 0.65711987]]
+    with self.session(use_gpu=True) as sess:
+      output = self._testNormalizedDepthwiseConv2DHelper(is_causal=True)
+      output_sum = tf.squeeze(tf.reduce_sum(output, -1))
+      tf.global_variables_initializer().run()
+      output_sum_val = sess.run(output_sum)
+    self.assertAllClose(expected_output, output_sum_val)
+
+  def testNormalizedDepthwiseConv2DLayerBackProp(self):
+    with self.session(use_gpu=True) as sess:
+      output = self._testNormalizedDepthwiseConv2DHelper(dropconnect_prob=0.1)
+      loss = tf.reduce_sum(output)
+      all_vars = tf.trainable_variables()
+      grads = tf.gradients(loss, all_vars)
+      tf.global_variables_initializer().run()
+      sym_grads = [sg.eval() for sg in grads]
+      num_grads = [
+          test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
+      ]
+      for sg, ng in zip(sym_grads, num_grads):
+        self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
+
+  def testCausualNormalizedDepthwiseConv2DLayerBackProp(self):
+    with self.session(use_gpu=True) as sess:
+      output = self._testNormalizedDepthwiseConv2DHelper(
+          is_causal=True, dropconnect_prob=0.1)
+      loss = tf.reduce_sum(output)
+      all_vars = tf.trainable_variables()
+      grads = tf.gradients(loss, all_vars)
+      tf.global_variables_initializer().run()
+      sym_grads = [sg.eval() for sg in grads]
+      num_grads = [
+          test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
+      ]
+      for sg, ng in zip(sym_grads, num_grads):
+        self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
+
 
 if __name__ == '__main__':
   tf.test.main()

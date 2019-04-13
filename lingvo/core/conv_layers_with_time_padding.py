@@ -150,6 +150,11 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
     """The number of output channels for this conv layer."""
     raise NotImplementedError()
 
+  @property
+  def input_channels(self):
+    """The number of input channels for this conv layer."""
+    return self.params.filter_shape[2]
+
   def OutShape(self, in_shape):
     """Compute the output shape given the input shape."""
     p = self.params
@@ -177,7 +182,7 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
           py_utils.assert_shape_match(tf.shape(paddings), [-1, -1]),
           py_utils.assert_shape_match(
               tf.shape(inputs),
-              tf.concat([tf.shape(paddings), [-1, p.filter_shape[2]]], 0))
+              tf.concat([tf.shape(paddings), [-1, self.input_channels]], 0))
       ], inputs)
 
       def _ApplyPadding(tensor_in, padding_in):
@@ -386,6 +391,90 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     # The effective spatial filter width for dilated convolutions is
     # (kernel_width - 1) * dilation_rate + 1 as according to
     # https://www.tensorflow.org/api_docs/python/tf/nn/convolution.
+    causal_pad_size = (p.filter_shape[0] - 1) * p.dilation_rate[0]
+    inputs = tf.pad(inputs, [[0, 0], [causal_pad_size, 0], [0, 0], [0, 0]])
+    filter_w = self._GetWeight(theta)
+    return tf.nn.depthwise_conv2d(
+        inputs,
+        filter_w,
+        strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
+        rate=p.dilation_rate,
+        data_format='NHWC',
+        padding=padding_algorithm)
+
+
+class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
+  """DepthwiseConv2DLayer where weights are normalized over the time dim.
+
+  https://arxiv.org/abs/1901.10430
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(NormalizedDepthwiseConv2DLayer, cls).Params()
+    p.Define('dropconnect_prob', 0.0,
+             'Prob at which DropConnect regularization is performed.')
+    p.Define('deterministic_dropout', False, 'Use determnisitc dropout or not.')
+    p.Define('temperature', 1.0,
+             'Temperature for the softmax normalization of the weights.')
+    p.Define('weight_tiling_factor', 1,
+             'Number of times weights are tiled over the input channels.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(NormalizedDepthwiseConv2DLayer, self).__init__(params)
+    p = self.params
+    assert p.filter_shape[1] == 1, 'Only 1d convolution is supported.'
+    assert p.temperature > 0.0, 'Absolute zero temperature is not possible.'
+
+  @property
+  def output_channels(self):
+    """The number of output channels for this conv layer."""
+    p = self.params
+    # Depthwise convolution filter shape is:
+    # [kernel_size, 1, in_channels, channel_multiplier].
+    return p.filter_shape[2] * p.filter_shape[3] * p.weight_tiling_factor
+
+  @property
+  def input_channels(self):
+    """The number of output channels for this conv layer."""
+    p = self.params
+    return p.filter_shape[2] * p.weight_tiling_factor
+
+  def _GetWeight(self, theta):
+    p = self.params
+    filter_w = theta.w
+    filter_w.set_shape(p.filter_shape)
+
+    # First normalize filter_w over the temporal dimension here.
+    filter_w = tf.nn.softmax(filter_w / p.temperature, axis=0)
+
+    # Add dropconnect on the weights for regularization.
+    if p.dropconnect_prob > 0.0 and not p.is_eval:
+      if p.deterministic_dropout:
+        filter_w = py_utils.DeterministicDropout(
+            filter_w, 1.0 - p.dropconnect_prob,
+            py_utils.GenerateStepSeedPair(p))
+      else:
+        filter_w = tf.nn.dropout(
+            filter_w, 1.0 - p.dropconnect_prob, seed=p.random_seed)
+
+    # Tie the parameters of every subsequent number of weight_tiling_factor
+    # channels.
+    filter_w = tf.tile(filter_w, [1, 1, p.weight_tiling_factor, 1])
+    return filter_w
+
+
+class CausalNormalizedDepthwiseConv2DLayer(NormalizedDepthwiseConv2DLayer):
+  """Depthwise conv layer with causal dependency on the time axis."""
+
+  def _EvaluateConvKernel(self, theta, inputs):
+    """Apply convolution to inputs."""
+    # Same as CausalDepthwiseConv2DLayer.
+    p = self.params
+    assert p.filter_shape[1] == 1, 'Only 1D causal convolutions supported.'
+    padding_algorithm = 'VALID'
     causal_pad_size = (p.filter_shape[0] - 1) * p.dilation_rate[0]
     inputs = tf.pad(inputs, [[0, 0], [causal_pad_size, 0], [0, 0], [0, 0]])
     filter_w = self._GetWeight(theta)
