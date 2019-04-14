@@ -413,18 +413,19 @@ class LearningRateScheduleTest(tf.test.TestCase):
 
   def testCosineSchedule(self):
     p = lr_schedule.CosineSchedule.Params().Set(
-        initial_value=2.0, total_steps=400000)
+        initial_value=3.0, final_value=1.0, total_steps=400000)
     with self.session():
       lrs = p.cls(p)
-      pts = [[i, lrs.Value(i).eval()] for i in range(0, 500000, 100000)]
+      pts = [[i, lrs.Value(i).eval()] for i in range(0, 600000, 100000)]
       self.assertAllClose(
           pts,
           [
-              [0, 2.0],
-              [100000, math.cos(math.pi / 4) + 1.],  # angle=pi/4
-              [200000, 1.0],  # angle=pi/2, half-way
-              [300000, math.cos(math.pi * 3 / 4) + 1.],  # angle=pi*3/4
-              [400000, 0.0],
+              [0, 3.0],
+              [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+              [200000, 2.0],  # angle=pi/2, half-way
+              [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+              [400000, 1.0],
+              [500000, 1.0],
           ])
 
   def testLinearRampupCosineSchedule(self):
