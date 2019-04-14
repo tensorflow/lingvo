@@ -13,7 +13,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-// Implemention notes:
+// Implementation notes:
 //
 // * RecordBatcher uses two threadpools. processor_thread_ and
 //   merger_thread_.
@@ -39,7 +39,7 @@ limitations under the License.
 //
 //   NOTE: merger_thread_ itself is single-threaded. We expect that if
 //   processor->Merge() becomes bottleneck (memory copy bounded), we
-//   can change the implemention of processor->Merge() to leverage
+//   can change the implementation of processor->Merge() to leverage
 //   multi-threaded merge.
 //
 //
