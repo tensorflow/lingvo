@@ -142,6 +142,21 @@ class BaseLanguageModel(base_layer.BaseLayer):
     """Returns an optional feed dict with str keys and Tensor values."""
     return {}
 
+  def CombineStates(self, state0, state1, switch_cond):
+    """Combines states based on a switch conditional.
+
+    Args:
+      state0: a NestedMap of states to use for batch elements where switch_cond
+        is true.
+      state1: a NestedMap of states to use for batch elements where switch_cond
+        is false.
+      switch_cond: bool tensor of shape [batch] on which to switch.
+
+    Returns:
+      state_combined: a NestedMap of states.
+    """
+    raise NotImplementedError('Abstract method')
+
 
 class NullLm(BaseLanguageModel):
   """A trivial language model does nothing really."""
@@ -183,6 +198,21 @@ class NullLm(BaseLanguageModel):
         log_probs=tf.nn.log_softmax(logits),
         probs=tf.nn.softmax(logits),
         last_hidden=tf.zeros([batch, 0], dtype=p.dtype)), state0
+
+  def CombineStates(self, state0, state1, switch_cond):
+    """Combines states based on a switch conditional.
+
+    Args:
+      state0: a NestedMap of states to use for batch elements where switch_cond
+        is true.
+      state1: a NestedMap of states to use for batch elements where switch_cond
+        is false.
+      switch_cond: bool tensor of shape [batch] on which to switch.
+
+    Returns:
+      state_combined: a NestedMap of states.
+    """
+    return state0
 
 
 def _RnnOutputSize(rnns):
@@ -409,6 +439,29 @@ class RnnLmNoEmbedding(BaseLanguageModel):
           class_probabilities=labels.class_probabilities)
     xent_output.last_hidden = activation
     return xent_output, state1
+
+  def CombineStates(self, state0, state1, switch_cond):
+    """Combines states based on a switch conditional.
+
+    Args:
+      state0: a NestedMap of states to use for batch elements where switch_cond
+        is true.
+      state1: a NestedMap of states to use for batch elements where switch_cond
+        is false.
+      switch_cond: bool tensor of shape [batch] on which to switch.
+
+    Returns:
+      state_combined: a NestedMap of states.
+    """
+    updated_rnn_states = []
+    for i in range(self.params.rnns.num_layers):
+      updated_rnn_states.append(
+          py_utils.NestedMap({
+              'c': tf.where(switch_cond, state0.rnn[i].c, state1.rnn[i].c),
+              'm': tf.where(switch_cond, state0.rnn[i].m, state1.rnn[i].m)
+          }))
+    combined_state = py_utils.NestedMap({'rnn': updated_rnn_states})
+    return combined_state
 
 
 class RnnLm(RnnLmNoEmbedding):
