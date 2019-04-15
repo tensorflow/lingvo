@@ -1672,12 +1672,12 @@ class RNNCellStateInitTest(tf.test.TestCase):
       tf.set_random_seed(12345678)
       zero_state = py_utils.InitRNNCellState(
           [2, 3],
-          init=py_utils.RNNCellStateInit.RandomNormal(),
+          init=py_utils.RNNCellStateInit.RandomNormal(seed=12345),
           dtype=tf.float32)
       tf.global_variables_initializer().run()
       zero_state_v = zero_state.eval()
-      expected_zero_state = [[1.771591, 1.049091, -0.107608],
-                             [-0.793243, -0.156613, -0.342937]]
+      expected_zero_state = [[1.621003, -1.097501, 0.493424],
+                             [-1.048426, 2.73048, 0.091445]]
       self.assertAllClose(zero_state_v, expected_zero_state)
 
 
