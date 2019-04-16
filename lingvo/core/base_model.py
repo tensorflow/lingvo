@@ -257,8 +257,8 @@ class BaseTask(base_layer.BaseLayer):
     if len(task_global_step_list) > 1:
       raise ValueError('Found multiple task_global_step for task %s' % p.name)
     self._global_step = (
-        task_global_step_list[0] if len(task_global_step_list) == 1 else
-        py_utils.GetOrCreateGlobalStep())
+        task_global_step_list[0]
+        if len(task_global_step_list) == 1 else py_utils.GetGlobalStep())
     tp = p.train
     # p.train can be None if this task is the teacher/student task in a
     # DistillationTask.
@@ -713,7 +713,7 @@ class BaseTask(base_layer.BaseLayer):
         post_training_step_updates, mask_update_op
     ]
     with tf.control_dependencies(train_ops):
-      true_global_step = py_utils.GetOrCreateGlobalStep()
+      true_global_step = py_utils.GetGlobalStep()
       with tf.colocate_with(true_global_step):
         increment_global_steps = tf.assign_add(true_global_step, 1)
       if self._global_step != true_global_step:
@@ -1101,7 +1101,7 @@ class BaseModel(base_layer.BaseLayer):
     """Initializes this Model."""
     assert issubclass(params.cls, BaseModel)
     super(BaseModel, self).__init__(params)
-    self._global_step = py_utils.GetOrCreateGlobalStep()
+    self._global_step = py_utils.GetGlobalStep()
     # tasks are not yet instantiated.
     self._total_examples_sum = None
 

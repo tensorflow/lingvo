@@ -214,7 +214,7 @@ class AttentionTest(tf.test.TestCase):
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
-          atten.theta, query_vec, global_step=py_utils.GetOrCreateGlobalStep())
+          atten.theta, query_vec, global_step=py_utils.GetGlobalStep())
 
       self._CheckStaticShapes(
           atten_vec,
@@ -902,7 +902,7 @@ class AttentionTest(tf.test.TestCase):
           atten.theta,
           query_vec,
           atten_state,
-          global_step=py_utils.GetOrCreateGlobalStep())
+          global_step=py_utils.GetGlobalStep())
 
       tf.global_variables_initializer().run()
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])

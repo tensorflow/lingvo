@@ -245,7 +245,7 @@ def Save(value, filename_prefix, **kwargs):
     value is returned.
   """
   last = value
-  steps = GetOrCreateGlobalStep()
+  steps = GetGlobalStep()
   for k in sorted(kwargs):
     with tf.control_dependencies([last]):
       last = tf.py_func(_Save, [steps, filename_prefix, k, kwargs[k]], [])
@@ -1233,7 +1233,7 @@ def CreateVariable(name,
 global_variable_scope = tf.get_variable_scope()
 
 
-def GetOrCreateGlobalStep():
+def GetGlobalStep():
   """Create if needed and return the global_step."""
   with tf.variable_scope(
       global_variable_scope, use_resource=use_resource_variables()):
@@ -2096,7 +2096,7 @@ def GenerateStepSeedPair(p, global_step=None, op_seed=None):
     return tf.random_uniform([2], maxval=seed_dtype.max, dtype=seed_dtype)
 
   if global_step is None:
-    global_step = GetOrCreateGlobalStep()
+    global_step = GetGlobalStep()
   global_step = tf.cast(global_step, seed_dtype)
   step_seed = tf.cast(GetIncStepSeed(), seed_dtype)
   seeds = tf.stack([global_step, step_seed])

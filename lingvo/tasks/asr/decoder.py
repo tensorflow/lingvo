@@ -1163,12 +1163,11 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     """Returns initial state for other miscellaneous states, if any."""
     del encoder_outputs
     misc_zero_state = py_utils.NestedMap(
-        step_state=py_utils.NestedMap(
-            global_step=py_utils.GetOrCreateGlobalStep()))
+        step_state=py_utils.NestedMap(global_step=py_utils.GetGlobalStep()))
     p = self.params
     if self._max_label_prob > 0:
       misc_zero_state.prev_predicted_ids = tf.reshape(target_ids[:, 0], [bs])
-      step = tf.to_float(py_utils.GetOrCreateGlobalStep())
+      step = tf.to_float(py_utils.GetGlobalStep())
       sampling_p = (step - p.prob_decay_start_step) / self._decay_interval
       groundtruth_p = 1 - (self._max_label_prob * sampling_p)
       groundtruth_p = tf.maximum(groundtruth_p, p.min_ground_truth_prob)

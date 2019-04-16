@@ -86,23 +86,23 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
       tgt_weights = tf.split(tgt_weights, 2, 0)
 
       ret.src.ids = tf.cond(
-          tf.equal(tf.mod(py_utils.GetOrCreateGlobalStep(), 2), 0),
-          lambda: src_ids[0], lambda: src_ids[1])
+          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
+                   0), lambda: src_ids[0], lambda: src_ids[1])
       ret.src.paddings = tf.cond(
-          tf.equal(tf.mod(py_utils.GetOrCreateGlobalStep(), 2), 0),
-          lambda: src_paddings[0], lambda: src_paddings[1])
+          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
+                   0), lambda: src_paddings[0], lambda: src_paddings[1])
       ret.tgt.ids = tf.cond(
-          tf.equal(tf.mod(py_utils.GetOrCreateGlobalStep(), 2), 0),
-          lambda: tgt_ids[0], lambda: tgt_ids[1])
+          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
+                   0), lambda: tgt_ids[0], lambda: tgt_ids[1])
       ret.tgt.labels = tf.cond(
-          tf.equal(tf.mod(py_utils.GetOrCreateGlobalStep(), 2), 0),
-          lambda: tgt_labels[0], lambda: tgt_labels[1])
+          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
+                   0), lambda: tgt_labels[0], lambda: tgt_labels[1])
       ret.tgt.paddings = tf.cond(
-          tf.equal(tf.mod(py_utils.GetOrCreateGlobalStep(), 2), 0),
-          lambda: tgt_paddings[0], lambda: tgt_paddings[1])
+          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
+                   0), lambda: tgt_paddings[0], lambda: tgt_paddings[1])
       ret.tgt.weights = tf.cond(
-          tf.equal(tf.mod(py_utils.GetOrCreateGlobalStep(), 2), 0),
-          lambda: tgt_weights[0], lambda: tgt_weights[1])
+          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
+                   0), lambda: tgt_weights[0], lambda: tgt_weights[1])
     else:
       ret.src.ids = src_ids
       ret.src.paddings = src_paddings
@@ -303,7 +303,7 @@ class TransformerModelTest(tf.test.TestCase):
       tf.global_variables_initializer().run()
 
       for _ in range(2):
-        sess.run((py_utils.GetOrCreateGlobalStep(), loss, logp, mdl.train_op))
+        sess.run((py_utils.GetGlobalStep(), loss, logp, mdl.train_op))
 
       expected = sess.run(mdl.dec.softmax.vars['weight_0'])
 
@@ -321,7 +321,7 @@ class TransformerModelTest(tf.test.TestCase):
 
       tf.global_variables_initializer().run()
 
-      sess.run((py_utils.GetOrCreateGlobalStep(), loss, logp, mdl.train_op))
+      sess.run((py_utils.GetGlobalStep(), loss, logp, mdl.train_op))
 
       actual = sess.run(mdl.dec.softmax.vars['weight_0'])
 

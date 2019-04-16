@@ -1067,8 +1067,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
     s_seq_len = tf.shape(src_encs)[0]
 
     zero_atten_state = atten.ZeroAttentionState(s_seq_len, batch_size)
-    state0.step_state = py_utils.NestedMap(
-        global_step=py_utils.GetOrCreateGlobalStep())
+    state0.step_state = py_utils.NestedMap(global_step=py_utils.GetGlobalStep())
     if p.use_zero_atten_state:
       zero_atten_context = tf.zeros([batch_size, p.atten_context_dim],
                                     dtype=py_utils.FPropDtype(p))
@@ -1407,8 +1406,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
 
     ctxs0 = []
     packed_srcs = py_utils.NestedMap()
-    state0.step_state = py_utils.NestedMap(
-        global_step=py_utils.GetOrCreateGlobalStep())
+    state0.step_state = py_utils.NestedMap(global_step=py_utils.GetGlobalStep())
     for i, src_name in enumerate(p.source_names):
       att_idx = (0 if p.share_attention else i)
 

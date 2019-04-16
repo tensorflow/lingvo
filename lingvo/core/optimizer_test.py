@@ -111,7 +111,7 @@ class OptimizerTest(tf.test.TestCase):
       lr = 1e-1
       var_update_op = opt.Apply(lr, var_grads)
       init_op = tf.global_variables_initializer()
-      global_step = py_utils.GetOrCreateGlobalStep()
+      global_step = py_utils.GetGlobalStep()
       increment_global_step_op = tf.assign_add(global_step, 1)
     with self.session(use_gpu=True, graph=g2) as sess:
       sess.run(init_op)

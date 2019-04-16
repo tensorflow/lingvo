@@ -2994,7 +2994,7 @@ class BatchNormLayerNoPaddingTest(tf.test.TestCase, parameterized.TestCase):
     g = tf.Graph()
     with g.as_default():
       # Construct a network where loss = w * x + b
-      global_step = py_utils.GetOrCreateGlobalStep()
+      global_step = py_utils.GetGlobalStep()
       inputs = tf.concat([
           tf.ones([batch_size // 2, 1, 1, 1]),
           tf.zeros([batch_size // 2, 1, 1, 1])
@@ -3110,7 +3110,7 @@ class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
     ]) / 0.7
 
     with self.session():
-      tf.assign(py_utils.GetOrCreateGlobalStep(), 1234).eval()
+      tf.assign(py_utils.GetGlobalStep(), 1234).eval()
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
       self.assertAllClose(x_expected, x_val)
@@ -3121,20 +3121,20 @@ class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
       self.assertNotAllClose(x_expected, x_val)
 
       # Different global step gives different result
-      tf.assign(py_utils.GetOrCreateGlobalStep(), 1235).eval()
+      tf.assign(py_utils.GetGlobalStep(), 1235).eval()
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
       self.assertNotAllClose(x_expected, x_val)
 
       # The same seeds in the same session is consistent.
-      tf.assign(py_utils.GetOrCreateGlobalStep(), 1234).eval()
+      tf.assign(py_utils.GetGlobalStep(), 1234).eval()
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
       self.assertAllClose(x_expected, x_val)
 
     # The same seeds in a different session is consistent.
     with self.session():
-      tf.assign(py_utils.GetOrCreateGlobalStep(), 1234).eval()
+      tf.assign(py_utils.GetGlobalStep(), 1234).eval()
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
       self.assertAllClose(x_expected, x_val)
@@ -3154,7 +3154,7 @@ class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
     ]) / 0.7
 
     with self.session():
-      tf.assign(py_utils.GetOrCreateGlobalStep(), 1234).eval()
+      tf.assign(py_utils.GetGlobalStep(), 1234).eval()
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
       self.assertEqual(5679, py_utils.GetStepSeed().eval())
@@ -3188,7 +3188,7 @@ class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
     with self.session() as sess:
       tf.set_random_seed(12345)
       num_layers = 4
-      py_utils.GetOrCreateGlobalStep()
+      py_utils.GetGlobalStep()
       # Build a model with 4 dropout layers.
       blocks = []
       for l in range(num_layers):

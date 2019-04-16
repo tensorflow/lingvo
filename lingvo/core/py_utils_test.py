@@ -415,14 +415,14 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertTrue(v1 is v)
     self.assertTrue(v1 is not x1)
 
-  def testGetOrCreateGlobalStep(self):
+  def testGetGlobalStep(self):
     with tf.variable_scope('s1'):
       with tf.name_scope('s2'):
-        gs1 = py_utils.GetOrCreateGlobalStep()
+        gs1 = py_utils.GetGlobalStep()
         gs2 = tf.train.get_global_step()
-      gs3 = py_utils.GetOrCreateGlobalStep()
+      gs3 = py_utils.GetGlobalStep()
       gs4 = tf.train.get_global_step()
-    gs5 = py_utils.GetOrCreateGlobalStep()
+    gs5 = py_utils.GetGlobalStep()
     gs6 = tf.train.get_global_step()
     for gs in [gs2, gs3, gs4, gs5, gs6]:
       self.assertTrue(gs1 is gs)
@@ -1555,7 +1555,7 @@ class StepSeedTest(tf.test.TestCase):
         input=tf.constant(0, dtype=tf.int64),
         seed_pair=tf.zeros(2, dtype=tf.int64),
         step_seed=py_utils.GetStepSeed(),
-        global_step=py_utils.GetOrCreateGlobalStep())
+        global_step=py_utils.GetGlobalStep())
     inputs = py_utils.NestedMap(input=tf.range(10, dtype=tf.int64))
 
     accumulated_states, _ = recurrent.Recurrent(py_utils.NestedMap(), state0,
@@ -1585,7 +1585,7 @@ class StepSeedTest(tf.test.TestCase):
       state1.input = inputs.input
       state1.seed_pair = py_utils.GenerateStepSeedPair(p)
       state1.step_seed = py_utils.GetStepSeed()
-      state1.global_step = py_utils.GetOrCreateGlobalStep()
+      state1.global_step = py_utils.GetGlobalStep()
       return state1, py_utils.NestedMap()
 
     with self.session(graph=tf.Graph()) as sess:
