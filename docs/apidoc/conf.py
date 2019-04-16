@@ -209,7 +209,8 @@ class ResetFlags(Transform):
   def apply(self):
     import tensorflow as tf
     for flag in list(tf.flags.FLAGS):
-      delattr(tf.flags.FLAGS, flag)
+      if flag not in ('showprefixforinfo',):
+        delattr(tf.flags.FLAGS, flag)
 
 
 def setup(app):
