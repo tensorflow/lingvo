@@ -28,7 +28,9 @@ py_test(
     deps = [
         ":input_generator",
         # Implicit tensorflow dependency.
+        "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
+        "//lingvo/core:test_utils",
     ],
 )
 
@@ -57,5 +59,6 @@ py_test(
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
         "//lingvo/core:test_helper",
+        "//lingvo/core:test_utils",
     ],
 )

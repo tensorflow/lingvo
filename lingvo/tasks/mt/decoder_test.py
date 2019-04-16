@@ -37,7 +37,7 @@ _NUMPY_RANDOM_SEED = 9885784
 _TF_RANDOM_SEED = 8372749040
 
 
-class DecoderTestCaseBase(tf.test.TestCase):
+class DecoderTestCaseBase(test_utils.TestCase):
 
   def _Inputs(self, dtype=tf.float32):
     np.random.seed(_NUMPY_RANDOM_SEED)
@@ -309,7 +309,7 @@ class DecoderTest(DecoderTestCaseBase):
                         actual_decode_feeding_att_context.topk_scores)
 
 
-class TransformerDecoderTestCaseBase(tf.test.TestCase):
+class TransformerDecoderTestCaseBase(test_utils.TestCase):
 
   def _DecoderParams(self,
                      per_word_avg_loss=False,

@@ -49,7 +49,7 @@ class DecoderForTest(decoder.AsrDecoder):
     return p
 
 
-class AsrModelTest(tf.test.TestCase):
+class AsrModelTest(test_utils.TestCase):
 
   def _testParams(self):
     input_shape = [2, 16, 8, 3]

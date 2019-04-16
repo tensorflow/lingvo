@@ -24,13 +24,13 @@ import os
 from six.moves import range
 
 import tensorflow as tf
-
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import lr_schedule
+from lingvo.core import test_utils
 
 
-class LearningRateScheduleTest(tf.test.TestCase):
+class LearningRateScheduleTest(test_utils.TestCase):
 
   def testConstantOne(self):
     with self.session(use_gpu=False):

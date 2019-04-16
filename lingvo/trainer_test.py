@@ -33,6 +33,7 @@ from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 from lingvo.core import trainer_test_utils
 from lingvo.tasks.image.input_generator import FakeMnistData
 import lingvo.tasks.image.params.mnist  # pylint: disable=unused-import
@@ -41,7 +42,7 @@ import lingvo.tasks.punctuator.params.codelab  # pylint: disable=unused-import
 FLAGS = tf.flags.FLAGS
 
 
-class BaseTrainerTest(tf.test.TestCase):
+class BaseTrainerTest(test_utils.TestCase):
   """Base class for the test cases."""
 
   def __init__(self, *args, **kwargs):

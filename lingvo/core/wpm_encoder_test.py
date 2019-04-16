@@ -22,11 +22,12 @@ from __future__ import print_function
 import os
 
 import tensorflow as tf
+from lingvo.core import test_utils
 
 from lingvo.core import wpm_encoder
 
 
-class WpmEncoderTest(tf.test.TestCase):
+class WpmEncoderTest(test_utils.TestCase):
 
   def _CreateVocab(self):
     outpath = os.path.join(tf.test.get_temp_dir(), 'wpm.voc')

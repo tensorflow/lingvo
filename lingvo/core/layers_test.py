@@ -34,7 +34,7 @@ from lingvo.core import quant_utils
 from lingvo.core import test_utils
 
 
-class ActivationsTest(tf.test.TestCase):
+class ActivationsTest(test_utils.TestCase):
 
   def testGeluActivation(self):
     with self.session(use_gpu=True):
@@ -69,7 +69,7 @@ class ActivationsTest(tf.test.TestCase):
       self.assertAllClose(expected_grads_gelu, actual_grads_gelu)
 
 
-class BatchNormLayerTest(tf.test.TestCase):
+class BatchNormLayerTest(test_utils.TestCase):
 
   def testBatchNormLayerConstruction(self):
     with self.session(use_gpu=True):
@@ -221,7 +221,7 @@ class BatchNormLayerTest(tf.test.TestCase):
       self.assertAllClose(2039.398681, sig2.eval())
 
 
-class ConvLayerTest(tf.test.TestCase):
+class ConvLayerTest(test_utils.TestCase):
   """Tests conv layers.
 
   Note that there are multiple subclasses of BaseConv2DLayer and most cases
@@ -1215,7 +1215,7 @@ class ConvLayerTest(tf.test.TestCase):
   # TODO(yonghui): more test for convolution layer
 
 
-class PoolingLayerTest(tf.test.TestCase):
+class PoolingLayerTest(test_utils.TestCase):
 
   def testPoolLayerFProp(self):
     with self.session(use_gpu=True):
@@ -1287,7 +1287,7 @@ class PoolingLayerTest(tf.test.TestCase):
         self.assertAllClose(predicted_out_shape, output1_v.shape)
 
 
-class ProjectionLayerTest(tf.test.TestCase):
+class ProjectionLayerTest(test_utils.TestCase):
 
   def testProjectionLayerConstruction(self):
     with self.session(use_gpu=True):
@@ -1738,7 +1738,7 @@ class ProjectionLayerTest(tf.test.TestCase):
         self.assertAllClose(sg, ng, rtol=1e-06, atol=1e-06)
 
 
-class EmbeddingLayerTest(tf.test.TestCase):
+class EmbeddingLayerTest(test_utils.TestCase):
 
   def testEmbeddingLayer(self):
     with self.session(use_gpu=True):
@@ -2147,7 +2147,7 @@ class EmbeddingLayerTest(tf.test.TestCase):
                           actual_position_embs)
 
 
-class SoftmaxLayerTest(tf.test.TestCase):
+class SoftmaxLayerTest(test_utils.TestCase):
 
   def _RunSimpleFullSoftmax(self,
                             num_shards=1,
@@ -2542,7 +2542,7 @@ class SoftmaxLayerTest(tf.test.TestCase):
     self._RunSimpleFullSoftmaxGradientChecker(3, 4, 5, 2)
 
 
-class SoftmaxLayerLogitsTest(tf.test.TestCase):
+class SoftmaxLayerLogitsTest(test_utils.TestCase):
   """Testing SoftmaxLayer.Logits()."""
 
   def _Logits(self, params, batch_size=2, seq_length=None):
@@ -2592,7 +2592,7 @@ class SoftmaxLayerLogitsTest(tf.test.TestCase):
     self.assertAllClose(6.9934864, np.sum(logits))
 
 
-class FeedForwardNetTest(tf.test.TestCase):
+class FeedForwardNetTest(test_utils.TestCase):
 
   def testFeedForwardNetConstruction(self):
     with self.session(use_gpu=False):
@@ -2840,7 +2840,7 @@ class FeedForwardNetTest(tf.test.TestCase):
       self.assertAllEqual(xd, x)
 
 
-class AddingAccumulatorTest(tf.test.TestCase):
+class AddingAccumulatorTest(test_utils.TestCase):
   """Test for AddingAccumulator."""
 
   def testAddingAccumulator(self):
@@ -2865,7 +2865,7 @@ class AddingAccumulatorTest(tf.test.TestCase):
       self.assertEqual(0.0, layer.accumulators.acc1.GetValue().eval())
 
 
-class BatchNormLayerNoPaddingTest(tf.test.TestCase, parameterized.TestCase):
+class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
 
   def testBatchNormLayerNoPaddingConstruction(self):
     tf.set_random_seed(398847392)
@@ -3038,7 +3038,7 @@ class BatchNormLayerNoPaddingTest(tf.test.TestCase, parameterized.TestCase):
     self.assertNear(0.997750, moving_vars[1], err=1.0e-6)
 
 
-class LayerNormTest(tf.test.TestCase):
+class LayerNormTest(test_utils.TestCase):
 
   def testLayerNormFProp(self):
     with self.session(use_gpu=True) as sess:
@@ -3094,7 +3094,7 @@ class LayerNormTest(tf.test.TestCase):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
 
 
-class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
+class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
 
   def testDeterministicDropoutLayer(self):
     params = layers.DeterministicDropoutLayer.Params().Set(keep_prob=0.7)
@@ -3222,7 +3222,7 @@ class DeterministicDropoutTest(tf.test.TestCase, parameterized.TestCase):
       self.assertAllClose(y_val, grads_val)
 
 
-class GradNormTrackerTest(tf.test.TestCase):
+class GradNormTrackerTest(test_utils.TestCase):
 
   def testGradNormTracker(self):
     with self.session(use_gpu=False) as sess:
@@ -3302,7 +3302,7 @@ class GradNormTrackerTest(tf.test.TestCase):
       self.assertEqual(total_rejections, 100)
 
 
-class HighwaySkipLayerTest(tf.test.TestCase):
+class HighwaySkipLayerTest(test_utils.TestCase):
 
   def testHighwaySkipLayerConstruction(self):
     with self.session(use_gpu=False):
@@ -3338,7 +3338,7 @@ class HighwaySkipLayerTest(tf.test.TestCase):
       self.assertAllClose(a, out)
 
 
-class UniformLabelSmootherTest(tf.test.TestCase):
+class UniformLabelSmootherTest(test_utils.TestCase):
 
   def testUniformLabelSmoother(self):
     with self.session(use_gpu=False):
@@ -3405,7 +3405,7 @@ class UniformLabelSmootherTest(tf.test.TestCase):
       self.assertAllClose(np.ones(output_v.shape[:-1]), output_v.sum(-1))
 
 
-class WeightedSumLayerTest(tf.test.TestCase):
+class WeightedSumLayerTest(test_utils.TestCase):
 
   def testWeightedSumLayer(self):
     with self.session(use_gpu=True) as sess:
@@ -3468,7 +3468,7 @@ class WeightedSumLayerTest(tf.test.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
 
-class GatedAverageLayerTest(tf.test.TestCase):
+class GatedAverageLayerTest(test_utils.TestCase):
 
   def testGatedAverageLayer(self):
     with self.session(use_gpu=True) as sess:
@@ -3505,7 +3505,7 @@ class GatedAverageLayerTest(tf.test.TestCase):
       self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
 
 
-class LHUCLayerTest(tf.test.TestCase):
+class LHUCLayerTest(test_utils.TestCase):
 
   def testLHUCLayer(self):
     with self.session(use_gpu=True) as sess:
@@ -3534,7 +3534,7 @@ class LHUCLayerTest(tf.test.TestCase):
       self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
 
 
-class ResidualAdapterLayerTest(tf.test.TestCase):
+class ResidualAdapterLayerTest(test_utils.TestCase):
 
   def testResidualAdapterLayer(self):
     with self.session(use_gpu=True) as sess:
@@ -3564,7 +3564,7 @@ class ResidualAdapterLayerTest(tf.test.TestCase):
       self.assertAllClose(expected_avg, actual_avg, rtol=1e-05, atol=1e-05)
 
 
-class GluLayerTest(tf.test.TestCase):
+class GluLayerTest(test_utils.TestCase):
 
   def testGlu(self):
     with self.session(use_gpu=True) as sess:

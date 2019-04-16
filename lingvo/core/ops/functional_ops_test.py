@@ -22,10 +22,11 @@ import numpy as np
 from six.moves import range
 import tensorflow as tf
 from tensorflow.python.framework import function
+from lingvo.core import test_utils
 from lingvo.core.ops import py_x_ops
 
 
-class FunctionalOpsTest(tf.test.TestCase):
+class FunctionalOpsTest(test_utils.TestCase):
 
   def testCachedCall(self):
     # A generator returns different values for each invocation.

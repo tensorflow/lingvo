@@ -20,9 +20,9 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-
 from tensorflow.python.framework import function
 from lingvo.core import sendrecv
+from lingvo.core import test_utils
 
 
 def _ListDevices(target):
@@ -35,7 +35,7 @@ def _Target():
   return ""
 
 
-class SendrecvTest(tf.test.TestCase):
+class SendrecvTest(test_utils.TestCase):
 
   def testBasic(self):
     devices = _ListDevices(_Target())

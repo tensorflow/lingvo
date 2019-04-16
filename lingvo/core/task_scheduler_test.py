@@ -22,14 +22,14 @@ import os
 import numpy as np
 from six.moves import range
 import tensorflow as tf
-
 from lingvo.core import early_stop
 from lingvo.core import task_scheduler
+from lingvo.core import test_utils
 
 _NUMPY_RANDOM_SEED = 9885784
 
 
-class SchedulerTests(tf.test.TestCase):
+class SchedulerTests(test_utils.TestCase):
 
   def _TestSchedulerHelper(self, schedule, global_step, count_a):
     np.random.seed(_NUMPY_RANDOM_SEED)

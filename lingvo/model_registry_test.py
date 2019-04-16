@@ -19,11 +19,11 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-
 from lingvo import model_registry
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import base_model_params
+from lingvo.core import test_utils
 
 FLAGS = tf.flags.FLAGS
 
@@ -56,7 +56,7 @@ class DummyModel(base_model_params.SingleTaskModelParams):
     return p
 
 
-class ModelRegistryTest(tf.test.TestCase):
+class ModelRegistryTest(test_utils.TestCase):
 
   def setUp(self):
     FLAGS.model_params_override = ''

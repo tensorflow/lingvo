@@ -21,11 +21,11 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-
 from lingvo.core import plot
+from lingvo.core import test_utils
 
 
-class PlotTest(tf.test.TestCase):
+class PlotTest(test_utils.TestCase):
 
   def testToUnicode(self):
     str_str = 'pójdź kińże tę chmurność w głąb flaszy'
@@ -35,7 +35,7 @@ class PlotTest(tf.test.TestCase):
     self.assertEqual(plot.ToUnicode(str_str), plot.ToUnicode(uni_str))
 
 
-class MatplotlibFigureSummaryTest(tf.test.TestCase):
+class MatplotlibFigureSummaryTest(test_utils.TestCase):
 
   FIGSIZE = (8, 4)
   EXPECTED_DPI = 100

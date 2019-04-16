@@ -31,7 +31,7 @@ from lingvo.core import quant_utils
 from lingvo.core import test_utils
 
 
-class AttentionTest(tf.test.TestCase):
+class AttentionTest(test_utils.TestCase):
   """Test attention models."""
 
   def _CheckStaticShapes(self, atten_vec, atten_prob, target_batch_size,

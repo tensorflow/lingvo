@@ -31,6 +31,7 @@ from lingvo.core import lr_schedule
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 from lingvo.tasks.mt import decoder
 from lingvo.tasks.mt import encoder
 from lingvo.tasks.mt import input_generator
@@ -114,7 +115,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     return ret
 
 
-class TransformerModelTest(tf.test.TestCase):
+class TransformerModelTest(test_utils.TestCase):
 
   def _InputParams(self):
     p = input_generator.NmtInput.Params()
@@ -376,7 +377,7 @@ class TransformerModelTest(tf.test.TestCase):
         self.assertIn(k, v)
 
 
-class RNMTModelTest(tf.test.TestCase):
+class RNMTModelTest(test_utils.TestCase):
 
   def _InputParams(self):
     p = input_generator.NmtInput.Params()

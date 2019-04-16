@@ -26,6 +26,7 @@ from lingvo import model_registry
 from lingvo.core import cluster_factory
 from lingvo.core import layers
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
 from lingvo.tasks.image import classifier
 from lingvo.tasks.image import input_generator
@@ -49,7 +50,7 @@ class MnistV2(mnist.Base):
     return p
 
 
-class ClassifierTest(tf.test.TestCase):
+class ClassifierTest(test_utils.TestCase):
 
   def setUp(self):
     self._tmpdir, self.data_path = input_generator.FakeMnistData(train_size=0)

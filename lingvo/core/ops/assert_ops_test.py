@@ -19,11 +19,12 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from lingvo.core import test_utils
 
 from lingvo.core.ops import py_x_ops
 
 
-class AssertOpsTest(tf.test.TestCase):
+class AssertOpsTest(test_utils.TestCase):
 
   def testBasic(self):
     with self.session():

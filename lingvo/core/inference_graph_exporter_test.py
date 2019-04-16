@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-
 from lingvo import model_registry
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
@@ -28,6 +27,7 @@ from lingvo.core import inference_graph_exporter
 from lingvo.core import inference_graph_pb2
 from lingvo.core import predictor
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 
 
 class DummyLegacyModel(base_model.BaseTask):
@@ -108,7 +108,7 @@ class DummyModelParams(base_model_params.SingleTaskModelParams):
     return p
 
 
-class InferenceGraphExporterTest(tf.test.TestCase):
+class InferenceGraphExporterTest(test_utils.TestCase):
 
   def testExportModelParamsWithSubgraphDict(self):
     params = model_registry.GetParams('test.DummyLegacyModelParams', 'Test')
@@ -157,7 +157,7 @@ class InferenceGraphExporterTest(tf.test.TestCase):
                          {k: tf.flags.FLAGS[k].value for k in tf.flags.FLAGS})
 
 
-class NoConstGuaranteeScopeTest(tf.test.TestCase):
+class NoConstGuaranteeScopeTest(test_utils.TestCase):
 
   def testNoConsting(self):
     with inference_graph_exporter.ConstGuaranteeScope():
@@ -272,7 +272,7 @@ class LinearModelTpuParamsWithEma(base_model_params.SingleTaskModelParams):
     return p
 
 
-class InferenceGraphExporterLinearModelTest(tf.test.TestCase):
+class InferenceGraphExporterLinearModelTest(test_utils.TestCase):
 
   def testExport(self):
     """Test basic export."""

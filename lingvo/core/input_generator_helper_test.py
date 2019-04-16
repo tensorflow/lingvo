@@ -21,12 +21,12 @@ from __future__ import print_function
 import numpy as np
 from six.moves import range
 import tensorflow as tf
-
 from tensorflow.python.framework import ops
 from lingvo.core import input_generator_helper
+from lingvo.core import test_utils
 
 
-class InputGeneratorHelperTest(tf.test.TestCase):
+class InputGeneratorHelperTest(test_utils.TestCase):
 
   def testComputeSplitsLessThanNumSplits(self):
     with self.session(use_gpu=False) as sess:

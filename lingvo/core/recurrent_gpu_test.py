@@ -20,12 +20,12 @@ from __future__ import print_function
 
 
 import tensorflow as tf
-
 from lingvo.core import py_utils
 from lingvo.core import recurrent
+from lingvo.core import test_utils
 
 
-class RecurrentGpuTest(tf.test.TestCase):
+class RecurrentGpuTest(test_utils.TestCase):
 
   def testRecurrent(self):
     """Run on GPU locally with --test_output=streamed --config=cuda."""

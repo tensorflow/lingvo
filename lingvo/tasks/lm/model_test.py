@@ -30,7 +30,7 @@ from lingvo.tasks.lm import input_generator
 from lingvo.tasks.lm import model
 
 
-class ModelTest(tf.test.TestCase):
+class ModelTest(test_utils.TestCase):
 
   def _InputParams(self, for_training):
     p = input_generator.LmInput.Params()

@@ -19,10 +19,10 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-
-from lingvo.core import base_model
 from lingvo.core import base_input_generator
+from lingvo.core import base_model
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 
 
 def _StubOutCreateVariable(variable_cache):
@@ -66,7 +66,7 @@ def _StubOutCreateVariable(variable_cache):
   py_utils.CreateVariable = _CreateVariableStub
 
 
-class BaseModelsTest(tf.test.TestCase):
+class BaseModelsTest(test_utils.TestCase):
   """Base model test class which does not define any test methods of its own."""
 
   def setUp(self):

@@ -17,5 +17,6 @@ py_test(
     deps = [
         ":simple_wer",
         # Implicit tensorflow dependency.
+        "//lingvo/core:test_utils",
     ],
 )

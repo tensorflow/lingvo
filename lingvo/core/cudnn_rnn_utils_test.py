@@ -23,10 +23,10 @@ import os
 
 from six.moves import zip
 import tensorflow as tf
-
 from tensorflow.contrib.cudnn_rnn.python.ops import cudnn_rnn_ops
 from tensorflow.python.training import saver as saver_lib
 from lingvo.core import cudnn_rnn_utils
+from lingvo.core import test_utils
 
 UNIDIR = cudnn_rnn_ops.CUDNN_RNN_UNIDIRECTION
 BIDIR = cudnn_rnn_ops.CUDNN_RNN_BIDIRECTION
@@ -35,7 +35,7 @@ CUDNN_LSTM = cudnn_rnn_ops.CUDNN_LSTM
 CUDNN_LSTM_PARAMS_PER_LAYER = cudnn_rnn_ops.CUDNN_LSTM_PARAMS_PER_LAYER
 
 
-class CuDNNRNNUtilsTest(tf.test.TestCase):
+class CuDNNRNNUtilsTest(test_utils.TestCase):
 
   def testCuDNNInitializerWrapper(self):
     if not tf.test.is_gpu_available(cuda_only=True):
@@ -64,7 +64,7 @@ class CuDNNRNNUtilsTest(tf.test.TestCase):
         self.assertAllClose(expected, actual)
 
 
-class CuDNNLSTMSaveableTest(tf.test.TestCase):
+class CuDNNLSTMSaveableTest(test_utils.TestCase):
 
   def testSaveRestoreUnidi(self):
     if not tf.test.is_gpu_available(cuda_only=True):

@@ -20,11 +20,11 @@ from __future__ import print_function
 
 from six.moves import range
 import tensorflow as tf
-
 from lingvo.core import metrics
+from lingvo.core import test_utils
 
 
-class MetricsTest(tf.test.TestCase):
+class MetricsTest(test_utils.TestCase):
 
   def testAverageMetric(self):
     m = metrics.AverageMetric()

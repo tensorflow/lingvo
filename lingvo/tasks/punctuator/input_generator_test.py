@@ -20,13 +20,13 @@ from __future__ import print_function
 
 import string
 import tensorflow as tf
-
 from lingvo.core import py_utils
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 from lingvo.tasks.punctuator import input_generator
 
 
-class InputGeneratorTest(tf.test.TestCase):
+class InputGeneratorTest(test_utils.TestCase):
 
   def _CreatePunctuatorInputParams(self):
     p = input_generator.PunctuatorInput.Params()

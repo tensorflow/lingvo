@@ -22,7 +22,7 @@ import tensorflow as tf
 from lingvo.core import test_utils
 
 
-class TestUtilsTest(tf.test.TestCase):
+class TestUtilsTest(test_utils.TestCase):
 
   def testReplaceGoldenSingleFloat(self):
     old_line = '      CompareToGoldenSingleFloat(self, 1.489712, vs[0])\n'

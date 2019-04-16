@@ -23,12 +23,12 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-
 from tensorflow.python.framework import function
 
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
+from lingvo.core import test_utils
 
 
 class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
@@ -97,7 +97,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     return out
 
 
-class QuantizableLayerTest(tf.test.TestCase):
+class QuantizableLayerTest(test_utils.TestCase):
   # pyformat: disable
   NO_QDOMAIN_EXPECTED = [
    [[ 0.00071405, -0.03868543, -0.01999986, -0.00994987],

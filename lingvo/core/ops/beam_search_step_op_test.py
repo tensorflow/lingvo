@@ -21,15 +21,15 @@ from __future__ import print_function
 import numpy as np
 from six.moves import zip
 import tensorflow as tf
-
 from google.protobuf import text_format
+from lingvo.core import test_utils
 from lingvo.core.ops import hyps_pb2
 from lingvo.core.ops import py_x_ops
 
 _MIN_SCORE = -1e36
 
 
-class BeamSearchOpTest(tf.test.TestCase):
+class BeamSearchOpTest(test_utils.TestCase):
 
   def setUp(self):
     super(BeamSearchOpTest, self).setUp()

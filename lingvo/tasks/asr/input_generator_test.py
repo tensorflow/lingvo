@@ -23,6 +23,7 @@ import numpy as np
 from six.moves import range
 
 import tensorflow as tf
+from lingvo.core import test_utils
 
 from lingvo.tasks.asr import input_generator
 
@@ -65,7 +66,7 @@ def _LookupNested(nm, nested_key):
   return val
 
 
-class InputTest(tf.test.TestCase):
+class InputTest(test_utils.TestCase):
 
   def _GenerateExamples(self, output_filepath):
     example_def = [('utt1', (1234, 'HELLO WORLD')),

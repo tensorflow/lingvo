@@ -20,12 +20,13 @@ from __future__ import print_function
 
 from six.moves import range
 import tensorflow as tf
+from lingvo.core import test_utils
 from lingvo.core.ops import py_x_ops
 
 FLAGS = tf.flags.FLAGS
 
 
-class RandomOpsTest(tf.test.TestCase):
+class RandomOpsTest(test_utils.TestCase):
 
   def testRandomPermutationSequenceRepeat(self):
     with self.session() as sess:

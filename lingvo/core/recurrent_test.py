@@ -94,7 +94,7 @@ class _SampleAccumulatorLayer(base_layer.BaseLayer):
     self.RegisterAccumulator(self.accumulator_name, _IncrementAccumulator())
 
 
-class RecurrentTest(tf.test.TestCase):
+class RecurrentTest(test_utils.TestCase):
 
   def testBasic(self):
 

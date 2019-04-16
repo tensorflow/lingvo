@@ -26,10 +26,11 @@ import numpy as np
 from six.moves import range
 
 import tensorflow as tf
+from lingvo.core import test_utils
 from lingvo.core.ops import py_x_ops
 
 
-class GenericInputOpTest(tf.test.TestCase):
+class GenericInputOpTest(test_utils.TestCase):
 
   def get_test_input(self, path, **kwargs):
     return py_x_ops.generic_input(

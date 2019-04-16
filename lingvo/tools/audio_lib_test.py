@@ -22,8 +22,8 @@ from __future__ import print_function
 import os
 
 import tensorflow as tf
-
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 from lingvo.tools import audio_lib
 
 # The testdata contains: (soxi .../gan_or_vae.wav)
@@ -33,7 +33,7 @@ from lingvo.tools import audio_lib
 # Duration       : 00:00:03.16 = 75900 samples ~ 237.188 CDDA sectors
 
 
-class AudioLibTest(tf.test.TestCase):
+class AudioLibTest(test_utils.TestCase):
 
   def testDecodeFlacToWav(self):
     with open(

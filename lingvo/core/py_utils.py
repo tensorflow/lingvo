@@ -30,7 +30,6 @@ import six
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
-
 from tensorflow.contrib.model_pruning.python.layers import core_layers as pruning_layers
 from tensorflow.contrib.tpu.python.tpu import tpu
 from tensorflow.contrib.tpu.python.tpu import tpu_function

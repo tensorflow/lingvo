@@ -25,8 +25,8 @@ import tempfile
 import numpy as np
 
 import tensorflow as tf
-
 from lingvo.core import base_input_generator
+from lingvo.core import test_utils
 
 
 def _CreateFakeTFRecordFiles(record_count=10):
@@ -51,7 +51,7 @@ class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):
     return {'audio': tf.FixedLenFeature([48000], tf.float32)}
 
 
-class BaseExampleInputGeneratorTest(tf.test.TestCase):
+class BaseExampleInputGeneratorTest(test_utils.TestCase):
 
   def setUp(self):
     tf.reset_default_graph()

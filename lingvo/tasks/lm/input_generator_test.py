@@ -20,12 +20,12 @@ from __future__ import print_function
 
 import os
 import tensorflow as tf
-
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 from lingvo.tasks.lm import input_generator
 
 
-class InputGeneratorTest(tf.test.TestCase):
+class InputGeneratorTest(test_utils.TestCase):
 
   def _InputParams(self):
     p = input_generator.LmInput.Params()

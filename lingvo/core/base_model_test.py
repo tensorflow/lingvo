@@ -23,7 +23,6 @@ import six
 from six.moves import range
 
 import tensorflow as tf
-
 from lingvo.core import base_decoder
 from lingvo.core import base_encoder
 from lingvo.core import base_input_generator
@@ -34,13 +33,14 @@ from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import task_scheduler
+from lingvo.core import test_utils
 
 FLAGS = tf.flags.FLAGS
 
 _NUMPY_RANDOM_SEED = 9885784
 
 
-class BaseTaskTest(tf.test.TestCase):
+class BaseTaskTest(test_utils.TestCase):
 
   def testStatsCounter(self):
     with self.session() as sess:
@@ -268,7 +268,7 @@ class DistillationTestTask(base_model.DistillationTask):
     return {'loss': (predictions.teacher - predictions.student, 1)}, {}
 
 
-class DistillationTaskTest(tf.test.TestCase):
+class DistillationTaskTest(test_utils.TestCase):
 
   def testFProp(self):
     p = DistillationTestTask.Params()
@@ -315,7 +315,7 @@ class DistillationTaskTest(tf.test.TestCase):
             self.assertNotAlmostEqual(values_before_training[child][k], v)
 
 
-class SingleTaskModelTest(tf.test.TestCase):
+class SingleTaskModelTest(test_utils.TestCase):
 
   def testInit(self):
     p = base_model.SingleTaskModel.Params()
@@ -345,7 +345,7 @@ class SingleTaskModelTest(tf.test.TestCase):
       self.assertIsNone(model.ema.average(mean))
 
 
-class MultiTaskModelTest(tf.test.TestCase):
+class MultiTaskModelTest(test_utils.TestCase):
 
   def testInit(self):
     p = base_model.MultiTaskModel.Params()

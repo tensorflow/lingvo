@@ -20,12 +20,12 @@ from __future__ import print_function
 
 import math
 import tensorflow as tf
-
 from lingvo.core import scorers
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 
 
-class BleuScorerTest(tf.test.TestCase):
+class BleuScorerTest(test_utils.TestCase):
 
   def testNGrams(self):
     words = 'a b c d e'.split(' ')

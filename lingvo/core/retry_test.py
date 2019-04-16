@@ -20,9 +20,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 from lingvo.core import retry
+from lingvo.core import test_utils
 
 
-class RetryTest(tf.test.TestCase):
+class RetryTest(test_utils.TestCase):
 
   def testRetry(self):
 

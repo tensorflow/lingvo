@@ -20,12 +20,12 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-
 from lingvo.core import py_utils
 from lingvo.core import target_sequence_sampler
+from lingvo.core import test_utils
 
 
-class TargetSequenceSamplerTest(tf.test.TestCase):
+class TargetSequenceSamplerTest(test_utils.TestCase):
 
   def testTargetSequenceSampler(self):
     with self.session(use_gpu=False) as sess:

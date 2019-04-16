@@ -18,12 +18,12 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 from lingvo.tasks.mt import encoder
 
 
-class EncoderTest(tf.test.TestCase):
+class EncoderTest(test_utils.TestCase):
 
   def _EncoderParams(self):
     p = encoder.MTEncoderV1.Params()
@@ -229,7 +229,7 @@ class EncoderTest(tf.test.TestCase):
       self.assertAllClose(expected_enc_out, actual_enc_out)
 
 
-class TransformerEncoderTest(tf.test.TestCase):
+class TransformerEncoderTest(test_utils.TestCase):
 
   def _EncoderParams(self):
     p = encoder.TransformerEncoder.Params()

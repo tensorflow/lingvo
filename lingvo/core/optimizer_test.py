@@ -21,13 +21,13 @@ from __future__ import print_function
 import numpy as np
 
 import tensorflow as tf
-
 from lingvo.core import layers
 from lingvo.core import optimizer
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 
 
-class OptimizerTest(tf.test.TestCase):
+class OptimizerTest(test_utils.TestCase):
 
   def testAccumulator(self):
     # testAccumulator compares

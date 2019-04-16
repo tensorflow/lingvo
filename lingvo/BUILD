@@ -79,6 +79,8 @@ py_library(
         # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:test_utils",
     ],
 )
 
@@ -120,6 +122,7 @@ py_library(
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
+        "//lingvo/core:test_utils",
     ],
 )
 
@@ -190,6 +193,7 @@ py_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
+        "//lingvo/core:test_utils",
         "//lingvo/core:trainer_test_utils",
         "//lingvo/tasks/image:input_generator",
         "//lingvo/tasks/image/params:mnist",

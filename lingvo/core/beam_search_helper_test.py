@@ -20,12 +20,12 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-
 from lingvo.core import beam_search_helper
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 
 
-class BeamSearchHelperTest(tf.test.TestCase):
+class BeamSearchHelperTest(test_utils.TestCase):
 
   # TODO(yonghui): Add more thorough tests.
   def testBeamSearchHelper(self):
@@ -95,7 +95,7 @@ class BeamSearchHelperTest(tf.test.TestCase):
       self.assertAllClose(expected_topk_scores, topk_scores)
 
 
-class MergeBeamSearchOutputsTest(tf.test.TestCase):
+class MergeBeamSearchOutputsTest(test_utils.TestCase):
 
   def testMergeBeamSearchOutputs(self):
     with self.session():

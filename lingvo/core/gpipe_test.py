@@ -19,9 +19,9 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 from lingvo.core.gpipe import FeatureExtractionLayer
 from lingvo.core.gpipe import PipeliningLayer
 from lingvo.core.layers import Conv2DLayerNoPadding
@@ -123,7 +123,7 @@ def _BuildDummyPipelineCnn(num_splits=4, num_micro_batches=8):
   return layer
 
 
-class DummyPipelineCnnTest(tf.test.TestCase):
+class DummyPipelineCnnTest(test_utils.TestCase):
 
   def _verify_timestep_counts(self, num_splits):
     num_micro_batches = 8

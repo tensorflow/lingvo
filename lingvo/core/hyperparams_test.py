@@ -23,6 +23,7 @@ import re
 
 import tensorflow as tf
 from lingvo.core import hyperparams as _params
+from lingvo.core import test_utils
 
 FLAGS = tf.flags.FLAGS
 
@@ -37,7 +38,7 @@ class TestClass2(object):
   pass
 
 
-class ParamsTest(tf.test.TestCase):
+class ParamsTest(test_utils.TestCase):
 
   def testEquals(self):
     params1 = _params.Params()

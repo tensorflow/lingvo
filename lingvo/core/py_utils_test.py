@@ -32,12 +32,13 @@ from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 from lingvo.tasks.image.params import mnist  # pylint: disable=unused-import
 
 FLAGS = tf.flags.FLAGS
 
 
-class PyUtilsTest(tf.test.TestCase):
+class PyUtilsTest(test_utils.TestCase):
 
   def testIsDefaultParamInit(self):
     p = py_utils.DefaultParamInit()
@@ -807,7 +808,7 @@ class PyUtilsTest(tf.test.TestCase):
       self.assertAllEqual(stacked.z.a, tf.constant([[1, 2], [10, 20]]))
 
 
-class DeterministicDropoutTest(tf.test.TestCase):
+class DeterministicDropoutTest(test_utils.TestCase):
 
   def testDeterministicDropoutTest(self):
     x = tf.ones([4, 6], dtype=tf.float32)
@@ -826,7 +827,7 @@ class DeterministicDropoutTest(tf.test.TestCase):
       self.assertEqual(x_val.dtype, np.float32)
 
 
-class WeightedAvgTest(tf.test.TestCase):
+class WeightedAvgTest(test_utils.TestCase):
 
   def testWeightedAvg(self):
     with self.session(use_gpu=False) as sess:
@@ -904,7 +905,7 @@ class WeightedAvgTest(tf.test.TestCase):
       py_utils.CombineMetrics([(a, 0.7), (b, 0.3), (c, 1.5)])
 
 
-class OverrideVarsFromCheckpointsTest(tf.test.TestCase):
+class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
 
   def _GetLeNetVarsFirstVal(self, sess):
     with tf.variable_scope('lenet5', reuse=True):
@@ -965,7 +966,7 @@ class OverrideVarsFromCheckpointsTest(tf.test.TestCase):
           [0.043092, -0.036722, 0.0])
 
 
-class NestedMapTest(tf.test.TestCase):
+class NestedMapTest(test_utils.TestCase):
 
   def testBasic(self):
     x = py_utils.NestedMap()
@@ -1137,7 +1138,7 @@ class NestedMapTest(tf.test.TestCase):
     self.assertEqual('z', y.c.d)
 
 
-class ReadOnlyAttrDictViewTest(tf.test.TestCase):
+class ReadOnlyAttrDictViewTest(test_utils.TestCase):
 
   def testWrapping(self):
     backing = dict()
@@ -1164,7 +1165,7 @@ class ReadOnlyAttrDictViewTest(tf.test.TestCase):
     self.assertEquals(1, view['test'])
 
 
-class PadSequenceDimensionTest(tf.test.TestCase):
+class PadSequenceDimensionTest(test_utils.TestCase):
 
   def testPadSequenceDimension_2D(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
@@ -1227,7 +1228,7 @@ class PadSequenceDimensionTest(tf.test.TestCase):
                         (32, 3, 4, 5))
 
 
-class PadOrTrimToTest(tf.test.TestCase):
+class PadOrTrimToTest(test_utils.TestCase):
 
   def test2DConstantShape(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
@@ -1288,7 +1289,7 @@ class PadOrTrimToTest(tf.test.TestCase):
       self.assertAllClose(expected_x, real_x)
 
 
-class ApplyPaddingTest(tf.test.TestCase):
+class ApplyPaddingTest(test_utils.TestCase):
 
   def testApplyPaddingToZeroWithBroadcast(self):
     with self.session():
@@ -1329,7 +1330,7 @@ class ApplyPaddingTest(tf.test.TestCase):
       self.assertAllClose(y, [[1.0, 2.0], [0.0, 4.0], [5.0, 0.0]])
 
 
-class TrimTrailingPaddingsTest(tf.test.TestCase):
+class TrimTrailingPaddingsTest(test_utils.TestCase):
 
   def test2D(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
@@ -1418,7 +1419,7 @@ class TrimTrailingPaddingsTest(tf.test.TestCase):
       self.assertAllEqual(padding[:, :1], trimmed_padding)
 
 
-class ReversePaddedSequenceTest(tf.test.TestCase):
+class ReversePaddedSequenceTest(test_utils.TestCase):
 
   def testReversePaddedSequence(self):
     with self.session(use_gpu=False):
@@ -1439,7 +1440,7 @@ class ReversePaddedSequenceTest(tf.test.TestCase):
       self.assertAllClose(expected_output, actual_output)
 
 
-class RetryTest(tf.test.TestCase):
+class RetryTest(test_utils.TestCase):
 
   def testRetry(self):
     max_retries = 5
@@ -1459,7 +1460,7 @@ class RetryTest(tf.test.TestCase):
     self.assertEqual(1 + max_retries, state['count'])
 
 
-class MixByWeightTest(tf.test.TestCase):
+class MixByWeightTest(test_utils.TestCase):
 
   def testMixByWeight(self):
     var_a = tf.get_variable('a', trainable=False, initializer=0)
@@ -1537,7 +1538,7 @@ class MixByWeightTest(tf.test.TestCase):
       self.assertAllClose(np.array([0, 1]), np.squeeze(bprop_v))
 
 
-class SequencesToDebugStrings(tf.test.TestCase):
+class SequencesToDebugStrings(test_utils.TestCase):
 
   def testSequencesToDebugStrings(self):
     with self.session():
@@ -1548,7 +1549,7 @@ class SequencesToDebugStrings(tf.test.TestCase):
                               tf.constant([3, 2], dtype=tf.int32)).eval())
 
 
-class StepSeedTest(tf.test.TestCase):
+class StepSeedTest(test_utils.TestCase):
 
   def _testStepSeedHelper(self, sess, step_fn, expected_starting_step_seed):
     state0 = py_utils.NestedMap(
@@ -1610,7 +1611,7 @@ class StepSeedTest(tf.test.TestCase):
         self._testStepSeedHelper(sess, RecurrentStep2, 1169426261)
 
 
-class WeightInitTest(tf.test.TestCase):
+class WeightInitTest(test_utils.TestCase):
 
   def testUniformPositive(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
@@ -1655,7 +1656,7 @@ class WeightInitTest(tf.test.TestCase):
       self.assertTrue(np.all(var_v <= bound))
 
 
-class RNNCellStateInitTest(tf.test.TestCase):
+class RNNCellStateInitTest(test_utils.TestCase):
 
   def testZeros(self):
     with self.session(use_gpu=False, graph=tf.Graph()):

@@ -29,7 +29,7 @@ from lingvo.tasks.lm import layers as lm_layers
 FLAGS = tf.flags.FLAGS
 
 
-class RnnLmNoEmbeddingTest(tf.test.TestCase):
+class RnnLmNoEmbeddingTest(test_utils.TestCase):
 
   def _testParams(self, dims, vocab):
     p = lm_layers.RnnLmNoEmbedding.Params()
@@ -218,7 +218,7 @@ class RnnLmNoEmbeddingTest(tf.test.TestCase):
       self.assertAllEqual(combined_c_state[2], state1_val.rnn[0].c[2])
 
 
-class RnnLmTest(tf.test.TestCase):
+class RnnLmTest(test_utils.TestCase):
 
   def testBasic(self):
     time, batch, dims, vocab = 5, 3, 6, 8
@@ -356,7 +356,7 @@ class RnnLmTest(tf.test.TestCase):
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
 
-class ConditionalRnnLmTest(tf.test.TestCase):
+class ConditionalRnnLmTest(test_utils.TestCase):
 
   def testBasic(self):
     time, batch, dims, vocab, condition_dim = 5, 3, 6, 8, 7
@@ -506,7 +506,7 @@ class ConditionalRnnLmTest(tf.test.TestCase):
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
 
-class MoeLmTest(tf.test.TestCase):
+class MoeLmTest(test_utils.TestCase):
 
   def _MoeLmParams(self, vocab, shared_emb, add_postgating_rnn=True):
     p = lm_layers.MoeLm.Params()
@@ -648,7 +648,7 @@ class MoeLmTest(tf.test.TestCase):
             grad_numeric.reshape([-1])[::step])
 
 
-class TransformerLmNoEmbeddingTest(tf.test.TestCase):
+class TransformerLmNoEmbeddingTest(test_utils.TestCase):
 
   def _testParams(self, dtype=tf.float32):
     model_dim, hidden_dim, vocab_size = 4, 6, 8
@@ -745,7 +745,7 @@ class TransformerLmNoEmbeddingTest(tf.test.TestCase):
       self.assertAllClose(logits1_v, logits2_v)
 
 
-class TransformerLmTest(tf.test.TestCase):
+class TransformerLmTest(test_utils.TestCase):
 
   def testBasic(self):
     time, batch, dims, hidden_dim, vocab = 5, 3, 6, 4, 8
@@ -884,7 +884,7 @@ class TransformerLmTest(tf.test.TestCase):
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
 
-class GPipeTransformerLmNoEmbeddingTest(tf.test.TestCase):
+class GPipeTransformerLmNoEmbeddingTest(test_utils.TestCase):
 
   def _testParams(self, dtype=tf.float32):
     model_dim, hidden_dim, vocab_size = 4, 6, 8
@@ -956,7 +956,7 @@ class GPipeTransformerLmNoEmbeddingTest(tf.test.TestCase):
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
 
-class GPipeTransformerLmTest(tf.test.TestCase):
+class GPipeTransformerLmTest(test_utils.TestCase):
 
   def _testParams(self, batch, dims, hidden_dim, vocab):
     p = lm_layers.GPipeTransformerLm.Params()

@@ -21,16 +21,16 @@ import numpy as np
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
-
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 from lingvo.tasks.mt import layers as mt_layers
 
 
 NUMPY_RANDOM_SEED = 505837249
 
 
-class LayersTest(tf.test.TestCase):
+class LayersTest(test_utils.TestCase):
 
   def _TransformerParams(self, is_eval=False, layer=mt_layers.TransformerStack):
     model_dim = 2

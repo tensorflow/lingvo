@@ -21,10 +21,11 @@ from __future__ import print_function
 
 import tensorflow as tf
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 from lingvo.core.ops import py_x_ops
 
 
-class TokenizerOpsTest(tf.test.TestCase):
+class TokenizerOpsTest(test_utils.TestCase):
 
   def testLabelsToTokenId(self):
     with self.session(use_gpu=False) as sess:

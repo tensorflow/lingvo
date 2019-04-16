@@ -26,7 +26,7 @@ from lingvo.core import py_utils
 from lingvo.core import test_utils
 
 
-class ConvLayerTest(tf.test.TestCase):
+class ConvLayerTest(test_utils.TestCase):
   """Tests conv layers.
 
   Note that there are multiple subclasses of BaseConv2DLayer and most cases

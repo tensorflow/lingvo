@@ -24,12 +24,29 @@ import re
 import numpy as np
 from six.moves import range
 import tensorflow as tf
+from lingvo.core import py_utils
 
 tf.flags.DEFINE_boolean(
     'update_goldens', False,
     'Update the goldens, rather than diffing against them.')
 
 FLAGS = tf.flags.FLAGS
+
+
+class TestCase(tf.test.TestCase):
+  """TestCase that performs Lingvo-specific setup."""
+
+  def setUp(self):
+    super(TestCase, self).setUp()
+    # Ensure the global_step variable is created in the default graph.
+    py_utils.GetGlobalStep()
+
+  def _create_session(self, *args, **kwargs):
+    sess = super(TestCase, self)._create_session(*args, **kwargs)
+    with sess.graph.as_default():
+      # Ensure the global_step variable is created in every new session.
+      py_utils.GetGlobalStep()
+    return sess
 
 
 def _ReplaceOneLineInFile(fpath, linenum, old, new):

@@ -18,13 +18,14 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from lingvo.core import test_utils
 
 from lingvo.tasks.asr import decoder_utils
 
 FLAGS = tf.flags.FLAGS
 
 
-class DecoderUtilsTokenizeTest(tf.test.TestCase):
+class DecoderUtilsTokenizeTest(test_utils.TestCase):
 
   def testTokenize(self):
     s = "onetoken"
@@ -38,7 +39,7 @@ class DecoderUtilsTokenizeTest(tf.test.TestCase):
                      decoder_utils.Tokenize(s))
 
 
-class DecoderUtilsComputeWerTest(tf.test.TestCase):
+class DecoderUtilsComputeWerTest(test_utils.TestCase):
 
   def testInvalidInputsExtraHyps(self):
     with self.session():
@@ -94,7 +95,7 @@ class DecoderUtilsComputeWerTest(tf.test.TestCase):
       self.assertAllEqual(wer.eval(), [[1, 2], [1, 2]])
 
 
-class DecoderUtilsFilterTest(tf.test.TestCase):
+class DecoderUtilsFilterTest(test_utils.TestCase):
 
   def testFilterEpsilon(self):
     s = "no epsilon"
@@ -112,7 +113,7 @@ class DecoderUtilsFilterTest(tf.test.TestCase):
     self.assertEqual("noise tokens are removed", decoder_utils.FilterNoise(s))
 
 
-class DecoderUtilsEditDistanceTest(tf.test.TestCase):
+class DecoderUtilsEditDistanceTest(test_utils.TestCase):
 
   def testEditDistance1(self):
     ref = "a b c d e f g h"

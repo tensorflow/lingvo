@@ -21,15 +21,15 @@ from __future__ import print_function
 from absl.testing import parameterized
 import numpy as np
 import tensorflow as tf
-
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 from lingvo.core.layers_with_gpipe import GPipeEvolvedTransformerDecoderLayer
 from lingvo.core.layers_with_gpipe import GPipeEvolvedTransformerEncoderLayer
 from lingvo.core.layers_with_gpipe import GPipeTransformerLayer
 from lingvo.core.layers_with_gpipe import GPipeTransformerStack
 
 
-class GPipeTransformerLayersTest(tf.test.TestCase):
+class GPipeTransformerLayersTest(test_utils.TestCase):
 
   def _testInputs(self, depth=3, dtype=tf.float32):
     np.random.seed(505837249)
@@ -227,7 +227,7 @@ class GPipeTransformerLayersTest(tf.test.TestCase):
       self.assertAllClose(h1_v, h2_v)
 
 
-class GPipeTransformerStackTest(tf.test.TestCase, parameterized.TestCase):
+class GPipeTransformerStackTest(test_utils.TestCase, parameterized.TestCase):
   """Tests for GPipeTransformerStack layer."""
 
   def _TransformerParams(self,

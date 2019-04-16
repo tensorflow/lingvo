@@ -61,7 +61,7 @@ def AddTimestepAccumulator(layer):
   layer.RegisterAccumulator('ts_count', TimestepAccumulator())
 
 
-class LayersTestBase(tf.test.TestCase):
+class LayersTestBase(test_utils.TestCase):
 
   def _testStackedFRNNHelper(self,
                              cls,

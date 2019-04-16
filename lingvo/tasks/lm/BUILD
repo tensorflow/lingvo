@@ -32,6 +32,7 @@ py_test(
         ":input_generator",
         # Implicit tensorflow dependency.
         "//lingvo/core:test_helper",
+        "//lingvo/core:test_utils",
     ],
 )
 

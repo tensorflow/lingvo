@@ -20,15 +20,15 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-
 from lingvo.core import attention
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
 
 
-class LayersWithAttentionTest(tf.test.TestCase):
+class LayersWithAttentionTest(test_utils.TestCase):
 
   def testTransformerFeedForwardLayer(self):
     with self.session(use_gpu=True) as sess:

@@ -20,9 +20,10 @@ from __future__ import print_function
 
 import tensorflow as tf
 from lingvo.core import base_model_params
+from lingvo.core import test_utils
 
 
-class BaseModelParamsTest(tf.test.TestCase):
+class BaseModelParamsTest(test_utils.TestCase):
 
   def testGetDatasetParams_SingleTaskModelParams(self):
     dummy_model = base_model_params.SingleTaskModelParams

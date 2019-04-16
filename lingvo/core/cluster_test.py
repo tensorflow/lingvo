@@ -22,12 +22,12 @@ import numpy as np
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
-
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 
 
-class ClusterTest(tf.test.TestCase):
+class ClusterTest(test_utils.TestCase):
 
   def testDefaultParams(self):
     p = cluster_factory.Cluster.Params()

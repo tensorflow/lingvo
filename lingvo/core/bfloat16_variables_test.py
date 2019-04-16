@@ -21,9 +21,10 @@ from __future__ import print_function
 import os
 import tensorflow as tf
 from lingvo.core import bfloat16_variables
+from lingvo.core import test_utils
 
 
-class Bfloat16VariablesTest(tf.test.TestCase):
+class Bfloat16VariablesTest(test_utils.TestCase):
 
   def testBfloat16Reload(self):
     checkpoint_path = os.path.join(self.get_temp_dir(), "bfloat16_restore")

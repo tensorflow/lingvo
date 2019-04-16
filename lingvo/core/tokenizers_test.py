@@ -22,12 +22,12 @@ from __future__ import print_function
 import numpy as np
 
 import tensorflow as tf
-
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 from lingvo.core import tokenizers
 
 
-class TokenizersTest(tf.test.TestCase):
+class TokenizersTest(test_utils.TestCase):
 
   def testStringsTokenId(self):
     p = tokenizers.WpmTokenizer.Params()

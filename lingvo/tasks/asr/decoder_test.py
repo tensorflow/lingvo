@@ -36,7 +36,7 @@ from lingvo.tasks.asr import decoder
 FLAGS = tf.flags.FLAGS
 
 
-class DecoderTest(tf.test.TestCase):
+class DecoderTest(test_utils.TestCase):
 
   def _DecoderParams(self,
                      vn_config,

@@ -27,6 +27,7 @@ py_test(
         # Implicit tensorflow dependency.
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
+        "//lingvo/core:test_utils",
     ],
 )
 
@@ -52,8 +53,7 @@ py_test(
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:py_utils",
-        "//lingvo/core:test_helper",
+        "//lingvo/core:test_utils",
     ],
 )
 
@@ -113,6 +113,7 @@ py_test(
     deps = [
         ":decoder_utils",
         # Implicit tensorflow dependency.
+        "//lingvo/core:test_utils",
     ],
 )
 

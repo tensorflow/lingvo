@@ -20,12 +20,13 @@ from __future__ import print_function
 
 import tensorflow as tf
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 from lingvo.core.ops import py_x_ops
 
 FLAGS = tf.flags.FLAGS
 
 
-class BestStepOp(tf.test.TestCase):
+class BestStepOp(test_utils.TestCase):
 
   def _HistFile(self):
     return test_helper.test_src_dir_path('core/ops/testdata/history.txt')

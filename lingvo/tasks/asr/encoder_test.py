@@ -24,7 +24,7 @@ from lingvo.core import test_utils
 from lingvo.tasks.asr import encoder
 
 
-class EncoderTest(tf.test.TestCase):
+class EncoderTest(test_utils.TestCase):
 
   def _EncoderParams(self, vn_config):
     p = encoder.AsrEncoder.Params()

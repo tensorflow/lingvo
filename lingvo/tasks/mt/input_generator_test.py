@@ -21,13 +21,13 @@ from __future__ import print_function
 import numpy as np
 from six.moves import range
 import tensorflow as tf
-
 from lingvo.core import py_utils
 from lingvo.core import test_helper
+from lingvo.core import test_utils
 from lingvo.tasks.mt import input_generator
 
 
-class InputTest(tf.test.TestCase):
+class InputTest(test_utils.TestCase):
 
   def _CreateNmtInputParams(self):
     p = input_generator.NmtInput.Params()
