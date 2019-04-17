@@ -68,9 +68,9 @@ tf.flags.DEFINE_bool(
     'If True, enter interactive IPython for the controller job.')
 
 tf.flags.DEFINE_string(
-    'run_locally', None,
-    'If True, ignores flags below and runs controller and trainer '
-    'in the single process.')
+    'run_locally', '',
+    'Can be empty, cpu, or gpu. If not empty, ignores cluster configuration '
+    'flags and runs controller and trainer in a single local process.')
 
 tf.flags.DEFINE_string('tf_master', '', 'TF runtime.')
 tf.flags.DEFINE_string(
