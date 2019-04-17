@@ -39,8 +39,7 @@ class OptimizerTest(test_utils.TestCase):
     np.random.seed(12346)
     np_input2 = np.random.normal(0.1, 0.5, [2, 4, 3])
 
-    g1 = tf.Graph()
-    with g1.as_default():
+    with self.session(use_gpu=True, graph=tf.Graph()) as sess:
       tf.set_random_seed(123456)
       params = layers.ProjectionLayer.Params()
       params.name = 'proj'
@@ -70,10 +69,8 @@ class OptimizerTest(test_utils.TestCase):
         with tf.control_dependencies([var_update_op1]):
           var_update_op2 = opt.Apply(
               lr, py_utils.ApplyGradMultiplier(var_grads2, 1. / 2.))
-      init_op = tf.global_variables_initializer()
 
-    with self.session(use_gpu=True, graph=g1) as sess:
-      sess.run(init_op)
+      sess.run(tf.global_variables_initializer())
       vars1 = sess.run(proj_layer.vars.Flatten())
       loss1_1, grads1_1, loss1_2, grads1_2 = sess.run(
           [loss1, var_grads1, loss2, var_grads2],
@@ -88,8 +85,7 @@ class OptimizerTest(test_utils.TestCase):
           })
       vars1_1 = sess.run(proj_layer.vars.Flatten())
 
-    g2 = tf.Graph()
-    with g2.as_default():
+    with self.session(use_gpu=True, graph=tf.Graph()) as sess:
       tf.set_random_seed(123456)
       params = layers.ProjectionLayer.Params()
       params.name = 'proj'
@@ -110,11 +106,10 @@ class OptimizerTest(test_utils.TestCase):
       opt = op.cls(op)
       lr = 1e-1
       var_update_op = opt.Apply(lr, var_grads)
-      init_op = tf.global_variables_initializer()
       global_step = py_utils.GetGlobalStep()
       increment_global_step_op = tf.assign_add(global_step, 1)
-    with self.session(use_gpu=True, graph=g2) as sess:
-      sess.run(init_op)
+
+      sess.run(tf.global_variables_initializer())
       vars2, global_step = sess.run([proj_layer.vars.Flatten(), global_step])
       loss2_1, grads2_1 = sess.run(
           [loss, var_grads], feed_dict={

@@ -2991,8 +2991,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
   })
   def testBatchNormLayerNoPaddingAccumulators(self, splits):
     batch_size = 1024
-    g = tf.Graph()
-    with g.as_default():
+    with self.session(graph=tf.Graph()) as sess:
       # Construct a network where loss = w * x + b
       global_step = py_utils.GetGlobalStep()
       inputs = tf.concat([
@@ -3018,7 +3017,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
         means.append(net.accumulators.mean_ss.GetValue())
         variances.append(net.accumulators.variance_ss.GetValue())
       post_training_step_updates = net.PostTrainingStepUpdate(global_step)
-    with self.session(graph=g) as sess:
+
       sess.run(tf.global_variables_initializer())
       _, count_vals, mean_vals, var_vals = sess.run(
           [grads, counts, means, variances])

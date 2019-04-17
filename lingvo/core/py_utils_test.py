@@ -332,13 +332,10 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertAllEqual(x.eval(), [[1, 2], [3, 4]])
 
   def testSave(self):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session() as sess:
       x = tf.constant([[1, 2], [3, 4]])
       y = tf.constant([10] * 4)
       x = py_utils.Save(x, '%s/test' % self.get_temp_dir(), x=x, y=y)
-
-    with self.session(graph=g) as sess:
       sess.run(tf.global_variables_initializer())
       self.assertAllEqual(sess.run(x), [[1, 2], [3, 4]])
 
@@ -416,14 +413,14 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertTrue(v1 is v)
     self.assertTrue(v1 is not x1)
 
-  def testGetGlobalStep(self):
+  def testGetOrCreateGlobalStepVar(self):
     with tf.variable_scope('s1'):
       with tf.name_scope('s2'):
-        gs1 = py_utils.GetGlobalStep()
+        gs1 = py_utils.GetOrCreateGlobalStepVar()
         gs2 = tf.train.get_global_step()
-      gs3 = py_utils.GetGlobalStep()
+      gs3 = py_utils.GetOrCreateGlobalStepVar()
       gs4 = tf.train.get_global_step()
-    gs5 = py_utils.GetGlobalStep()
+    gs5 = py_utils.GetOrCreateGlobalStepVar()
     gs6 = tf.train.get_global_step()
     for gs in [gs2, gs3, gs4, gs5, gs6]:
       self.assertTrue(gs1 is gs)

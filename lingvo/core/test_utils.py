@@ -39,13 +39,13 @@ class TestCase(tf.test.TestCase):
   def setUp(self):
     super(TestCase, self).setUp()
     # Ensure the global_step variable is created in the default graph.
-    py_utils.GetGlobalStep()
+    py_utils.GetOrCreateGlobalStepVar()
 
   def _create_session(self, *args, **kwargs):
     sess = super(TestCase, self)._create_session(*args, **kwargs)
     with sess.graph.as_default():
       # Ensure the global_step variable is created in every new session.
-      py_utils.GetGlobalStep()
+      py_utils.GetOrCreateGlobalStepVar()
     return sess
 
 

@@ -30,6 +30,7 @@ import six
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
+
 from tensorflow.contrib.model_pruning.python.layers import core_layers as pruning_layers
 from tensorflow.contrib.tpu.python.tpu import tpu
 from tensorflow.contrib.tpu.python.tpu import tpu_function
@@ -1233,7 +1234,15 @@ global_variable_scope = tf.get_variable_scope()
 
 
 def GetGlobalStep():
-  """Create if needed and return the global_step."""
+  """Return the global_step."""
+  return tf.train.get_global_step()
+
+
+def GetOrCreateGlobalStepVar():
+  """Return the global_step variable, creating it if it does not exist.
+
+  Prefer GetGlobalStep if a tensor rather than a tf.Variable is sufficient.
+  """
   with tf.variable_scope(
       global_variable_scope, use_resource=use_resource_variables()):
     return tf.train.get_or_create_global_step()

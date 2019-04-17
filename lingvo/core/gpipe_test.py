@@ -128,8 +128,7 @@ class DummyPipelineCnnTest(test_utils.TestCase):
   def _verify_timestep_counts(self, num_splits):
     num_micro_batches = 8
     batch_size = 16
-    g = tf.Graph()
-    with g.as_default():
+    with self.session(graph=tf.Graph()) as sess:
       py_utils.GetGlobalStep()
       tf.set_random_seed(1245)
       inputs = tf.random_uniform([batch_size, 8, 8, 1])
@@ -145,7 +144,7 @@ class DummyPipelineCnnTest(test_utils.TestCase):
       grads = tf.gradients(loss, tf.trainable_variables())
       grad_norm = tf.sqrt(py_utils.SumSquared(grads))
       ts = net.GetAccumulatorValues().Flatten()
-    with self.session(graph=g) as sess:
+
       sess.run(tf.global_variables_initializer())
       grad_norm_val, ts_vals = sess.run([grad_norm, ts])
       self.assertNear(grad_norm_val, 0.269997, err=1.0e-6)

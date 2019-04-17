@@ -115,8 +115,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
   def _DecoderGradientCheckerHelper(self,
                                     decoder_cls,
                                     feed_att_context_to_softmax=False):
-    g = tf.Graph()
-    with g.as_default():
+    with self.session(use_gpu=True, graph=tf.Graph()) as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=tf.float64)
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
@@ -136,7 +135,6 @@ class DecoderTestCaseBase(test_utils.TestCase):
 
       grads = [DenseGrad(x, y) for x, y in zip(all_vars, grads)]
 
-    with self.session(use_gpu=True, graph=g) as sess:
       tf.global_variables_initializer().run()
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
