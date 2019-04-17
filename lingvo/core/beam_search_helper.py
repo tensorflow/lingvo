@@ -236,7 +236,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
       | num_hyps_per_beam = Number of hyps to keep per source sequence.
       | num_hyps = num_beams * num_hyps_per_beam
       | src_seq_len = Number of time steps in the source sequence.
-      | src_batch = Nuber of examples in the source sequence.
+      | src_batch = Number of examples in the source sequence.
       | tgt_seq_len = Maximum allowed time steps in the target sequence.
       | tgt_batch = num_hyps_per_beam * src_batch
 
