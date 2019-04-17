@@ -256,9 +256,11 @@ class BaseTask(base_layer.BaseLayer):
                                               '^%s_global_step' % p.name)
     if len(task_global_step_list) > 1:
       raise ValueError('Found multiple task_global_step for task %s' % p.name)
-    self._global_step = (
+    self._global_step_var = (
         task_global_step_list[0] if len(task_global_step_list) == 1 else
         py_utils.GetOrCreateGlobalStepVar())
+    self._global_step = tf.identity(
+        self._global_step_var, name='global_step_tensor')
     tp = p.train
     # p.train can be None if this task is the teacher/student task in a
     # DistillationTask.
@@ -684,7 +686,7 @@ class BaseTask(base_layer.BaseLayer):
     # Histogram summary.
     summary_utils.CollectVarHistogram(self._var_grads)
 
-    lrs = self.lr_schedule.Value(self._global_step)
+    lrs = self.lr_schedule.Value(self.global_step)
     summary_utils.scalar('lr_schedule', lrs)
     lr = tp.learning_rate * lrs
 
@@ -700,7 +702,7 @@ class BaseTask(base_layer.BaseLayer):
         self.IncrementTotalNans(tf.to_int32(has_nan_or_inf)))
 
     # Post training step update.
-    post_training_step_updates = self.PostTrainingStepUpdate(self._global_step)
+    post_training_step_updates = self.PostTrainingStepUpdate(self.global_step)
 
     # Get the op to update the weight masks and thresholds
     mask_update_op = self._GetMaskUpdateOp()
@@ -716,10 +718,10 @@ class BaseTask(base_layer.BaseLayer):
       true_global_step = py_utils.GetOrCreateGlobalStepVar()
       with tf.colocate_with(true_global_step):
         increment_global_steps = tf.assign_add(true_global_step, 1)
-      if self._global_step != true_global_step:
-        with tf.colocate_with(self._global_step):
-          increment_global_steps = tf.group(increment_global_steps,
-                                            tf.assign_add(self._global_step, 1))
+      if self._global_step_var != true_global_step:
+        with tf.colocate_with(self._global_step_var):
+          increment_global_steps = tf.group(
+              increment_global_steps, tf.assign_add(self._global_step_var, 1))
 
     train_ops.append(increment_global_steps)
     self._train_op = tf.group(*train_ops, name='train')
@@ -906,7 +908,7 @@ class BaseTask(base_layer.BaseLayer):
         p.vn = py_utils.VariationalNoiseParams(None, False, False)
       else:
         # vn.scale is dependent on global_step.
-        p.vn.scale = tf.cast(self._global_step > tp.vn_start_step,
+        p.vn.scale = tf.cast(self.global_step > tp.vn_start_step,
                              py_utils.FPropDtype(p)) * tp.vn_std
 
   def _GetMaskUpdateOp(self):
@@ -919,7 +921,7 @@ class BaseTask(base_layer.BaseLayer):
       pruning_hparams = tf.contrib.model_pruning.get_pruning_hparams(
       ).override_from_dict(tp.pruning_hparams_dict)
       pruning_obj = tf.contrib.model_pruning.Pruning(
-          pruning_hparams, global_step=self._global_step)
+          pruning_hparams, global_step=self.global_step)
       pruning_obj.add_pruning_summaries()
       mask_update_op = pruning_obj.conditional_mask_update_op()
     return mask_update_op
@@ -1029,7 +1031,7 @@ class DistillationTask(BaseTask):
       per_example.update(distill_per_example)
 
     distillation_loss_weight = self.distillation_loss_weight.FProp(
-        theta.distillation_loss_weight, self._global_step)
+        theta.distillation_loss_weight, self.global_step)
     metrics = py_utils.CombineMetrics([
         (groundtruth_loss, 1 - distillation_loss_weight),
         (distillation_loss, distillation_loss_weight),
@@ -1101,7 +1103,9 @@ class BaseModel(base_layer.BaseLayer):
     """Initializes this Model."""
     assert issubclass(params.cls, BaseModel)
     super(BaseModel, self).__init__(params)
-    self._global_step = py_utils.GetOrCreateGlobalStepVar()
+    self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
+    self._global_step = tf.identity(
+        self._global_step_var, name='global_step_tensor')
     # tasks are not yet instantiated.
     self._total_examples_sum = None
 
@@ -1111,7 +1115,7 @@ class BaseModel(base_layer.BaseLayer):
     if tp.ema_decay > 0:
       assert tp.ema_decay < 1.0
       self._ema = tf.train.ExponentialMovingAverage(
-          decay=tp.ema_decay, num_updates=self._global_step)
+          decay=tp.ema_decay, num_updates=self.global_step)
 
   @property
   def global_step(self):
@@ -1211,7 +1215,8 @@ class SingleTaskModel(BaseModel):
     super(SingleTaskModel, self).__init__(p)
 
     p = self.params
-    self.CreateChild('_task', p.task)
+    with py_utils.GlobalStepContext(self.global_step):
+      self.CreateChild('_task', p.task)
 
   @property
   def tasks(self):
@@ -1278,18 +1283,19 @@ class MultiTaskModel(BaseModel):
     # which then gets propagated down to all sub-layers during
     # BaseTask._PropagateDownGlobalConfigs(), or through sub-sequent CreateChild
     # or CreateChildren calls.
-    with tf.name_scope(p.name):
-      sorted_task_params = sorted(
-          (task_name, task_params)
-          for task_name, task_params in p.task_params.IterParams())
-      for task_name, task_params in sorted_task_params:
-        if p.task_global_step:
-          assert task_name == task_params.name
-          CreateTaskGlobalStep(task_name)
-        # Make sure each task is under its own variable scope.
-        with tf.variable_scope(task_name):
-          self.CreateChild(task_name, task_params)
-      self.CreateChild('task_schedule', p.task_schedule)
+    with py_utils.GlobalStepContext(self.global_step):
+      with tf.name_scope(p.name):
+        sorted_task_params = sorted(
+            (task_name, task_params)
+            for task_name, task_params in p.task_params.IterParams())
+        for task_name, task_params in sorted_task_params:
+          if p.task_global_step:
+            assert task_name == task_params.name
+            CreateTaskGlobalStep(task_name)
+          # Make sure each task is under its own variable scope.
+          with tf.variable_scope(task_name):
+            self.CreateChild(task_name, task_params)
+        self.CreateChild('task_schedule', p.task_schedule)
 
   @property
   def task_names(self):

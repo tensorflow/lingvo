@@ -264,7 +264,7 @@ class BaseRunner(object):
     with tf.container(self._container_id), self._GetSession() as sess:
       if self.initialize_tables is not None:
         sess.run(self.initialize_tables)
-      gsteps = self._model.global_step
+      gsteps = py_utils.GetGlobalStep()
       local_enqueue_steps = 0
 
       # Global enqueue steps measures how many global steps have data enqueued
@@ -275,7 +275,7 @@ class BaseRunner(object):
       tf.logging.info('params.train.max_steps: %d, enqueue_max_steps: %d',
                       self.params.train.max_steps, FLAGS.enqueue_max_steps)
       while True:
-        global_step, = sess.run([gsteps])
+        global_step = sess.run(gsteps)
         if global_enqueue_steps is None:
           global_enqueue_steps = global_step
         if local_enqueue_steps % 1000 == 0:

@@ -1232,9 +1232,20 @@ def CreateVariable(name,
 
 global_variable_scope = tf.get_variable_scope()
 
+_GLOBAL_STEP_STACK = []
+
+
+@contextlib.contextmanager
+def GlobalStepContext(global_step_tensor):
+  _GLOBAL_STEP_STACK.append(global_step_tensor)
+  yield
+  _GLOBAL_STEP_STACK.pop()
+
 
 def GetGlobalStep():
   """Return the global_step."""
+  if _GLOBAL_STEP_STACK:
+    return _GLOBAL_STEP_STACK[-1]
   return tf.train.get_global_step()
 
 
