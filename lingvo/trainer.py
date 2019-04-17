@@ -369,7 +369,7 @@ class Controller(base_runner.BaseRunner):
       rate = (s1 - s0) / elapsed_secs
       example_rate = (e1 - e0) / elapsed_secs
     tf.logging.info('Steps/second: %f, Examples/second: %f', rate, example_rate)
-    self._SummarizeValue(current_steps, 'global_steps/sec', rate)
+    self._SummarizeValue(current_steps, 'global_step/sec', rate)
     self._SummarizeValue(current_steps, 'examples/sec', example_rate)
     return rate, example_rate
 
