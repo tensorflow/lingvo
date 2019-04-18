@@ -1679,5 +1679,29 @@ class RNNCellStateInitTest(test_utils.TestCase):
       self.assertAllClose(zero_state_v, expected_zero_state)
 
 
+class RematerializeFnTest(tf.test.TestCase):
+
+  def testRandomNormal(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      tf.set_random_seed(12345678)
+      a = tf.random.normal([2, 3])
+      b = tf.random.normal([3, 4])
+
+      def Fn(a, b):
+        c = tf.matmul(a, b)
+        d = tf.nn.sigmoid(c)
+        e = tf.nn.tanh(c)
+        return d, e
+
+      d1, e1 = Fn(a, b)
+      d2, e2 = py_utils.RematerializeFn(Fn, a, b)
+      da1, db1 = tf.gradients([d1, e1], [a, b])
+      da2, db2 = tf.gradients([d2, e2], [a, b])
+      tf.global_variables_initializer().run()
+      v1, v2, v3, v4 = sess.run([da1, db1, da2, db2])
+      self.assertAllEqual(v1, v3)
+      self.assertAllEqual(v2, v4)
+
+
 if __name__ == '__main__':
   tf.test.main()

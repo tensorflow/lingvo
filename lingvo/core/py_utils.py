@@ -35,6 +35,7 @@ from tensorflow.contrib.model_pruning.python.layers import core_layers as prunin
 from tensorflow.contrib.tpu.python.tpu import tpu
 from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.core.protobuf import rewriter_config_pb2
+from tensorflow.python.framework import function
 from tensorflow.python.util import deprecation
 from lingvo.core import hyperparams
 from lingvo.core import retry
@@ -271,8 +272,8 @@ def HasShape(tensor, expected_shape):
   """Syntactic sugar for asserting that tensor has the expected shape."""
   if FLAGS.enable_asserts:
     filepath, line, func, _ = traceback.extract_stack(limit=3)[-2]
-    msg = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(r'.*/', '', filepath), line,
-                                          func)
+    msg = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(r'.*/', '',
+                                                 filepath), line, func)
     return with_dependencies([
         py_x_ops.assert_shape_match(tf.shape(tensor), expected_shape, msg=msg)
     ], tensor)
@@ -426,8 +427,8 @@ class NestedMap(dict):
     try:
       return super(NestedMap, self).__getattribute__(key)
     except AttributeError as e:
-      raise AttributeError(
-          '%s; available attributes: %s' % (e, self.__dict__.keys()))
+      raise AttributeError('%s; available attributes: %s' %
+                           (e, self.__dict__.keys()))
 
   def copy(self):  # Don't delegate w/ super: dict.copy() -> dict.
     return NestedMap(self)
@@ -1276,9 +1277,9 @@ def _LogPlacement(label, theta, copy):
   tf.logging.info('=== %s ===', label)
   LogMultiLines(
       label,
-      theta.Pack(
-          [('%s -> %s' % (x[0], x[1]))
-           for x in zip(GetDevices(theta), GetDevices(copy))]).DebugString())
+      theta.Pack([('%s -> %s' % (x[0], x[1]))
+                  for x in zip(GetDevices(theta), GetDevices(copy))
+                 ]).DebugString())
   tf.logging.info('==========')
 
 
@@ -1393,12 +1394,12 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
     tf.logging.info('Overriding vars from checkpoint: %s', ckpt_path)
 
     if not isinstance(loading_rules, tuple):
-      raise ValueError(
-          'Loading rules for %s must be a tuple of two lists!' % ckpt_path)
+      raise ValueError('Loading rules for %s must be a tuple of two lists!' %
+                       ckpt_path)
     if len(loading_rules) != 2 or not all(
         isinstance(l, list) for l in loading_rules):
-      raise ValueError(
-          'Loading rules for %s must be a tuple of two lists!' % ckpt_path)
+      raise ValueError('Loading rules for %s must be a tuple of two lists!' %
+                       ckpt_path)
 
     # Filter the model variables to be overridden.
     vars_to_override = [
@@ -1476,6 +1477,7 @@ def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
     colocate_gradients_with_ops: boolean, whether or not to colocate gradient op
       with the original op.
     gate_gradients: boolean, flag to be passed to tf.gradients.
+
   Returns:
     gradients to be passed back.
   """
@@ -2134,9 +2136,9 @@ def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
     x: A float Tensor on which to apply dropout.
     keep_prob: A scalar `Tensor` of keep probability.
     seeds: A Tensor of shape [2]. 2 seeds for deterministic random number
-           generator.
+      generator.
     noise_shape: A 1-D `Tensor` of type `int32`, representing the shape for
-                  randomly generated keep/drop flags.
+      randomly generated keep/drop flags.
     name: An optional name for this operation.
 
   Returns:
@@ -2732,3 +2734,59 @@ def SequencesToDebugStrings(ids, lens, summarize=5):
       _Body, (i0, result0),
       shape_invariants=(i0.shape, tf.TensorShape([None])))
   return strs
+
+
+def RematerializeFn(fn, *xs):
+  """Calls fn and rematerializes fn in the backward pass.
+
+  fn(*xs) -> ys, where xs and ys can be a single tensor or a tuple of tensors.
+
+  Args:
+    fn: A python function to be rematerialized in the backprop pass.
+    *xs: A single tensor or a list/tuple of tensors. 'xs' are input args to the
+         fn function.
+  Returns:
+    fn(*xs)
+  """
+
+  def Backward(op, *dy):
+    """The backward function that rematerializes forward outputs."""
+    always_true = tf.random.uniform([]) < 2.0
+    # Alternatively, can do this:
+    # tf.where(tf.is_nan(x),
+    #          tf.constant(float('nan'), dtype=x.dtype) * tf.ones_like(x),
+    #          x)
+    xs = [
+        tf.where(always_true, x, tf.zeros(GetShape(x), dtype=x.dtype))
+        for x in op.inputs
+    ]
+    ys = fn(*xs)
+    dxs = tf.gradients(ys, xs, grad_ys=dy)
+    dxs_final = []
+    for dx, x in zip(dxs, xs):
+      if dx is None:
+        dxs_final.append(tf.zeros_like(x))
+      else:
+        dxs_final.append(dx)
+    assert len(dxs_final) == len(xs)
+    return tuple(dxs_final)
+
+  xs_dtypes = [x.dtype for x in xs]
+
+  @function.Defun(*xs_dtypes, python_grad_func=Backward)
+  def Forward(*xs):
+    """Forward function plus sanity checks."""
+    ys = fn(*xs)
+    # Some sanity check.
+    assert not function.get_extra_inputs()
+    assert not function.get_extra_args()
+    assert not function.get_extra_vars()
+    if isinstance(ys, tuple):
+      for y in ys:
+        assert isinstance(y, tf.Tensor)
+    else:
+      assert isinstance(ys, tf.Tensor)
+
+    return ys
+
+  return Forward(*xs)
