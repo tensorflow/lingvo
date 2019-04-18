@@ -144,6 +144,8 @@ def SetupTransformerParams(p,
                            label_smoothing_uncertainty=0.1,
                            is_transparent=False,
                            activation='RELU',
+                           add_unnormalized_residuals=False,
+                           atten_hidden_dim=0,
                            num_encoder_layers=None,
                            num_decoder_layers=None):
   """Common model setup for different transformer models.
@@ -174,6 +176,9 @@ def SetupTransformerParams(p,
     is_transparent: If set, decoder layers attend to weighted combinations of
         encoder layers.
     activation: Non-linearity for feed-forward layers.
+    add_unnormalized_residuals: If set, uses un-normalized residuals in
+        TransformerAttentionLayer
+    atten_hidden_dim: Explicitly set attention hidden dim.
     num_encoder_layers: to set a different number of layers for the encoder.
     num_decoder_layers: to set a different number of layers for the decoder.
 
@@ -187,17 +192,16 @@ def SetupTransformerParams(p,
   # Transformer encoder and decoder setup
   num_encoder_layers = num_encoder_layers or num_layers
   num_decoder_layers = num_decoder_layers or num_layers
-  p.encoder = SetupTransformerEncoder(model_dim, vocab_size, num_encoder_layers,
-                                      num_heads, hidden_dim,
-                                      residual_dropout_prob, input_dropout_prob,
-                                      atten_dropout_prob, relu_dropout_prob,
-                                      is_transparent, activation)
-  p.decoder = SetupTransformerDecoder(model_dim, vocab_size, num_decoder_layers,
-                                      num_heads, hidden_dim,
-                                      residual_dropout_prob, input_dropout_prob,
-                                      atten_dropout_prob, relu_dropout_prob,
-                                      label_smoothing_uncertainty,
-                                      is_transparent, activation)
+  p.encoder = SetupTransformerEncoder(
+      model_dim, vocab_size, num_encoder_layers, num_heads, hidden_dim,
+      residual_dropout_prob, input_dropout_prob, atten_dropout_prob,
+      relu_dropout_prob, is_transparent, activation, add_unnormalized_residuals,
+      atten_hidden_dim)
+  p.decoder = SetupTransformerDecoder(
+      model_dim, vocab_size, num_decoder_layers, num_heads, hidden_dim,
+      residual_dropout_prob, input_dropout_prob, atten_dropout_prob,
+      relu_dropout_prob, label_smoothing_uncertainty, is_transparent,
+      activation, add_unnormalized_residuals, atten_hidden_dim)
 
   p.train.Set(
       learning_rate=learning_rate,
@@ -222,7 +226,9 @@ def SetupTransformerDecoder(model_dim,
                             relu_dropout_prob=0.0,
                             label_smoothing_uncertainty=0.1,
                             is_transparent=False,
-                            activation='RELU'):
+                            activation='RELU',
+                            add_unnormalized_residuals=False,
+                            atten_hidden_dim=0):
   """Common setup for transformer model decoder."""
   disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
   default_params_init = py_utils.WeightInit.Xavier(1.0)
@@ -253,6 +259,8 @@ def SetupTransformerDecoder(model_dim,
       residual_dropout_prob=residual_dropout_prob,
       atten_dropout_prob=atten_dropout_prob,
       params_init=default_params_init,
+      add_unnormalized_input=add_unnormalized_residuals,
+      atten_hidden_dim=atten_hidden_dim,
       vn=disable_vn)
 
   decoder_params.trans_tpl.tr_atten_tpl.atten_tpl.Set(
@@ -297,7 +305,9 @@ def SetupTransformerEncoder(model_dim,
                             atten_dropout_prob=0.0,
                             relu_dropout_prob=0.0,
                             is_transparent=False,
-                            activation='RELU'):
+                            activation='RELU',
+                            add_unnormalized_residuals=False,
+                            atten_hidden_dim=0):
   """Common setup for transformer model encoder.
 
   Args:
@@ -313,6 +323,9 @@ def SetupTransformerEncoder(model_dim,
    relu_dropout_prob: used in transformer feedforward layer.
    is_transparent: if set, outputs a merger of embeddings and layer outputs.
    activation: Non-linearity for feed-forward layers.
+   add_unnormalized_residuals: If set, uses un-normalized residuals in
+     TransformerAttentionLayer
+   atten_hidden_dim: Explicitly set attention hidden dim.
 
   Returns:
    Encoder params.
@@ -346,6 +359,8 @@ def SetupTransformerEncoder(model_dim,
       residual_dropout_prob=residual_dropout_prob,
       atten_dropout_prob=atten_dropout_prob,
       params_init=default_params_init,
+      add_unnormalized_input=add_unnormalized_residuals,
+      atten_hidden_dim=atten_hidden_dim,
       vn=disable_vn)
 
   encoder_params.transformer_stack.transformer_tpl.tr_atten_tpl.atten_tpl.Set(
