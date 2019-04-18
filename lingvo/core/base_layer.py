@@ -382,24 +382,21 @@ class BaseLayer(object):
   def theta(self):
     """Returns theta of this layer and its children in a `.NestedMap`."""
     ret = self._private_children.Transform(lambda x: x.theta)
-    should_cast = (
-        self._params.fprop_dtype is not None and
-        self._params.fprop_dtype != self._params.dtype)
-    if should_cast:
 
-      def _DoCast(x, fprop_dtype):
-        if x.dtype != fprop_dtype:
-          return tf.cast(x, fprop_dtype)
+    private_theta = self._private_theta
+
+    if (self._params.fprop_dtype is not None and
+        self._params.fprop_dtype != self._params.dtype):
+
+      def MaybeCastToFPropDtype(x):
+        if x.dtype == self._params.dtype:
+          return tf.cast(x, self._params.fprop_dtype)
         else:
           return x
 
-      private_theta = self._private_theta.Transform(
-          lambda x: _DoCast(x, self._params.fprop_dtype))
-    else:
-      private_theta = self._private_theta
+      private_theta = private_theta.Transform(MaybeCastToFPropDtype)
 
-    for k in private_theta.keys():
-      ret[k] = private_theta[k]
+    ret.update(private_theta)
     return ret
 
   @property
