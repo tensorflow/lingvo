@@ -825,6 +825,10 @@ class TransformerDecoder(MTBaseDecoder):
     p.Define(
         'is_transparent', False, 'If set, expects a tensor of shape '
         '[time, batch, source_dim, num_trans_layers] as source encodings.')
+    p.Define(
+        'add_multiheaded_attention_scalar_summary', False,
+        'If set, will include scalar summaries for multi-headed attention'
+        ' to visualize the sparsity statistics of attention weights.')
 
     # Default config for the token embedding.
     p.token_emb.vocab_size = 32000
@@ -1389,10 +1393,15 @@ class TransformerDecoder(MTBaseDecoder):
       suffix = '_{}'.format(i) if i > 0 else ''
       # Tensor exported from MultiHeadedAttention.ComputeContextVectorWithSource
       # shape [target_time * batch_size, num_heads, source_time]
-      mha_probs = default_graph.get_tensor_by_name(
-          name_scope + ('/aux_atten{}/MultiHeadedAttention/'
-                        'ComputeContextVectorWithSource/'
-                        'multi_headed_atten_prob:0').format(suffix))
+      try:
+        mha_probs = default_graph.get_tensor_by_name(
+            name_scope + ('/aux_atten{}/MultiHeadedAttention/'
+                          'ComputeContextVectorWithSource/'
+                          'multi_headed_atten_prob:0').format(suffix))
+      except KeyError:
+        # no such tensor found, stop here
+        return
+
       mha_probs = tf.reshape(
           mha_probs, (target_time, target_batch, num_heads, source_time))
 
@@ -1437,5 +1446,5 @@ class TransformerDecoder(MTBaseDecoder):
     """
     super(TransformerDecoder,
           self)._AddAttenProbsSummary(source_paddings, targets, atten_probs)
-    if self.cluster.add_summary:
+    if self.cluster.add_summary and self.params.add_multiheaded_attention_scalar_summary:
       self._AddAttenProbsScalarSummary(source_paddings, targets, atten_probs)
