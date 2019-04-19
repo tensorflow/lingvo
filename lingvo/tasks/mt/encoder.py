@@ -145,7 +145,7 @@ class MTEncoderV1(base_encoder.BaseEncoder):
     p = self.params
     if not p.cc_schedule:
       return x
-    cap = tf.cast(self.cc_schedule.CurrentCap(theta.cc_schedule), x.dtype)
+    cap = tf.cast(self.cc_schedule.GetState(theta.cc_schedule), x.dtype)
     return tf.clip_by_value(x, -cap, cap)
 
   def FProp(self, theta, input_batch):

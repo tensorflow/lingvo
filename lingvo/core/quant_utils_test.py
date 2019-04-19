@@ -304,7 +304,7 @@ class QuantizableLayerTest(test_utils.TestCase):
     tf.global_variables_initializer().run()
 
     if global_step >= 0:
-      sess.run([l.PostTrainingStepUpdate(global_step)])
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
 
     output = output.eval()
     print('QuantizableLayerTest output', test_case, ':\n',
@@ -364,7 +364,7 @@ class ClippingCapScheduleTest(object):
       cc_schedule = p.cls(p)
       tf.global_variables_initializer().run()
       # Move to fully quantized part of schedule
-      sess.run([cc_schedule.PostTrainingStepUpdate(16)])
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 16))
 
       @function.Defun(tf.float32, tf.float32)
       def ExampleFunction8(x, cc_state):
@@ -421,7 +421,7 @@ class ClippingCapScheduleTest(object):
           (-0.123456, 0.123456))  # Not Quantized.
 
       # Step 5: Clipping active but not yet quantizing.
-      sess.run([cc_schedule.PostTrainingStepUpdate(5)])
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
       self.assertAllClose(
           self._ClipExample(cc_schedule, 100.0),
           (-6.0, 5.953125))  # 6 * 127/128
@@ -430,7 +430,7 @@ class ClippingCapScheduleTest(object):
           (-0.123456, 0.123456))  # Not Quantized.
 
       # Step 7: Middle of clipping range.
-      sess.run([cc_schedule.PostTrainingStepUpdate(7)])
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 7))
       self.assertAllClose(
           self._ClipExample(cc_schedule, 100.0), (-4.0, 3.96875))  # 4 * 127/128
       self.assertAllClose(
@@ -438,7 +438,7 @@ class ClippingCapScheduleTest(object):
           (-0.123456, 0.123456))  # Not Quantized.
 
       # Step 10: End of clipping range.
-      sess.run([cc_schedule.PostTrainingStepUpdate(10)])
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 10))
       self.assertAllClose(
           self._ClipExample(cc_schedule, 100.0),
           (-1.0, 0.9921875))  # 1 * 127/128
@@ -447,7 +447,7 @@ class ClippingCapScheduleTest(object):
           (-0.123456, 0.123456))  # Not Quantized.
 
       # Step 11: No more clipping but not yet quantizing.
-      sess.run([cc_schedule.PostTrainingStepUpdate(11)])
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 11))
       self.assertAllClose(
           self._ClipExample(cc_schedule, 100.0),
           (-1.0, 0.9921875))  # 1 * 127/128
@@ -457,7 +457,7 @@ class ClippingCapScheduleTest(object):
 
       # Step 15-16: Quantizing at full clip.
       for step in (15, 16):
-        sess.run([cc_schedule.PostTrainingStepUpdate(step)])
+        sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), step))
         self.assertAllClose(
             self._ClipExample(cc_schedule, 100.0),
             (-1.0, 0.9921875))  # 1 * 127/128

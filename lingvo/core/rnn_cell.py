@@ -1171,7 +1171,7 @@ class LayerNormalizedLSTMCell(RNNCell):
 
     # Clip the cell states to reasonable value.
     if params.cc_schedule:
-      cap = self.cc_schedule.CurrentCap(theta.cc_schedule)
+      cap = self.cc_schedule.GetState(theta.cc_schedule)
     else:
       cap = params.cell_value_cap
     new_c = py_utils.clip_by_value(new_c, -cap, cap)

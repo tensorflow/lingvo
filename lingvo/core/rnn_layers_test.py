@@ -170,7 +170,7 @@ class LayersTestBase(test_utils.TestCase):
         loss = tf.reduce_sum(sfrnn_outputs)
         for fin in sfrnn_final.rnn:
           loss += tf.reduce_sum(fin.m) + tf.reduce_sum(fin.c)
-      xs = sfrnn.theta.Flatten() + [inputs]
+      xs = sfrnn.vars.Flatten() + [inputs]
       dxs = tf.gradients(loss, xs)
 
       # Compares the sym grad against the numeric grads.

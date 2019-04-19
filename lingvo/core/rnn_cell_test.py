@@ -351,7 +351,6 @@ class RNNCellTest(test_utils.TestCase):
             [0.078125, 0.664062],
         ]
 
-      # pyformat: enable
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
@@ -1341,12 +1340,9 @@ class RNNCellTest(test_utils.TestCase):
       lstm_vars = lstm.vars
       print('lstm vars = ', lstm_vars)
       self.assertTrue('wm' in lstm_vars.wm.name)
-      self.assertTrue('cap' in lstm_vars.cc_schedule.cap.name)
 
       wm = lstm.theta.wm
-      cap = lstm.theta.cc_schedule.cap
       self.assertEqual(wm.get_shape(), tf.TensorShape([4, 8]))
-      self.assertEqual(cap.get_shape(), tf.TensorShape([]))
 
       np.random.seed(_NUMPY_RANDOM_SEED)
       inputs = py_utils.NestedMap(
@@ -1362,8 +1358,7 @@ class RNNCellTest(test_utils.TestCase):
       c_expected = [[0.0, 0.], [0.0, 0.], [0.0, 0.]]
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
-      update_op = lstm.PostTrainingStepUpdate(1)
-      sess.run(update_op)
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1))
 
   def testQuantizedLayerNormalizedLSTMCell(self):
     params = rnn_cell.LayerNormalizedLSTMCell.Params()
@@ -1382,12 +1377,9 @@ class RNNCellTest(test_utils.TestCase):
     lstm_vars = lstm.vars
     print('lstm vars = ', lstm_vars)
     self.assertTrue('wm' in lstm_vars.wm.name)
-    self.assertTrue('cap' in lstm_vars.cc_schedule.cap.name)
 
     wm = lstm.theta.wm
-    cap = lstm.theta.cc_schedule.cap
     self.assertEqual(wm.get_shape(), tf.TensorShape([4, 8]))
-    self.assertEqual(cap.get_shape(), tf.TensorShape([]))
 
     np.random.seed(_NUMPY_RANDOM_SEED)
     inputs = py_utils.NestedMap(
@@ -1409,10 +1401,11 @@ class RNNCellTest(test_utils.TestCase):
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
-      self.assertEqual(5.0, cap.eval())
-      update_op = lstm.PostTrainingStepUpdate(1)
-      sess.run(update_op)
-      self.assertEqual(3.0, cap.eval())
+      self.assertEqual(5.0,
+                       lstm.cc_schedule.GetState(lstm.theta.cc_schedule).eval())
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1))
+      self.assertEqual(3.0,
+                       lstm.cc_schedule.GetState(lstm.theta.cc_schedule).eval())
 
   def testQuantizedLSTMCell(self):
     with self.session(use_gpu=False) as sess:
@@ -1432,12 +1425,9 @@ class RNNCellTest(test_utils.TestCase):
       lstm_vars = lstm.vars
       print('lstm vars = ', lstm_vars)
       self.assertTrue('wm' in lstm_vars.wm.name)
-      self.assertTrue('cap' in lstm_vars.cc_schedule.cap.name)
 
       wm = lstm.theta.wm
-      cap = lstm.theta.cc_schedule.cap
       self.assertEqual(wm.get_shape(), tf.TensorShape([4, 8]))
-      self.assertEqual(cap.get_shape(), tf.TensorShape([]))
 
       np.random.seed(_NUMPY_RANDOM_SEED)
       inputs = py_utils.NestedMap(
@@ -1457,10 +1447,11 @@ class RNNCellTest(test_utils.TestCase):
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
-      self.assertEqual(5.0, cap.eval())
-      update_op = lstm.PostTrainingStepUpdate(1)
-      sess.run(update_op)
-      self.assertEqual(3.0, cap.eval())
+      self.assertEqual(5.0,
+                       lstm.cc_schedule.GetState(lstm.theta.cc_schedule).eval())
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1))
+      self.assertEqual(3.0,
+                       lstm.cc_schedule.GetState(lstm.theta.cc_schedule).eval())
 
   def testQuantizedLSTMCellSimpleTrainingUnclipped(self):
     m_expected = [[0.097589, 0.579055], [0.046737, 0.187892],
@@ -1587,8 +1578,7 @@ class RNNCellTest(test_utils.TestCase):
 
       if set_training_step:
         # Get it into the fully clipped/quantized part of the schedule.
-        update_op = lstm.PostTrainingStepUpdate(5)
-        sess.run(update_op)
+        sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
 
       # Outputs.
       self.assertAllClose(m_expected, state1.m.eval())

@@ -261,6 +261,8 @@ class BaseLayer(object):
     # Layer-private functions. Add with AddFunction.
     self._private_fns = dict()
 
+    self.AddExtraTheta('global_step', py_utils.GetGlobalStep())
+
   def FPropDefaultTheta(self, *args, **kwargs):
     """Calls `FProp`."""
     return self.FProp(self.theta, *args, **kwargs)

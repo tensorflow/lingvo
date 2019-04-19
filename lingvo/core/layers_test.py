@@ -1368,7 +1368,7 @@ class ProjectionLayerTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       if quantized:
         # Put it in the fully quantized range.
-        sess.run([proj_layer.PostTrainingStepUpdate(5)])
+        sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
       return output.eval()
 
   def testProjectionLayerFProp(self):
@@ -2224,9 +2224,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
 
       tf.global_variables_initializer().run()
       if training_step >= 0:
-        step_op = softmax.PostTrainingStepUpdate(training_step)
-        if step_op:
-          sess.run([step_op])
+        sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), training_step))
       return sess.run(xent_loss)
 
   def testSimpleFullSoftmaxMasked(self):
@@ -2730,11 +2728,7 @@ class FeedForwardNetTest(test_utils.TestCase):
 
       tf.global_variables_initializer().run()
 
-      sess.run([
-          feedforward_net.PostTrainingStepUpdate(5),
-          p1_l.PostTrainingStepUpdate(5),
-          p2_l.PostTrainingStepUpdate(5)
-      ])
+      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
       out1_v, out2_v = sess.run([out1, out2])
       self.assertAllClose(out1_v, out2_v)
 
@@ -3154,6 +3148,7 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
 
     with self.session():
       tf.assign(py_utils.GetGlobalStep(), 1234).eval()
+      self.assertEqual(1234, dropout.theta.global_step.eval())
       py_utils.ResetStepSeed(seed=5678)
       x_val = dropout.FPropDefaultTheta(x).eval()
       self.assertEqual(5679, py_utils.GetStepSeed().eval())
@@ -3187,7 +3182,6 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
     with self.session() as sess:
       tf.set_random_seed(12345)
       num_layers = 4
-      py_utils.GetGlobalStep()
       # Build a model with 4 dropout layers.
       blocks = []
       for l in range(num_layers):

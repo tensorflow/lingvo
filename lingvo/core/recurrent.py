@@ -865,14 +865,14 @@ def _ReflectOnCellFn(cell_fn,
     state1, extras = cell_fn(theta, state0, inputs)
     return Flatten([state1, extras])
 
-  captured_inputs = list(Fwd.captured_inputs)
-
   # Asserts about the function.
   if Fwd.stateful_ops:
     if check_stateful_ops:
       raise ValueError('cell_fn contains stateful ops: %s' % Fwd.stateful_ops)
     else:
       tf.logging.warn('cell_fn contains stateful ops: %s', Fwd.stateful_ops)
+
+  captured_inputs = list(Fwd.captured_inputs)
 
   assert (not captured_inputs or allow_implicit_capture), (
       ('Recurrent cell_fn implicitly captures tensors but '

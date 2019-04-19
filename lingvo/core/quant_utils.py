@@ -502,17 +502,6 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
     p.name = 'CCSchedule'
     return p
 
-  @base_layer.initializer
-  def __init__(self, params):
-    super(LinearClippingCapSchedule, self).__init__(params)
-    p = self.params
-    cap_pc = py_utils.WeightParams(
-        shape=[],
-        init=py_utils.WeightInit.Constant(p.start_cap),
-        dtype=tf.float32,
-        collections=[self.__class__.__name__ + '_vars'])
-    self.CreateVariable('cap', cap_pc, trainable=False)
-
   @property
   def is_quantized(self):
     return False
@@ -521,7 +510,7 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
     return tf.clip_by_value(x, min_value, max_value)
 
   def GetState(self, theta):
-    return self.CurrentCap(theta)
+    return self.Value(theta.global_step)
 
   def ApplyClippingWithState(self, state, x):
     """Applies clipping to x.
@@ -544,10 +533,6 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
       Tuple of (min, max).
     """
     return (-self.params.end_cap, self.params.end_cap)
-
-  def CurrentCap(self, theta):
-    """Returns the current clipping cap value."""
-    return tf.stop_gradient(theta.cap)
 
   def Value(self, current_step):
     """Returns the current clipping cap.
@@ -573,11 +558,8 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
                    lambda: tf.to_float(rmax_tensor))
 
   def PostTrainingStepUpdate(self, global_step):
-    """Update the cap value."""
-    p = self.params
-    cap = self.Value(global_step)
-    summary_utils.scalar('cap', cap)
-    return self.vars.cap.assign(cap)
+    summary_utils.scalar('cap', self.Value(global_step))
+    return tf.no_op()
 
 
 class FakeQuantizationSchedule(BaseClippingCapSchedule):
@@ -612,21 +594,6 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
     # how it would work otherwise.
     assert p.quant_start_step >= p.clip_end_step, (
         'quant_start_step must be >= clip_end_step')
-    if not p.is_inference:
-      clip_ratio_pc = py_utils.WeightParams(
-          shape=[],
-          init=py_utils.WeightInit.Constant(-1.0
-                                            if p.clip_start_step > 0 else 0.0),
-          dtype=tf.float32,
-          collections=[self.__class__.__name__ + '_vars'])
-      self.CreateVariable('clip_ratio', clip_ratio_pc, trainable=False)
-      fq_ratio_pc = py_utils.WeightParams(
-          shape=[],
-          init=py_utils.WeightInit.Constant(
-              -1.0 if p.quant_start_step > 0 else 1.0),
-          dtype=tf.float32,
-          collections=[self.__class__.__name__ + '_vars'])
-      self.CreateVariable('fq_ratio', fq_ratio_pc, trainable=False)
 
   @property
   def is_quantized(self):
@@ -680,11 +647,27 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
 
   def GetState(self, theta):
     """Gets the state from theta."""
-    if self.params.is_inference:
+    p = self.params
+    if p.is_inference:
       # State is not used for inference. Just return dummy.
       return tf.zeros([1], tf.float32)
     else:
-      return tf.stack([theta.clip_ratio, theta.fq_ratio])
+      # Calculations/vars need to be float but these can be ints in the params.
+      clip_end_step = tf.cast(p.clip_end_step, tf.float32)
+      clip_start_step = tf.cast(p.clip_start_step, tf.float32)
+      quant_start_step = tf.cast(p.quant_start_step, tf.float32)
+      global_step = tf.cast(theta.global_step, tf.float32)
+
+      # Will be negative if before clipping starts.
+      clip_ratio = (
+          tf.minimum(clip_end_step - clip_start_step,
+                     global_step - clip_start_step) /
+          tf.maximum(1.0, clip_end_step - clip_start_step))
+      # Currently fq is either on (1.0) or off (-1.0). Progressive quantization
+      # may later occupy 0..1.0.
+      fq_ratio = tf.where(global_step < quant_start_step, -1.0, 1.0)
+
+      return tf.stack([clip_ratio, fq_ratio])
 
   def _GetQuantizedRangeForCap(self, current_cap, bits):
     """Gets the range for the given cap and number of bits.
@@ -793,58 +776,12 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
     # return _CopyShape(x, Clipped())
     return _CopyShape(x, tf.where(fq_ratio <= 0.0, Clipped(), Quantized()))
 
-  def PostTrainingStepUpdate(self, global_step):
-    """Update the cap value."""
-    p = self.params
-    if p.is_inference:
-      return
-
-    # Calculations/vars need to be float but these can be ints in the params.
-    clip_end_step = tf.cast(p.clip_end_step, tf.float32)
-    clip_start_step = tf.cast(p.clip_start_step, tf.float32)
-    quant_start_step = tf.cast(p.quant_start_step, tf.float32)
-    global_step = tf.cast(global_step, tf.float32)
-
-    # Will be negative if before clipping starts.
-    new_clip_ratio = (
-        tf.minimum(clip_end_step - clip_start_step,
-                   global_step - clip_start_step) /
-        tf.maximum(1.0, clip_end_step - clip_start_step))
-    # Currently fq is either on (1.0) or off (-1.0). Progressive quantization
-    # may later occupy 0..1.0.
-    new_fq_ratio = tf.where(global_step < quant_start_step, -1.0, 1.0)
-    return tf.group(
-        self.vars.clip_ratio.assign(new_clip_ratio),
-        self.vars.fq_ratio.assign(new_fq_ratio))
-
 
 class QDomain(base_layer.BaseLayer):
   """Base class for a quantization domain layer.
 
   This implementation doubles as a no-op quantization domain.
   """
-
-  @base_layer.initializer
-  def __init__(self, params):
-    super(QDomain, self).__init__(params)
-    self._global_step_enabled = False
-
-  def _EnableGlobalStepAccess(self):
-    """Called by subclass init to initialize the global step counter.
-
-    Should be called from __init__ in an appropriate variable scope. Will add
-    a 'global_step' variable to the layer and a post step update to manage
-    it.
-    """
-    if self._global_step_enabled:
-      return
-    self._global_step_enabled = True
-    global_step_pc = py_utils.WeightParams(
-        shape=[],
-        init=py_utils.WeightInit.Constant(0),
-        dtype=tf.int64,
-        collections=[self.__class__.__name__ + '_vars'])
-    self.CreateVariable('global_step', global_step_pc, trainable=False)
 
   @property
   def bits(self):
@@ -854,16 +791,6 @@ class QDomain(base_layer.BaseLayer):
       The number of bits available to this qdomain or None if unquantized.
     """
     return None
-
-  def PostTrainingStepUpdate(self, global_step):
-    """Update the cap value."""
-    super_op = super(QDomain, self).PostTrainingStepUpdate(global_step)
-    if not self._global_step_enabled:
-      return super_op
-    return tf.group([
-        super_op,
-        self.vars.global_step.assign(global_step),
-    ])
 
   def QuantizeWeight(self, w):
     """Quantizes a weight.
@@ -1062,8 +989,6 @@ class PassiveAsymQDomain(QDomain):
 
     # Save a scope for lazily created variables.
     with tf.variable_scope(p.name + '/q'):
-      if p.delay_start_steps > 0:
-        self._EnableGlobalStepAccess()
       self._qvars_scope = tf.get_variable_scope()
 
   def _MaybeFakeQuant(self, inputs, min_v, max_v, num_bits):

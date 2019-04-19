@@ -205,6 +205,8 @@ class BaseTask(base_layer.BaseLayer):
   @base_layer.initializer
   def __init__(self, params):
     assert issubclass(params.cls, BaseTask)
+    # Ensure global_step exists before calling super.
+    py_utils.GetOrCreateGlobalStepVar()
     super(BaseTask, self).__init__(params)
 
     p = self.params
@@ -1102,10 +1104,10 @@ class BaseModel(base_layer.BaseLayer):
   def __init__(self, params):
     """Initializes this Model."""
     assert issubclass(params.cls, BaseModel)
-    super(BaseModel, self).__init__(params)
     self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
     self._global_step = tf.identity(
         self._global_step_var, name='global_step_tensor')
+    super(BaseModel, self).__init__(params)
     # tasks are not yet instantiated.
     self._total_examples_sum = None
 
