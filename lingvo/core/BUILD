@@ -914,9 +914,9 @@ py_library(
         ":base_input_generator",
         ":base_layer",
         ":base_model",
+        ":optimizer",
         ":py_utils",
         # Implicit tensorflow dependency.
-        "//lingvo/core:optimizer",
     ],
 )
 

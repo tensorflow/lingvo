@@ -57,7 +57,7 @@ py_library(
 py_library(
     name = "model_imports",
     deps = [
-        "//lingvo:model_imports_no_params",
+        ":model_imports_no_params",
         "//lingvo/tasks:all_params",
     ],
 )
