@@ -425,10 +425,11 @@ class GPipeTransformerStack(PipeliningLayer):
         assert i < j, 'Splits must be in increasing order.'
     else:
       num_splits = max(p.splits, p.num_splits)  # Supporting deprecated param.
-      layers_per_split = num_layers // num_splits
+      layers_per_split = (num_layers - 1) // num_splits + 1
       p.splits = []
       for i in range(num_splits):
         p.splits.append((i + 1) * layers_per_split)
+      p.splits[-1] = num_layers
 
     with tf.variable_scope(p.name):
       p.encoder_tpl.source_dim = p.model_dim
