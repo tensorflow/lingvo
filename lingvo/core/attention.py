@@ -44,18 +44,16 @@ def _ConditionalDefun(cond, *args, **kwargs):
   return Decorator
 
 
-def _ApplyAttentionDropout(params, x, global_step, prng_seed):
+def _ApplyAttentionDropout(params, x, global_step):
   """Apply attention dropout according to the given parameters.
 
   If `params.atten_dropout_deterministic` is set to True, the dropout will be
-  fully deterministic (requires `prng_seed`).
+  fully deterministic.
 
   Args:
     params: The parameters of attention layer.
     x: A float Tensor on which to apply dropout.
     global_step: Required for deterministic dropout.
-    prng_seed: An int seed for pseudo random number generator. Required for
-      deterministic dropout.
 
   Returns:
     A Tensor with the same shape as `x`.
@@ -64,14 +62,12 @@ def _ApplyAttentionDropout(params, x, global_step, prng_seed):
     return x
 
   if params.atten_dropout_deterministic:
-    seeds = py_utils.GenerateStepSeedPair(params, global_step, prng_seed)
+    seeds = py_utils.GenerateStepSeedPair(params, global_step)
     return py_utils.DeterministicDropout(x, 1.0 - params.atten_dropout_prob,
                                          seeds)
   else:
-    seed = params.random_seed
-    if seed is not None and prng_seed is not None:
-      seed += prng_seed
-    return tf.nn.dropout(x, 1.0 - params.atten_dropout_prob, seed=seed)
+    return tf.nn.dropout(
+        x, 1.0 - params.atten_dropout_prob, seed=params.random_seed)
 
 
 class BaseAttentionLayer(quant_utils.QuantizableLayer):
@@ -103,9 +99,7 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
       raise ValueError('params.name is not set.')
     super(BaseAttentionLayer, self).__init__(params)
 
-    p = self.params
     self._source_init_done = False
-    self._prng_seed = py_utils.GenerateSeedFromName(p.name)
     self.TrackQTensor('logits', domain='fullyconnected')
 
   def InitForSourcePacked(self,
@@ -478,7 +472,7 @@ class AdditiveAttention(BaseAttentionLayer):
 
       # Apply dropout to weights if applicable.
       if not p.is_eval:
-        probs = _ApplyAttentionDropout(p, probs, global_step, self._prng_seed)
+        probs = _ApplyAttentionDropout(p, probs, global_step)
 
       # Reshape probs to be of shape
       # [target_batch/source_batch, source_batch, source_length]
@@ -873,7 +867,7 @@ class DotProductAttention(BaseAttentionLayer):
 
       # Apply dropout to weights if applicable.
       if not p.is_eval:
-        probs = _ApplyAttentionDropout(p, probs, global_step, self._prng_seed)
+        probs = _ApplyAttentionDropout(p, probs, global_step)
 
       # Weight each frame with the probability and sum them.
       # [source_batch, n, time] * [source_batch, time, context_dim]
@@ -2154,17 +2148,6 @@ class MonotonicAttention(BaseAttentionLayer):
           collections=['MonotonicAttention_vars'])
       self.CreateVariable('hidden_bias_var', pc)
 
-      # Create seeds for stateless random number generator.
-      random_seed_dtype = tf.int32
-      _, self._step_counter = py_utils.CreateVariable(
-          name='atten_step_counter',
-          params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
-                                       random_seed_dtype),
-          trainable=False)
-      vname = self._step_counter.name
-      self._prng_seed = tf.constant(
-          py_utils.GenerateSeedFromName(vname), dtype=random_seed_dtype)
-
     def EncodeSource(src_w, vecs, ctxs):
       time, batch = py_utils.GetShape(vecs, 2)
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
@@ -2209,10 +2192,7 @@ class MonotonicAttention(BaseAttentionLayer):
           tf.zeros((decoder_batch_size,), dtype=tf.int32),
           source_seq_length,
           dtype=dtype)
-      return py_utils.NestedMap(
-          emit_probs=emit_probs,
-          # stateless.stateless_random_normal() requires seeds of shape [2].
-          random_seed=tf.stack([self._prng_seed, self._step_counter]))
+      return py_utils.NestedMap(emit_probs=emit_probs)
 
   def ComputeProbabilities(self, theta, concated_source_vecs,
                            merged_source_padding, query_vec, attention_state):
@@ -2291,7 +2271,7 @@ class MonotonicAttention(BaseAttentionLayer):
         # Compute pre-sigmoid noise.
         activation_noise = tf.contrib.stateless.stateless_random_normal(
             py_utils.GetShape(logits),
-            attention_state.random_seed,
+            py_utils.GenerateStepSeedPair(p, theta.global_step),
             dtype=logits.dtype)
         # Compute sigmoid probabilities.
         p_choose_i = tf.nn.sigmoid(
@@ -2304,8 +2284,7 @@ class MonotonicAttention(BaseAttentionLayer):
             p_choose_i, previous_attention, 'parallel')
 
     # [tb, sl].
-    return probs, py_utils.NestedMap(
-        emit_probs=probs, random_seed=attention_state.random_seed)
+    return probs, py_utils.NestedMap(emit_probs=probs)
 
   def ComputeContextVectorWithSource(self,
                                      theta,
@@ -2373,11 +2352,6 @@ class MonotonicAttention(BaseAttentionLayer):
       ctx_vec = tf.reshape(summed, [tb, -1])
 
     return ctx_vec, probs, new_state
-
-  def PostTrainingStepUpdate(self, global_step):
-    """Update self._step_counter with the global_step value."""
-    return self._step_counter.assign(
-        tf.cast(global_step, self._step_counter.dtype))
 
 
 class GmmMonotonicAttention(BaseAttentionLayer):
