@@ -563,6 +563,7 @@ py_library(
     name = "optimizer",
     srcs = ["optimizer.py"],
     deps = [
+        ":base_layer",
         ":hyperparams",
         ":py_utils",
         ":summary_utils",
@@ -674,7 +675,6 @@ py_test(
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        # Implicit tensorflow python framework_for_generated_wrappers dependency.
         "//lingvo:model_registry",
         "//lingvo/tasks/image/params:mnist",
     ],
@@ -716,6 +716,7 @@ py_library(
         ":layers",
         ":layers_with_attention",
         ":py_utils",
+        # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -994,6 +995,7 @@ lingvo_cuda_py_test(
         ":test_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
+        # Implicit tensorflow contrib cudnn_rnn_py dependency.
     ],
 )
 

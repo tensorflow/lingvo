@@ -409,8 +409,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
             packed_src,
             tf.zeros([bs, p.rnn_cell_dim], dtype=py_utils.FPropDtype(p)),
             zero_atten_state,
-            per_step_source_padding=per_step_source_padding,
-            global_step=misc_zero_states.step_state.global_step))
+            per_step_source_padding=per_step_source_padding))
     atten_context = self.contextualizer.ZeroAttention(
         theta.contextualizer, bs, misc_zero_states, atten_context, packed_src)
 
@@ -1307,7 +1306,6 @@ class AsrDecoder(AsrDecoderBase):
         rnn_out,
         attention_state=attention_state,
         per_step_source_padding=per_step_src_padding,
-        global_step=step_state.global_step,
         query_segment_id=query_segment_id)
 
   def SingleDecodeStep(self,

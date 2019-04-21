@@ -1078,12 +1078,9 @@ class FRNNWithAttention(base_layer.BaseLayer):
     else:
       state0.atten, state0.atten_probs, state0.atten_state = (
           atten.ComputeContextVectorWithSource(
-              theta.atten,
-              packed_src,
+              theta.atten, packed_src,
               tf.zeros([batch_size, p.cell.num_output_nodes],
-                       dtype=self.cell.params.dtype),
-              zero_atten_state,
-              global_step=state0.step_state.global_step))
+                       dtype=self.cell.params.dtype), zero_atten_state))
     return state0
 
   def reset_atten_state(self, theta, state, inputs):
@@ -1175,7 +1172,6 @@ class FRNNWithAttention(base_layer.BaseLayer):
               theta.packed_src,
               rcell.GetOutput(state1.rnn),
               state0_mod.atten_state,
-              global_step=state0_mod.step_state.global_step,
               query_segment_id=tf.squeeze(inputs.segment_id, 1)))
       return state1, py_utils.NestedMap()
 
@@ -1186,7 +1182,10 @@ class FRNNWithAttention(base_layer.BaseLayer):
 
     acc_state, final_state = recurrent.Recurrent(
         theta=py_utils.NestedMap(
-            rnn=theta.cell, packed_src=packed_src, atten=theta.atten),
+            rnn=theta.cell,
+            packed_src=packed_src,
+            atten=theta.atten,
+            global_step=theta.global_step),
         state0=state0,
         inputs=py_utils.NestedMap(
             act=inputs,
@@ -1419,11 +1418,8 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
       zero_atten_state = self.attentions[att_idx].ZeroAttentionState(
           s_seq_len, batch_size)
       ctxs0.append(self.attentions[att_idx].ComputeContextVectorWithSource(
-          theta.attentions[att_idx],
-          packed_srcs[src_name],
-          query_vec0,
-          zero_atten_state,
-          global_step=state0.step_state.global_step)[0])
+          theta.attentions[att_idx], packed_srcs[src_name], query_vec0,
+          zero_atten_state)[0])
 
     # Initial attention state is the output of merger-op.
     state0.atten = self.atten_merger.FProp(theta.atten_merger, ctxs0,
@@ -1508,7 +1504,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
             theta.packed_src[src_name],
             query_vec,
             state0.atten,
-            global_step=state0.step_state.global_step)[0])
+        )[0])
       state1.atten = self.atten_merger.FProp(theta.atten_merger, local_ctxs,
                                              query_vec)
       return state1, py_utils.NestedMap()

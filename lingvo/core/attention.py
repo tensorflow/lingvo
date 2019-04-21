@@ -173,7 +173,6 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
                                      query_vec,
                                      attention_state=None,
                                      per_step_source_padding=None,
-                                     global_step=None,
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
 
@@ -186,7 +185,6 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
       attention_state: previous attention state.
       per_step_source_padding: Source sequence padding to apply at this step. If
         not None, it should have shape [target_batch_size, source_seq_length].
-      global_step: Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size].
 
     Returns:
@@ -205,7 +203,6 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
                            query_vec,
                            attention_state=None,
                            per_step_source_padding=None,
-                           global_step=None,
                            query_segment_id=None):
     """Computes the context vector given the current query output.
 
@@ -220,7 +217,6 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      global_step: Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size].
 
     Returns:
@@ -232,9 +228,10 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
         dimensions [target_batch, ...]
     """
     assert self._source_init_done
-    return self.ComputeContextVectorWithSource(
-        theta, self._packed_src, query_vec, attention_state,
-        per_step_source_padding, global_step, query_segment_id)
+    return self.ComputeContextVectorWithSource(theta, self._packed_src,
+                                               query_vec, attention_state,
+                                               per_step_source_padding,
+                                               query_segment_id)
 
   def GetInitializationSourceState(self):
     """Gets the attention initialization state.
@@ -631,7 +628,6 @@ class AdditiveAttention(BaseAttentionLayer):
                                      query_vec,
                                      attention_state=None,
                                      per_step_source_padding=None,
-                                     global_step=None,
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
 
@@ -653,7 +649,6 @@ class AdditiveAttention(BaseAttentionLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      global_step: Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size]
 
     Returns:
@@ -687,10 +682,11 @@ class AdditiveAttention(BaseAttentionLayer):
       query_segment_id = tf.zeros(
           tf.shape(query_vec)[0], dtype=source_padding.dtype)
 
-    ctx_vec, prob = self._ctx_vec(
-        hidden, query, source_padding, source_segment_id, concated_source_vecs,
-        concated_source_contexts, query_vec, query_segment_id,
-        per_step_source_padding, global_step)
+    ctx_vec, prob = self._ctx_vec(hidden, query, source_padding,
+                                  source_segment_id, concated_source_vecs,
+                                  concated_source_contexts, query_vec,
+                                  query_segment_id, per_step_source_padding,
+                                  theta.global_step)
 
     return ctx_vec, prob, attention_state
 
@@ -934,7 +930,6 @@ class DotProductAttention(BaseAttentionLayer):
                                      query_vec,
                                      attention_state=None,
                                      per_step_source_padding=None,
-                                     global_step=None,
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
 
@@ -951,7 +946,6 @@ class DotProductAttention(BaseAttentionLayer):
           AdditiveAttention, and is simply passed through.
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch, source_seq_length].
-      global_step: Required for deterministic dropout.
       query_segment_id: Query segment id with shape [target_batch].
 
     Returns:
@@ -987,7 +981,7 @@ class DotProductAttention(BaseAttentionLayer):
     ctx_vec, prob = self._ctx_vec(
         ScaleFn(theta.per_dim_scale), source_padding, source_segment_id,
         concated_source_vecs, concated_source_contexts, query_vec,
-        query_segment_id, per_step_source_padding, global_step)
+        query_segment_id, per_step_source_padding, theta.global_step)
     return ctx_vec, prob, attention_state
 
 
@@ -1345,7 +1339,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                                      query_vec,
                                      attention_state=None,
                                      per_step_source_padding=None,
-                                     global_step=None,
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
 
@@ -1360,7 +1353,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      global_step: Required for deterministic dropout.
       query_segment_id: a tensor of shape [target_batch].
 
     Note: concated_source_vecs are the vectors that are used to compute the
@@ -1421,7 +1413,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                                         [batch_size * num_heads, -1])
     ctx_vec, prob, att_state = self.atten.ComputeContextVectorWithSource(
         theta.atten, packed_src, query_vec_projected, attention_state,
-        per_step_source_padding, global_step, query_segment_id)
+        per_step_source_padding, query_segment_id)
     ctx_vec = tf.reshape(ctx_vec, [batch_size, -1])
     if p.enable_ctx_post_proj:
       ctx_vec = fns.qbatchmatmul(
@@ -1516,7 +1508,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                                            query_vec,
                                            attention_state=None,
                                            per_step_source_padding=None,
-                                           global_step=None,
                                            query_segment_id=None):
     """Same as the ComputeContextVectorWithSource api above, except values ...
 
@@ -1532,7 +1523,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      global_step: Required for deterministic dropout.
       query_segment_id: a tensor of shape [target_batch].
 
     Returns:
@@ -1543,7 +1533,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     """
     return self.ComputeContextVectorWithSource(
         theta, self.PackCachedSource(cached_src), query_vec, attention_state,
-        per_step_source_padding, global_step, query_segment_id)
+        per_step_source_padding, query_segment_id)
 
 
 class LocationSensitiveAttention(BaseAttentionLayer):
@@ -1926,7 +1916,6 @@ class LocationSensitiveAttention(BaseAttentionLayer):
                                      query_vec,
                                      attention_state=None,
                                      per_step_source_padding=None,
-                                     global_step=None,
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
 
@@ -1946,7 +1935,6 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      global_step: Required for deterministic dropout.
       query_segment_id: Query segment id with shape [batch_size].
 
     Note: concated_source_vecs are the vectors that are used to compute the
@@ -2292,7 +2280,6 @@ class MonotonicAttention(BaseAttentionLayer):
                                      query_vec,
                                      attention_state,
                                      per_step_source_padding=None,
-                                     global_step=None,
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
 
@@ -2306,7 +2293,6 @@ class MonotonicAttention(BaseAttentionLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      global_step: Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size].
 
     Note: concated_source_vecs are the vectors that are used to compute the
@@ -2501,7 +2487,6 @@ class GmmMonotonicAttention(BaseAttentionLayer):
                                      query_vec,
                                      attention_state,
                                      per_step_source_padding=None,
-                                     global_step=None,
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
 
@@ -2521,7 +2506,6 @@ class GmmMonotonicAttention(BaseAttentionLayer):
       per_step_source_padding: Source sequence padding to apply at this step.
         If not None, it should be of shape [target_batch_size,
         source_seq_length].
-      global_step: Required for deterministic dropout.
       query_segment_id: a tensor of shape [batch_size]
 
     Note: concated_source_vecs are the vectors that are used to compute the
