@@ -234,7 +234,7 @@ class Accumulator(Base):
   def __init__(self, params):
     super(Accumulator, self).__init__(params)
     p = self.params
-    self._opt = p.optimizer_tpl.cls(p.optimizer_tpl)
+    self.CreateChild('_opt', p.optimizer_tpl)
 
   def Apply(self, lr, var_grad):
     p = self.params

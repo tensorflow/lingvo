@@ -602,7 +602,7 @@ class BaseLayer(object):
     child = p.cls(p)
     self._private_children[name] = child
 
-  def CreateChildren(self, name, params_list):
+  def CreateChildren(self, name, params_list, child_scopes=None):
     """Create a list of sub layers.
 
     The created sub layer list can be accessed by `name`. E.g.::
@@ -619,22 +619,33 @@ class BaseLayer(object):
       name: The name for the sub layers, which is used as the key
         into vars/theta.
       params_list: `Hyperparams` objects to instantiate a list of layers.
+      child_scopes: If not none, a variable_scope to set for each child.
     """
     self._CheckName(name)
 
-    def CreateChildrenHelper(params_list):
+    def CreateChildrenHelper(params_list, child_scopes):
+      """Helper to create children recursively."""
+      if child_scopes and len(child_scopes) != len(params_list):
+        raise ValueError('child_scopes must be same structure as params_list.')
       children = []
       for i, p in enumerate(params_list):
         if isinstance(p, list):
-          children.append(CreateChildrenHelper(p))
+          children.append(
+              CreateChildrenHelper(p,
+                                   child_scopes[i] if child_scopes else None))
         else:
           p = self.CopyBaseParams(self.params, p.Copy())
           if not p.name:
             p.name = '%s_%d' % (name, i)
-          children.append(p.cls(p))
+          if child_scopes:
+            with tf.variable_scope(child_scopes[i]):
+              children.append(p.cls(p))
+          else:
+            children.append(p.cls(p))
       return children
 
-    self._private_children[name] = CreateChildrenHelper(params_list)
+    self._private_children[name] = CreateChildrenHelper(params_list,
+                                                        child_scopes)
 
   def AddChild(self, name, child):
     """Add an existing layer as a sublayer."""
