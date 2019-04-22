@@ -514,8 +514,10 @@ py_library(
     name = "metrics",
     srcs = ["metrics.py"],
     deps = [
+        ":plot",
         ":py_utils",
         ":scorers",
+        # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit sklearn dependency.
         # Implicit tensorflow dependency.
