@@ -361,14 +361,14 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     additional_context_dim = self.contextualizer.GetContextDim()
     return audio_context_dim + additional_context_dim
 
-  def _ApplyDropout(self, x_in, deterministic=False, extra_seed=None):
+  def _ApplyDropout(self, theta, x_in, deterministic=False, extra_seed=None):
     p = self.params
     assert 0 <= p.dropout_prob and p.dropout_prob < 1.0
     if p.is_eval or p.dropout_prob == 0.0:
       return x_in
 
     if deterministic:
-      seeds = py_utils.GenerateStepSeedPair(p)
+      seeds = py_utils.GenerateStepSeedPair(p, theta.global_step)
       if extra_seed:
         seeds += extra_seed
       return py_utils.DeterministicDropout(x_in, 1.0 - p.dropout_prob, seeds)
@@ -920,7 +920,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
       target_embs = self.emb.EmbLookup(theta.emb, tf.reshape(targets.ids, [-1]))
       target_embs = tf.reshape(target_embs, [dec_bs, max_seq_length, p.emb_dim])
-      target_embs = self._ApplyDropout(target_embs)
+      target_embs = self._ApplyDropout(theta, target_embs)
       target_info_tas = self._GetInitialTargetInfo(targets, max_seq_length,
                                                    target_embs)
 
@@ -1012,7 +1012,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       state0.step_outs = tf.zeros([dec_bs, out_dim],
                                   dtype=py_utils.FPropDtype(p))
       target_embs = self.emb.EmbLookup(theta.emb, targets.ids)
-      target_embs = self._ApplyDropout(target_embs)
+      target_embs = self._ApplyDropout(theta, target_embs)
       inputs = py_utils.NestedMap(
           id=tf.transpose(targets.ids),
           label=tf.transpose(targets.labels),
@@ -1375,6 +1375,7 @@ class AsrDecoder(AsrDecoderBase):
       new_rnn_states.append(new_rnn_states_i)
       new_rnn_out = cell.GetOutput(new_rnn_states_i)
       new_rnn_out = self._ApplyDropout(
+          theta,
           new_rnn_out,
           deterministic=use_deterministic_random,
           extra_seed=i * 1000)

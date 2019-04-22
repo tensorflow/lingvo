@@ -2084,7 +2084,7 @@ def GetIncStepSeed():
   return step_seed
 
 
-def GenerateStepSeedPair(p, global_step=None, op_seed=None):
+def GenerateStepSeedPair(p, global_step, op_seed=None):
   """Generates a seed pair for deterministic random operations in functional loops.
 
   This function retrieves a unique seed pair on each call, based off the current
@@ -2096,7 +2096,7 @@ def GenerateStepSeedPair(p, global_step=None, op_seed=None):
   Args:
     p: A hyperparams.Params object, containing keys 'random_seed' and
       'is_inference'.
-    global_step: The global step. If none, it is read from the global tensor.
+    global_step: The global step.
     op_seed: An additional operation-level seed to apply.
 
   Returns:
@@ -2116,8 +2116,6 @@ def GenerateStepSeedPair(p, global_step=None, op_seed=None):
     # inference if the graph is exported with random_seed=None as a workaround.
     return tf.random_uniform([2], maxval=seed_dtype.max, dtype=seed_dtype)
 
-  if global_step is None:
-    global_step = GetGlobalStep()
   global_step = tf.cast(global_step, seed_dtype)
   step_seed = tf.cast(GetIncStepSeed(), seed_dtype)
   seeds = tf.stack([global_step, step_seed])

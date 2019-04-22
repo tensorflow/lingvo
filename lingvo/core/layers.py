@@ -2097,7 +2097,7 @@ class DropoutLayer(base_layer.BaseLayer):
              'Whether or not to also perform dropout at eval time.')
     return p
 
-  def _Dropout(self, inputs, noise_shape):
+  def _Dropout(self, theta, inputs, noise_shape):
     return tf.nn.dropout(
         inputs,
         keep_prob=self.params.keep_prob,
@@ -2127,7 +2127,7 @@ class DropoutLayer(base_layer.BaseLayer):
           noise_shape[dim] = 1
       else:
         noise_shape = p.noise_shape
-      ret = self._Dropout(inputs, noise_shape)
+      ret = self._Dropout(theta, inputs, noise_shape)
       ret.set_shape(inputs.get_shape())
       return ret
     else:
@@ -2144,11 +2144,11 @@ class DropoutLayer(base_layer.BaseLayer):
 class DeterministicDropoutLayer(DropoutLayer):
   """Apply dropout during trainig."""
 
-  def _Dropout(self, inputs, noise_shape):
+  def _Dropout(self, theta, inputs, noise_shape):
     return py_utils.DeterministicDropout(
         inputs,
         keep_prob=self.params.keep_prob,
-        seeds=py_utils.GenerateStepSeedPair(self.params),
+        seeds=py_utils.GenerateStepSeedPair(self.params, theta.global_step),
         noise_shape=noise_shape)
 
 

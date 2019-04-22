@@ -455,7 +455,7 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
       if p.deterministic_dropout:
         filter_w = py_utils.DeterministicDropout(
             filter_w, 1.0 - p.dropconnect_prob,
-            py_utils.GenerateStepSeedPair(p))
+            py_utils.GenerateStepSeedPair(p, theta.global_step))
       else:
         filter_w = tf.nn.dropout(
             filter_w, 1.0 - p.dropconnect_prob, seed=p.random_seed)

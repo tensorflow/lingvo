@@ -203,7 +203,7 @@ class LinearModel(base_model.BaseTask):
       x = tf.placeholder(dtype=tf.float32, name='input')
       r = tf.random.stateless_uniform([3],
                                       seed=py_utils.GenerateStepSeedPair(
-                                          self.params))
+                                          self.params, self.theta.global_step))
       y = tf.reduce_sum((self._w + r) * x) + self._b
       return {'default': ({'output': y}, {'input': x})}
 

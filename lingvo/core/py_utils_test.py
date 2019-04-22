@@ -1575,14 +1575,14 @@ class StepSeedTest(test_utils.TestCase):
   def testStepSeed(self):
     p = base_layer.BaseLayer.Params()
 
-    def RecurrentStep(unused_theta, state0, inputs):
+    def RecurrentStep(theta, state0, inputs):
       graph = tf.get_default_graph()
       if not graph.get_collection(tf.GraphKeys.GLOBAL_STEP):
         graph.add_to_collection(tf.GraphKeys.GLOBAL_STEP, state0.global_step)
 
       state1 = py_utils.NestedMap()
       state1.input = inputs.input
-      state1.seed_pair = py_utils.GenerateStepSeedPair(p)
+      state1.seed_pair = py_utils.GenerateStepSeedPair(p, theta.global_step)
       state1.step_seed = py_utils.GetStepSeed()
       state1.global_step = py_utils.GetGlobalStep()
       return state1, py_utils.NestedMap()
