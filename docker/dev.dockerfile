@@ -74,7 +74,7 @@ RUN jupyter serverextension enable --py jupyter_http_over_ws
 # TensorFlow from source instead of installing from pip. 
 RUN pip --no-cache-dir install tf-nightly$(test "$base_image" != "$cpu_base_image" && echo "-gpu")
 
-ARG bazel_version=0.17.2
+ARG bazel_version=0.24.1
 # This is to install bazel, for development purposes.
 ENV BAZEL_VERSION ${bazel_version}
 RUN mkdir /bazel && \
