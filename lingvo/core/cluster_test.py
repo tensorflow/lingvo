@@ -353,7 +353,9 @@ class ClusterTest(test_utils.TestCase):
   def testInputDevice(self):
     p = cluster_factory.Cluster.Params()
     p.mode = 'sync'
-    p.job = 'trainer_client'
+    p.job = 'decoder'
+    p.decoder.replicas = 1
+    p.task = 0
     p.input.name = '/job:input'
     p.input.replicas = 1
     c = cluster_factory.Cluster(p)

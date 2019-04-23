@@ -316,7 +316,7 @@ class _Cluster(object):
   def input_device(self):
     """Returns the tensorflow device name to place input op on."""
     p = self.params
-    if self.synchronous and self.job == 'trainer_client' and p.input.replicas > 0:
+    if self.synchronous and p.input.replicas > 0:
       # Uses a separate job for input processing.
       assert p.input.replicas == 1
       return self.ListDevices(p.input)[0, 0]
