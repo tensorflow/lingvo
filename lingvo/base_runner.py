@@ -346,7 +346,7 @@ class BaseRunner(object):
             job_name, global_step)
         continue
       summary_writer.add_summary(summary, global_step)
-      if summary.value[0].HasField('simple_value'):
+      if summary.value and summary.value[0].HasField('simple_value'):
         value = summary.value[0].simple_value
         tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
                         global_step, name, value)
