@@ -143,6 +143,7 @@ class RecurrentTest(test_utils.TestCase):
       p = _SampleAccumulatorLayer.Params()
       p.name = 'sample'
       accum_layer = _SampleAccumulatorLayer(p)
+      accum_obj = accum_layer.accumulators[accum_layer.accumulator_name]
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
@@ -153,9 +154,13 @@ class RecurrentTest(test_utils.TestCase):
       inputs.coeff = tf.constant([1., 2., 3.])
 
       def _CellFn(theta, state, inputs):
-        accum_layer.accumulators[accum_layer.accumulator_name].Update(
-            inputs.coeff)
+        print('TEST ACCUM WITHIN CellFn = ', accum_obj.GetValue())
+        accum_obj.Update(inputs.coeff)
         return _Poly(theta, state, inputs)
+
+      # By doing one accumulate prior to recurrent, we ensure that incoming
+      # recurrent state is preserved.
+      accum_obj.Update(10.)
 
       # x = 2
       # 1 + 2*x + 3*x^2
@@ -182,9 +187,7 @@ class RecurrentTest(test_utils.TestCase):
       self.assertAllClose(d_coeff_val, [3., 4., 4.])
 
       # Verify fprop.
-      (acc, state), accum_value = sess.run(
-          (ret,
-           accum_layer.accumulators[accum_layer.accumulator_name].GetValue()))
+      (acc, state), accum_obj_value = sess.run((ret, accum_obj.GetValue()))
 
       # Verify that accumulators don't change fprop results.
       self.assertAllClose(acc.value, [1., 5., 17.])
@@ -192,11 +195,9 @@ class RecurrentTest(test_utils.TestCase):
       self.assertAllClose(state.value, 17.)
       self.assertAllClose(state.x_power, 8.)
 
-      # Verify accumulator (should be 1 + 2 + 3).
-      self.assertEqual(
-          0,
-          accum_layer.accumulators[accum_layer.accumulator_name]._disable_count)
-      self.assertAllClose([accum_value], [6.0])
+      # Verify accumulator (should be 10 (initial increment) + 1 + 2 + 3).
+      self.assertEqual(0, accum_obj._disable_count)
+      self.assertAllClose([accum_obj_value], [16.0])
 
   def testTimeBasedStopFn(self):
 

@@ -364,10 +364,6 @@ class _Recurrent(object):
     self._implicit_captures = implicit_captures
     self._unused_acc_state = unused_acc_state
 
-    # Enable accumulators.
-    if accumulator_layer:
-      accumulator_layer.accumulators.Transform(lambda x: x.Enable())
-
     # NOTE: TF Function (Fwd, Bak, ForwardLoopBody, BackwardLoopBody,
     # Forward and Backward defined below) simply takes a list of
     # Tensors and returns a list of Tensors. When we pass in a
@@ -855,7 +851,10 @@ def _ReflectOnCellFn(cell_fn,
   Raises:
     ValueError: cell_fn is stateful.
   """
-  state0 = _AugmentState(state0.DeepCopy(), accumulator_layer)
+  # Reset the augmented state entries as we may be running in a special
+  # disabled context and we want state0 to reflect that.
+  state0 = _AugmentState(
+      state0.DeepCopy(), accumulator_layer, allow_overwrite=True)
 
   fwd_sig = [theta, state0, inputs]
 
@@ -952,16 +951,16 @@ def _GetCellGrad(cell_fn,
   return cell_grad, implicit_captures
 
 
-def _AugmentState(state0, accumulator_layer):
+def _AugmentState(state0, accumulator_layer, allow_overwrite=False):
   """Augments state0 with additional state."""
   if accumulator_layer:
-    if 'accumulators' in state0:
+    if 'accumulators' in state0 and not allow_overwrite:
       raise ValueError('accumulators is a private state key used by Recurrent.')
     state0.accumulators = accumulator_layer.GetAccumulatorValues()
 
   # _step_seed is used for seeding stateless random ops.
   # See py_utils.GenerateStepSeedPair for more details.
-  if '_step_seed' in state0:
+  if '_step_seed' in state0 and not allow_overwrite:
     raise ValueError('_step_seed is a private state key used by Recurrent.')
   state0['_step_seed'] = py_utils.GetStepSeed()
 
@@ -1164,7 +1163,8 @@ def Recurrent(theta,
     return _RecurrentSingleTimeStep(theta, state0, inputs, cell_fn)
 
   # Disable accumulators since cell_fn needs to be called a few times and those
-  # aren't real calls to cell_fn. They will be re-enabled in _Recurrent.
+  # aren't real calls to cell_fn. They will be re-enabled just prior to
+  # calling _Recurrent.
   if accumulator_layer:
     accumulator_layer.accumulators.Transform(lambda x: x.Disable())
 
@@ -1186,6 +1186,11 @@ def Recurrent(theta,
       # Forces the extras to be an empty map if an empty 'extras' is provided.
       extras = py_utils.NestedMap()
     _AssertIsCompatible(extras, actual_extras)
+
+  # Enable accumulators. Note that this must happen prior to the initial
+  # _AugmentState() below or it will initialize with defaults.
+  if accumulator_layer:
+    accumulator_layer.accumulators.Transform(lambda x: x.Enable())
 
   acc_state, final_state = _Recurrent(
       cell_fn=cell_fn,
@@ -1258,7 +1263,7 @@ class _Input(object):
         allow_implicit_capture=True)
     self._cell_out_grad = cell_out_grad
     self._theta = theta
-    self._state0 = _AugmentState(state0.DeepCopy(), accumulator_layer)
+    self._state0 = state0
     self._accumulator_layer = accumulator_layer
     self._inputs = inputs
     self._extras = extras
@@ -1326,7 +1331,7 @@ class _Middle(object):
         allow_implicit_capture=True)
     self._cell_out_grad = cell_out_grad
     self._theta = theta
-    self._state0 = _AugmentState(state0.DeepCopy(), accumulator_layer)
+    self._state0 = state0
     self._accumulator_layer = accumulator_layer
     self._in_links = in_links
     self._padding = padding
@@ -1409,7 +1414,7 @@ class _Output(object):
         accumulator_layer,
         allow_implicit_capture=True)
     self._theta = theta
-    self._state0 = _AugmentState(state0.DeepCopy(), accumulator_layer)
+    self._state0 = state0
     self._accumulator_layer = accumulator_layer
     self._in_links = in_links
     self._padding = padding
@@ -1646,13 +1651,20 @@ def StackedRecurrent(devices,
   # Builds the input layer.
   out_links = _CreateLinks(expected_output_by_layers[0].xs,
                            DevicePair(devices[0], devices[1]))
+
+  # Enable accumulators. Note that this must happen prior to the initial
+  # _AugmentState() below or it will initialize with defaults.
+  for accumulator_layer in accumulator_layers:
+    if accumulator_layer:
+      accumulator_layer.accumulators.Transform(lambda x: x.Enable())
+
   inp_l = _Input(
       cell_fn=cell_fns[0],
       cell_grad=cell_grads[0],
       cell_out=cell_outs[0],
       cell_out_grad=cell_out_grads[0],
       theta=thetas[0],
-      state0=init_states[0],
+      state0=_AugmentState(init_states[0].DeepCopy(), accumulator_layers[0]),
       accumulator_layer=accumulator_layers[0],
       inputs=inputs,
       extras=expected_output_by_layers[0].extras,
@@ -1671,7 +1683,7 @@ def StackedRecurrent(devices,
         cell_out=cell_outs[i],
         cell_out_grad=cell_out_grads[i],
         theta=thetas[i],
-        state0=init_states[i],
+        state0=_AugmentState(init_states[i].DeepCopy(), accumulator_layers[i]),
         accumulator_layer=accumulator_layers[i],
         in_links=in_links,
         padding=padding,
@@ -1689,7 +1701,7 @@ def StackedRecurrent(devices,
       cell_fn=cell_fns[-1],
       cell_grad=cell_grads[-1],
       theta=thetas[-1],
-      state0=init_states[-1],
+      state0=_AugmentState(init_states[-1].DeepCopy(), accumulator_layers[-1]),
       accumulator_layer=accumulator_layers[-1],
       in_links=in_links,
       padding=padding,
