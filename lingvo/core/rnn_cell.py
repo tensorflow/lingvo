@@ -319,6 +319,7 @@ class LSTMCellSimple(RNNCell):
           init=p.params_init,
           dtype=p.dtype,
           collections=self._VariableCollections())
+      self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
       if p.apply_pruning:
         mask_pc = py_utils.WeightParams(wm_pc.shape,
                                         py_utils.WeightInit.Constant(1.0),
@@ -330,16 +331,8 @@ class LSTMCellSimple(RNNCell):
         self.CreateVariable(
             'threshold', threshold_pc, theta_fn=None, trainable=False)
 
-        def MaskWeightFn(weight):
-          return tf.multiply(
-              self.AddGlobalVN(weight), self.vars.mask, 'masked_weights')
-
-        self.CreateVariable('wm', wm_pc, theta_fn=MaskWeightFn)
         py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
                                          self.vars.threshold)
-
-      else:
-        self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
 
       if p.num_hidden_nodes:
         w_proj = py_utils.WeightParams(
@@ -448,7 +441,10 @@ class LSTMCellSimple(RNNCell):
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
-    wm = self.QWeight(theta.wm)
+    if self.params.apply_pruning:
+      wm = self.QWeight(tf.multiply(theta.wm, theta.mask, 'masked_weights'))
+    else:
+      wm = self.QWeight(theta.wm)
     concat = tf.concat(inputs.act + [state0.m], 1)
     # Defer quantization until after adding in the bias to support fusing
     # matmul and bias add during inference.
