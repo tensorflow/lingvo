@@ -106,13 +106,18 @@ def initializer(func):  # pylint: disable=invalid-name
     func: The __init__ method of `BaseLayer`'s subclasses.
 
   Returns:
-    A decorator wrapper for layer's initializer.
+    A decorator wrapper for layer's initializer. Note that this wrapper can
+    be called multiple times for the same layer instance, once for each
+    __init__() for classes on the class hierarchy.
   """
 
   def wrapper(self, *args, **kwargs):  # pylint: disable=invalid-name
     # Push back self (the current layer) to the stack.
     stack = _LAYER_STACK.layer_stack
-    stack.append(self)
+    should_pop = False
+    if not stack or stack[-1] is not self:
+      stack.append(self)
+      should_pop = True
     try:
       # Calls the layer's real __init__ method.
       func(self, *args, **kwargs)
@@ -124,7 +129,8 @@ def initializer(func):  # pylint: disable=invalid-name
         stack[-2]._AutoAddChild(self)
     finally:
       # Pop out self (the current layer).
-      stack.pop()
+      if should_pop:
+        stack.pop()
 
   return wrapper
 
@@ -240,6 +246,10 @@ class BaseLayer(object):
     """
     assert params.name, (
         'Layer params for %s must have a "name"' % self.__class__.__name__)
+    self._parent = (
+        _LAYER_STACK.layer_stack[-2]
+        if len(_LAYER_STACK.layer_stack) > 1 else None)
+    assert self._parent is not self
     self._params = params.Copy()
     tf.logging.debug('Creating layer %s with params: \n %s \n',
                      self.__class__.__name__, str(params))
@@ -339,6 +349,19 @@ class BaseLayer(object):
   def cluster(self):
     """Returns the current cluster configuration."""
     return cluster_factory.Current()
+
+  @property
+  def parent(self):
+    """None if self is the root layer, otherwise the parent layer of self."""
+    return self._parent
+
+  @property
+  def path(self):
+    """Returns a '.'-separated string with all layer names from the root."""
+    if self.parent:
+      return self.parent.path + '.' + self.params.name
+    else:
+      return self.params.name
 
   @property
   def children(self):
