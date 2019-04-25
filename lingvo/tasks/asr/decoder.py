@@ -1035,10 +1035,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
       def RnnStep(recurrent_theta, state0, inputs):
         """Computes one rnn step."""
-        graph = tf.get_default_graph()
-        if not graph.get_collection(tf.GraphKeys.GLOBAL_STEP):
-          graph.add_to_collection(tf.GraphKeys.GLOBAL_STEP,
-                                  state0.misc_states.step_state.global_step)
         with tf.name_scope('single_decode_step'):
           step_outs, state1 = self.SingleDecodeStep(
               recurrent_theta.theta,
@@ -1054,10 +1050,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
       accumulated_states, _ = recurrent.Recurrent(
           recurrent_theta, state0_no_fusion, inputs, RnnStep)
-      # Give them names, so that they can be fetched in unit tests.
-      tf.identity(
-          accumulated_states.misc_states.step_state.global_step,
-          name='accumulated_global_steps')
 
       if not p.softmax_uses_attention:
         step_out, _ = tf.split(
@@ -1161,8 +1153,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
   def MiscZeroState(self, encoder_outputs, target_ids, bs):
     """Returns initial state for other miscellaneous states, if any."""
     del encoder_outputs
-    misc_zero_state = py_utils.NestedMap(
-        step_state=py_utils.NestedMap(global_step=py_utils.GetGlobalStep()))
+    misc_zero_state = py_utils.NestedMap()
     p = self.params
     if self._max_label_prob > 0:
       misc_zero_state.prev_predicted_ids = tf.reshape(target_ids[:, 0], [bs])
@@ -1272,7 +1263,6 @@ class AsrDecoder(AsrDecoderBase):
                         packed_src,
                         attention_state,
                         per_step_src_padding=None,
-                        step_state=None,
                         query_segment_id=None):
     """Runs attention and computes context vector.
 
@@ -1289,7 +1279,6 @@ class AsrDecoder(AsrDecoderBase):
         Varies with the type of attention, but is usually a Tensor or a
         NestedMap of Tensors of shape [batch_size, <state_dim>].
       per_step_src_padding: Source sequence padding to apply at this step.
-      step_state: A NestedMap containing 'global_step'.
       query_segment_id: a tensor of shape [batch_size].
 
     Returns:
@@ -1359,8 +1348,7 @@ class AsrDecoder(AsrDecoderBase):
          rnn_out,
          packed_src,
          decoder_step_state.atten_states,
-         per_step_src_padding=per_step_src_padding,
-         step_state=misc_states.step_state)
+         per_step_src_padding=per_step_src_padding)
     # Here the attention context is being updated according to the
     # contextualizer (the default contextualizer is a no-op).
     new_atten_context = self.contextualizer.QueryAttention(

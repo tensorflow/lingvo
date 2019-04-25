@@ -1551,9 +1551,7 @@ class StepSeedTest(test_utils.TestCase):
   def _testStepSeedHelper(self, sess, step_fn, expected_starting_step_seed):
     state0 = py_utils.NestedMap(
         input=tf.constant(0, dtype=tf.int64),
-        seed_pair=tf.zeros(2, dtype=tf.int64),
-        step_seed=py_utils.GetStepSeed(),
-        global_step=py_utils.GetGlobalStep())
+        seed_pair=tf.zeros(2, dtype=tf.int64))
     inputs = py_utils.NestedMap(input=tf.range(10, dtype=tf.int64))
 
     p = base_layer.BaseLayer.Params().Set(name='test')
@@ -1564,10 +1562,7 @@ class StepSeedTest(test_utils.TestCase):
     accumulated_states = accumulated_states.Pack(
         sess.run(accumulated_states.Flatten()))
     self.assertAllEqual(np.arange(10), accumulated_states.input)
-    self.assertAllEqual(np.zeros(10), accumulated_states.global_step)
-    # The step seed in the state is actually for the **next** step.
     expected_step_seeds = expected_starting_step_seed + np.arange(10)
-    self.assertAllEqual(expected_step_seeds + 1, accumulated_states.step_seed)
     self.assertAllEqual(
         np.stack((np.zeros(10), expected_step_seeds), axis=1),
         accumulated_states.seed_pair)
@@ -1575,16 +1570,10 @@ class StepSeedTest(test_utils.TestCase):
   def testStepSeed(self):
     p = base_layer.BaseLayer.Params()
 
-    def RecurrentStep(theta, state0, inputs):
-      graph = tf.get_default_graph()
-      if not graph.get_collection(tf.GraphKeys.GLOBAL_STEP):
-        graph.add_to_collection(tf.GraphKeys.GLOBAL_STEP, state0.global_step)
-
+    def RecurrentStep(theta, unused_state0, inputs):
       state1 = py_utils.NestedMap()
       state1.input = inputs.input
       state1.seed_pair = py_utils.GenerateStepSeedPair(p, theta.global_step)
-      state1.step_seed = py_utils.GetStepSeed()
-      state1.global_step = py_utils.GetGlobalStep()
       return state1, py_utils.NestedMap()
 
     with self.session(graph=tf.Graph()) as sess:

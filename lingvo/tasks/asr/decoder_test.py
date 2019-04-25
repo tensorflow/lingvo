@@ -254,25 +254,25 @@ class DecoderTest(test_utils.TestCase):
       global_step = py_utils.GetGlobalStep()
       tf.global_variables_initializer().run()
       loss_val, per_sequence_loss_val, global_steps_val = sess.run(
-          [loss, per_sequence_loss, 'decoder_1/accumulated_global_steps:0'])
+          [loss, per_sequence_loss, global_step])
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
       self.assertAllClose([3.587372, 15.0], loss_val)
       self.assertAllClose([14.171288, 9.965696, 10.221684, 19.451914],
                           per_sequence_loss_val)
-      self.assertAllEqual([0, 0, 0, 0, 0], global_steps_val)
+      self.assertAllEqual(0, global_steps_val)
 
       # Run another step to test global_step and time_step are incremented
       # correctly.
       sess.run(tf.assign_add(global_step, 1))
       loss_val, per_sequence_loss_val, global_steps_val = sess.run(
-          [loss, per_sequence_loss, 'decoder_1/accumulated_global_steps:0'])
+          [loss, per_sequence_loss, global_step])
 
       print('loss = ', loss_val, 'per sequence loss = ', per_sequence_loss_val)
       self.assertAllClose([3.626164, 15.0], loss_val)
       self.assertAllClose([14.70993, 10.572938, 10.516836, 18.592758],
                           per_sequence_loss_val)
-      self.assertAllEqual([1, 1, 1, 1, 1], global_steps_val)
+      self.assertAllEqual(1, global_steps_val)
 
   def testLabelSmoothing(self):
     """Verify that loss computation with label smoothing is as expected.."""

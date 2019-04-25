@@ -1067,7 +1067,6 @@ class FRNNWithAttention(base_layer.BaseLayer):
     s_seq_len = tf.shape(src_encs)[0]
 
     zero_atten_state = atten.ZeroAttentionState(s_seq_len, batch_size)
-    state0.step_state = py_utils.NestedMap(global_step=py_utils.GetGlobalStep())
     if p.use_zero_atten_state:
       zero_atten_context = tf.zeros([batch_size, p.atten_context_dim],
                                     dtype=py_utils.FPropDtype(p))
@@ -1156,7 +1155,7 @@ class FRNNWithAttention(base_layer.BaseLayer):
         state0_mod = self.reset_atten_state(theta, state0_mod, inputs)
       else:
         state0_mod = state0
-      state1 = py_utils.NestedMap(step_state=state0_mod.step_state)
+      state1 = py_utils.NestedMap()
       if rcell.params.inputs_arity == 1:
         act = [_ConcatLastDim(inputs.act, state0_mod.atten)]
       else:
@@ -1405,7 +1404,6 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
 
     ctxs0 = []
     packed_srcs = py_utils.NestedMap()
-    state0.step_state = py_utils.NestedMap(global_step=py_utils.GetGlobalStep())
     for i, src_name in enumerate(p.source_names):
       att_idx = (0 if p.share_attention else i)
 
@@ -1487,7 +1485,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
 
     def CellFn(theta, state0, inputs):
       """Computes one step forward."""
-      state1 = py_utils.NestedMap(step_state=state0.step_state)
+      state1 = py_utils.NestedMap()
       state1.rnn, _ = rcell.FProp(
           theta.rnn, state0.rnn,
           py_utils.NestedMap(
