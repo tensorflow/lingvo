@@ -1884,13 +1884,14 @@ def AddToPruningCollections(weight, mask, threshold):
     tf.add_to_collection(pruning_layers.THRESHOLD_COLLECTION, threshold)
 
 
-def WeightedAvg(values, weights, sum_reduction_fn=tf.reduce_sum):
+def WeightedAvg(values, weights, sum_reduction_fn=tf.reduce_sum, name=''):
   """Computes weighted average of values from a tensor.
 
   Args:
     values: a tensor of values
     weights: a tensor of weights
-    sum_reduction_fn: called to reduce the values and weights to single value.
+    sum_reduction_fn: called to reduce the values and weights to single value
+    name: name of metric.
 
   Returns:
     A tuple (avg, total_weight).
@@ -1898,12 +1899,9 @@ def WeightedAvg(values, weights, sum_reduction_fn=tf.reduce_sum):
     - avg: weighted average value
     - total_weight: sum of all weights
   """
-  values = with_dependencies([
-      assert_equal(
-          tf.shape(values),
-          tf.shape(weights),
-          message='shape of values and weights tensors must match.')
-  ], values)
+  msg = 'shape of values and weights tensors must match for metric ' + name
+  values = with_dependencies(
+      [assert_equal(tf.shape(values), tf.shape(weights), message=msg)], values)
   total_weight = sum_reduction_fn(weights)
   avg = sum_reduction_fn(values * tf.cast(weights, values.dtype)) / tf.cast(
       total_weight, values.dtype)
@@ -1930,7 +1928,7 @@ def WeightedAvgOfMetrics(metrics):
   for name, values_and_weights in sorted(six.iteritems(lists_of_metrics)):
     values = tf.stack([x[0] for x in values_and_weights])
     weights = tf.stack([x[1] for x in values_and_weights])
-    ret_dict[name] = WeightedAvg(values, weights, tf.reduce_sum)
+    ret_dict[name] = WeightedAvg(values, weights, tf.reduce_sum, name)
 
   return ret_dict
 
