@@ -286,7 +286,7 @@ S.&nbsp;Toshniwal, A.&nbsp;Kannan, C.&nbsp;C. Chiu, Y.&nbsp;Wu, T.&nbsp;N. Saina
   comparison of techniques for language model integration in encoder-decoder
   speech recognition,&rdquo; in <em>Proc. IEEE Spoken Language Technology
   Workshop (SLT)</em>, 2018.
-[&nbsp;<a href="https://arxiv.org/pdf/1807.10857.pdf">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1807.10857">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -300,7 +300,7 @@ S.&nbsp;Toshniwal, A.&nbsp;Kannan, C.&nbsp;C. Chiu, Y.&nbsp;Wu, T.&nbsp;N. Saina
 G.&nbsp;Pundak, T.&nbsp;N. Sainath, R.&nbsp;Prabhavalkar, A.&nbsp;Kannan, and D.&nbsp;Zhao, &ldquo;Deep
   context: End-to-end contextual speech recognition,&rdquo; in <em>Proc. IEEE
   Spoken Language Technology Workshop (SLT)</em>, 2018.
-[&nbsp;<a href="https://arxiv.org/pdf/1808.02480.pdf">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1808.02480">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -343,7 +343,21 @@ J.&nbsp;Guo, T.&nbsp;N. Sainath, and R.&nbsp;J. Weiss, &ldquo;A spelling correct
 U.&nbsp;Alon, G.&nbsp;Pundak, and T.&nbsp;N. Sainath, &ldquo;Contextual speech recognition with
   difficult negative training examples,&rdquo; in <em>Proc. IEEE International
   Conference on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2019.
-[&nbsp;<a href="https://arxiv.org/pdf/1810.12170.pdf">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1810.12170">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="qin2019imperceptible">18</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Qin, N.&nbsp;Carlini, I.&nbsp;Goodfellow, G.&nbsp;Cottrell, and C.&nbsp;Raffel, &ldquo;Imperceptible,
+  robust, and targeted adversarial examples for automatic speech recognition,&rdquo;
+  in <em>Proc. International Conference on Machine Learning (ICML)</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1903.10346">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -397,7 +411,7 @@ P.&nbsp;Haghani, A.&nbsp;Narayanan, M.&nbsp;Bacchiani, G.&nbsp;Chuang, N.&nbsp;G
   R.&nbsp;Prabhavalkar, Z.&nbsp;Qu, and A.&nbsp;Waters, &ldquo;From Audio to Semantics: Approaches
   to End-to-End Spoken Language Understanding,&rdquo; in <em>Proc. IEEE Spoken
   Language Technology Workshop (SLT)</em>, 2018.
-[&nbsp;<a href="https://arxiv.org/pdf/1809.09190.pdf">pdf</a>&nbsp;]
+[&nbsp;<a href="https://arxiv.org/abs/1809.09190">pdf</a>&nbsp;]
 
 </td>
 </tr>
