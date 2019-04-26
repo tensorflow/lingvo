@@ -1784,6 +1784,8 @@ class SRUCell(RNNCell):
     p.Define(
         'layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.'
         'value is necessary only if apply_layer_norm is True')
+    p.Define('apply_pruning', False, 'Whether to prune the weights while'
+             'training')
     return p
 
   @base_layer.initializer
@@ -1803,7 +1805,20 @@ class SRUCell(RNNCell):
           init=p.params_init,
           dtype=p.dtype,
           collections=self._VariableCollections())
+
       self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
+      if p.apply_pruning:
+        mask_pc = py_utils.WeightParams(wm_pc.shape,
+                                        py_utils.WeightInit.Constant(1.0),
+                                        p.dtype)
+        threshold_pc = py_utils.WeightParams([],
+                                             py_utils.WeightInit.Constant(0.0),
+                                             tf.float32)
+        self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'threshold', threshold_pc, theta_fn=None, trainable=False)
+        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                         self.vars.threshold)
 
       bias_pc = py_utils.WeightParams(
           shape=[self.num_gates * self.hidden_size],
@@ -1909,7 +1924,11 @@ class SRUCell(RNNCell):
 
   def _Mix(self, theta, state0, inputs):
     assert isinstance(inputs.act, list)
-    return py_utils.Matmul(tf.concat(inputs.act, 1), theta.wm)
+    if self.params.apply_pruning:
+      wm = tf.multiply(theta.wm, theta.mask)
+    else:
+      wm = theta.wm
+    return py_utils.Matmul(tf.concat(inputs.act, 1), wm)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
