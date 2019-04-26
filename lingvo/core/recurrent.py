@@ -204,6 +204,13 @@ def Pack(flatten, nmap_list):
   return ret
 
 
+def _SetShapes(dst_nmap, src_nmap):
+  """Set shapes in dst_nmap using those in src_nmap."""
+  _AssertIsCompatible(src_nmap, dst_nmap)
+  for src, dst in zip(src_nmap.Flatten(), dst_nmap.Flatten()):
+    dst.set_shape(src.shape)
+
+
 def _EmptyAcc(slen, nmap):
   """Creates a set of accumulators for tensors in nmap.
 
@@ -383,6 +390,7 @@ class _Recurrent(object):
     @function.Defun(*Dtypes(fwd_sig))
     def Fwd(*args):
       (theta, state0, inputs) = Pack(args, fwd_sig)
+      _SetShapes(theta, fwd_sig[0])
       state1, extras = self._cell_fn(theta, state0, inputs)
       _AssertIsCompatible(state1, self._state)
       _AssertIsCompatible(extras, self._extras)
@@ -597,6 +605,7 @@ class _Recurrent(object):
     def Bak(*args):
       """Backward step."""
       (theta, state0, inputs, extras, d_state1) = Pack(args, bak_sig)
+      _SetShapes(theta, bak_sig[0])
       (dtheta, dstate0, dinputs, dcaptures) = self._cell_grad(
           theta, state0, inputs, extras, d_state1)
       _AssertIsCompatible(dtheta, self._theta)
@@ -861,6 +870,7 @@ def _ReflectOnCellFn(cell_fn,
   @function.Defun(*Dtypes(fwd_sig))
   def Fwd(*args):
     (theta, state0, inputs) = Pack(args, fwd_sig)
+    _SetShapes(theta, fwd_sig[0])
     state1, extras = cell_fn(theta, state0, inputs)
     return Flatten([state1, extras])
 

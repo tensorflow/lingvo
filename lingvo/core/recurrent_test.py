@@ -609,6 +609,25 @@ class RecurrentTest(test_utils.TestCase):
     self._testElmanHelper(7, False, StopFn)
     self._testElmanHelper(7, True, StopFn)
 
+  def testSetShape(self):
+    dst = py_utils.NestedMap(
+        a=tf.placeholder(tf.int32, shape=None),
+        b=py_utils.NestedMap(
+            b1=tf.placeholder(tf.int32, shape=None),
+            b2=tf.placeholder(tf.int32, shape=None)))
+    src = py_utils.NestedMap(
+        a=tf.constant(0, shape=[2, 4], dtype=tf.int32),
+        b=py_utils.NestedMap(
+            b1=tf.constant(0, shape=[1, 3], dtype=tf.int32),
+            b2=tf.constant(0, shape=[5, 8], dtype=tf.int32)))
+    recurrent._SetShapes(dst, src)
+    self.assertAllClose(
+        [2, 4],
+        py_utils.GetShape(dst.a, 2),
+    )
+    self.assertAllClose([1, 3], py_utils.GetShape(dst.b.b1, 2))
+    self.assertAllClose([5, 8], py_utils.GetShape(dst.b.b2, 2))
+
 
 class StackedRecurrentTest(RecurrentTest):
 
