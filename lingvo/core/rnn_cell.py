@@ -271,6 +271,9 @@ class LSTMCellSimple(RNNCell):
         'tf.contrib.rnn.CoupledInputForgetGateLSTMCell')
     p.Define('apply_pruning', False, 'Whether to prune the weights while '
              'training')
+    p.Define('apply_pruning_to_projection', False,
+             'Whether to prune the projection matrix while '
+             'training')
     p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
              'Initialization parameters for bias')
 
@@ -330,7 +333,6 @@ class LSTMCellSimple(RNNCell):
         self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
         self.CreateVariable(
             'threshold', threshold_pc, theta_fn=None, trainable=False)
-
         py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
                                          self.vars.threshold)
 
@@ -341,6 +343,21 @@ class LSTMCellSimple(RNNCell):
             dtype=p.dtype,
             collections=self._VariableCollections())
         self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
+        if p.apply_pruning_to_projection:
+          proj_mask_pc = py_utils.WeightParams(
+              w_proj.shape, py_utils.WeightInit.Constant(1.0), p.dtype)
+          proj_threshold_pc = py_utils.WeightParams(
+              [], py_utils.WeightInit.Constant(0.0), tf.float32)
+          self.CreateVariable(
+              'proj_mask', proj_mask_pc, theta_fn=None, trainable=False)
+          self.CreateVariable(
+              'proj_threshold',
+              proj_threshold_pc,
+              theta_fn=None,
+              trainable=False)
+          py_utils.AddToPruningCollections(self.vars.w_proj,
+                                           self.vars.proj_mask,
+                                           self.vars.proj_threshold)
 
       if p.enable_lstm_bias:
         bias_pc = py_utils.WeightParams(
@@ -489,7 +506,13 @@ class LSTMCellSimple(RNNCell):
     else:
       new_m = fns.qmultiply(tf.sigmoid(o_g), new_c, qt='m_output')
     if p.num_hidden_nodes:
-      w_proj = self.QWeight(theta.w_proj, domain='m_state')
+      if p.apply_pruning_to_projection:
+        w_proj = self.QWeight(
+            tf.multiply(theta.w_proj, theta.proj_mask, 'masked_projection'),
+            domain='m_state')
+      else:
+        w_proj = self.QWeight(theta.w_proj, domain='m_state')
+
       new_m = fns.qmatmul(new_m, w_proj, qt='m_output_projection')
 
     # Apply Zoneout.

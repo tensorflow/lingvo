@@ -136,6 +136,7 @@ class RNNCellTest(test_utils.TestCase):
                             inline=False,
                             couple_input_forget_gates=False,
                             apply_pruning=False,
+                            apply_pruning_to_projection=False,
                             enable_lstm_bias=True):
     with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=inline)):
@@ -414,6 +415,67 @@ class RNNCellTest(test_utils.TestCase):
                     [0.001656, 0.374141]]
       c_expected = [[0.241993, 0.820267], [0.086863, 0.349722],
                     [0.003176, 0.655448]]
+      self.assertAllClose(m_expected, state1.m.eval())
+      self.assertAllClose(c_expected, state1.c.eval())
+
+  def testLSTMSimple_MaskedProjections(self):
+    with self.session(
+        use_gpu=False, config=py_utils.SessionConfig(inline=False)):
+      params = rnn_cell.LSTMCellSimple.Params()
+      params.name = 'lstm'
+      params.output_nonlinearity = True
+      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+
+      params.vn.global_vn = False
+      params.vn.per_step_vn = False
+      params.num_input_nodes = 2
+      params.num_output_nodes = 1
+      params.num_hidden_nodes = 2
+      params.apply_pruning = True
+      params.apply_pruning_to_projection = True
+
+      lstm = rnn_cell.LSTMCellSimple(params)
+
+      print('lstm vars = ', lstm.vars)
+      self.assertIn('wm', lstm.vars.wm.name)
+      self.assertIn('b', lstm.vars.b.name)
+      self.assertIn('w_proj', lstm.vars.w_proj.name)
+      self.assertIn('mask', lstm.vars.mask.name)
+      self.assertIn('threshold', lstm.vars.threshold.name)
+      self.assertIn('proj_mask', lstm.vars.proj_mask.name)
+      self.assertIn('proj_threshold', lstm.vars.proj_threshold.name)
+
+      self.assertEqual(lstm.theta.wm.get_shape(), tf.TensorShape([3, 8]))
+      self.assertEqual(lstm.theta.b.get_shape(), tf.TensorShape([8]))
+      self.assertEqual(lstm.theta.w_proj.get_shape(), tf.TensorShape([2, 1]))
+      self.assertEqual(lstm.theta.proj_mask.get_shape(), tf.TensorShape([2, 1]))
+
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      inputs = py_utils.NestedMap(
+          act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],
+          padding=tf.zeros([3, 1]))
+      state0 = py_utils.NestedMap(
+          c=tf.constant(np.random.uniform(size=(3, 2)), tf.float32),
+          m=tf.constant(np.random.uniform(size=(3, 1)), tf.float32))
+
+      state1, _ = lstm.FPropDefaultTheta(state0, inputs)
+
+      # Initialize all the variables, and then run one step.
+      tf.global_variables_initializer().run()
+
+      variable_count = 3  # weights, biases, projection.
+      wts = tf.get_collection('LSTMCellSimple_vars')
+      self.assertEqual(variable_count, len(wts))
+
+      masks = tf.get_collection('masks')
+      self.assertEqual(2, len(masks))
+
+      threshold = tf.get_collection('thresholds')
+      self.assertEqual(2, len(threshold))
+
+      m_expected = [[0.414049], [0.076521], [0.356313]]
+      c_expected = [[0.270425, 0.840373], [0.349856, 0.440421],
+                    [0.261243, 0.889804]]
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
