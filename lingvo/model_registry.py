@@ -58,8 +58,8 @@ def _MaybeUpdateParamsFromFlags(cfg):
     cfg.FromText(params_override)
   if (FLAGS.model_params_file_override and
       tf.gfile.Exists(FLAGS.model_params_file_override)):
-    params_override = tf.gfile.FastGFile(FLAGS.model_params_file_override,
-                                         'r').read()
+    params_override = tf.gfile.GFile(FLAGS.model_params_file_override,
+                                     'r').read()
     tf.logging.info('Applying params overrides from file %s:\n%s\nTo:\n%s',
                     FLAGS.model_params_file_override, params_override,
                     cfg.ToText())

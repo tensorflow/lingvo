@@ -91,7 +91,7 @@ class AdaptiveScheduler(TaskScheduler):
     # TODO(sebjean) Time file reading and change behaviour if too long.
     for index, mh in enumerate(self._metric_histories):
       try:
-        with tf.gfile.FastGFile(mh.hist_file) as f:
+        with tf.gfile.GFile(mh.hist_file) as f:
           lines = f.readlines()
       except tf.errors.NotFoundError:
         tf.logging.warning('File not found. '

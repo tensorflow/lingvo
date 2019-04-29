@@ -77,12 +77,12 @@ class MetricHistoryTest(test_utils.TestCase):
 
     self.assertTrue(tf.gfile.Exists(mh1.hist_file))
     self.assertTrue(tf.gfile.Exists(mh2.hist_file))
-    with tf.gfile.FastGFile(mh1.hist_file) as f:
+    with tf.gfile.GFile(mh1.hist_file) as f:
       lines = f.readlines()
       self.assertEqual(len(lines), 2)
       self.assertEqual(lines[0].rstrip(), '1 10.000000')
       self.assertEqual(lines[1].rstrip(), '2 5.000000')
-    with tf.gfile.FastGFile(mh2.hist_file) as f:
+    with tf.gfile.GFile(mh2.hist_file) as f:
       lines = f.readlines()
       self.assertEqual(len(lines), 1)
       self.assertEqual(lines[0].rstrip(), '1 10.000000')

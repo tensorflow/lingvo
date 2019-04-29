@@ -124,7 +124,7 @@ class MetricHistory(object):
     fname = self._hist_file
     if not self.params.local_filesystem:
       fname += '%r=3.2:sl=8M'
-    with tf.gfile.FastGFile(fname, 'a') as f:
+    with tf.gfile.GFile(fname, 'a') as f:
       f.write('%d %f\n' % (global_step, value))
 
 

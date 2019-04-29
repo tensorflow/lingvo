@@ -84,7 +84,7 @@ class BaseTrainerTest(test_utils.TestCase):
 
   def _HasLine(self, filename, pattern):
     """Returns True iff one line in the given file matches the pattern."""
-    with tf.gfile.FastGFile(filename, 'r') as f:
+    with tf.gfile.GFile(filename, 'r') as f:
       lines = f.readlines()
     return any(re.search(pattern, _) for _ in lines)
 

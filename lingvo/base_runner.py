@@ -135,7 +135,7 @@ class BaseRunner(object):
 
   def _WriteToLog(self, text, logdir, filename):
     """Logs `text` and saves it under `logdir/filename`."""
-    with tf.gfile.FastGFile(os.path.join(logdir, filename), 'w') as f:
+    with tf.gfile.GFile(os.path.join(logdir, filename), 'w') as f:
       f.write(text)
 
     if self._summary_writer is not None:
@@ -360,7 +360,7 @@ class BaseRunner(object):
     self._SetStatusMessage(
         '%s: step:%6d, %s' % (job_name, global_step, ', '.join(status_metrics)))
     if text_filename is not None:
-      with tf.gfile.FastGFile(text_filename, 'w') as f:
+      with tf.gfile.GFile(text_filename, 'w') as f:
         f.write('\n'.join(status_metrics))
 
   def _WriteKeyValuePairs(self, filename, key_value_pairs):
