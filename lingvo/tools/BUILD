@@ -12,6 +12,7 @@ load(
 py_binary(
     name = "keras2ckpt",
     srcs = ["keras2ckpt.py"],
+    python_version = "PY2",
     deps = [
         # Implicit tensorflow dependency.
     ],
@@ -20,6 +21,7 @@ py_binary(
 py_binary(
     name = "bpe_word_tokenizer",
     srcs = ["bpe_word_tokenizer.py"],
+    python_version = "PY2",
     deps = [
         # Implicit tensorflow dependency.
     ],
@@ -28,6 +30,7 @@ py_binary(
 py_binary(
     name = "wpm_encode_file",
     srcs = ["wpm_encode_file.py"],
+    python_version = "PY2",
     deps = [":wpm_encode_file_main_lib"],
 )
 
@@ -50,6 +53,7 @@ py_library(
 py_binary(
     name = "print_tf_records",
     srcs = ["print_tf_records.py"],
+    python_version = "PY2",
     deps = [
         # Implicit tensorflow dependency.
     ],
@@ -58,6 +62,7 @@ py_binary(
 py_binary(
     name = "compute_stats",
     srcs = ["compute_stats.py"],
+    python_version = "PY2",
     deps = [
         # Implicit tensorflow dependency.
     ],
@@ -79,6 +84,7 @@ py_test(
     data = [
         "//lingvo/tools/testdata:audio_data",
     ],
+    python_version = "PY2",
     deps = [
         ":audio_lib",
         # Implicit tensorflow dependency.
@@ -90,6 +96,7 @@ py_test(
 py_binary(
     name = "create_asr_features",
     srcs = ["create_asr_features.py"],
+    python_version = "PY2",
     deps = [
         ":audio_lib",
         # Implicit tensorflow dependency.

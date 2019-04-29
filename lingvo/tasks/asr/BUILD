@@ -20,6 +20,7 @@ py_test(
     data = [
         "//lingvo/tools/testdata:audio_data",
     ],
+    python_version = "PY2",
     deps = [
         ":frontend",
         # Additional FFT kernels dependency.
@@ -48,6 +49,7 @@ py_library(
 py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
+    python_version = "PY2",
     deps = [
         ":input_generator",
         # Implicit numpy dependency.
@@ -77,6 +79,7 @@ py_library(
 py_test(
     name = "encoder_test",
     srcs = ["encoder_test.py"],
+    python_version = "PY2",
     deps = [
         ":encoder",
         # Implicit numpy dependency.
@@ -110,6 +113,7 @@ py_library(
 py_test(
     name = "decoder_utils_test",
     srcs = ["decoder_utils_test.py"],
+    python_version = "PY2",
     deps = [
         ":decoder_utils",
         # Implicit tensorflow dependency.
@@ -152,6 +156,7 @@ py_test(
     name = "decoder_test",
     size = "large",
     srcs = ["decoder_test.py"],
+    python_version = "PY2",
     shard_count = 10,
     deps = [
         ":decoder",
@@ -200,6 +205,7 @@ py_test(
     name = "model_test",
     srcs = ["model_test.py"],
     data = ["//lingvo/tools/testdata:audio_data"],
+    python_version = "PY2",
     shard_count = 15,
     deps = [
         ":decoder",

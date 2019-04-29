@@ -25,6 +25,7 @@ py_library(
 py_test(
     name = "classifier_test",
     srcs = ["classifier_test.py"],
+    python_version = "PY2",
     deps = [
         ":classifier",
         ":input_generator",
@@ -53,6 +54,7 @@ py_library(
 py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
+    python_version = "PY2",
     deps = [
         ":input_generator",
         # Implicit numpy dependency.

@@ -25,6 +25,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
+    python_version = "PY2",
     deps = [
         ":input_generator",
         # Implicit tensorflow dependency.
@@ -52,6 +53,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
+    python_version = "PY2",
     shard_count = 4,
     deps = [
         ":input_generator",

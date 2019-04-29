@@ -14,6 +14,7 @@ py_library(
 py_test(
     name = "simple_wer_test",
     srcs = ["simple_wer_test.py"],
+    python_version = "PY2",
     deps = [
         ":simple_wer",
         # Implicit tensorflow dependency.

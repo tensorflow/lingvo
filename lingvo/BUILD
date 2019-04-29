@@ -65,6 +65,7 @@ py_library(
 py_test(
     name = "model_import_test",
     srcs = ["model_import_test.py"],
+    python_version = "PY2",
     deps = [
         ":model_imports_no_params",
         # Implicit tensorflow dependency.
@@ -87,6 +88,7 @@ py_library(
 py_test(
     name = "models_test",
     srcs = ["models_test.py"],
+    python_version = "PY2",
     deps = [
         ":model_imports",
         ":model_registry",
@@ -109,6 +111,7 @@ py_library(
 py_test(
     name = "model_registry_test",
     srcs = ["model_registry_test.py"],
+    python_version = "PY2",
     deps = [":model_registry_test_lib"],
 )
 
@@ -163,6 +166,7 @@ py_test(
     name = "trainer_test",
     size = "large",
     srcs = ["trainer_test.py"],
+    python_version = "PY2",
     shard_count = 5,
     tags = [
         "noasan",

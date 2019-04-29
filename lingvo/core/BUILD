@@ -72,6 +72,7 @@ py_library(
 py_test(
     name = "beam_search_helper_test",
     srcs = ["beam_search_helper_test.py"],
+    python_version = "PY2",
     deps = [
         ":beam_search_helper",
         ":py_utils",
@@ -92,6 +93,7 @@ py_library(
 py_test(
     name = "bfloat16_variables_test",
     srcs = ["bfloat16_variables_test.py"],
+    python_version = "PY2",
     deps = [
         ":bfloat16_variables",
         ":test_utils",
@@ -115,6 +117,7 @@ py_library(
 py_test(
     name = "target_sequence_sampler_test",
     srcs = ["target_sequence_sampler_test.py"],
+    python_version = "PY2",
     deps = [
         ":py_utils",
         ":target_sequence_sampler",
@@ -141,6 +144,7 @@ py_library(
 py_test(
     name = "base_input_generator_test",
     srcs = ["base_input_generator_test.py"],
+    python_version = "PY2",
     deps = [
         ":base_input_generator",
         ":test_utils",
@@ -178,6 +182,7 @@ py_test(
     name = "base_layer_test",
     size = "small",
     srcs = ["base_layer_test.py"],
+    python_version = "PY2",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -209,6 +214,7 @@ py_library(
 py_test(
     name = "base_model_test",
     srcs = ["base_model_test.py"],
+    python_version = "PY2",
     deps = [
         ":base_decoder",
         ":base_encoder",
@@ -240,6 +246,7 @@ py_library(
 py_test(
     name = "base_model_params_test",
     srcs = ["base_model_params_test.py"],
+    python_version = "PY2",
     deps = [
         ":base_model_params",
         ":test_utils",
@@ -280,6 +287,7 @@ py_test(
     name = "cluster_test",
     size = "small",
     srcs = ["cluster_test.py"],
+    python_version = "PY2",
     deps = [
         ":cluster_factory",
         ":py_utils",
@@ -328,6 +336,7 @@ py_test(
     data = [
         "//lingvo/core/ops/testdata:best_step_testdata",
     ],
+    python_version = "PY2",
     deps = [
         ":early_stop",
         ":hyperparams",
@@ -349,6 +358,7 @@ py_library(
 py_test(
     name = "hyperparams_test",
     srcs = ["hyperparams_test.py"],
+    python_version = "PY2",
     deps = [
         ":hyperparams",
         ":test_utils",
@@ -384,6 +394,7 @@ py_library(
 py_test(
     name = "inference_graph_exporter_test",
     srcs = ["inference_graph_exporter_test.py"],
+    python_version = "PY2",
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -411,6 +422,7 @@ py_library(
 py_test(
     name = "input_generator_helper_test",
     srcs = ["input_generator_helper_test.py"],
+    python_version = "PY2",
     deps = [
         ":input_generator_helper",
         ":test_utils",
@@ -500,6 +512,7 @@ py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["lr_schedule_test.py"],
+    python_version = "PY2",
     deps = [
         ":cluster_factory",
         ":early_stop",
@@ -527,6 +540,7 @@ py_library(
 py_test(
     name = "metrics_test",
     srcs = ["metrics_test.py"],
+    python_version = "PY2",
     deps = [
         ":metrics",
         ":test_utils",
@@ -548,6 +562,7 @@ py_library(
 py_test(
     name = "multitask_model_test",
     srcs = ["multitask_model_test.py"],
+    python_version = "PY2",
     deps = [
         ":base_input_generator",
         ":base_layer",
@@ -577,6 +592,7 @@ py_test(
     name = "optimizer_test",
     size = "small",
     srcs = ["optimizer_test.py"],
+    python_version = "PY2",
     deps = [
         ":layers",
         ":optimizer",
@@ -602,6 +618,7 @@ py_library(
 py_test(
     name = "plot_test",
     srcs = ["plot_test.py"],
+    python_version = "PY2",
     deps = [
         ":plot",
         ":test_utils",
@@ -667,6 +684,7 @@ py_test(
     data = [
         "//lingvo/core/testdata:lenet_test_model",
     ],
+    python_version = "PY2",
     deps = [
         ":base_layer",
         ":cluster_factory",
@@ -699,6 +717,7 @@ py_test(
     name = "quant_utils_test",
     size = "small",
     srcs = ["quant_utils_test.py"],
+    python_version = "PY2",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -727,6 +746,7 @@ py_test(
     name = "layers_with_gpipe_test",
     size = "large",
     srcs = ["layers_with_gpipe_test.py"],
+    python_version = "PY2",
     shard_count = 8,
     deps = [
         ":layers_with_gpipe",
@@ -752,6 +772,7 @@ py_library(
 py_test(
     name = "gpipe_test",
     srcs = ["gpipe_test.py"],
+    python_version = "PY2",
     deps = [
         ":base_layer",
         ":gpipe",
@@ -776,6 +797,7 @@ py_library(
 py_test(
     name = "recurrent_test",
     srcs = ["recurrent_test.py"],
+    python_version = "PY2",
     shard_count = 6,
     deps = [":recurrent_test_lib"],
 )
@@ -819,6 +841,7 @@ py_library(
 py_test(
     name = "retry_test",
     srcs = ["retry_test.py"],
+    python_version = "PY2",
     deps = [
         ":retry",
         ":test_utils",
@@ -838,6 +861,7 @@ py_library(
 py_test(
     name = "sendrecv_test",
     srcs = ["sendrecv_test.py"],
+    python_version = "PY2",
     deps = [
         ":sendrecv",
         ":test_utils",
@@ -872,6 +896,7 @@ py_library(
 py_test(
     name = "task_scheduler_test",
     srcs = ["task_scheduler_test.py"],
+    python_version = "PY2",
     deps = [
         ":early_stop",
         ":task_scheduler",
@@ -904,6 +929,7 @@ py_library(
 py_test(
     name = "test_utils_test",
     srcs = ["test_utils_test.py"],
+    python_version = "PY2",
     deps = [
         ":test_utils",
         # Implicit tensorflow dependency.
@@ -935,6 +961,7 @@ py_library(
 py_test(
     name = "wpm_encoder_test",
     srcs = ["wpm_encoder_test.py"],
+    python_version = "PY2",
     deps = [
         ":test_utils",
         ":wpm_encoder",
@@ -961,6 +988,7 @@ py_test(
     data = [
         "//lingvo/tasks/mt:wpm_ende",
     ],
+    python_version = "PY2",
     deps = [
         ":test_helper",
         ":test_utils",
@@ -1017,6 +1045,7 @@ py_test(
     name = "layers_with_attention_test",
     size = "medium",
     srcs = ["layers_with_attention_test.py"],
+    python_version = "PY2",
     deps = [
         ":attention",
         ":layers",
@@ -1087,6 +1116,7 @@ py_test(
     name = "scorers_test",
     srcs = ["scorers_test.py"],
     data = ["//lingvo/core/ops/testdata:wmt"],
+    python_version = "PY2",
     deps = [
         ":scorers",
         ":test_helper",

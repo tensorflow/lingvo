@@ -28,6 +28,7 @@ py_test(
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
     ],
+    python_version = "PY2",
     deps = [
         ":input_generator",
         # Implicit tensorflow dependency.
@@ -88,6 +89,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/lm/testdata:small_word_vocab",
     ],
+    python_version = "PY2",
     deps = [
         ":input_generator",
         ":model",
