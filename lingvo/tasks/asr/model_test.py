@@ -74,41 +74,6 @@ class AsrModelTest(test_utils.TestCase):
       mdl.BProp()
       self.assertEqual(decoder_theta, mdl.theta.decoder)
 
-  def testFPropBPropTargetKey(self, inline=True):
-    # Compute loss for a model without target_key.
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(93820985)
-      p = self._testParams()
-      mdl = p.cls(p)
-      mdl.FPropDefaultTheta()
-      mdl.BProp()
-      tf.global_variables_initializer().run()
-      mdl_loss = mdl.loss.eval()
-      sess.run(mdl._train_op)
-      mdl_global_step = mdl.global_step.eval()
-      mdl_train_loss = mdl.loss.eval()
-
-    # Compute loss for a model with target_key.
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(93820985)
-      p_t = self._testParams()
-      p_t.input.target_key = 'target_key'
-      p_t.input.target_key_target_shape = [2, 5]
-      p_t.target_key = 'target_key'
-      mdl_t = p.cls(p_t)
-      mdl_t.FPropDefaultTheta()
-      mdl_t.BProp()
-      tf.global_variables_initializer().run()
-      mdl_t_loss = mdl_t.loss.eval()
-      sess.run(mdl_t._train_op)
-      mdl_t_global_step = mdl_t.global_step.eval()
-      mdl_t_train_loss = mdl_t.loss.eval()
-
-    # Verify that losses are identical in either case.
-    self.assertAllClose(mdl_loss, mdl_t_loss)
-    self.assertAllClose(mdl_global_step, mdl_t_global_step)
-    self.assertAllClose(mdl_train_loss, mdl_t_train_loss)
-
   def testFProp(self):
     with self.session(use_gpu=False):
       tf.set_random_seed(93820985)

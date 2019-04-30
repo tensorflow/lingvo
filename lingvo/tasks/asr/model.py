@@ -56,9 +56,6 @@ class AsrModel(base_model.BaseTask):
         'frontend', None,
         'ASR frontend to extract features from input. Defaults to no frontend '
         'which means that features are taken directly from the input.')
-    p.Define(
-        'target_key', '', 'If non-empty, will use the specified key from '
-        'input_batch.additional_tgts to set training targets.')
 
     tp = p.train
     tp.lr_schedule = (
@@ -95,6 +92,21 @@ class AsrModel(base_model.BaseTask):
       if p.frontend:
         self.CreateChild('frontend', p.frontend)
 
+  def _GetDecoderTargets(self, input_batch):
+    """Returns targets which will be forwarded to the decoder.
+
+     Subclasses can override this method to change the target that is used by
+     the decoder. For example, a subclass could add additional targets that
+     can be forwared to the decoder.
+
+    Args:
+      input_batch: a NestedMap which contains the targets.
+
+    Returns:
+      a NestedMap corresponding to the target selected.
+    """
+    return input_batch.tgt
+
   def _MakeDecoderTheta(self, theta):
     """Compute theta to be used by the decoder for computing metrics and loss.
 
@@ -119,23 +131,14 @@ class AsrModel(base_model.BaseTask):
     return theta.decoder.DeepCopy()
 
   def ComputePredictions(self, theta, input_batch):
-    p = self.params
     input_batch_src = input_batch.src
     encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch_src)
-    if p.target_key:
-      tf.logging.info(
-          'Using batch.additional_tgts[%s] to source '
-          'tgts instead of batch.tgts.', p.target_key)
-      tgt = input_batch.additional_tgts[p.target_key]
-    else:
-      tgt = input_batch.tgt
+    tgt = self._GetDecoderTargets(input_batch)
     decoder_theta = self._MakeDecoderTheta(theta)
     return self.decoder.ComputePredictions(decoder_theta, encoder_outputs, tgt)
 
   def ComputeLoss(self, theta, input_batch, predictions):
-    tgt = input_batch.tgt
-    if self.params.target_key:
-      tgt = input_batch.additional_tgts[self.params.target_key]
+    tgt = self._GetDecoderTargets(input_batch)
     decoder_theta = self._MakeDecoderTheta(theta)
     return self.decoder.ComputeLoss(decoder_theta, predictions, tgt)
 
@@ -202,6 +205,20 @@ class AsrModel(base_model.BaseTask):
       decoder_outs = self.decoder.BeamSearchDecode(encoder_outputs)
       return self._ComputeDecoderMetrics(decoder_outs, input_batch)
 
+  def _GetTargetForDecoderMetrics(self, input_batch):
+    """Returns targets which will be used to compute decoder metrics.
+
+     Subclasses can override this method to change the target that is used when
+     calculating decoder metrics.
+
+    Args:
+      input_batch: a NestedMap which contains the targets.
+
+    Returns:
+      a NestedMap containing 'ids', 'labels', 'paddings', 'weights'
+    """
+    return self._GetDecoderTargets(input_batch)
+
   def _ComputeDecoderMetrics(self, decoder_outs, input_batch):
     """Computes metrics on output from decoder.
 
@@ -218,9 +235,7 @@ class AsrModel(base_model.BaseTask):
     topk = self._GetTopK(decoder_outs)
 
     utt_ids = input_batch.sample_ids
-    tgt = input_batch.tgt
-    if p.target_key:
-      tgt = input_batch.additional_tgts[p.target_key]
+    tgt = self._GetTargetForDecoderMetrics(input_batch)
     transcripts = self.input_generator.IdsToStrings(
         tgt.labels, tf.cast(
             tf.reduce_sum(1.0 - tgt.paddings, 1) - 1.0, tf.int32))
