@@ -116,10 +116,10 @@ def _GenerateAlignedHtml(hyp, ref, err_type):
     err_type: one of 'none', 'sub', 'del', 'ins'.
 
   Returns:
-    a html string with
-      - error of hyp shown in "(hyp)"
-      - error of ref shown in "<del>ref</def>"
-      - all errors highlighted with yellow background
+    a html string where disagreements are highlighted.
+      - hyp highlighted in green, and marked with <del> </del>
+      - ref highlighted in yellow
+
   """
 
   highlighted_html = ''
@@ -127,18 +127,19 @@ def _GenerateAlignedHtml(hyp, ref, err_type):
     highlighted_html += '%s ' % hyp
 
   elif err_type == 'sub':
-    highlighted_html += """<span style="background-color: yellow">
-        '<del>%s</del>(%s) </span>""" % (hyp, ref)
+    highlighted_html += """<span style="background-color: greenyellow">
+        <del>%s</del></span><span style="background-color: yellow">
+        %s </span> """ % (hyp, ref)
 
   elif err_type == 'del':
     highlighted_html += """<span style="background-color: yellow">
-        '<del>%s</del></span>""" % (
-            hyp)
+        %s</span> """ % (
+            ref)
 
   elif err_type == 'ins':
-    highlighted_html += """<span style="background-color: yellow">
-        '(%s) </span>""" % (
-            ref)
+    highlighted_html += """<span style="background-color: greenyellow">
+        <del>%s</del> </span> """ % (
+            hyp)
 
   else:
     raise ValueError('unknown err_type ' + err_type)
@@ -146,7 +147,7 @@ def _GenerateAlignedHtml(hyp, ref, err_type):
   return highlighted_html
 
 
-def _GenerateSummaryFromErrs(nref, errs):
+def GenerateSummaryFromErrs(nref, errs):
   """Generate strings to summarize word errors.
 
   Args:
@@ -217,7 +218,15 @@ def ComputeWER(hyp, ref, diagnosis=False):
 
     # Generate aligned_html
     if diagnosis:
-      aligned_html += _GenerateAlignedHtml(hs[ih - 1], rs[ir - 1], err_type)
+      if ih == 0 or not hs:
+        tmph = hs[ih - 1]
+      else:
+        tmph = ' '
+      if ir == 0 or not rs:
+        tmpr = rs[ir - 1]
+      else:
+        tmpr = ' '
+      aligned_html = _GenerateAlignedHtml(tmph, tmpr, err_type) + aligned_html
 
     # If no error, go to previous ref and hyp.
     if err_type == 'none':
@@ -239,10 +248,6 @@ def ComputeWER(hyp, ref, diagnosis=False):
 
   # Num of words. For empty ref we set num = 1.
   nref = max(len(rs), 1)
-
-  if aligned_html:
-    str1, str2 = _GenerateSummaryFromErrs(nref, errs)
-    aligned_html = str1 + ' (' + str2 + ')' + '<br>' + aligned_html
 
   return errs, nref, aligned_html
 
@@ -276,17 +281,12 @@ def AverageWERs(hyps, refs, verbose=True, diagnosis=False):
     total_errs['ins'] += errs_i['ins']
     total_errs['del'] += errs_i['del']
 
-  str_summary, str_details = _GenerateSummaryFromErrs(totalw, total_errs)
-
-  if diagnosis:
-    str_overall = 'Overall: ' + str_summary + '(' + str_details + ')'
-    aligned_html_list = [str_overall] + aligned_html_list
-
   if verbose:
+    str_summary, str_details = GenerateSummaryFromErrs(totalw, total_errs)
     print(str_summary)
     print(str_details)
 
-  return total_errs, totalw
+  return total_errs, totalw, aligned_html_list
 
 
 def main(argv):
@@ -301,7 +301,7 @@ def main(argv):
     fn_output = None
 
   errs, nref, aligned_html = ComputeWER(hyp, ref, diagnosis)
-  str_summary, str_details = _GenerateSummaryFromErrs(nref, errs)
+  str_summary, str_details = GenerateSummaryFromErrs(nref, errs)
   print(str_summary)
   print(str_details)
 
