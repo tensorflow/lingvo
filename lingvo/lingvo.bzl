@@ -32,7 +32,7 @@ def lingvo_cc_binary(name, srcs = [], deps = []):
         ] + deps,
     )
 
-def lingvo_cc_test(name, srcs, deps = []):
+def lingvo_cc_test(name, srcs, deps = [], **kwargs):
     native.cc_test(
         name = name,
         copts = tf_copts(),
@@ -42,6 +42,7 @@ def lingvo_cc_test(name, srcs, deps = []):
             "@tensorflow_solib//:framework_lib",
             "@com_google_googletest//:gtest_main",
         ] + deps,
+        **kwargs
     )
 
 def lingvo_py_binary(*args, **kwargs):
