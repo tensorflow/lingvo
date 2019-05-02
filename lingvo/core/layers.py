@@ -2214,6 +2214,12 @@ class LayerNorm(base_layer.BaseLayer):
 
     return Normalize(inputs, theta.scale, theta.bias)
 
+  @classmethod
+  def FPropMeta(cls, p, inputs):
+    py_utils.CheckShapes((inputs,))
+    return py_utils.NestedMap(
+        flops=inputs.num_elements() * 10, out_shapes=(inputs,))
+
 
 class ConvSetLayer(quant_utils.QuantizableLayer):
   """Set of Convolutions with different filter sizes in a single layer.

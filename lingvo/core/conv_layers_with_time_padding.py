@@ -445,7 +445,6 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
   def _GetWeight(self, theta):
     p = self.params
     filter_w = theta.w
-    filter_w.set_shape(p.filter_shape)
 
     # First normalize filter_w over the temporal dimension here.
     filter_w = tf.nn.softmax(filter_w / p.temperature, axis=0)
@@ -464,6 +463,16 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     # channels.
     filter_w = tf.tile(filter_w, [1, 1, p.weight_tiling_factor, 1])
     return filter_w
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, paddings):
+    py_utils.CheckShapes((inputs, paddings))
+    b, t, f, ic = inputs.as_list()
+    assert f == 1
+    oc = p.filter_shape[2] * p.filter_shape[3] * p.weight_tiling_factor
+    outputs = tf.TensorShape([b, t, f, oc])
+    flops = b * t * f * p.filter_shape[0] * ic * oc * 5
+    return py_utils.NestedMap(flops=flops, out_shapes=(outputs, paddings))
 
 
 class CausalNormalizedDepthwiseConv2DLayer(NormalizedDepthwiseConv2DLayer):
