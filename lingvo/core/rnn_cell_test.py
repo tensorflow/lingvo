@@ -625,6 +625,118 @@ class RNNCellTest(test_utils.TestCase):
       self.assertAllClose(c_expected, c_actual)
       self.assertAllClose(out_expected, out_actual)
 
+  def testLSTMSimpleGroupedNoInputSplit(self):
+    with self.session(
+        use_gpu=False, config=py_utils.SessionConfig(inline=False)):
+      params = rnn_cell.LSTMCellGrouped.Params()
+      params.name = 'lstm'
+      params.num_input_nodes = 8
+      params.num_output_nodes = 8
+      params.num_hidden_nodes = 16
+      params.num_groups = 4
+      params.num_shuffle_shards = 1
+      params.split_inputs = False
+      child_p = params.child_lstm_tpl
+      child_p.output_nonlinearity = True
+      child_p.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      child_p.vn.global_vn = False
+      child_p.vn.per_step_vn = False
+
+      lstm = params.cls(params)
+
+      print('lstm vars = ', lstm.vars)
+      for child_lstm in lstm.groups:
+        self.assertIn('wm', child_lstm.vars.wm.name)
+        self.assertIn('b', child_lstm.vars.b.name)
+        self.assertIn('w_proj', child_lstm.vars.w_proj.name)
+
+        # 10 = 8 layer inputs + 2 recurrent
+        # 16 = 4 gates * 4 hidden units/group
+        self.assertEqual(child_lstm.theta.wm.get_shape(),
+                         tf.TensorShape([10, 16]))
+        self.assertEqual(child_lstm.theta.b.get_shape(), tf.TensorShape([16]))
+        # Projection from 4 hidden units (16 total / 4 groups) to 2 outputs
+        # (8 total / 4 groups)
+        self.assertEqual(child_lstm.theta.w_proj.get_shape(),
+                         tf.TensorShape([4, 2]))
+
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      inputs = py_utils.NestedMap(
+          act=[tf.constant(np.random.uniform(size=(3, 8)), tf.float32)],
+          padding=tf.zeros([3, 1]))
+      state0 = py_utils.NestedMap(
+          groups=py_utils.SplitRecursively(
+              py_utils.NestedMap(
+                  c=tf.constant(np.random.uniform(size=(3, 16)), tf.float32),
+                  m=tf.constant(np.random.uniform(
+                      size=(3, 8)), tf.float32)), params.num_groups))
+
+      state1, _ = lstm.FPropDefaultTheta(state0, inputs)
+      self.assertEqual(params.num_groups, len(state1.groups))
+      out1 = lstm.GetOutput(state1)
+
+      # Initialize all the variables, and then run one step.
+      tf.global_variables_initializer().run()
+
+      variable_count = 3 * params.num_groups  # [wm, b, w_proj] for each group.
+      wts = tf.get_collection('LSTMCellSimple_vars')
+      self.assertEqual(variable_count, len(wts))
+
+      state1 = py_utils.ConcatRecursively(state1.groups)
+      m_actual = state1.m.eval()
+      c_actual = state1.c.eval()
+      out_actual = out1.eval()
+      print('m_actual =', np.array_repr(m_actual))
+      print('c_actual =', np.array_repr(c_actual))
+      print('out_actual =', np.array_repr(out_actual))
+
+      # pylint: disable=bad-whitespace, line-too-long
+      m_expected = [[
+          0.61734521, 0.02338588, 0.19424279, 0.31576008, 0.18000039, 0.1672723,
+          0.44075012, -0.06824636
+      ],
+                    [
+                        0.44694018, -0.01717547, 0.49302083, -0.27330822,
+                        0.35382932, -0.1967615, 0.44225505, -0.04489155
+                    ],
+                    [
+                        0.66018867, 0.09434807, 0.643556, 0.0383133, 0.74754262,
+                        -0.01860991, 0.48671043, 0.29460859
+                    ]]
+      c_expected = [[
+          -0.52246463, 0.67389512, 0.58692968, 0.75484836, -0.21763092,
+          0.45671225, -0.33593893, 1.03087521, -0.15525842, 0.31072262,
+          0.14663902, 0.64976436, -0.40176213, 0.36785093, 0.52653724,
+          0.73124039
+      ],
+                    [
+                        -0.27722716, 0.90508962, 0.39852297, 0.01676523,
+                        -0.7724061, 0.40351537, 0.20194794, 0.08798298,
+                        -0.39136624, 0.26601788, 0.21635406, -0.05538163,
+                        -0.36326468, 0.64099556, 0.25886536, -0.09711652
+                    ],
+                    [
+                        -0.63169837, 0.99831283, 0.53726614, 0.77321815,
+                        -0.67881596, 1.01512539, 0.38799196, 0.26393941,
+                        -0.87696433, 1.29881907, 0.60203284, 0.42675141,
+                        -0.24902672, 1.15422893, 0.70180357, 0.12213309
+                    ]]
+      out_expected = [[
+          0.61734521, 0.02338588, 0.19424279, 0.31576008, 0.18000039, 0.1672723,
+          0.44075012, -0.06824636
+      ],
+                      [
+                          0.44694018, -0.01717547, 0.49302083, -0.27330822,
+                          0.35382932, -0.1967615, 0.44225505, -0.04489155
+                      ],
+                      [
+                          0.66018867, 0.09434807, 0.643556, 0.0383133,
+                          0.74754262, -0.01860991, 0.48671043, 0.29460859
+                      ]]
+      self.assertAllClose(m_expected, m_actual)
+      self.assertAllClose(c_expected, c_actual)
+      self.assertAllClose(out_expected, out_actual)
+
   def _testLSTMSimple_VN(self):
     with self.session(use_gpu=False):
       params = rnn_cell.LSTMCellSimple.Params()

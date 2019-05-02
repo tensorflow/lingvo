@@ -587,6 +587,10 @@ class LSTMCellGrouped(RNNCell):
     p = super(LSTMCellGrouped, cls).Params()
     p.Define('child_lstm_tpl', child_cell_cls.Params(),
              'Template of child LSTM cells.')
+    p.Define('num_hidden_nodes', 0, 'Number of hidden nodes.')
+    p.Define(
+        'split_inputs', True, 'If true, split the inputs into N groups. '
+        'If false, each group gets all inputs.')
     p.Define('num_groups', 0, 'Number of LSTM cell groups.')
     p.Define('num_shuffle_shards', 1,
              'If > 1, number of shards for cross-group shuffling.')
@@ -612,8 +616,12 @@ class LSTMCellGrouped(RNNCell):
         child_p.name = 'group_%d' % i
         assert child_p.num_input_nodes == 0
         assert child_p.num_output_nodes == 0
-        child_p.num_input_nodes = p.num_input_nodes // p.num_groups
+        if p.split_inputs:
+          child_p.num_input_nodes = p.num_input_nodes // p.num_groups
+        else:
+          child_p.num_input_nodes = p.num_input_nodes
         child_p.num_output_nodes = p.num_output_nodes // p.num_groups
+        child_p.num_hidden_nodes = p.num_hidden_nodes // p.num_groups
         child_p.reset_cell_state = p.reset_cell_state
         child_params.append(child_p)
       self.CreateChildren('groups', child_params)
@@ -661,7 +669,10 @@ class LSTMCellGrouped(RNNCell):
       - extras: An empty `.NestedMap`.
     """
     p = self.params
-    split_inputs_act = py_utils.SplitRecursively(inputs.act, p.num_groups)
+    if p.split_inputs:
+      split_inputs_act = py_utils.SplitRecursively(inputs.act, p.num_groups)
+    else:
+      split_inputs_act = [inputs.act] * p.num_groups
     state1 = py_utils.NestedMap(groups=[])
     for child, child_theta, child_state0, child_inputs_act in zip(
         self.groups, theta.groups, state0.groups, split_inputs_act):
