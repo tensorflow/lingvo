@@ -2744,6 +2744,7 @@ def RematerializeFn(fn, *xs):
   Returns:
     fn(*xs)
   """
+  original_step_seed = GetStepSeed()
 
   def Backward(op, *dy):
     """The backward function that rematerializes forward outputs."""
@@ -2752,27 +2753,33 @@ def RematerializeFn(fn, *xs):
     # tf.where(tf.is_nan(x),
     #          tf.constant(float('nan'), dtype=x.dtype) * tf.ones_like(x),
     #          x)
-    xs = [
+    bak_xs = [
         tf.where(always_true, x, tf.zeros(GetShape(x), dtype=x.dtype))
         for x in op.inputs
     ]
-    ys = fn(*xs)
-    dxs = tf.gradients(ys, xs, grad_ys=dy)
+    for dst, src in zip(bak_xs, xs):
+      dst.set_shape(src.shape)
+    ResetStepSeed(original_step_seed)
+    ys = fn(*bak_xs)
+    dxs = tf.gradients(ys, bak_xs, grad_ys=dy)
     dxs_final = []
-    for dx, x in zip(dxs, xs):
+    for dx, x in zip(dxs, bak_xs):
       if dx is None:
         dxs_final.append(tf.zeros_like(x))
       else:
         dxs_final.append(dx)
-    assert len(dxs_final) == len(xs)
+    assert len(dxs_final) == len(bak_xs)
     return tuple(dxs_final)
 
   xs_dtypes = [x.dtype for x in xs]
 
+  # TODO(huangyp, yonghui): Check Forward doesn't use any stateful random ops.
   @function.Defun(*xs_dtypes, python_grad_func=Backward)
-  def Forward(*xs):
+  def Forward(*fwd_xs):
     """Forward function plus sanity checks."""
-    ys = fn(*xs)
+    for dst, src in zip(fwd_xs, xs):
+      dst.set_shape(src.shape)
+    ys = fn(*fwd_xs)
     # Some sanity check.
     assert not function.get_extra_inputs()
     assert not function.get_extra_args()
