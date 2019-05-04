@@ -420,8 +420,8 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
         [py_utils.assert_shape_match([tf.shape(inputs)[-1]], [p.dim])], inputs)
     with tf.name_scope(p.name) as scope:
       if p.is_eval:
-        outputs = tf.nn.batch_normalization(inputs, self.vars.moving_mean,
-                                            self.vars.moving_variance,
+        outputs = tf.nn.batch_normalization(inputs, theta.moving_mean,
+                                            theta.moving_variance,
                                             theta.beta, theta.gamma, p.epsilon)
       else:
         mean, variance = self._Moments(inputs, p.bn_group_size)
