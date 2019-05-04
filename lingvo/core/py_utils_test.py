@@ -1598,7 +1598,25 @@ class StepSeedTest(test_utils.TestCase):
         self._testStepSeedHelper(sess, RecurrentStep2, 1169426261)
 
 
+class WeightParamsTest(test_utils.TestCase):
+
+  def testShapeModification(self):
+    """Tests that WeightParams.shape can be modified."""
+    pc = py_utils.WeightParams([20, 30],
+                               py_utils.WeightInit.UniformPositive(1.0),
+                               tf.float32)
+    pc.shape = [10, 30]
+    var = py_utils.CreateVariable('var', pc)[0]
+    self.assertEqual(var.shape, [10, 30])
+
+
 class WeightInitTest(test_utils.TestCase):
+
+  def testModification(self):
+    """Tests that WeightInit cannot be modified."""
+    w_init = py_utils.WeightInit.UniformPositive(1.0)
+    with self.assertRaisesRegexp(TypeError, 'immutable'):
+      w_init.scale = 2.0
 
   def testUniformPositive(self):
     with self.session(use_gpu=False, graph=tf.Graph()):

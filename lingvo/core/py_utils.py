@@ -871,7 +871,6 @@ def WeightParams(shape, init=None, dtype=None, collections=None):
   p.Define('init', init, 'Initialization method.')
   p.Define('collections', collections,
            'Variable collections this weight belongs to.')
-  p.Freeze()
   return p
 
 
