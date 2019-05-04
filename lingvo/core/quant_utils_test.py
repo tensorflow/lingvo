@@ -326,22 +326,14 @@ class ClippingCapScheduleTest(object):
     p.end_cap = 1.0
     cc_schedule = p.cls(p)
     with self.session():
-      print(cc_schedule.Value(25).eval())
-      print(cc_schedule.Value(50).eval())
-      print(cc_schedule.Value(60).eval())
-      print(cc_schedule.Value(70).eval())
-      print(cc_schedule.Value(80).eval())
-      print(cc_schedule.Value(90).eval())
-      print(cc_schedule.Value(100).eval())
-      print(cc_schedule.Value(110).eval())
-      self.assertAllClose(cc_schedule.Value(25).eval(), 6.0)
-      self.assertAllClose(cc_schedule.Value(50).eval(), 6.0)
-      self.assertAllClose(cc_schedule.Value(60).eval(), 5.0)
-      self.assertAllClose(cc_schedule.Value(70).eval(), 4.0)
-      self.assertAllClose(cc_schedule.Value(80).eval(), 3.0)
-      self.assertAllClose(cc_schedule.Value(90).eval(), 2.0)
-      self.assertAllClose(cc_schedule.Value(100).eval(), 1.0)
-      self.assertAllClose(cc_schedule.Value(110).eval(), 1.0)
+      self.assertAllClose(cc_schedule._Value(25).eval(), 6.0)
+      self.assertAllClose(cc_schedule._Value(50).eval(), 6.0)
+      self.assertAllClose(cc_schedule._Value(60).eval(), 5.0)
+      self.assertAllClose(cc_schedule._Value(70).eval(), 4.0)
+      self.assertAllClose(cc_schedule._Value(80).eval(), 3.0)
+      self.assertAllClose(cc_schedule._Value(90).eval(), 2.0)
+      self.assertAllClose(cc_schedule._Value(100).eval(), 1.0)
+      self.assertAllClose(cc_schedule._Value(110).eval(), 1.0)
 
   def _ClipExample(self, cc_schedule, v):
     """Returns a tuple of (neg, pos) for clipped neg/pos values of v."""

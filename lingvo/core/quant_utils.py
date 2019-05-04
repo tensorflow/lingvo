@@ -510,7 +510,7 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
     return tf.clip_by_value(x, min_value, max_value)
 
   def GetState(self, theta):
-    return self.Value(theta.global_step)
+    return self._Value(theta.global_step)
 
   def ApplyClippingWithState(self, state, x):
     """Applies clipping to x.
@@ -534,16 +534,8 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
     """
     return (-self.params.end_cap, self.params.end_cap)
 
-  def Value(self, current_step):
-    """Returns the current clipping cap.
-
-    Args:
-      current_step: The current global step value.
-
-    Returns:
-      Returns the current clipping cap value given the current training
-      global step.
-    """
+  def _Value(self, current_step):
+    """Returns the current clipping cap."""
     p = self.params
     start_step = tf.cast(p.start_step, tf.float32)
     end_step = tf.cast(p.end_step, tf.float32)
@@ -558,7 +550,7 @@ class LinearClippingCapSchedule(BaseClippingCapSchedule):
                    lambda: tf.to_float(rmax_tensor))
 
   def PostTrainingStepUpdate(self, global_step):
-    summary_utils.scalar('cap', self.Value(global_step))
+    summary_utils.scalar('cap', self._Value(global_step))
     return tf.no_op()
 
 
