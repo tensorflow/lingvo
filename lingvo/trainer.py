@@ -358,8 +358,8 @@ class Controller(base_runner.BaseRunner):
     # Keeps a relative long history to compute a smooth steps/second.
     # Removes duplicate stats for step = 0 to get rid of the warm-up period.
     while (self._time_steps[-1][1] - self._time_steps[0][1] > 10000 or
-           (len(self._time_steps) > 1 and self._time_steps[-1][1] == 0 and
-            self._time_steps[0][1] == 0)):
+           (len(self._time_steps) > 1 and
+            self._time_steps[0][1] == self._time_steps[1][1])):
       del self._time_steps[0]
     (t0, s0, e0), (t1, s1, e1) = self._time_steps[0], self._time_steps[-1]
     rate = 0.0
