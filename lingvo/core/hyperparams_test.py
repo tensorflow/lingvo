@@ -63,6 +63,9 @@ class ParamsTest(test_utils.TestCase):
     self.assertFalse(params1 == params2)
     params2.third.fourth = 'x'
     self.assertTrue(params1 == params2)
+    # Comparing params to non-param instances.
+    self.assertFalse(params1 == 3)
+    self.assertFalse(3 == params1)
 
   def testDeepCopy(self):
     inner = _params.Params()

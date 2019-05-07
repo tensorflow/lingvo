@@ -187,7 +187,7 @@ class Params(object):
 
   # Note: This gets called by _Param.__eq__() on nested Params objects.
   def __eq__(self, other):
-    return self._params == other._params  # pylint: disable=protected-access
+    return isinstance(other, Params) and self._params == other._params  # pylint: disable=protected-access
 
   def __ne__(self, other):
     return not self == other
@@ -282,7 +282,7 @@ class Params(object):
       self
     """
     if self._immutable:
-      raise TypeError('This Params instance is immutable.')
+      raise TypeError('This Params instance is immutable: %s' % self)
     for name, value in six.iteritems(kwargs):
       # Get nested param.
       param, key = self._GetNested(name)
