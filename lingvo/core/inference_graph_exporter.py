@@ -389,7 +389,7 @@ class InferenceGraphExporter(object):
           tf.variables_initializer(
               tf.global_variables(), name='init_all_variables')
           if IsTpu(device_options) and device_options.gen_init_op:
-            tf.group(tf.contrib.tpu.initialize_system(), name='tpu_init_op')
+            tf.group(tf.compat.v1.tpu.initialize_system(), name='tpu_init_op')
 
           model_task = mdl.GetTask(model_task_name)
 

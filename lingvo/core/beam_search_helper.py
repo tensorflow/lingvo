@@ -461,7 +461,7 @@ def _GetShapes(tensors, none_shapes=False):
     The same structure as tensors but of corresponding `TensorShape` objects.
   """
   shapes = []
-  for t in tf.contrib.framework.nest.flatten(tensors):
+  for t in tf.nest.flatten(tensors):
     shape = t.get_shape() if isinstance(t, tf.Tensor) else None
     if none_shapes:
       if shape:
@@ -471,8 +471,7 @@ def _GetShapes(tensors, none_shapes=False):
     else:
       shapes.append(tf.TensorShape(shape))
 
-  return type(tensors)(
-      tf.contrib.framework.nest.pack_sequence_as(tensors, shapes))
+  return type(tensors)(tf.nest.pack_sequence_as(tensors, shapes))
 
 
 def MergeBeamSearchOutputs(max_hyps_per_beam, beam_search_outputs):

@@ -2257,7 +2257,7 @@ class MonotonicAttention(BaseAttentionLayer):
             p_choose_i, previous_attention, 'hard')
       else:
         # Compute pre-sigmoid noise.
-        activation_noise = tf.contrib.stateless.stateless_random_normal(
+        activation_noise = tf.random.stateless_normal(
             py_utils.GetShape(logits),
             py_utils.GenerateStepSeedPair(p, theta.global_step),
             dtype=logits.dtype)

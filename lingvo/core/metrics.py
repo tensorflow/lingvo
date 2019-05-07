@@ -245,7 +245,7 @@ class TpuEvalMetrics(object):
     # Each metric has two tensors in the loop carrying result.
     metrics = loop_result[:2 * len(self._metrics.Flatten())]
     # Aggregate across tpu replicas.
-    metrics = [tf.contrib.tpu.cross_replica_sum(x) for x in metrics]
+    metrics = [tf.compat.v1.tpu.cross_replica_sum(x) for x in metrics]
     ret = []
     for (value, weight) in self._Zip(metrics):
       value, weight = py_utils.WeightedAvg(value / weight, weight)

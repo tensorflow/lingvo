@@ -878,7 +878,7 @@ def FindNeeded(endpoints):
   """List names of tensors and operations required to compute endpoints."""
   names_seen = set()
   queue = []
-  for e in tf.contrib.framework.nest.flatten(endpoints):
+  for e in tf.nest.flatten(endpoints):
     if isinstance(e, tf.Operation):
       queue.append(e)
     else:
@@ -1451,7 +1451,7 @@ def _ComputeGradientsTpu(loss, all_vars, grad_aggregation_method,
   for g in all_grads:
     if g is not None:
       with tf.colocate_with(g):
-        aggregated_grads.append(tf.contrib.tpu.cross_replica_sum(g))
+        aggregated_grads.append(tf.compat.v1.tpu.cross_replica_sum(g))
     else:
       aggregated_grads.append(None)
   return aggregated_grads
@@ -1507,8 +1507,8 @@ def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
         g_is_non_zero = tf.cast(
             tf.reduce_sum(tf.math.abs(g)) > zero_threashold, g.dtype)
         num_updates = tf.maximum(
-            tf.contrib.tpu.cross_replica_sum(g_is_non_zero), 1.0)
-        normalized_g = tf.contrib.tpu.cross_replica_sum(g) / num_updates
+            tf.compat.v1.tpu.cross_replica_sum(g_is_non_zero), 1.0)
+        normalized_g = tf.compat.v1.tpu.cross_replica_sum(g) / num_updates
         aggregated_grads.append(normalized_g)
     else:
       aggregated_grads.append(None)
@@ -2158,7 +2158,7 @@ def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
     # StatelessRandomUniform op does not support non-float (e.g. bfloat16) dtype
     # and non-int32 seed types.
     noise_shape = noise_shape or GetShape(x)
-    random_tensor = keep_prob + tf.contrib.stateless.stateless_random_uniform(
+    random_tensor = keep_prob + tf.random.stateless_uniform(
         noise_shape, seed=seeds, dtype=tf.float32)
     # 0. if [keep_prob, 1.0) and 1. if [1.0, 1.0 + keep_prob)
     binary_tensor = tf.floor(random_tensor)

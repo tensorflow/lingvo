@@ -294,7 +294,7 @@ class _Cluster(object):
     if self._job_spec.tpus_per_replica:
       ret = np.empty((1, self.num_devices_per_split), np.object)
       for i in range(self.num_devices_per_split):
-        ret[0, i] = tf.contrib.tpu.core(i)
+        ret[0, i] = tf.compat.v1.tpu.core(i)
       return ret
 
     if self.job == 'trainer' and self.asynchronous:

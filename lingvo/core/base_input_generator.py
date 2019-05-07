@@ -185,7 +185,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     for _ in range(p.tpu_infeed_parallism):
       tf.add_to_collection(py_utils.ENQUEUE_OPS, tpu_infeed_op)
 
-    with tf.device(tf.contrib.tpu.core(0)):
+    with tf.device(tf.compat.v1.tpu.core(0)):
       tensors = queues[0].generate_dequeue_op()
     return first_batch.Pack(tensors)
 
@@ -711,7 +711,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     dataset = (
         tf.data.Dataset.list_files(
             p.input_files, shuffle=bool(p.randomize_order)).apply(
-                tf.contrib.data.parallel_interleave(
+                tf.data.experimental.parallel_interleave(
                     dataset_factory,
                     cycle_length=p.parallel_readers,
                     sloppy=p.randomize_order)))

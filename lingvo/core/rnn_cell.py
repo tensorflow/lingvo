@@ -775,14 +775,14 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
       c_seed = tf.stack([random_seed1, 2 * random_seed2])
       m_seed = tf.stack([random_seed1, 2 * random_seed2 + 1])
       if py_utils.use_tpu():
-        c_random_uniform = tf.contrib.stateless.stateless_random_uniform(
+        c_random_uniform = tf.random.stateless_uniform(
             py_utils.GetShape(new_c, 2), tf.cast(c_seed, tf.int32))
-        m_random_uniform = tf.contrib.stateless.stateless_random_uniform(
+        m_random_uniform = tf.random.stateless_uniform(
             py_utils.GetShape(new_m, 2), tf.cast(m_seed, tf.int32))
       else:
-        c_random_uniform = tf.contrib.stateless.stateless_random_uniform(
+        c_random_uniform = tf.random.stateless_uniform(
             py_utils.GetShape(new_c, 2), c_seed)
-        m_random_uniform = tf.contrib.stateless.stateless_random_uniform(
+        m_random_uniform = tf.random.stateless_uniform(
             py_utils.GetShape(new_m, 2), m_seed)
     else:
       c_random_uniform = None
