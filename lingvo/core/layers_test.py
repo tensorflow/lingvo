@@ -2929,6 +2929,29 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(1.19209289551e-06, sig1.eval(), atol=1e-5)
       self.assertAllClose(47.8501930237, sig2.eval(), atol=1e-5)
 
+  def testBatchNormLayerNoPaddingPostTrainingStepUpdate(self):
+    tf.set_random_seed(398847392)
+    np.random.seed(12345)
+    params = layers.BatchNormLayerNoPadding.Params()
+    params.name = 'bn'
+    params.dim = 2
+    params.params_init = py_utils.WeightInit.Gaussian(0.1)
+    params.is_eval = False
+
+    bn_layer = layers.BatchNormLayerNoPadding(params)
+    bn_layer.accumulators.counts.Update(0.0)
+    bn_layer.accumulators.mean_ss.Update([1.0, 1.0])
+    bn_layer.accumulators.variance_ss.Update([5.0, 5.0])
+    bn_updates = bn_layer.PostTrainingStepUpdate(tf.constant(100))
+
+    with self.session(use_gpu=True) as sess:
+      tf.global_variables_initializer().run()
+      sess.run(bn_updates)
+      moving_mean = sess.run(bn_layer.vars.moving_mean)
+      moving_std = sess.run(bn_layer.vars.moving_variance)
+      self.assertAllClose([0.0, 0.0], moving_mean)
+      self.assertAllClose([1.0, 1.0], moving_std)
+
   def testBatchNormLayerNoPaddingFPropForConv(self):
     tf.set_random_seed(398847392)
     np.random.seed(12345)

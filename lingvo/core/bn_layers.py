@@ -344,12 +344,18 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
       with tf.colocate_with(self.vars.moving_mean):
         mean_update = tf.assign_sub(
             self.vars.moving_mean,
-            (self.vars.moving_mean - tf.cast(mean, p.dtype)) * decay,
+            tf.where(
+                tf.greater(counts, 0.5),
+                (self.vars.moving_mean - tf.cast(mean, p.dtype)) * decay,
+                tf.zeros_like(self.vars.moving_mean)),
             name='moving_mean_update')
       with tf.colocate_with(self.vars.moving_variance):
         var_update = tf.assign_sub(
             self.vars.moving_variance,
-            (self.vars.moving_variance - tf.cast(variance, p.dtype)) * decay,
+            tf.where(
+                tf.greater(counts, 0.5),
+                (self.vars.moving_variance - tf.cast(variance, p.dtype)) *
+                decay, tf.zeros_like(self.vars.moving_variance)),
             name='moving_variance_update')
       py_utils.CheckNumerics(
           self.vars.moving_mean,
