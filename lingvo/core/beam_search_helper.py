@@ -217,6 +217,10 @@ class BeamSearchHelper(base_layer.BaseLayer):
         'dimension of the hyp states. Otherwise, timing becomes the major '
         'dimension, and the gathers are performed along the second-to-major '
         'dimension.')
+    p.Define(
+        'local_eos_threshold', -100.0,
+        'During beam search, allow </s> to terminate a hyp if the local score '
+        'for </s> is greater than local_eos_threshold.')
     p.name = 'beam_search'
     return p
 
@@ -293,7 +297,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
          merge_paths=p.merge_paths,
          allow_empty_terminated_hyp=p.allow_empty_terminated_hyp,
          ensure_full_beam=p.ensure_full_beam,
-         force_eos_in_last_step=p.force_eos_in_last_step)
+         force_eos_in_last_step=p.force_eos_in_last_step,
+         local_eos_threshold=p.local_eos_threshold)
 
     new_step_ids = tf.reshape(out_hyps[cur_step, :], tf.shape(step_ids))
     new_step_ids.set_shape(step_ids.get_shape())

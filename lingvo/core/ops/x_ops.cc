@@ -120,6 +120,7 @@ REGISTER_OP("BeamSearchStep")
     .Attr("beam_size: float")
     .Attr("num_hyps_per_beam: int")
     .Attr("valid_eos_max_logit_delta: float = 5.0")
+    .Attr("local_eos_threshold: float = -100.0")
     .Attr("merge_paths: bool = false")
     .Attr("allow_empty_terminated_hyp: bool = true")
     .Attr("ensure_full_beam: bool = false")
@@ -211,6 +212,8 @@ num_hyps_per_beam: Number of hyps in a beam.
 valid_eos_max_logit_delta: We allow </s> to terminate a hyp only if its logit
     is no more than `valid_eos_max_logit_delta` away from the logit of the best
     candidate.
+local_eos_threshold: We allow </s> to terminate a hyp if the local score for
+    </s> is greater than local_eos_threshold.
 merge_paths: If true, hyps which are identical when epsilons are removed will
     be combined into a single hyp.  The probability for that combined hyp will
     be the sum of the probabilities of the component hyps.  This can only be

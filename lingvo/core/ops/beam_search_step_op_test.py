@@ -46,7 +46,8 @@ class BeamSearchOpTest(test_utils.TestCase):
                              atten_probs,
                              beam_size=3.0,
                              ensure_full_beam=False,
-                             force_eos_in_last_step=False):
+                             force_eos_in_last_step=False,
+                             local_eos_threshold=-100.0):
     eos_id = 2
     num_hyps_per_beam = b_size / num_beams
 
@@ -76,7 +77,8 @@ class BeamSearchOpTest(test_utils.TestCase):
            ensure_full_beam=ensure_full_beam,
            num_hyps_per_beam=num_hyps_per_beam,
            valid_eos_max_logit_delta=0.1,
-           force_eos_in_last_step=force_eos_in_last_step)
+           force_eos_in_last_step=force_eos_in_last_step,
+           local_eos_threshold=local_eos_threshold)
 
     with self.session(use_gpu=False) as sess:
       (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
@@ -102,7 +104,8 @@ class BeamSearchOpTest(test_utils.TestCase):
                               hyps_expected,
                               prev_hyps_expected,
                               atten_probs_expected,
-                              force_eos_in_last_step=False):
+                              force_eos_in_last_step=False,
+                              local_eos_threshold=-100.0):
 
     (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
      atten_probs, done, scores, atten_probs) = self._runBeamSearchOpHelper(
@@ -113,7 +116,8 @@ class BeamSearchOpTest(test_utils.TestCase):
          probs,
          init_atten_probs,
          atten_probs,
-         force_eos_in_last_step=force_eos_in_last_step)
+         force_eos_in_last_step=force_eos_in_last_step,
+         local_eos_threshold=local_eos_threshold)
 
     tf.logging.info(np.array_repr(best_scores))
     tf.logging.info(np.array_repr(cumulative_scores))
@@ -466,7 +470,10 @@ class BeamSearchOpTest(test_utils.TestCase):
     self._SameHyp(expected_for_beam_0, done_hyps[2, 0])
     self._SameHyp(expected_for_beam_1, done_hyps[2, 1])
 
-  def _testBeamSearchStoppingHelper(self, beam_size, ensure_full_beam):
+  def _testBeamSearchStoppingHelper(self,
+                                    beam_size,
+                                    ensure_full_beam,
+                                    local_eos_threshold=-100):
     b_size = 2
     num_beams = 1
     seq_len = 3
@@ -484,7 +491,8 @@ class BeamSearchOpTest(test_utils.TestCase):
         init_atten_probs=tf.zeros([b_size, 0]),
         atten_probs=np.zeros([seq_len, b_size, 0]),
         beam_size=beam_size,
-        ensure_full_beam=ensure_full_beam)
+        ensure_full_beam=ensure_full_beam,
+        local_eos_threshold=local_eos_threshold)
     all_done = results[7]
     return all_done
 
@@ -506,6 +514,19 @@ class BeamSearchOpTest(test_utils.TestCase):
     # beam size.
     all_done = self._testBeamSearchStoppingHelper(0.1, True)
     self.assertEqual(False, all_done)
+
+  def test_small_eos_threshold(self):
+    # With a small eos_threshold, we are done because the active hyp produced,
+    # </s>, independent of small beam size.
+    all_done = self._testBeamSearchStoppingHelper(0.1, False, -100.0)
+    self.assertTrue(all_done)
+
+  def test_large_eos_threshold(self):
+    # With larger eos_threshold, we are _not_ yet done, because we do not hit
+    # </s> criteria we we require to have two done hyps before stopping,
+    # regardless of beam size.
+    all_done = self._testBeamSearchStoppingHelper(0.1, False, 0.01)
+    self.assertFalse(all_done)
 
   def _SameHyp(self, expected_hyp_str, real_serialized_hyp):
     hyp1 = hyps_pb2.Hypothesis()
