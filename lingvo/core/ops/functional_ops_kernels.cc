@@ -30,7 +30,6 @@ typedef FunctionLibraryRuntime::Handle FHandle;
 
 void SetRunOptions(OpKernelContext* ctx, FunctionLibraryRuntime::Options* opts,
                    bool always_collect_stats) {
-  opts->step_id = ctx->step_id();
   opts->rendezvous = ctx->rendezvous();
   opts->cancellation_manager = ctx->cancellation_manager();
   if (always_collect_stats) {
