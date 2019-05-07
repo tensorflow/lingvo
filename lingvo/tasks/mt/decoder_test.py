@@ -108,7 +108,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
       if p.feed_attention_context_vec_to_softmax:
-        CompareToGoldenSingleFloat(self, 7.613735, actual_loss)
+        CompareToGoldenSingleFloat(self, 7.618915, actual_loss)
       else:
         CompareToGoldenSingleFloat(self, 7.624220, actual_loss)
 
@@ -166,9 +166,9 @@ class DecoderTestCaseBase(test_utils.TestCase):
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
       if p.feed_attention_context_vec_to_softmax:
-        CompareToGoldenSingleFloat(self, 2.769071, actual_loss)
+        CompareToGoldenSingleFloat(self, 2.7668, actual_loss)
       else:
-        CompareToGoldenSingleFloat(self, 2.772190, actual_loss)
+        CompareToGoldenSingleFloat(self, 2.772428, actual_loss)
 
 
 class DecoderTest(DecoderTestCaseBase):
@@ -251,7 +251,7 @@ class DecoderTest(DecoderTestCaseBase):
                          [6, 2, 0, 0, 0]]
 
     expected_topk_lens = [1, 2, 1, 2]
-    expected_topk_scores = [[-3.781308, -5.741293], [-3.332158, -5.597181]]
+    expected_topk_scores = [[-3.78467, -5.771077], [-3.334115, -5.597376]]
 
     self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
@@ -297,7 +297,7 @@ class DecoderTest(DecoderTestCaseBase):
                          [0, 0, 0, 0, 0]]
 
     expected_topk_lens = [1, 2, 0, 0]
-    expected_topk_scores = [[-3.7437, -5.654146], [0., 0.]]
+    expected_topk_scores = [[-3.747134, -5.680344], [0., 0.]]
 
     self.assertAllEqual(expected_topk_ids,
                         actual_decode_feeding_att_context.topk_ids)

@@ -1361,7 +1361,8 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
           att_params.name = 'atten_%s' % (src_name)
       if att_params.params_init is None:
         att_params.params_init = py_utils.WeightInit.Gaussian(
-            1. / math.sqrt(att_params.source_dim + att_params.query_dim))
+            1. / math.sqrt(att_params.source_dim + att_params.query_dim),
+            seed=p.random_seed)
       att_params.atten_dropout_deterministic = True
       params_atten.append(att_params)
       self._source_dims.append(att_params.source_dim)

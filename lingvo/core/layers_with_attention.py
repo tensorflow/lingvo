@@ -1112,7 +1112,8 @@ class MergerLayer(base_layer.BaseLayer):
       atten_params.dtype = p.dtype
       if atten_params.params_init is None:
         atten_params.params_init = py_utils.WeightInit.Gaussian(
-            1. / math.sqrt(atten_params.source_dim + atten_params.query_dim))
+            1. / math.sqrt(atten_params.source_dim + atten_params.query_dim),
+            seed=p.random_seed)
       self.CreateChild('atten', atten_params)
 
     if p.pre_proj_input_dims:
@@ -1273,7 +1274,7 @@ class StyleLayer(base_layer.BaseLayer):
     with tf.variable_scope(p.name):
       # The styles table.
       w_shape = [p.num_styles, 1, p.output_dim]
-      w_init = py_utils.WeightInit.Gaussian(scale=1.0)
+      w_init = py_utils.WeightInit.Gaussian(scale=1.0, seed=p.random_seed)
       w_pc = py_utils.WeightParams(
           shape=w_shape,
           init=w_init,

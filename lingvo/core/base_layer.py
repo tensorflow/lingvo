@@ -141,11 +141,19 @@ def DefaultVN():
 
 def RecursiveFindLayerParams(params):
   """Returns all params that define a layer."""
+  if not isinstance(params, hyperparams.Params):
+    return []
   layer_params = []
   if hasattr(params, 'cls') and issubclass(params.cls, BaseLayer):
     layer_params.append(params)
   for _, p in params.IterParams():
-    if isinstance(p, hyperparams.Params):
+    if isinstance(p, (list, tuple)):
+      for item in p:
+        layer_params.extend(RecursiveFindLayerParams(item))
+    elif isinstance(p, dict):
+      for item in p.items():
+        layer_params.extend(RecursiveFindLayerParams(item))
+    else:
       layer_params.extend(RecursiveFindLayerParams(p))
   return layer_params
 

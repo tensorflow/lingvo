@@ -384,7 +384,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         p.attention.packed_input = p.packed_input
         if p.attention.params_init is None:
           p.attention.params_init = py_utils.WeightInit.Gaussian(
-              1. / math.sqrt(p.attention.source_dim + p.attention.query_dim))
+              1. / math.sqrt(p.attention.source_dim + p.attention.query_dim),
+              seed=p.random_seed)
         atten_params = p.attention.Copy()
 
         params = p.atten_rnn_cell_tpl.Copy()
