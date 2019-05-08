@@ -24,6 +24,7 @@ import math
 import numbers
 import re
 import traceback
+import zlib
 
 import numpy as np
 import six
@@ -2744,7 +2745,8 @@ def RematerializeFn(fn, *xs):
   Returns:
     fn(*xs)
   """
-  original_step_seed = GetStepSeed()
+  initial_step_seed = GetStepSeed()
+  final_step_seed = zlib.adler32(tf.no_op(name='new_step_seed').name.encode())
 
   def Backward(op, *dy):
     """The backward function that rematerializes forward outputs."""
@@ -2753,14 +2755,13 @@ def RematerializeFn(fn, *xs):
     # tf.where(tf.is_nan(x),
     #          tf.constant(float('nan'), dtype=x.dtype) * tf.ones_like(x),
     #          x)
-    bak_xs = [
-        tf.where(always_true, x, tf.zeros(GetShape(x), dtype=x.dtype))
-        for x in op.inputs
-    ]
+    # Skip op.inputs[0] which is initial_step_seed.
+    bak_xs = [tf.where(always_true, x, tf.zeros_like(x)) for x in op.inputs[1:]]
     for dst, src in zip(bak_xs, xs):
       dst.set_shape(src.shape)
-    ResetStepSeed(original_step_seed)
+    ResetStepSeed(initial_step_seed)
     ys = fn(*bak_xs)
+    ResetStepSeed(final_step_seed)
     dxs = tf.gradients(ys, bak_xs, grad_ys=dy)
     dxs_final = []
     for dx, x in zip(dxs, bak_xs):
@@ -2769,17 +2770,19 @@ def RematerializeFn(fn, *xs):
       else:
         dxs_final.append(dx)
     assert len(dxs_final) == len(bak_xs)
-    return tuple(dxs_final)
+    return (tf.zeros_like(initial_step_seed),) + tuple(dxs_final)
 
   xs_dtypes = [x.dtype for x in xs]
   ys_shapes = []
 
   # TODO(huangyp, yonghui): Check Forward doesn't use any stateful random ops.
-  @function.Defun(*xs_dtypes, python_grad_func=Backward)
-  def Forward(*fwd_xs):
+  @function.Defun(
+      initial_step_seed.dtype, *xs_dtypes, python_grad_func=Backward)
+  def Forward(initial_step_seed, *fwd_xs):
     """Forward function plus sanity checks."""
     for dst, src in zip(fwd_xs, xs):
       dst.set_shape(src.shape)
+    ResetStepSeed(initial_step_seed)
     ys = fn(*fwd_xs)
     # Some sanity check.
     assert not function.get_extra_inputs()
@@ -2794,10 +2797,15 @@ def RematerializeFn(fn, *xs):
       ys_shapes.append(ys.shape)
     return ys
 
-  ys = Forward(*xs)
+  ys = Forward(initial_step_seed, *xs)
   if isinstance(ys, tuple):
     for y, s in zip(ys, ys_shapes):
       y.set_shape(s)
   else:
     ys.set_shape(ys_shapes[0])
+  # TODO(b/129159299): The ResetStepSeed below is needed to work around this
+  # bug, which is a problem with global tensors being shared by different
+  # inference graphs. It should be replaced with the new step seed value
+  # returned from the Forward function when the bug is fixed.
+  ResetStepSeed(final_step_seed)
   return ys
