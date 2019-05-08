@@ -2003,6 +2003,11 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
         'The activation function to use. Can be a single string, or a'
         ' tuple/list of strings having the same length as the number'
         ' of layers.')
+    p.Define(
+        'weight_norm', False,
+        'Whether or not to apply weight normalization to weights. This can be '
+        'a single bool or a tuple/list of bools having the same length as the '
+        'number of layers.')
     p.Define('skip_connections', None, 'Must be None.')
     p.Define(
         'bn_fold_weights', None, 'Force folding the batch normalization '
@@ -2022,6 +2027,12 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
       assert len(batch_norm) == num_layers
     else:
       batch_norm = [batch_norm] * num_layers
+    weight_norm = p.weight_norm
+    if isinstance(weight_norm, (list, tuple)):
+      assert len(weight_norm) == num_layers
+    else:
+      weight_norm = [weight_norm] * num_layers
+
     activation = p.activation
     if isinstance(activation, six.string_types):
       activation = [activation] * num_layers
@@ -2044,6 +2055,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
         name = '%s_%d' % (p.name, i)
         params_i = ProjectionLayer.Params().Set(
             batch_norm=batch_norm[i],
+            weight_norm=weight_norm[i],
             has_bias=(not batch_norm[i]),
             activation=activation[i],
             input_dim=in_dim,
