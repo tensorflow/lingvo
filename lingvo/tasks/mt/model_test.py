@@ -298,13 +298,11 @@ class TransformerModelTest(test_utils.TestCase):
       mdl = p.cls(p)
       mdl.FPropDefaultTheta()
       mdl.BProp()
-      loss = mdl.loss
-      logp = mdl.eval_metrics['log_pplx'][0]
 
       tf.global_variables_initializer().run()
 
       for _ in range(2):
-        sess.run((py_utils.GetGlobalStep(), loss, logp, mdl.train_op))
+        sess.run(mdl.train_op)
 
       expected = sess.run(mdl.dec.softmax.vars['weight_0'])
 
@@ -317,12 +315,10 @@ class TransformerModelTest(test_utils.TestCase):
       mdl = p.cls(p)
       mdl.FPropDefaultTheta()
       mdl.BProp()
-      loss = mdl.loss
-      logp = mdl.eval_metrics['log_pplx'][0]
 
       tf.global_variables_initializer().run()
 
-      sess.run((py_utils.GetGlobalStep(), loss, logp, mdl.train_op))
+      sess.run(mdl.train_op)
 
       actual = sess.run(mdl.dec.softmax.vars['weight_0'])
 

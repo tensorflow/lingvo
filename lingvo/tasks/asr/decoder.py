@@ -421,7 +421,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     pass
 
   def DecoderStepZeroState(self, theta, encoder_outputs, target_ids, bs):
-    misc_zero_states = self.MiscZeroState(encoder_outputs, target_ids, bs)
+    misc_zero_states = self.MiscZeroState(theta, encoder_outputs, target_ids,
+                                          bs)
     rnn_states, atten_context, atten_probs, atten_states, packed_src = (
         self.BaseZeroState(theta, encoder_outputs, bs, misc_zero_states))
     return py_utils.NestedMap(
@@ -1150,14 +1151,14 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     # TODO(syzhang): unify the API to always pass in packed_src.
     raise NotImplementedError('Must be implemented by sub-classes.')
 
-  def MiscZeroState(self, encoder_outputs, target_ids, bs):
+  def MiscZeroState(self, theta, encoder_outputs, target_ids, bs):
     """Returns initial state for other miscellaneous states, if any."""
     del encoder_outputs
     misc_zero_state = py_utils.NestedMap()
     p = self.params
     if self._max_label_prob > 0:
       misc_zero_state.prev_predicted_ids = tf.reshape(target_ids[:, 0], [bs])
-      step = tf.to_float(py_utils.GetGlobalStep())
+      step = tf.to_float(theta.global_step)
       sampling_p = (step - p.prob_decay_start_step) / self._decay_interval
       groundtruth_p = 1 - (self._max_label_prob * sampling_p)
       groundtruth_p = tf.maximum(groundtruth_p, p.min_ground_truth_prob)

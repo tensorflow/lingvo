@@ -129,7 +129,6 @@ class DummyPipelineCnnTest(test_utils.TestCase):
     num_micro_batches = 8
     batch_size = 16
     with self.session(graph=tf.Graph()) as sess:
-      py_utils.GetGlobalStep()
       tf.set_random_seed(1245)
       inputs = tf.random_uniform([batch_size, 8, 8, 1])
       net = _BuildDummyPipelineCnn(

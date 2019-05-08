@@ -602,7 +602,6 @@ class GPipeTransformerStackTest(test_utils.TestCase, parameterized.TestCase):
 
       inputs, paddings, tgt_inputs, tgt_paddings = self._random_inputs(
           batch=batch)
-      py_utils.GetGlobalStep()
       tf.set_random_seed(1234)
       tf.global_variables_initializer().run()
       enc_outputs = xformer.EncoderFPropDefaultTheta(inputs, paddings)
@@ -654,7 +653,6 @@ class GPipeTransformerStackTest(test_utils.TestCase, parameterized.TestCase):
       input_ids, id_paddings, tgt_inputs, tgt_paddings = self._random_inputs_ids(
           batch=batch)
       inputs, paddings, _, _ = self._random_inputs_vecs(batch=batch)
-      py_utils.GetGlobalStep()
       tf.set_random_seed(1234)
       tf.global_variables_initializer().run()
       enc_outputs = xformer.EncoderFPropDefaultTheta(inputs, paddings)
@@ -720,7 +718,6 @@ class GPipeTransformerStackTest(test_utils.TestCase, parameterized.TestCase):
 
       inputs, paddings, tgt_inputs, tgt_paddings = self._random_inputs(
           batch=batch)
-      py_utils.GetGlobalStep()
       tf.set_random_seed(1234)
       tf.global_variables_initializer().run()
       enc_output = xformer.EncoderFPropDefaultTheta(inputs, paddings)

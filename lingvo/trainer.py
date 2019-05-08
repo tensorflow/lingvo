@@ -507,7 +507,7 @@ class Trainer(base_runner.BaseRunner):
             model_task.eval_metrics,
             model_task.per_example_tensors,
         ])
-        msg = 'step:%6d' % (global_step)
+        msg = 'step:%6d' % global_step
         for key, (val, _) in sorted(six.iteritems(eval_metrics)):
           msg += ' %s:%.8g' % (key, val)
           self._SummarizeValue(global_step, key, val, self._summary_writer)

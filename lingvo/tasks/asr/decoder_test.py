@@ -260,7 +260,7 @@ class DecoderTest(test_utils.TestCase):
       self.assertAllClose([3.587372, 15.0], loss_val)
       self.assertAllClose([14.171288, 9.965696, 10.221684, 19.451914],
                           per_sequence_loss_val)
-      self.assertAllEqual(0, global_steps_val)
+      self.assertEqual(0, global_steps_val)
 
       # Run another step to test global_step and time_step are incremented
       # correctly.
@@ -272,7 +272,7 @@ class DecoderTest(test_utils.TestCase):
       self.assertAllClose([3.626164, 15.0], loss_val)
       self.assertAllClose([14.70993, 10.572938, 10.516836, 18.592758],
                           per_sequence_loss_val)
-      self.assertAllEqual(1, global_steps_val)
+      self.assertEqual(1, global_steps_val)
 
   def testLabelSmoothing(self):
     """Verify that loss computation with label smoothing is as expected.."""

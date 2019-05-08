@@ -106,11 +106,11 @@ class OptimizerTest(test_utils.TestCase):
       opt = op.cls(op)
       lr = 1e-1
       var_update_op = opt.Apply(lr, var_grads)
-      global_step = py_utils.GetGlobalStep()
-      increment_global_step_op = tf.assign_add(global_step, 1)
+      increment_global_step_op = tf.assign_add(
+          py_utils.GetOrCreateGlobalStepVar(), 1)
 
       sess.run(tf.global_variables_initializer())
-      vars2, global_step = sess.run([proj_layer.vars.Flatten(), global_step])
+      vars2 = sess.run(proj_layer.vars.Flatten())
       loss2_1, grads2_1 = sess.run(
           [loss, var_grads], feed_dict={
               inputs1: np_input1,
