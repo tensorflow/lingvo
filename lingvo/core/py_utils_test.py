@@ -1703,6 +1703,8 @@ class RematerializeFnTest(tf.test.TestCase):
 
       d1, e1 = Fn(a, b)
       d2, e2 = py_utils.RematerializeFn(Fn, a, b)
+      self.assertEqual(d2.shape.as_list(), [2, 4])
+      self.assertEqual(e2.shape.as_list(), [2, 4])
       da1, db1 = tf.gradients([d1, e1], [a, b])
       da2, db2 = tf.gradients([d2, e2], [a, b])
       tf.global_variables_initializer().run()

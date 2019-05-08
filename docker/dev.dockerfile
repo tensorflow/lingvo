@@ -64,6 +64,7 @@ RUN pip --no-cache-dir install \
         sklearn \
         sphinx \
         sphinx_rtd_theme \
+	sympy \
         && \
     python -m ipykernel.kernelspec
 

@@ -25,6 +25,7 @@ from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
+from lingvo.core import tshape
 from lingvo.core.gpipe import FeatureExtractionLayer
 from lingvo.core.gpipe import PipeliningLayer
 
@@ -82,10 +83,12 @@ def _common_gpipe_transformer_encoder_fprop(
           target_segment_id) + more_source_vecs
 
 
-def _common_gpipe_transformer_decoder_fprop(
-    layer, layer_class, params, theta, source_vecs, source_paddings,
-    target_vecs, target_paddings, source_segment_id, target_segment_id,
-    *more_source_vecs):
+def _common_gpipe_transformer_decoder_fprop(layer, layer_class, params, theta,
+                                            source_vecs, source_paddings,
+                                            target_vecs, target_paddings,
+                                            source_segment_id,
+                                            target_segment_id,
+                                            *more_source_vecs):
   """GPipe decoder FProp."""
   assert target_vecs is not None
   assert target_paddings is not None
@@ -110,7 +113,7 @@ def _common_gpipe_transformer_fprop_meta(p, inputs, *args):
   # TODO(huangyp): return accurate estimate of flops.
   py_utils.CheckShapes((inputs,))
   flops_per_element = 5
-  src_time, source_batch, dim = inputs.as_list()
+  src_time, source_batch, dim = inputs
   flops = flops_per_element * src_time * src_time * source_batch * dim
   args = args if isinstance(args, tuple) else (args,)
   if p.is_transparent:
@@ -346,14 +349,14 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     flops_per_element = 2  # Is this correct?
     vocab = p.token_emb.vocab_size
     dim = p.token_emb.embedding_dim
-    src_time, source_batch = inputs.as_list()
+    src_time, source_batch = inputs
     flops = flops_per_element * src_time * source_batch * dim * vocab
     args = args if isinstance(args, tuple) else (args,)
-    new_inputs = tf.TensorShape([src_time, source_batch, dim])
+    new_inputs = tshape.Shape([src_time, source_batch, dim])
     new_args = list(args)
     if p.add_tgt_embedding_layer:
-      tgt_time, tgt_batch = args[1].as_list()
-      new_args[1] = tf.TensorShape([tgt_time, tgt_batch, dim])
+      tgt_time, tgt_batch = args[1]
+      new_args[1] = tshape.Shape([tgt_time, tgt_batch, dim])
     new_args = tuple(new_args[:5])
     return py_utils.NestedMap(flops=flops, out_shapes=(new_inputs,) + new_args)
 
@@ -591,9 +594,9 @@ class GPipeTransformerStack(PipeliningLayer):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      source_input: A sequence of input Tensors of [time, batch, dim] shape.
-        If p.use_pipelined_embeddings is set, A sequence of ints indicating
-        source input ids of [time, batch] shape.
+      source_input: A sequence of input Tensors of [time, batch, dim] shape. If
+        p.use_pipelined_embeddings is set, A sequence of ints indicating source
+        input ids of [time, batch] shape.
       source_paddings: A sequence of 0s and 1s indicating input paddings of
         [time, batch] shape.
       target_input: [target_time, target_batch, dim]. If
@@ -604,10 +607,10 @@ class GPipeTransformerStack(PipeliningLayer):
         [time, batch] shape.
       target_segment_id: A sequence of ints indicating target segment ids of
         [time, batch] shape.
-      source_pos_id: A sequence of ints indicating source position ids of
-        [time, batch] shape.
-      target_pos_id: A sequence of ints indicating target position ids of
-        [time, batch] shape.
+      source_pos_id: A sequence of ints indicating source position ids of [time,
+        batch] shape.
+      target_pos_id: A sequence of ints indicating target position ids of [time,
+        batch] shape.
 
     Returns:
       transformer_output with shape [time, batch, dim]

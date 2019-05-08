@@ -39,6 +39,7 @@ from tensorflow.python.framework import function
 from tensorflow.python.util import deprecation
 from lingvo.core import hyperparams
 from lingvo.core import retry
+from lingvo.core import tshape
 from lingvo.core.ops import py_x_ops
 
 tf.flags.DEFINE_bool('enable_asserts', True,
@@ -2649,11 +2650,10 @@ def MixByWeight(inputs, weights):
 
 
 def CheckShapes(shapes):
-  """Asserts that shapes is a tuple of fully defined tf.TensorShape."""
+  """Asserts that shapes is a tuple of tshape.Shape."""
   assert isinstance(shapes, tuple), str(shapes)
   for s in shapes:
-    assert isinstance(s, tf.TensorShape), str(s)
-    assert s.is_fully_defined()
+    assert isinstance(s, tshape.Shape), '{}: {}'.format(type(s), s)
 
 
 def FPropDtype(params):
@@ -2739,7 +2739,8 @@ def RematerializeFn(fn, *xs):
   Args:
     fn: A python function to be rematerialized in the backprop pass.
     *xs: A single tensor or a list/tuple of tensors. 'xs' are input args to the
-         fn function.
+      fn function.
+
   Returns:
     fn(*xs)
   """
@@ -2771,6 +2772,7 @@ def RematerializeFn(fn, *xs):
     return tuple(dxs_final)
 
   xs_dtypes = [x.dtype for x in xs]
+  ys_shapes = []
 
   # TODO(huangyp, yonghui): Check Forward doesn't use any stateful random ops.
   @function.Defun(*xs_dtypes, python_grad_func=Backward)
@@ -2786,9 +2788,16 @@ def RematerializeFn(fn, *xs):
     if isinstance(ys, tuple):
       for y in ys:
         assert isinstance(y, tf.Tensor)
+        ys_shapes.append(y.shape)
     else:
       assert isinstance(ys, tf.Tensor)
-
+      ys_shapes.append(ys.shape)
     return ys
 
-  return Forward(*xs)
+  ys = Forward(*xs)
+  if isinstance(ys, tuple):
+    for y, s in zip(ys, ys_shapes):
+      y.set_shape(s)
+  else:
+    ys.set_shape(ys_shapes[0])
+  return ys

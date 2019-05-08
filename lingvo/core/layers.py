@@ -23,6 +23,7 @@ import numbers
 import numpy as np
 import six
 from six.moves import range
+import sympy
 import tensorflow as tf
 
 from tensorflow.python.framework import function
@@ -35,6 +36,7 @@ from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import recurrent
 from lingvo.core import summary_utils
+from lingvo.core import tshape
 
 
 def Gelu(input_tensor):
@@ -2998,19 +3000,18 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
   @classmethod
   def FPropMeta(cls, p, inputs):
     py_utils.CheckShapes((inputs,))
-    b, h, w, c = inputs.as_list()
+    b, h, w, c = inputs
     fh, fw, ic, oc = p.filter_shape
     assert ic == c
     sh, sw = p.filter_stride
     if p.padding == 'SAME':
-      oh = int(np.ceil(float(h) / float(sh)))
-      ow = int(np.ceil(float(w) / float(sw)))
+      oh = sympy.ceiling(h / sh)
+      ow = sympy.ceiling(w / sw)
     else:
-      oh = int(np.ceil(float(h - fh + 1) / float(sh)))
-      ow = int(np.ceil(float(w - fw + 1) / float(sw)))
+      oh = sympy.ceiling((h - fh + 1) / sh)
+      ow = sympy.ceiling((w - fw + 1) / sw)
     flops = b * oh * ow * fh * fw * ic * oc * 2  # mul/add counts as 2 flop.
-    outputs = tf.TensorShape([b, oh, ow, oc])
-
+    outputs = tshape.Shape([b, oh, ow, oc])
     return py_utils.NestedMap(flops=flops, out_shapes=(outputs,))
 
 

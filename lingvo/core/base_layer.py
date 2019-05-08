@@ -326,11 +326,11 @@ class BaseLayer(object):
     E.g.::
 
         p = SomeComplexLayer.Params()
-        meta = p.cls.FPropMeta(p, tf.TensorShape([128, 20, 50, 32]))
+        meta = p.cls.FPropMeta(p, tshape.Shape([128, 20, 50, 'channels']))
 
     `meta.flops` gives an estimate count of floating point operations done by
-    one `FProp` given an input tensor of shape [128, 20, 50, 32].
-    `meta.out_shapes` is a tuple of tensor shapes, which tells you what shape
+    one `FProp` given an input tensor of shape [128, 20, 50, channels].
+    `meta.out_shapes` is a tuple of TShape, which tells you what shape
     of tensors this layer will return.
 
     Args:
@@ -343,7 +343,7 @@ class BaseLayer(object):
 
       - flops - The estimated number of floating point operations incurred by
         this fprop.
-      - out_shapes - A tuple of `tf.TensorShape`. I.e., `out_shapes[i]`
+      - out_shapes - A tuple of `TShape`. I.e., `out_shapes[i]`
         represents the shape of the `i`-th returned tensor of the fprop.
     """
     raise NotImplementedError('FPropMeta of %s' % cls)

@@ -669,6 +669,7 @@ py_library(
     deps = [
         ":hyperparams",
         ":retry",
+        ":tshape",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -1130,5 +1131,22 @@ py_library(
     srcs = ["model_helper.py"],
     deps = [
         ":rnn_layers",
+    ],
+)
+
+py_library(
+    name = "tshape",
+    srcs = ["tshape.py"],
+    deps = [
+        # Implicit sympy dependency.
+    ],
+)
+
+py_test(
+    name = "tshape_test",
+    srcs = ["tshape_test.py"],
+    deps = [
+        ":test_utils",
+        ":tshape",
     ],
 )

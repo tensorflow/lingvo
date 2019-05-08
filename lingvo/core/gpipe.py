@@ -40,6 +40,7 @@ import tensorflow as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import recurrent
+from lingvo.core import tshape
 
 _MICRO_BATCH_STATE_NAME = 'micro_batch_state'
 _OVERWRITE_GLOBAL_STEP_COLLECTION = 'lingvo__OVERWRITE_GLOBAL_STEP_COLLECTION'
@@ -236,8 +237,8 @@ class SeqLayer(base_layer.BaseLayer):
     """Round-robin every children cells in cell_tpl among worker devices.
 
     Args:
-      theta: A NestedMap object containing weights' values of this
-          layer and its children layers.
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
       *args: Input args
 
     Returns:
@@ -279,36 +280,37 @@ class PipeliningLayer(SeqLayer):
     information in StackedRecurrent.
 
     Args:
-      input_shapes: tuple of input shapes
+      input_shapes: tuple of input TensorShapes.
 
     Returns:
       Return a list of K + 1 lists of shapes where K is the number of
       partitions.
     """
+    # Converts TensorShape to tshape.Shape.
+    inputs = []
+    for x in input_shapes:
+      if x is None:
+        inputs.append(None)
+      else:
+        inputs.append(tshape.Shape(x.as_list()))
+    del input_shapes
+
     state_shapes = []
 
-    for (_, before_layer) in self._before_layers:
-      meta = before_layer.FPropMeta(before_layer.params, *input_shapes)
-      input_shapes = meta.out_shapes
+    def RecordInputShapes(tshapes):
+      shapes = []
+      for s in tshapes:
+        shapes.append(None if s is None else s.ToTensorShape().as_list())
+      state_shapes.append(shapes)
 
-    state_shape_list = []
-    for state_shape in input_shapes:
-      if state_shape is not None:
-        state_shape_list.append(state_shape.as_list())
-      else:
-        state_shape_list.append(None)
-    state_shapes.append(state_shape_list)
+    for (_, before_layer) in self._before_layers:
+      inputs = before_layer.FPropMeta(before_layer.params, *inputs).out_shapes
+    RecordInputShapes(inputs)
 
     for (_, cell) in self._cells:
-      meta = cell.FPropMeta(cell.params, *input_shapes)
-      input_shapes = meta.out_shapes
-      state_shape_list = []
-      for state_shape in input_shapes:
-        if state_shape is not None:
-          state_shape_list.append(state_shape.as_list())
-        else:
-          state_shape_list.append(None)
-      state_shapes.append(state_shape_list)
+      inputs = cell.FPropMeta(cell.params, *inputs).out_shapes
+      RecordInputShapes(inputs)
+
     return state_shapes
 
   def FProp(self, theta, *args):
