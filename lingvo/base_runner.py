@@ -39,6 +39,9 @@ tf.flags.DEFINE_integer(
 tf.flags.DEFINE_integer('saver_max_to_keep', 100,
                         'Maximum number of recent checkpoints to keep.')
 
+tf.flags.DEFINE_float('saver_keep_checkpoint_every_n_hours', 0.5,
+                      'How often to keep a checkpoint.')
+
 FLAGS = tf.flags.FLAGS
 
 
@@ -156,7 +159,7 @@ class BaseRunner(object):
     return tf.train.Saver(
         sharded=True,
         max_to_keep=FLAGS.saver_max_to_keep,
-        keep_checkpoint_every_n_hours=0.5,  # one per 30 minutes
+        keep_checkpoint_every_n_hours=FLAGS.saver_keep_checkpoint_every_n_hours,
         pad_step_number=True,  # %08d
         write_version=saver_pb2.SaverDef.V2)
 
