@@ -183,7 +183,7 @@ class GenericInputProcessor : public RecordProcessor {
       typedef Eigen::DSizes<Eigen::DenseIndex, 2> DSizes;        \
       dst_t.slice(DSizes(), DSizes(src_t.dimensions())) = src_t; \
     }                                                            \
-    break;
+    break
 
               CASE(float);
               CASE(int32);
@@ -250,7 +250,7 @@ class GenericInputProcessor : public RecordProcessor {
 #define CASE(T)                                                               \
   case DataTypeToEnum<T>::value:                                              \
     merged->flat_outer_dims<T>().chip<0>(j) = padded_samples[j][i].flat<T>(); \
-    break;
+    break
                         CASE(float);
                         CASE(int32);
                         CASE(int64);
