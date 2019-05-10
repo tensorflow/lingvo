@@ -60,6 +60,7 @@ RUN pip --no-cache-dir install \
         numpy \
         pandas \
         recommonmark \
+        scikit-learn==0.20.3 \
         scipy \
         sklearn \
         sphinx \
