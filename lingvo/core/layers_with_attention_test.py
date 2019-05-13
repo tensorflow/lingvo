@@ -915,6 +915,63 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertEqual(actual_ctx.shape, (batch, n_sources * depth))
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
+  def testMergerLayerConcatPreProjections(self):
+    with self.session(use_gpu=True) as sess:
+      np.random.seed(505837249)
+      depth = 4
+      batch = 5
+      n_sources = 3
+      ctxs = [
+          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
+          for _ in range(n_sources)
+      ]
+      p = layers_with_attention.MergerLayer.Params()
+      # We down project all of the sources to dimensionality 1.
+      p.pre_proj_input_dims = [4, 4, 4]
+      p.pre_proj_output_dims = [1, 1, 1]
+      p.name = 'merger_layer'
+      p.merger_op = 'concat'
+      p.source_dim = depth
+      merger = p.cls(p)
+
+      ctx = merger.FProp(merger.theta, ctxs)
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run([ctx])[0]
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [ 0.,          0.72890908,  0.        ],
+          [ 0.4647972,   0.28266785,  0.        ],
+          [ 0.,          0.74580085,  0.09588336],
+          [ 0.46080768,  0.,          0.66402191],
+          [ 0.19947493,  0.38837075,  0.        ],
+      ]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      tf.logging.info(np.array_repr(actual_ctx))
+      # The final context vector will have shape (5, 3) since each source
+      # has dimensionality 1 after the down projection above.
+      self.assertEqual(actual_ctx.shape, (batch, n_sources))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
+  def testInvalidPreProjections(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      p = layers_with_attention.MergerLayer.Params()
+      # We intentionally set output_dims to be of a different
+      # length. This should cause a ValueError to be raised
+      # during init.
+      p.pre_proj_input_dims = [4, 4, 4]
+      p.pre_proj_output_dims = [1, 1]
+      p.name = 'merger_layer'
+      p.merger_op = 'concat'
+      p.source_dim = depth
+      with self.assertRaisesRegexp(
+          ValueError, 'Output dims should be the same length as input dims.*'):
+        _ = p.cls(p)
+
   def testMergerLayerWeightedSum(self):
     with self.session(use_gpu=True) as sess:
       np.random.seed(505837249)

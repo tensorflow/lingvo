@@ -1189,7 +1189,7 @@ class LayersTest(LayersTestBase):
       de_atten.source_dim = alt_depth
       p.source_name_to_attention_params = {'de': de_atten}
       merger_tpl.pre_proj_input_dims = [dims, dims, alt_depth]
-      merger_tpl.pre_proj_output_dim = dims
+      merger_tpl.pre_proj_output_dims = [dims, dims, dims]
       merger_tpl.proj_tpl.batch_norm = False
       merger_tpl.proj_tpl.weight_norm = True
 

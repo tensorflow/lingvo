@@ -1080,7 +1080,11 @@ class MergerLayer(base_layer.BaseLayer):
         'If set, should be a list of depths for the tensors to be merged.'
         ' Setting this will result in a pre-projection to source_dim'
         ' before the merger.')
-    p.Define('pre_proj_output_dim', 0, 'Depth to project all inputs to.')
+    p.Define(
+        'pre_proj_output_dims', None,
+        'Should be a list of depths which the input tensors specified in '
+        'pre_proj_input_dims need to be projected to. Should match the length '
+        'of pre_proj_input_dims.')
     p.Define(
         'proj_tpl',
         layers.ProjectionLayer.Params().Set(
@@ -1117,14 +1121,20 @@ class MergerLayer(base_layer.BaseLayer):
       self.CreateChild('atten', atten_params)
 
     if p.pre_proj_input_dims:
-      if not p.pre_proj_output_dim:
-        raise ValueError('Output dim should be specified for projection.')
+      if not p.pre_proj_output_dims:
+        raise ValueError('Output dims should be specified for projection.')
+      if len(p.pre_proj_input_dims) != len(p.pre_proj_output_dims):
+        raise ValueError(
+            'Output dims should be the same length as input dims. '
+            'Expected: %s obtained: %s' %
+            (len(p.pre_proj_input_dims), len(p.pre_proj_output_dims)))
       pre_proj_params = []
-      for i, pre_proj_dim in enumerate(p.pre_proj_input_dims):
+      for i, (pre_proj_input_dim, pre_proj_output_dim) in enumerate(
+          zip(p.pre_proj_input_dims, p.pre_proj_output_dims)):
         proj_p = p.proj_tpl.Copy()
         proj_p.name = 'merger_pre_proj_%d' % i
-        proj_p.input_dim = pre_proj_dim
-        proj_p.output_dim = p.pre_proj_output_dim
+        proj_p.input_dim = pre_proj_input_dim
+        proj_p.output_dim = pre_proj_output_dim
         pre_proj_params.append(proj_p)
       self.CreateChildren('pre_proj', pre_proj_params)
 
