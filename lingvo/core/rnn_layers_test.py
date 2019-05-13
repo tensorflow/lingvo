@@ -1198,7 +1198,7 @@ class LayersTest(LayersTestBase):
   def testMultiSourceFRNNWithAttention(self):
     with self.session(use_gpu=True) as sess:
       p = self._MultiSourceFRNNWithAttentionParams()
-      msrc_frnn = p.cls(p)
+      msrc_frnn = p.Instantiate()
 
       (src_encs, src_paddings, inputs,
        paddings) = self._MultiSourceFRNNWithAttentionInputs()
@@ -1235,7 +1235,7 @@ class LayersTest(LayersTestBase):
   def testMultiSourceFRNNWithAttentionMultiDepth(self):
     with self.session(use_gpu=True) as sess:
       p = self._MultiSourceFRNNWithAttentionParams(single_source_length=False)
-      msrc_frnn = p.cls(p)
+      msrc_frnn = p.Instantiate()
 
       (src_encs, src_paddings, inputs, paddings
       ) = self._MultiSourceFRNNWithAttentionInputs(single_source_length=False)
@@ -1273,7 +1273,7 @@ class LayersTest(LayersTestBase):
         use_gpu=True, config=py_utils.SessionConfig(inline=False)) as sess:
       p = self._MultiSourceFRNNWithAttentionParams(
           single_source=True, dtype=dtype)
-      frnn = p.cls(p)
+      frnn = p.Instantiate()
 
       (src_encs, src_paddings, inputs,
        paddings) = self._MultiSourceFRNNWithAttentionInputs(
@@ -1313,7 +1313,7 @@ class LayersTest(LayersTestBase):
 
       p = self._MultiSourceFRNNWithAttentionParams(
           single_source=True, dtype=dtype)
-      frnn = p.cls(p)
+      frnn = p.Instantiate()
 
       (src_encs, src_paddings, inputs,
        paddings) = self._MultiSourceFRNNWithAttentionInputs(
@@ -1360,7 +1360,7 @@ class LayersTest(LayersTestBase):
         use_gpu=True, config=py_utils.SessionConfig(inline=False)) as sess:
 
       p = self._MultiSourceFRNNWithAttentionParams(dtype=dtype)
-      frnn = p.cls(p)
+      frnn = p.Instantiate()
 
       # Fetch all the parameters.
       w0, b0 = (frnn.theta.cell.wm, frnn.theta.cell.b)
@@ -1419,7 +1419,7 @@ class LayersTest(LayersTestBase):
 
       p = self._MultiSourceFRNNWithAttentionParams(
           single_source_length=False, dtype=dtype)
-      frnn = p.cls(p)
+      frnn = p.Instantiate()
 
       # Fetch all the parameters.
       w0, b0 = (frnn.theta.cell.wm, frnn.theta.cell.b)
@@ -1529,7 +1529,7 @@ class LayersTest(LayersTestBase):
           tlen=tlen,
           tbatch=tbatch)
 
-      frnn = p.cls(p)
+      frnn = p.Instantiate()
 
       src_encs = tf.constant(
           np.random.uniform(size=[slen, sbatch, dims]), dtype)
@@ -1581,7 +1581,7 @@ class LayersTest(LayersTestBase):
           tlen=tlen,
           tbatch=tbatch)
 
-      frnn = p.cls(p)
+      frnn = p.Instantiate()
 
       src_encs = tf.constant(
           np.random.uniform(size=[slen, sbatch, dims]), dtype)
@@ -1630,7 +1630,7 @@ class LayersTest(LayersTestBase):
           tbatch=tbatch)
       p.use_zero_atten_state = True
       p.atten_context_dim = dims
-      frnn = p.cls(p)
+      frnn = p.Instantiate()
 
       # Override the ZeroAttentionState to have the desired output type
       frnn.atten.ZeroAttentionState = types.MethodType(zero_atten_state_fn,

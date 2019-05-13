@@ -170,7 +170,7 @@ class ConvLayerTest(test_utils.TestCase):
     with self.session(use_gpu=True) as sess:
       p = conv_layers_with_time_padding.ActivationLayer.Params()
       p.name = 'act'
-      l = p.cls(p)
+      l = p.Instantiate()
       inputs = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
       in_padding = tf.zeros([2, 4], dtype=tf.float32)

@@ -79,7 +79,7 @@ class PunctuatorModelTest(test_utils.TestCase):
   def testConstruction(self):
     with self.session():
       p = self._testParams()
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       print('vars = ', mdl.vars)
       flatten_vars = mdl.vars.Flatten()
       print('vars flattened = ', flatten_vars)
@@ -93,7 +93,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.dtype = dtype
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
@@ -114,7 +114,7 @@ class PunctuatorModelTest(test_utils.TestCase):
     with self.session() as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       mdl.BProp()
       loss = mdl.loss
@@ -137,7 +137,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.is_eval = True
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
@@ -158,7 +158,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       tf.set_random_seed(93820985)
       p = self._testParams()
       p.is_eval = True
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       fetches, feeds = mdl.Inference()['default']
 
       tf.global_variables_initializer().run()

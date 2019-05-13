@@ -1712,7 +1712,7 @@ class AttentionTest(test_utils.TestCase):
     p = attention.GmmMonotonicAttention.Params().Set(
         name='gmm_monotonic_attention', atten_dropout_prob=0.5)
     with self.assertRaises(NotImplementedError):
-      p.cls(p)
+      p.Instantiate()
 
   def testGmmMonotonicAttention(self):
     with self.session(use_gpu=True) as sess:

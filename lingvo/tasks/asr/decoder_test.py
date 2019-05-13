@@ -140,7 +140,7 @@ class DecoderTest(test_utils.TestCase):
       p.rnn_layers = num_decoder_layers
       p.residual_start = residual_start
       p.target_seq_len = target_seq_len
-      dec = p.cls(p)
+      dec = p.Instantiate()
       src_seq_len = 5
       src_enc = tf.random_normal([src_seq_len, 2, 8], seed=9283748)
       src_enc_padding = tf.constant(
@@ -379,7 +379,7 @@ class DecoderTest(test_utils.TestCase):
       p = self._DecoderParams(vn_config)
       p.dtype = tf.float64
 
-      dec = p.cls(p)
+      dec = p.Instantiate()
       src_seq_len = 5
       src_enc = tf.constant(
           np.random.uniform(size=(src_seq_len, 2, 8)), tf.float64)
@@ -459,7 +459,7 @@ class DecoderTest(test_utils.TestCase):
       p.dtype = tf.float32
       p.target_seq_len = 5
       p.is_eval = True
-      dec = p.cls(p)
+      dec = p.Instantiate()
       if src_seq_len is None:
         src_seq_len = 5
       src_enc = tf.constant(
@@ -555,7 +555,7 @@ class DecoderTest(test_utils.TestCase):
     with self.session(use_gpu=False, config=config) as sess:
       tf.set_random_seed(8372740)
       np.random.seed(35315)
-      dec = p.cls(p)
+      dec = p.Instantiate()
       source_sequence_length = 5
       batch_size = 4
       source_encodings = tf.constant(

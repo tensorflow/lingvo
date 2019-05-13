@@ -35,7 +35,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
   def testConstantOne(self):
     with self.session(use_gpu=False):
       p = lr_schedule.ConstantOne.Params()
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       for x in [0, 10, 100, 1000000]:
         self.assertAllClose(lrs.Value(x).eval(), 1.0)
 
@@ -56,7 +56,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p.start_step = 1000
     p.half_life_steps = 100
     p.min = 0.1
-    decay = p.cls(p)
+    decay = p.Instantiate()
     with self.session():
       self.assertAllClose(decay.Value(0).eval(), 1.0)
       self.assertAllClose(decay.Value(500).eval(), 1.0)
@@ -82,7 +82,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p.initial_value = 2.0
     p.start_step = 1000
     p.half_life_steps = 100
-    decay = p.cls(p)
+    decay = p.Instantiate()
     with self.session():
       self.assertAllClose(decay.Value(0).eval(), 2.0)
       self.assertAllClose(decay.Value(1000).eval(), 2.0)
@@ -94,7 +94,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p = lr_schedule.StepwiseExponentialSchedule.Params()
     p.decay = 0.5
     p.num_steps_per_decay = 1000
-    decay = p.cls(p)
+    decay = p.Instantiate()
     with self.session():
       self.assertAllClose(decay.Value(0).eval(), 1.0)
       self.assertAllClose(decay.Value(999).eval(), 1.0)
@@ -106,7 +106,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p = lr_schedule.TransformerLearningRateSchedule.Params()
     p.warmup_steps = 4000
     p.model_dim = 512
-    lrs = p.cls(p)
+    lrs = p.Instantiate()
     with self.session():
       print(lrs.Value(0).eval())
       print(lrs.Value(1000).eval())
@@ -137,7 +137,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p.warmup_steps = 4000
     p.model_dim = 512
     p.decay_end = 5000
-    lrs = p.cls(p)
+    lrs = p.Instantiate()
     with self.session():
       self.assertAllClose(lrs.Value(0).eval(), 1.74693e-07)
       self.assertAllClose(lrs.Value(3000).eval(), 0.000524253)
@@ -191,7 +191,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p = lr_schedule.PolynomialLearningRateSchedule.Params().Set(
         power=2, start=(0, 0.), limit=(20000, 2.))
     with self.session():
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       pts = [[i, lrs.Value(i).eval()] for i in [0, 10000, 20000]]
       self.assertAllClose(
           pts,
@@ -211,7 +211,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
             start=(4000000., 8.), limit=(8000000, 0.5))
     ])
     with self.session():
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
       self.assertAllClose(
           pts,
@@ -237,7 +237,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
         warmup=250000, decay_start=32000000, decay_end=64000000, min=0.5)
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
       self.assertAllClose(
           pts,
@@ -267,7 +267,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
         min=0.5)
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
       self.assertAllClose(
           pts,
@@ -297,7 +297,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
         max=5.0)
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8):
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
       self.assertAllClose(
           pts,
@@ -330,7 +330,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     # Increases the number of splits to 32.
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', gpus=8, split_size=4):
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
       # Values are copied from
       # testLinearRampupExponentialDecayScaledByNumSplitScheduleWithCap.
@@ -363,7 +363,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p.min_factor = 0.20
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
 
-    lrs = p.cls(p)
+    lrs = p.Instantiate()
     mh = lrs._metric_history
     mh.params.local_filesystem = True
     with self.session():
@@ -403,7 +403,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     )
     with self.session(), cluster_factory.ForTestingWorker(
         mode='sync', job='trainer_client', tpus=8):
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 15, 1)]
 
       self.assertAllClose(
@@ -415,7 +415,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p = lr_schedule.CosineSchedule.Params().Set(
         initial_value=3.0, final_value=1.0, total_steps=400000)
     with self.session():
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 600000, 100000)]
       self.assertAllClose(
           pts,
@@ -432,7 +432,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p = lr_schedule.LinearRampupCosineSchedule.Params().Set(
         warmup_steps=200, initial_value=2.0, total_steps=400000)
     with self.session():
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
 
       pts = [[i, lrs.Value(i).eval()]
              for i in [0, 100, 200, 100000, 200000, 300000, 400000]]
@@ -457,7 +457,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     p = lr_schedule.PiecewiseSchedule.Params().Set(
         boundaries=[20000], schedules=[p0, p1])
     with self.session():
-      lrs = p.cls(p)
+      lrs = p.Instantiate()
       pts = [[i, lrs.Value(i).eval()] for i in range(0, 70000, 10000)]
       self.assertAllClose(
           pts,

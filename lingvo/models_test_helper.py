@@ -83,7 +83,7 @@ class BaseModelsTest(test_utils.TestCase):
     with p.cluster.cls(p.cluster), tf.Graph().as_default():
       # Instantiate the params class, to help catch errors in layer constructors
       # due to misconfigurations.
-      p = p.cls(p).params
+      p = p.Instantiate().params
 
     for dataset in ('Train', 'Dev', 'Test'):
       input_p = registry.GetClass(name).GetDatasetParams(dataset)

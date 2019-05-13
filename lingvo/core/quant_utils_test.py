@@ -114,7 +114,7 @@ class QuantizableLayerTest(test_utils.TestCase):
     with self.session():
       p = SampleQuantizedProjectionLayer.Params()
       p.name = 'test'
-      l = p.cls(p)
+      l = p.Instantiate()
       l.TrackQTensor('test')
       fns = l.fns
 
@@ -294,7 +294,7 @@ class QuantizableLayerTest(test_utils.TestCase):
     p.input_dim = 3
     p.output_dim = 4
     p.params_init = py_utils.WeightInit.Gaussian(0.1)
-    l = p.cls(p)
+    l = p.Instantiate()
     in_padding = tf.zeros([2, 4, 1], dtype=tf.float32)
     in_padding = tf.constant(
         [[[0], [0], [1], [0]], [[1], [1], [0], [0]]], dtype=tf.float32)
@@ -324,7 +324,7 @@ class ClippingCapScheduleTest(object):
     p.end_step = 100
     p.start_cap = 6.0
     p.end_cap = 1.0
-    cc_schedule = p.cls(p)
+    cc_schedule = p.Instantiate()
     with self.session():
       self.assertAllClose(cc_schedule._Value(25).eval(), 6.0)
       self.assertAllClose(cc_schedule._Value(50).eval(), 6.0)
@@ -353,7 +353,7 @@ class ClippingCapScheduleTest(object):
     p.start_cap = 6.0
     p.end_cap = 1.0
     with self.session() as sess:
-      cc_schedule = p.cls(p)
+      cc_schedule = p.Instantiate()
       tf.global_variables_initializer().run()
       # Move to fully quantized part of schedule
       sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 16))
@@ -403,7 +403,7 @@ class ClippingCapScheduleTest(object):
     p.start_cap = 6.0
     p.end_cap = 1.0
     with self.session() as sess:
-      cc_schedule = p.cls(p)
+      cc_schedule = p.Instantiate()
       tf.global_variables_initializer().run()
       # Step 0: No clipping.
       self.assertAllClose(

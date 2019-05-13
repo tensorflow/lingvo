@@ -776,7 +776,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.name = 'merger_layer'
       p.merger_op = 'mean'
       p.source_dim = depth
-      merger = p.cls(p)
+      merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs)
       tf.global_variables_initializer().run()
@@ -805,7 +805,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.source_dim = depth
       p.query_dim = query_dim
       p.hidden_dim = depth
-      merger = p.cls(p)
+      merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs, query_vec)
       tf.global_variables_initializer().run()
@@ -848,7 +848,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.query_dim = depth
       p.hidden_dim = depth
       p.attention_tpl = attention.DotProductAttention.Params()
-      merger = p.cls(p)
+      merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs, query_vec)
       tf.global_variables_initializer().run()
@@ -886,7 +886,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.name = 'merger_layer'
       p.merger_op = 'concat'
       p.source_dim = depth
-      merger = p.cls(p)
+      merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs)
       tf.global_variables_initializer().run()
@@ -986,7 +986,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.merger_op = 'weighted_sum'
       p.source_dim = depth
       p.num_sources = n_sources
-      merger = p.cls(p)
+      merger = p.Instantiate()
 
       ctxs = [tf.expand_dims(i, 2) for i in ctxs]
       ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
@@ -1020,7 +1020,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.merger_op = 'gated_avg'
       p.source_dim = depth
       p.num_sources = n_sources
-      merger = p.cls(p)
+      merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, [inp_1, inp_2, inp_3])
       tf.global_variables_initializer().run()
@@ -1047,7 +1047,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       tf.set_random_seed(8372749040)
       np.random.seed(12345)
-      sl = p.cls(p)
+      sl = p.Instantiate()
       features = tf.random_normal([2, 10], seed=28384)
       latent, atten_probs = sl.FPropDefaultTheta(features)
       tf.global_variables_initializer().run()
@@ -1068,7 +1068,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       tf.set_random_seed(8372749040)
       np.random.seed(12345)
-      sl = p.cls(p)
+      sl = p.Instantiate()
       atten_probs = tf.constant([[1.0] + [0.0] * 15] * 2, dtype=tf.float32)
       ids = tf.constant([0, 0], dtype=tf.int32)
       latent_from_probs = sl.StyleEmbFromProbs(sl.theta, atten_probs)
@@ -1087,7 +1087,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           random_seed=72738)
       tf.set_random_seed(8372749040)
       np.random.seed(12345)
-      sl = p.cls(p)
+      sl = p.Instantiate()
       features = tf.random_normal([2, 10])
       features = tf.concat([features, features], 0)
       latent, _ = sl.FPropDefaultTheta(features)

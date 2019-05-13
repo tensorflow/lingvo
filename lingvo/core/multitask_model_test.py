@@ -71,7 +71,7 @@ class MultiTaskModelTest(test_utils.TestCase):
     p.task_probs.Define('p0', 0.5, '')
     p.task_probs.Define('p1', 0.5, '')
 
-    model = p.cls(p)
+    model = p.Instantiate()
     self.assertEqual(model.p0.encoder, model.p1.encoder)
 
   def testSharedEncoderDecoderModel(self):
@@ -95,7 +95,7 @@ class MultiTaskModelTest(test_utils.TestCase):
     p.task_probs.Define('p0', 0.5, '')
     p.task_probs.Define('p1', 0.5, '')
 
-    model = p.cls(p)
+    model = p.Instantiate()
     self.assertEqual(model.p0.encoder, model.p1.encoder)
     self.assertEqual(model.p0.decoder, model.p1.decoder)
 
@@ -133,7 +133,7 @@ class MultiTaskModelTest(test_utils.TestCase):
     p.task_probs.Define('p0', 0.5, '')
     p.task_probs.Define('p1', 0.5, '')
 
-    model = p.cls(p)
+    model = p.Instantiate()
     all_vars = model.vars
     self.assertEqual('shared/weight/var:0', all_vars.p0.weight.name)
     self.assertEqual('shared/weight/var:0', all_vars.p1.weight.name)

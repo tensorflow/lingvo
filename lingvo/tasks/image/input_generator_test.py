@@ -49,7 +49,7 @@ class InputGeneratorTest(test_utils.TestCase):
   def testMnistTrain(self):
     p = self._trainInput()
     with self.session() as sess:
-      inp = p.cls(p)
+      inp = p.Instantiate()
       inp_batch = inp.InputBatch()
       for _ in range(10):
         batch = sess.run(inp_batch)
@@ -61,7 +61,7 @@ class InputGeneratorTest(test_utils.TestCase):
   def testMnistTest(self):
     p = self._testInput()
     with self.session() as sess:
-      inp = p.cls(p)
+      inp = p.Instantiate()
       inp_batch = inp.InputBatch()
       ids = []
       for _ in range(39):
@@ -95,7 +95,7 @@ class InputGeneratorTest(test_utils.TestCase):
   def testMnistTrainRandomness(self):
     p = self._trainInput()
     with self.session() as sess:
-      inp = p.cls(p)
+      inp = p.Instantiate()
       batch = inp.InputBatch()
       epoch0 = self._GetIds(sess, p, batch.sample_ids)
       epoch1 = self._GetIds(sess, p, batch.sample_ids)

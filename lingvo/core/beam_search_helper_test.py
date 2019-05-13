@@ -40,7 +40,7 @@ class BeamSearchHelperTest(test_utils.TestCase):
       tgt_batch_size = src_batch_size * num_hyps_per_beam
       p = beam_search_helper.BeamSearchHelper.Params().Set(
           name='bsh', target_seq_len=tgt_len)
-      bs_helper = p.cls(p)
+      bs_helper = p.Instantiate()
 
       def InitBeamSearchCallBack(unused_theta, unused_encoder_outputs,
                                  unused_num_hyps_per_beam):

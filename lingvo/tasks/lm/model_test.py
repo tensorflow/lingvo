@@ -71,7 +71,7 @@ class ModelTest(test_utils.TestCase):
     p.input = self._InputParams(for_training=False)
 
     with self.session(use_gpu=False) as sess:
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       loss = mdl.eval_metrics['loss'][0]
       logp = mdl.eval_metrics['log_pplx'][0]
@@ -93,7 +93,7 @@ class ModelTest(test_utils.TestCase):
     tp.learning_rate = 3e-3
 
     with self.session() as sess:
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       mdl.BProp()
       loss = mdl.eval_metrics['loss'][0]
@@ -114,7 +114,7 @@ class ModelTest(test_utils.TestCase):
     tf.logging.info('Params: %s', p.ToText())
 
     with self.session(use_gpu=False) as sess:
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       subgraphs = mdl.Inference()
       self.assertTrue('default' in subgraphs)
       fetches, feeds = subgraphs['default']
@@ -144,7 +144,7 @@ class ModelTest(test_utils.TestCase):
     tf.logging.info('Params: %s', p.ToText())
 
     with self.session(use_gpu=False) as sess:
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       subgraphs = mdl.Inference()
       self.assertTrue('default' in subgraphs)
       fetches, feeds = subgraphs['default']

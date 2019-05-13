@@ -953,7 +953,7 @@ class ConvLayerTest(test_utils.TestCase):
       tf.set_random_seed(24332)
       p = layers.Conv2DLayerNoPadding.Params().Set(
           name='test', filter_shape=(3, 3, 3, 5), filter_stride=(2, 2))
-      l = p.cls(p)
+      l = p.Instantiate()
       x = tf.random_normal(shape=[17, 64, 64, 3])
       y = l.FPropDefaultTheta(x)
 
@@ -2602,7 +2602,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           activation='TANH',
           params_init=py_utils.WeightInit.Uniform(1.0))
       p.dropout.keep_prob = 0.5
-      proj_l = p.cls(p)
+      proj_l = p.Instantiate()
       a = tf.constant(1.0, shape=[20, 10])
       proj_l.FPropDefaultTheta(a)
 
@@ -2617,7 +2617,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           layers.DropoutLayer.Params().Set(keep_prob=0.5),
           layers.DropoutLayer.Params().Set(keep_prob=0.9)
       ]
-      proj_l = p.cls(p)
+      proj_l = p.Instantiate()
       a = tf.constant(1.0, shape=[20, 10])
       proj_l.FPropDefaultTheta(a)
 
@@ -2632,7 +2632,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           layers.DropoutLayer.Params().Set(keep_prob=0.5),
           layers.DropoutLayer.Params().Set(keep_prob=0.9)
       ]
-      proj_l = p.cls(p)
+      proj_l = p.Instantiate()
       a = tf.constant(1.0, shape=[20, 10])
       proj_l.FPropDefaultTheta(a)
 
@@ -2648,7 +2648,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           activation=['RELU', 'NONE'])
       params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
       p.params_init = params_init
-      feedforward_net = p.cls(p)
+      feedforward_net = p.Instantiate()
 
       p1 = layers.ProjectionLayer.Params().Set(
           name='p1',
@@ -2700,7 +2700,7 @@ class FeedForwardNetTest(test_utils.TestCase):
       p.qdomain.default = proj_qdomain.Copy()
       params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
       p.params_init = params_init
-      feedforward_net = p.cls(p)
+      feedforward_net = p.Instantiate()
 
       p1 = layers.ProjectionLayer.Params().Set(
           name='p1',
@@ -2745,7 +2745,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           activation=['RELU', 'NONE'])
       params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
       p.params_init = params_init
-      feedforward_net = p.cls(p)
+      feedforward_net = p.Instantiate()
 
       p1 = layers.ProjectionLayer.Params().Set(
           name='p1',
@@ -2787,7 +2787,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           activation=['RELU', 'NONE'])
       params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
       p.params_init = params_init
-      feedforward_net = p.cls(p)
+      feedforward_net = p.Instantiate()
       a = tf.constant(np.random.rand(5, 10), dtype=tf.float32)
       out = tf.reduce_sum(feedforward_net.FPropDefaultTheta(a))
       out_abs = tf.reduce_sum(tf.abs(feedforward_net.FPropDefaultTheta(a)))
@@ -2806,7 +2806,7 @@ class FeedForwardNetTest(test_utils.TestCase):
       p.random_seed = 1234
       p.name = 'dropout'
 
-      dl = p.cls(p)
+      dl = p.Instantiate()
 
       x = tf.random_normal([10, 10, 10, 3])
       xd = dl.FPropDefaultTheta(x)
@@ -2824,7 +2824,7 @@ class FeedForwardNetTest(test_utils.TestCase):
       p.name = 'dropout'
       p.is_eval = True
 
-      dl = p.cls(p)
+      dl = p.Instantiate()
 
       x = tf.random_normal([10, 10, 10, 3])
       xd = dl.FPropDefaultTheta(x)
@@ -3227,7 +3227,7 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
       # Construct weights.
       w = tf.get_variable(
           'w', shape=[2, 3], initializer=tf.constant_initializer([[1] * 3] * 2))
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       y = mdl.FPropDefaultTheta(x * w)
       # Construct loss function such that gradients = final activation.
       loss = tf.reduce_sum(y)
@@ -3246,7 +3246,7 @@ class GradNormTrackerTest(test_utils.TestCase):
       np.random.seed(12345)
       p = layers.GradNormTracker.Params().Set(
           name='grad_norm_tracker', clip_threshold=3.0)
-      grad_norm_tracker = p.cls(p)
+      grad_norm_tracker = p.Instantiate()
       grad_norm = tf.placeholder(tf.float32)
       grad_norm_clip = grad_norm_tracker.FPropDefaultTheta(grad_norm)
 
@@ -3274,7 +3274,7 @@ class GradNormTrackerTest(test_utils.TestCase):
           name='grad_norm_tracker',
           clip_threshold=3.0,
           grad_norm_clip_cap_min=math.exp(10.0))
-      grad_norm_tracker = p.cls(p)
+      grad_norm_tracker = p.Instantiate()
       grad_norm = tf.placeholder(tf.float32)
       grad_norm_clip = grad_norm_tracker.FPropDefaultTheta(grad_norm)
 
@@ -3299,7 +3299,7 @@ class GradNormTrackerTest(test_utils.TestCase):
       np.random.seed(12345)
       p = layers.GradNormTracker.Params().Set(
           name='grad_norm_tracker', clip_threshold=3.0)
-      grad_norm_tracker = p.cls(p)
+      grad_norm_tracker = p.Instantiate()
       grad_norm = tf.placeholder(tf.float32)
       has_nan = tf.cast(tf.ones([]), dtype=tf.bool)
       grad_norm_clip = grad_norm_tracker.FPropDefaultTheta(grad_norm, has_nan)
@@ -3329,7 +3329,7 @@ class HighwaySkipLayerTest(test_utils.TestCase):
           couple_carry_transform_gates=True,
           batch_norm=False,
           params_init=py_utils.WeightInit.Uniform(1.0))
-      proj_l = p.cls(p)
+      proj_l = p.Instantiate()
       a = tf.constant(1.0, shape=[20, 10])
       b = tf.constant(-2.0, shape=[20, 10])
       proj_l.FPropDefaultTheta(a, b)
@@ -3345,7 +3345,7 @@ class HighwaySkipLayerTest(test_utils.TestCase):
           couple_carry_transform_gates=True,
           batch_norm=False,
           params_init=py_utils.WeightInit.Uniform(1.0))
-      proj_l = p.cls(p)
+      proj_l = p.Instantiate()
       a = tf.constant(1.0, shape=[20, 10])
       b = tf.constant(-2.0, shape=[20, 10])
       out = proj_l.FPropDefaultTheta(a, b)
@@ -3436,7 +3436,7 @@ class WeightedSumLayerTest(test_utils.TestCase):
       p.name = 'transparent_layer'
       p.num_sources = n_sources
       p.random_seed = 505837249
-      merger = p.cls(p)
+      merger = p.Instantiate()
 
       ctxs = [tf.expand_dims(i, 2) for i in ctxs]
       ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
@@ -3467,7 +3467,7 @@ class WeightedSumLayerTest(test_utils.TestCase):
       p.random_seed = 505837249
       p.minimal_prob = 0.01
       p.global_weight_scale = 10.0
-      merger = p.cls(p)
+      merger = p.Instantiate()
 
       ctxs = [tf.expand_dims(i, 2) for i in ctxs]
       ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
@@ -3504,7 +3504,7 @@ class GatedAverageLayerTest(test_utils.TestCase):
       p.num_inputs = num_inputs
       p.num_nodes = depth
       p.random_seed = 505837249
-      g_avg = p.cls(p)
+      g_avg = p.Instantiate()
 
       avg = g_avg.FProp(g_avg.theta, [inp_1, inp_2, inp_3])
       tf.global_variables_initializer().run()
@@ -3535,7 +3535,7 @@ class LHUCLayerTest(test_utils.TestCase):
       p.name = 'lhuc_layer'
       p.input_dim = depth
       p.random_seed = 505837249
-      lhuc = p.cls(p)
+      lhuc = p.Instantiate()
 
       lhuc = lhuc.FProp(lhuc.theta, inp)
       tf.global_variables_initializer().run()
@@ -3565,7 +3565,7 @@ class ResidualAdapterLayerTest(test_utils.TestCase):
       p.input_dim = depth
       p.bottleneck_dim = 2
       p.random_seed = 505837249
-      resadap = p.cls(p)
+      resadap = p.Instantiate()
 
       resadap = resadap.FProp(resadap.theta, inp)
       tf.global_variables_initializer().run()

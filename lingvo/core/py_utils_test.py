@@ -1555,8 +1555,8 @@ class StepSeedTest(test_utils.TestCase):
     inputs = py_utils.NestedMap(input=tf.range(10, dtype=tf.int64))
 
     p = base_layer.BaseLayer.Params().Set(name='test')
-    accumulated_states, _ = recurrent.Recurrent(
-        p.cls(p).theta, state0, inputs, step_fn)
+    accumulated_states, _ = recurrent.Recurrent(p.Instantiate().theta, state0,
+                                                inputs, step_fn)
 
     sess.run(tf.global_variables_initializer())
     accumulated_states = accumulated_states.Pack(

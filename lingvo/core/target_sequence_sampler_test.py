@@ -65,7 +65,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       random_seed = tf.constant(123)
       p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
           name='bsh', target_seq_len=tgt_len)
-      seq_sampler = p.cls(p)
+      seq_sampler = p.Instantiate()
       decoder_output = seq_sampler.Sample(
           theta, encoder_outputs, random_seed, InitBeamSearchCallBack,
           PreBeamSearchStepCallback, PostBeamSearchStepCallback)
@@ -83,7 +83,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
 
       p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
           name='bsh', target_seq_len=tgt_len, temperature=0.2)
-      seq_sampler = p.cls(p)
+      seq_sampler = p.Instantiate()
       decoder_output = seq_sampler.Sample(
           theta, encoder_outputs, random_seed, InitBeamSearchCallBack,
           PreBeamSearchStepCallback, PostBeamSearchStepCallback)
@@ -109,7 +109,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       batch_size = 2
       p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
           name='bsh', target_seq_len=tgt_len, target_eoc_id=0)
-      seq_sampler = p.cls(p)
+      seq_sampler = p.Instantiate()
 
       def InitBeamSearchCallBack(unused_theta, unused_encoder_outputs,
                                  num_hyps_per_beam):

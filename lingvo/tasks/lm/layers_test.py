@@ -46,7 +46,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
     p = self._testParams(dims, vocab)
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
       inputs = tf.constant(inputs, tf.float32)
@@ -79,7 +79,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
     p.softmax.input_dim = proj
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
       inputs = tf.constant(inputs, tf.float32)
@@ -110,7 +110,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
     p.dtype = tf.float64
 
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
       inputs = tf.constant(inputs, tf.float64)
@@ -147,7 +147,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
     p.softmax.input_dim = dims + direct_features_dim
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
       inputs = tf.constant(inputs, tf.float32)
@@ -183,7 +183,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
     p = self._testParams(dims, vocab)
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
       inputs = tf.constant(inputs, tf.float32)
@@ -234,7 +234,7 @@ class RnnLmTest(test_utils.TestCase):
     p.softmax.num_classes = vocab
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -280,7 +280,7 @@ class RnnLmTest(test_utils.TestCase):
     p.softmax.num_classes = vocab
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
       targets[:-1] = inputs[1:]
@@ -320,7 +320,7 @@ class RnnLmTest(test_utils.TestCase):
     p.softmax.num_classes = vocab
 
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -374,7 +374,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
     p.condition_dim = condition_dim
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -424,7 +424,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
     p.condition_dim = condition_dim
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
       targets[:-1] = inputs[1:]
@@ -468,7 +468,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
     p.condition_dim = condition_dim
 
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -545,7 +545,7 @@ class MoeLmTest(test_utils.TestCase):
     with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
       tf.set_random_seed(123456)
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
       sess.run(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
@@ -569,7 +569,7 @@ class MoeLmTest(test_utils.TestCase):
     with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
       tf.set_random_seed(123456)
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
       sess.run(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
@@ -593,7 +593,7 @@ class MoeLmTest(test_utils.TestCase):
     with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
       tf.set_random_seed(123456)
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
       sess.run(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
@@ -618,7 +618,7 @@ class MoeLmTest(test_utils.TestCase):
     with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
       tf.set_random_seed(123456)
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
       sess.run(tf.global_variables_initializer())
       xent_output, _ = lm.FPropDefaultTheta(
@@ -682,7 +682,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
   def testBasic(self):
     p = self._testParams(dtype=tf.float32)
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs, paddings, targets = self._testInputs(dtype=tf.float32)
       sess.run(tf.global_variables_initializer())
       xent_output, _ = lm.FPropDefaultTheta(
@@ -699,7 +699,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
   def testBasicGrad(self):
     p = self._testParams(dtype=tf.float64)
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs, paddings, targets = self._testInputs(dtype=tf.float64)
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
@@ -722,7 +722,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
   def testStep(self):
     p = self._testParams(dtype=tf.float32)
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs, paddings, _ = self._testInputs(dtype=tf.float32, last_padding=0.0)
 
       sess.run(tf.global_variables_initializer())
@@ -765,7 +765,7 @@ class TransformerLmTest(test_utils.TestCase):
     p.softmax.num_classes = vocab
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -810,7 +810,7 @@ class TransformerLmTest(test_utils.TestCase):
     p.softmax.num_classes = vocab
 
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
       targets[:-1] = inputs[1:]
@@ -851,7 +851,7 @@ class TransformerLmTest(test_utils.TestCase):
     p.softmax.num_classes = vocab
 
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -916,7 +916,7 @@ class GPipeTransformerLmNoEmbeddingTest(test_utils.TestCase):
   def testBasic(self):
     p = self._testParams(dtype=tf.float32)
     with self.session(use_gpu=True) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       assert p.stack.encoder_tpl.tr_atten_tpl.is_masked
       inputs, paddings, targets = self._testInputs(dtype=tf.float32)
       sess.run(tf.global_variables_initializer())
@@ -935,7 +935,7 @@ class GPipeTransformerLmNoEmbeddingTest(test_utils.TestCase):
   def testBasicGrad(self):
     p = self._testParams(dtype=tf.float64)
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      lm = p.cls(p)
+      lm = p.Instantiate()
       inputs, paddings, targets = self._testInputs(dtype=tf.float64)
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
@@ -973,7 +973,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     return p
 
   def _SetupGraph(self, p, time, batch, vocab, return_grad=False):
-    lm = p.cls(p)
+    lm = p.Instantiate()
     np.random.seed(12345)
     inputs = np.random.randint(vocab, size=[time, batch])
     targets = np.zeros([time, batch])

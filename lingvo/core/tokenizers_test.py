@@ -33,7 +33,7 @@ class TokenizersTest(test_utils.TestCase):
     p = tokenizers.WpmTokenizer.Params()
     p.vocab_filepath = test_helper.test_src_dir_path('tasks/mt/wpm-ende.voc')
     p.vocab_size = 32000
-    wpm_tokenizer = p.cls(p)
+    wpm_tokenizer = p.Instantiate()
     with self.session(use_gpu=False) as sess:
       token_ids, target_ids, paddings = sess.run(
           wpm_tokenizer.StringsToIds(
@@ -53,7 +53,7 @@ class TokenizersTest(test_utils.TestCase):
     p = tokenizers.WpmTokenizer.Params()
     p.vocab_filepath = test_helper.test_src_dir_path('tasks/mt/wpm-ende.voc')
     p.vocab_size = 32000
-    wpm_tokenizer = p.cls(p)
+    wpm_tokenizer = p.Instantiate()
     with self.session(use_gpu=False) as sess:
       ref = tf.constant([
           'would that it were so simple',

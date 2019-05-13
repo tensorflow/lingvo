@@ -119,7 +119,7 @@ def _BuildDummyPipelineCnn(num_splits=4, num_micro_batches=8):
         num_micro_batches=num_micro_batches,
         cell_tpl=cell_tpl,
         before_tpl=[])
-  layer = p.cls(p)
+  layer = p.Instantiate()
   return layer
 
 

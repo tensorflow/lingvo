@@ -72,7 +72,7 @@ class ClassifierTest(test_utils.TestCase):
       p.input.ckpt = self.data_path
       p.task.params_init = py_utils.WeightInit.Uniform(0.1, seed=73234288)
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
-        model = p.cls(p)
+        model = p.Instantiate()
         model.ConstructFPropBPropGraph()
     with self.session(graph=g) as sess:
       sess.run(tf.global_variables_initializer())
@@ -88,7 +88,7 @@ class ClassifierTest(test_utils.TestCase):
       p.input.ckpt = self.data_path
       p.task.params_init = py_utils.WeightInit.Uniform(0.1, seed=73234288)
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
-        model = p.cls(p)
+        model = p.Instantiate()
         model.ConstructFPropBPropGraph()
     with self.session(graph=g) as sess:
       sess.run(tf.global_variables_initializer())
@@ -102,7 +102,7 @@ class ClassifierTest(test_utils.TestCase):
       p.random_seed = 73234288
       p.input.ckpt = self.data_path
       p.task.params_init = py_utils.WeightInit.Uniform(0.1, seed=73234288)
-      model = p.cls(p)
+      model = p.Instantiate()
       subgraphs = model.GetTask().Inference()
       self.assertCountEqual(['default'], subgraphs.keys())
       fetches, feeds = subgraphs['default']

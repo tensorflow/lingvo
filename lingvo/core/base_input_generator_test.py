@@ -67,7 +67,7 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.dataset_type = tf.data.TFRecordDataset
     p.randomize_order = False
     p.parallel_readers = 1
-    ig = p.cls(p)
+    ig = p.Instantiate()
     with self.session(graph=tf.get_default_graph()) as sess:
       inputs = ig.InputBatch()
       eval_inputs = sess.run(inputs)
@@ -81,7 +81,7 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.dataset_type = tf.data.TFRecordDataset
     p.randomize_order = False
     p.parallel_readers = 1
-    ig = p.cls(p)
+    ig = p.Instantiate()
     with self.session(graph=tf.get_default_graph()) as sess:
       inputs = ig.InputBatch()
       eval_inputs = sess.run(inputs)

@@ -58,7 +58,7 @@ class AsrFrontendTest(test_utils.TestCase):
   def testNullAsrFrontendConfig(self):
     p = frontend.NullAsrFrontend.Params()
     p.name = 'null'
-    fe = p.cls(p)
+    fe = p.Instantiate()
     config = fe.config
     self.assertTrue(config.is_null)
     self.assertEqual(config.src_type, 'none')
@@ -68,7 +68,7 @@ class AsrFrontendTest(test_utils.TestCase):
   def testMelFeaturesUnstackedConfig(self):
     self._CreateFrontendParams()
     p = self.params
-    fe = p.cls(p)
+    fe = p.Instantiate()
     config = fe.config
     self.assertFalse(config.is_null)
     self.assertEqual(config.src_type, 'pcm')
@@ -82,7 +82,7 @@ class AsrFrontendTest(test_utils.TestCase):
     self._CreateFrontendParams()
     p = self.params
     p.stack_left_context = 2
-    fe = p.cls(p)
+    fe = p.Instantiate()
     config = fe.config
     self.assertFalse(config.is_null)
     self.assertEqual(config.src_type, 'pcm')
@@ -95,7 +95,7 @@ class AsrFrontendTest(test_utils.TestCase):
   def testMelFeaturesUnstacked(self):
     self._CreateFrontendParams()
     p = self.params
-    mel_frontend = p.cls(p)
+    mel_frontend = p.Instantiate()
     sample_rate, pcm = self._GetPcm()
     pcm *= 32768
 
@@ -141,7 +141,7 @@ class AsrFrontendTest(test_utils.TestCase):
     self._CreateFrontendParams()
     p = self.params
     p.stack_left_context = 2
-    mel_frontend = p.cls(p)
+    mel_frontend = p.Instantiate()
     sample_rate, pcm = self._GetPcm()
     pcm *= 32768
 
@@ -188,7 +188,7 @@ class AsrFrontendTest(test_utils.TestCase):
     self._CreateFrontendParams()
     p = self.params
     p.stack_left_context = 2
-    mel_frontend = p.cls(p)
+    mel_frontend = p.Instantiate()
     sample_rate, pcm = self._GetPcm()
     pcm *= 32768
 
@@ -254,7 +254,7 @@ class AsrFrontendTest(test_utils.TestCase):
                   1.28583682)
     p.per_bin_mean = ref_mean[:p.num_bins]
     p.per_bin_stddev = ref_stddev[:p.num_bins]
-    mel_frontend = p.cls(p)
+    mel_frontend = p.Instantiate()
     _, pcm = self._GetPcm()
     pcm *= 32768
 
@@ -289,7 +289,7 @@ class AsrFrontendTest(test_utils.TestCase):
     # TODO(laurenzo): Remove this test once 2D inputs support removed.
     self._CreateFrontendParams()
     p = self.params
-    mel_frontend = p.cls(p)
+    mel_frontend = p.Instantiate()
     sample_rate, pcm = self._GetPcm()
     pcm *= 32768
 
@@ -332,7 +332,7 @@ class AsrFrontendTest(test_utils.TestCase):
     # TODO(laurenzo): Remove this test once 3D inputs support removed.
     self._CreateFrontendParams()
     p = self.params
-    mel_frontend = p.cls(p)
+    mel_frontend = p.Instantiate()
     sample_rate, pcm = self._GetPcm()
     pcm *= 32768
 

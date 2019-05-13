@@ -181,7 +181,7 @@ class TransformerModelTest(test_utils.TestCase):
   def testConstruction(self):
     with self.session():
       p = self._testParams()
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       print('vars = ', mdl.vars)
       flatten_vars = mdl.vars.Flatten()
       print('vars flattened = ', flatten_vars)
@@ -198,7 +198,7 @@ class TransformerModelTest(test_utils.TestCase):
       if fprop_dtype:
         p.fprop_dtype = fprop_dtype
         p.input.dtype = fprop_dtype
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       input_batch = mdl.GetInputBatch()
       mdl.FProp(mdl.theta, input_batch)
       loss = mdl.loss
@@ -222,7 +222,7 @@ class TransformerModelTest(test_utils.TestCase):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.is_eval = True
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
@@ -243,7 +243,7 @@ class TransformerModelTest(test_utils.TestCase):
     with self.session() as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       mdl.BProp()
       loss = mdl.loss
@@ -295,7 +295,7 @@ class TransformerModelTest(test_utils.TestCase):
       p = _SetDefaults(p)
       p.train.optimizer = optimizer.Accumulator.Params().Set(
           accum_steps=2, optimizer_tpl=p.train.optimizer)
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       mdl.BProp()
 
@@ -312,7 +312,7 @@ class TransformerModelTest(test_utils.TestCase):
       p.input = TestInputGenerator.Params()
       p.input.split = False
       p = _SetDefaults(p)
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       mdl.BProp()
 
@@ -334,7 +334,7 @@ class TransformerModelTest(test_utils.TestCase):
             b * 2 / num_splits for b in p.input.bucket_batch_limit
         ]
         with cluster_factory.ForTestingWorker(gpus=num_splits):
-          mdl = p.cls(p)
+          mdl = p.Instantiate()
           metrics = mdl.FPropDefaultTheta()[0]
         tf.global_variables_initializer().run()
         return sess.run(metrics['loss'])
@@ -349,7 +349,7 @@ class TransformerModelTest(test_utils.TestCase):
       p = self._testParams()
       with cluster_factory.ForTestingWorker(
           mode='sync', job='trainer_client', gpus=5):
-        mdl = p.cls(p)
+        mdl = p.Instantiate()
         mdl.FPropDefaultTheta()
       loss = mdl.loss
       tf.global_variables_initializer().run()
@@ -360,7 +360,7 @@ class TransformerModelTest(test_utils.TestCase):
     with self.session(use_gpu=False) as sess:
       tf.set_random_seed(93820985)
       p = self._testParams()
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
       dec_out_dict = mdl.Decode(input_batch)
       tf.global_variables_initializer().run()
@@ -430,7 +430,7 @@ class RNMTModelTest(test_utils.TestCase):
   def testConstruction(self):
     with self.session():
       p = self._testParams()
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       flatten_vars = mdl.vars.Flatten()
       # encoder/embedding: 1
       # encoder/lstms: 2 * (3 (forward) + 3 (backward))
@@ -448,7 +448,7 @@ class RNMTModelTest(test_utils.TestCase):
     with self.session() as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
@@ -469,7 +469,7 @@ class RNMTModelTest(test_utils.TestCase):
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.is_eval = True
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
@@ -489,7 +489,7 @@ class RNMTModelTest(test_utils.TestCase):
     with self.session() as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
       p = self._testParams()
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       mdl.BProp()
       loss = mdl.loss
@@ -513,7 +513,7 @@ class RNMTModelTest(test_utils.TestCase):
       tf.set_random_seed(93820985)
       p = self._testParams()
       p.is_eval = True
-      mdl = p.cls(p)
+      mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
       dec_out_dict = mdl.Decode(input_batch)
       tf.global_variables_initializer().run()
@@ -535,7 +535,7 @@ class RNMTModelTest(test_utils.TestCase):
             b * 2 / num_splits for b in p.input.bucket_batch_limit
         ]
         with cluster_factory.ForTestingWorker(gpus=num_splits):
-          mdl = p.cls(p)
+          mdl = p.Instantiate()
           metrics = mdl.FPropDefaultTheta()[0]
         tf.global_variables_initializer().run()
         return sess.run(metrics['loss'])
@@ -557,7 +557,7 @@ class RNMTModelTest(test_utils.TestCase):
       cluster_params.input.replicas = 1
       cluster_params.input.gpus_per_replica = 0
       with cluster_params.cls(cluster_params):
-        mdl = p.cls(p)
+        mdl = p.Instantiate()
         mdl.FPropDefaultTheta()
       loss = mdl.loss
       tf.global_variables_initializer().run()

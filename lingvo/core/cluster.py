@@ -69,8 +69,7 @@ class _Cluster(object):
   @classmethod
   def Params(cls):
     """Defaults parameters for a cluster."""
-    p = hyperparams.Params()
-    p.Define('cls', cls, 'The class that this param is associated with.')
+    p = hyperparams.InstantiableParams(cls)
     p.Define(
         'mode', 'async', 'A string noting the overall training method. '
         'Valid values: sync, async.')

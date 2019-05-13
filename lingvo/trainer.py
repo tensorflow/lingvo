@@ -1440,7 +1440,7 @@ class RunnerManager(object):
     p.cluster.mode = 'sync'
     c = cluster_factory.Cluster(p.cluster)
     with tf.Graph().as_default(), c, tf.device(c.GetPlacer()):
-      analysis, _ = _ModelAnalysis(p.cls(p))
+      analysis, _ = _ModelAnalysis(p.Instantiate())
     print(analysis)
 
   def InspectDatasets(self):

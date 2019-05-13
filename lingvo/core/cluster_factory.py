@@ -29,7 +29,7 @@ def Current():
   E.g.::
 
     with Cluster(cluster_params) as foo:
-      model = p.cls(p)
+      model = p.Instantiate()
       model.FProp()  # FProp can access foo through cluster_factory.Current().
   """
   stack = Cluster._cluster_stack().stack
@@ -63,4 +63,4 @@ def ForTestingWorker(mode=None,
     p.worker.devices_per_split = split_size
   if add_summary is not None:
     p.add_summary = add_summary
-  return p.cls(p)
+  return p.Instantiate()

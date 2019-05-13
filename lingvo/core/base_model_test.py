@@ -69,12 +69,12 @@ class BaseTaskTest(test_utils.TestCase):
   def testInit(self):
     p = self.TestParams()
     p.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    _ = p.cls(p)
+    _ = p.Instantiate()
 
   def testScaleGradients(self):
     p = self.TestParams()
     p.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    task = p.cls(p)
+    task = p.Instantiate()
     task.CreateVariable(
         'a',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
@@ -96,7 +96,7 @@ class BaseTaskTest(test_utils.TestCase):
     FLAGS.enable_check_numerics = False
     p = self.TestParams()
     p.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    task = p.cls(p)
+    task = p.Instantiate()
     task.CreateVariable(
         'a',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
@@ -118,7 +118,7 @@ class BaseTaskTest(test_utils.TestCase):
     FLAGS.enable_check_numerics = False
     p = self.TestParams()
     p.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    task = p.cls(p)
+    task = p.Instantiate()
     task.CreateVariable(
         'a',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
@@ -141,7 +141,7 @@ class BaseTaskTest(test_utils.TestCase):
     FLAGS.enable_check_numerics = True
     p = self.TestParams()
     p.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    task = p.cls(p)
+    task = p.Instantiate()
     task.CreateVariable(
         'a',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
@@ -167,7 +167,7 @@ class BaseTaskTest(test_utils.TestCase):
     p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     p.train.clip_gradient_single_norm_to_value = 1.0
     p.train.clip_gradient_norm_to_value = 1.0
-    task = p.cls(p)
+    task = p.Instantiate()
     task.CreateVariable(
         'a',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
@@ -180,7 +180,7 @@ class BaseTaskTest(test_utils.TestCase):
     p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     p.train.clip_gradient_single_norm_to_value = 1.0
     p.train.clip_gradient_norm_to_value = None
-    task = p.cls(p)
+    task = p.Instantiate()
     task.CreateVariable(
         'a',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
@@ -272,7 +272,7 @@ class DistillationTaskTest(test_utils.TestCase):
 
   def testFProp(self):
     p = DistillationTestTask.Params()
-    task = p.cls(p)
+    task = p.Instantiate()
     self.assertFalse(task.params.is_eval)
     self.assertFalse(task.teacher.params.is_eval)
     self.assertIsNotNone(task.teacher.params.input)
@@ -321,7 +321,7 @@ class SingleTaskModelTest(test_utils.TestCase):
     p = base_model.SingleTaskModel.Params()
     p.task = BaseTaskTest.TestParams()
     p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    model = p.cls(p)
+    model = p.Instantiate()
     self.assertEqual(model.params.name, model.GetTask().params.name)
     self.assertEqual(model.params.task, model.GetTask().params)
     self.assertEqual(len(model.tasks), 1)
@@ -333,7 +333,7 @@ class SingleTaskModelTest(test_utils.TestCase):
     p.task = BaseTaskTest.TestParams()
     p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
     p.train.ema_decay = 0.9
-    model = p.cls(p)
+    model = p.Instantiate()
     model._task.CreateChild('a',
                             layers.BatchNormLayer.Params().Set(name='a', dim=1))
     model._task._train_op = tf.no_op()
@@ -367,7 +367,7 @@ class MultiTaskModelTest(test_utils.TestCase):
     p.task_probs.Define('a', 0.5, '')
     p.task_probs.Define('b', 0.5, '')
 
-    model = p.cls(p)
+    model = p.Instantiate()
     self.assertEqual(len(model.tasks), 2)
     self.assertEqual(set(model.task_names), {'a', 'b'})
     self.assertEqual(set(model.tasks), {model.GetTask('a'), model.GetTask('b')})
@@ -396,7 +396,7 @@ class MultiTaskModelTest(test_utils.TestCase):
     return p
 
   def _testSampleTaskHelper(self, p):
-    model = p.cls(p)
+    model = p.Instantiate()
 
     task_to_id = {model.children['a']: 'a', model.children['b']: 'b'}
     task_counts = {'a': 0, 'b': 0}

@@ -43,7 +43,7 @@ class InputGeneratorTest(test_utils.TestCase):
     p = self._InputParams()
 
     with self.session(use_gpu=False) as sess:
-      inp = p.cls(p)
+      inp = p.Instantiate()
       inp_batch = sess.run(inp.InputBatch())
       print(inp_batch)
       # pyformat: disable

@@ -171,8 +171,7 @@ class BaseLayer(object):
   @classmethod
   def Params(cls):
     """Returns the layer params."""
-    p = hyperparams.Params()
-    p.Define('cls', cls, 'Cls that this param object is associated with.')
+    p = hyperparams.InstantiableParams(cls)
     p.Define('inference_driver_name', cls._INFERENCE_DRIVER_NAME,
              'Name of the inference driver used to construct this layer.')
     p.Define('name', '', 'Name of this layer object.')
@@ -630,7 +629,7 @@ class BaseLayer(object):
     if not params.name:
       params.name = name
     p = self.CopyBaseParams(self.params, params.Copy())
-    child = p.cls(p)
+    child = p.Instantiate()
     self._private_children[name] = child
 
   def CreateChildren(self, name, params_list, child_scopes=None):
@@ -670,9 +669,9 @@ class BaseLayer(object):
             p.name = '%s_%d' % (name, i)
           if child_scopes:
             with tf.variable_scope(child_scopes[i]):
-              children.append(p.cls(p))
+              children.append(p.Instantiate())
           else:
-            children.append(p.cls(p))
+            children.append(p.Instantiate())
       return children
 
     self._private_children[name] = CreateChildrenHelper(params_list,

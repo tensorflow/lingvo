@@ -488,3 +488,25 @@ class Params(object):
       else:
         raise ValueError('Failed to read a parameter: %r : %r' % (key, val))
       self.Set(**{key: val})
+
+
+class InstantiableParams(Params):
+  """Params which can be instantiated.
+
+  When using InstantiableParams, callers must provide a class which supports
+  initialization using a Params instance.
+
+  This covers a common use case of Params to hold a configuration for a given
+  class.
+  """
+
+  def __init__(self, cls=None):
+    super(InstantiableParams, self).__init__()
+    self.Define('cls', cls, 'Cls that this param object is associated with.')
+
+  def Instantiate(self):
+    """Instantiate an instance that this Params is configured for."""
+    assert self.cls is not None
+
+    # The class initializer is expected to support initialization using Params.
+    return self.cls(self)

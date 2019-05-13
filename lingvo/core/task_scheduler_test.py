@@ -46,7 +46,7 @@ class SchedulerTests(test_utils.TestCase):
     p = task_scheduler.ConstantScheduler.Params()
     p.task_probs = [('a', 0.8), ('b', 0.2)]
 
-    schedule = p.cls(p)
+    schedule = p.Instantiate()
 
     self._TestSchedulerHelper(schedule, 0, 83)
 
@@ -62,7 +62,7 @@ class SchedulerTests(test_utils.TestCase):
     p.alpha = 1e-5
     p.task_probs = [('a', (0, 1)), ('b', (1, 0))]
 
-    schedule = p.cls(p)
+    schedule = p.Instantiate()
 
     self._TestSchedulerHelper(schedule, global_step=0, count_a=0)
     self._TestSchedulerHelper(schedule, global_step=1e5, count_a=63)
@@ -80,7 +80,7 @@ class SchedulerTests(test_utils.TestCase):
     p.alpha = 1e-5
     p.task_probs = [('a', (0.5, 1)), ('b', (0.5, 0))]
 
-    schedule = p.cls(p)
+    schedule = p.Instantiate()
 
     self._TestSchedulerHelper(schedule, global_step=0, count_a=54)
     self._TestSchedulerHelper(schedule, global_step=1e5, count_a=73)
@@ -112,7 +112,7 @@ class SchedulerTests(test_utils.TestCase):
     p.mh_a = mh_a
     p.mh_b = mh_b
 
-    schedule = p.cls(p)
+    schedule = p.Instantiate()
 
     early_stop.MetricHistory.ConditionalAppend(mh_a.jobname, mh_a.metric, 1,
                                                0.05)
@@ -151,7 +151,7 @@ class SchedulerTests(test_utils.TestCase):
     p = task_scheduler.RoundRobinScheduler.Params()
     p.tasks = ['a', 'b']
 
-    schedule = p.cls(p)
+    schedule = p.Instantiate()
     for global_step in range(20):
       task = schedule.Sample(global_step)
       if global_step % 2 == 0:
