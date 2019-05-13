@@ -2006,11 +2006,13 @@ class SRUCell(RNNCell):
     c_t = f_t * state0.c + i_t * x_t2
     if p.apply_layer_norm:
       c_t = self.LayerNorm(c_t, theta.c_t_ln_scale + 1.0)
-    g_c_t = tf.nn.tanh(c_t)
-    h_t = r_t * g_c_t + (1.0 - r_t) * resized
 
     # Clip the cell states to reasonable value.
-    c_t = py_utils.clip_by_value(c_t, -p.cell_value_cap, p.cell_value_cap)
+    if p.cell_value_cap is not None:
+      c_t = py_utils.clip_by_value(c_t, -p.cell_value_cap, p.cell_value_cap)
+    # Calculate state outputs.
+    g_c_t = tf.nn.tanh(c_t)
+    h_t = r_t * g_c_t + (1.0 - r_t) * resized
 
     if p.num_hidden_nodes:
       if p.apply_pruning_to_projection:
