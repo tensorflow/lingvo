@@ -1535,11 +1535,11 @@ class RunnerManager(object):
       self.WriteInferenceGraph()
       return
 
-    assert FLAGS.mode in ['sync', 'async']
-
     if FLAGS.mode == 'shell':
       _StartShell(locals())
       return
+
+    assert FLAGS.mode in ['sync', 'async']
 
     self.MaybeConfigRunLocally()
     self.MaybeConfigRunDistributed()
