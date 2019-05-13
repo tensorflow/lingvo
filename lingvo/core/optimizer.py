@@ -207,7 +207,7 @@ class AdamW(Base):
   def GetOptimizer(self, lr):
     p = self.params
     return tf.contrib.opt.AdamWOptimizer(
-        weight_decay=p.weight_decay,
+        weight_decay=lr * p.weight_decay,
         learning_rate=lr,
         beta1=p.beta1,
         beta2=p.beta2,
