@@ -10,7 +10,7 @@ def tf_copts():
         "//conditions:default": [],
     })
 
-def lingvo_cc_library(name, srcs = [], hdrs = [], deps = []):
+def lingvo_cc_library(name, srcs = [], hdrs = [], deps = [], testonly = 0):
     native.cc_library(
         name = name,
         copts = tf_copts(),
@@ -19,6 +19,16 @@ def lingvo_cc_library(name, srcs = [], hdrs = [], deps = []):
         deps = [
             "@tensorflow_includes//:includes",
         ] + deps,
+        testonly = testonly,
+    )
+
+def lingvo_cc_test_library(name, srcs = [], hdrs = [], deps = []):
+    lingvo_cc_library(
+        name = name,
+        srcs = srcs,
+        hdrs = hdrs,
+        deps = deps + ["@com_google_googletest//:gtest"],
+        testonly = 1,
     )
 
 def lingvo_cc_binary(name, srcs = [], deps = []):

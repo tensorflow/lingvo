@@ -296,6 +296,10 @@ BasicRecordYielder::BasicRecordYielder(const Options& opts)
   }
 }
 
+BasicRecordYielder::BasicRecordYielder()
+    : buf_empty_(this, &ME::BufEmpty),
+      buf_not_full_(this, &ME::BufNotFull),
+      buf_enough_(this, &ME::BufEnough) {}  // USED ONLY FOR TESTS.
 BasicRecordYielder::~BasicRecordYielder() {}
 
 void BasicRecordYielder::Start() {

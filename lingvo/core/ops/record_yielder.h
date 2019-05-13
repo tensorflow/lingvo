@@ -153,10 +153,12 @@ class BasicRecordYielder : public RecordYielder {
   void Close() override;
 
   // Returns the current epoch number.
-  int64 current_epoch() const { return epoch_; }
+  virtual int64 current_epoch() const { return epoch_; }
 
  protected:
   explicit BasicRecordYielder(const Options& opts);
+  explicit BasicRecordYielder();  // USED ONLY FOR TESTS.
+
 
   ~BasicRecordYielder() override;
 

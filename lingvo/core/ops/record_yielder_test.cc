@@ -25,21 +25,10 @@ limitations under the License.
 #include "tensorflow/core/platform/env.h"
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/sequential_record_yielder.h"
+#include "lingvo/core/ops/yielder_test_helper.h"
 
 namespace tensorflow {
 namespace lingvo {
-
-void GeneratePlainTextTestData(const string& prefix, int n, int m) {
-  for (int i = 0; i < n; ++i) {
-    std::unique_ptr<WritableFile> file;
-    TF_CHECK_OK(Env::Default()->NewWritableFile(
-        io::JoinPath("/tmp", strings::StrCat(prefix, ".", i)),
-        &file));
-    for (int j = 0; j < m; ++j) {
-      TF_CHECK_OK(file->Append(strings::Printf("%010d\n", m * i + j)));
-    }
-  }
-}
 
 TEST(RecordYielderTest, PlainTextYielderBasicTest) {
   const int N = 10;
@@ -92,13 +81,13 @@ TEST(SequentialRecordYielderTest, SequentialRecordYielderBasicTest) {
   Rope v;
   for (int i = 0; i < N * M; ++i) {
     TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    ASSERT_EQ(string(v), strings::Printf("%010d", i));
+    ASSERT_EQ(string(v), strings::Printf("basic:%010d", i));
   }
 
   // Iterate another epoch.
   for (int i = 0; i < N * M; ++i) {
     TF_CHECK_OK(yielder->Yield(&v, nullptr));
-    ASSERT_EQ(string(v), strings::Printf("%010d", i));
+    ASSERT_EQ(string(v), strings::Printf("basic:%010d", i));
   }
 
   yielder->Close();

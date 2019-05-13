@@ -10,6 +10,7 @@ load(
     "gen_op_cclib",
     "gen_op_pylib",
     "lingvo_cc_library",
+    "lingvo_cc_test_library",
     "lingvo_cc_test",
     "lingvo_proto_cc",
     "lingvo_proto_py",
@@ -114,6 +115,7 @@ lingvo_cc_test(
     deps = [
         ":input_common",
         ":record",
+        ":yielder_test_helper",
     ],
 )
 
@@ -123,6 +125,7 @@ lingvo_cc_test(
     deps = [
         ":input_common",
         ":record",
+        ":yielder_test_helper",
     ],
 )
 
@@ -139,6 +142,19 @@ lingvo_cc_library(
     name = "input_common",
     srcs = ["input_common.cc"],
     hdrs = ["input_common.h"],
+    deps = [
+        ":record",
+    ],
+)
+
+lingvo_cc_test_library(
+    name = "yielder_test_helper",
+    srcs = [
+        "yielder_test_helper.cc",
+    ],
+    hdrs = [
+        "yielder_test_helper.h",
+    ],
     deps = [
         ":record",
     ],

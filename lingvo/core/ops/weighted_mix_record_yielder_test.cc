@@ -20,51 +20,13 @@ limitations under the License.
 #include <gtest/gtest.h>
 #include "tensorflow/core/lib/core/stringpiece.h"
 #include "tensorflow/core/lib/io/path.h"
-#include "tensorflow/core/lib/strings/stringprintf.h"
 #include "tensorflow/core/platform/env.h"
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/record_yielder.h"
+#include "lingvo/core/ops/yielder_test_helper.h"
 
 namespace tensorflow {
 namespace lingvo {
-
-void GeneratePlainTextTestData(const string& prefix, int n, int m) {
-  for (int i = 0; i < n; ++i) {
-    std::unique_ptr<WritableFile> file;
-    TF_CHECK_OK(Env::Default()->NewWritableFile(
-        io::JoinPath("/tmp", strings::StrCat(prefix, ".", i)),
-        &file));
-    for (int j = 0; j < m; ++j) {
-      TF_CHECK_OK(file->Append(
-          strings::Printf("%s:%010d\n", prefix.c_str(), m * i + j)));
-    }
-  }
-}
-
-// This only works for data generated using GeneratePlainTextTestData with
-// properly specified prefixes.
-std::unordered_map<std::string, float> ComputeInputSourceDistribution(
-    const std::vector<string>& vals) {
-  std::unordered_map<std::string, float> input_source_distribution;
-  for (const string& val : vals) {
-    const auto prefix_end = val.find(':');
-    if (prefix_end != string::npos) {
-      input_source_distribution[val.substr(0, prefix_end)] += 1.0;
-    }
-  }
-  for (auto it = input_source_distribution.begin();
-       it != input_source_distribution.end(); ++it) {
-    it->second /= vals.size();
-  }
-  return input_source_distribution;
-}
-
-class MockRecordYielder : public RecordYielder {
- public:
-  MOCK_METHOD2(Yield, Status(Rope* value, int* source_id));
-  MOCK_METHOD0(Close, void());
-  MOCK_CONST_METHOD0(current_epoch, int64());
-};
 
 TEST(RecordYielderTest, WeightedMixerBasicTest) {
   const int N = 10;
@@ -221,7 +183,6 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
 }
 
 TEST(RecordYielderTest, RecordYielderRetryLoop) {
-  // It's safe to create mock record yielders on stack as they will be
   MockRecordYielder yielder1;
   MockRecordYielder yielder2;
   // Yielder1 always returns OK. Yielder2 returns DEADLINE_EXCEEDED 3 times in a
