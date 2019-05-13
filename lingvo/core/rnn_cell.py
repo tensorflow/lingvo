@@ -1820,6 +1820,8 @@ class SRUCell(RNNCell):
         'value is necessary only if apply_layer_norm is True')
     p.Define('apply_pruning', False, 'Whether to prune the weights while'
              'training')
+    p.Define('apply_pruning_to_projection', False,
+             'Whether to prune the weights in the projection layer')
     return p
 
   @base_layer.initializer
@@ -1868,6 +1870,21 @@ class SRUCell(RNNCell):
             dtype=p.dtype,
             collections=self._VariableCollections())
         self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
+        if p.apply_pruning_to_projection:
+          proj_mask_pc = py_utils.WeightParams(
+              w_proj.shape, py_utils.WeightInit.Constant(1.0), p.dtype)
+          proj_threshold_pc = py_utils.WeightParams(
+              [], py_utils.WeightInit.Constant(0.0), tf.float32)
+          self.CreateVariable(
+              'proj_mask', proj_mask_pc, theta_fn=None, trainable=False)
+          self.CreateVariable(
+              'proj_threshold',
+              proj_threshold_pc,
+              theta_fn=None,
+              trainable=False)
+          py_utils.AddToPruningCollections(self.vars.w_proj,
+                                           self.vars.proj_mask,
+                                           self.vars.proj_threshold)
 
       if p.apply_layer_norm:
         f_t_ln_scale = py_utils.WeightParams(
@@ -1996,7 +2013,11 @@ class SRUCell(RNNCell):
     c_t = py_utils.clip_by_value(c_t, -p.cell_value_cap, p.cell_value_cap)
 
     if p.num_hidden_nodes:
-      h_t = tf.matmul(h_t, theta.w_proj)
+      if p.apply_pruning_to_projection:
+        w_proj = tf.multiply(theta.w_proj, theta.proj_mask)
+      else:
+        w_proj = theta.w_proj
+      h_t = tf.matmul(h_t, w_proj)
 
     return self._ApplyZoneOut(state0, inputs, c_t, h_t)
 

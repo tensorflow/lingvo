@@ -1944,6 +1944,58 @@ class RNNCellTest(test_utils.TestCase):
       self.assertAllClose(m_expected, m_v)
       self.assertAllClose(c_expected, c_v)
 
+  def testSRUCell_MaskedProjection(self):
+    with self.session(use_gpu=False):
+      params = rnn_cell.SRUCell.Params()
+      params.name = 'sru'
+      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+      params.num_input_nodes = 2
+      params.num_output_nodes = 2
+      params.num_hidden_nodes = 3
+      params.zo_prob = 0.0
+      params.random_seed = _RANDOM_SEED
+      params.apply_pruning = True
+      params.apply_pruning_to_projection = True
+
+      sru = rnn_cell.SRUCell(params)
+      print('sru vars = ', sru.vars)
+      self.assertIn('wm', sru.vars.wm.name)
+      self.assertIn('b', sru.vars.b.name)
+      self.assertIn('w_proj', sru.vars.w_proj.name)
+      self.assertIn('mask', sru.vars.mask.name)
+      self.assertIn('threshold', sru.vars.threshold.name)
+      self.assertIn('proj_mask', sru.vars.proj_mask.name)
+      self.assertIn('proj_threshold', sru.vars.proj_threshold.name)
+
+      self.assertEqual(sru.theta.wm.get_shape(), tf.TensorShape([2, 12]))
+      self.assertEqual(sru.theta.b.get_shape(), tf.TensorShape([12]))
+      self.assertEqual(sru.theta.w_proj.get_shape(), tf.TensorShape([3, 2]))
+      self.assertEqual(sru.theta.proj_mask.get_shape(), tf.TensorShape([3, 2]))
+
+      np.random.seed(_NUMPY_RANDOM_SEED)
+      inputs = py_utils.NestedMap(
+          act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],
+          padding=tf.zeros([3, 1]))
+      state0 = py_utils.NestedMap(
+          c=tf.constant(np.random.uniform(size=(3, 3)), tf.float32),
+          m=tf.constant(np.random.uniform(size=(3, 2)), tf.float32))
+      state1, _ = sru.FPropDefaultTheta(state0, inputs)
+
+      # Initialize all the variables, and then run one step.
+      tf.global_variables_initializer().run()
+
+      m_expected = [[0.049264, 0.549141], [-0.050149, 0.327422],
+                    [-0.193297, 0.283323]]
+      c_expected = [[-0.10113806, 0.8266117, 0.75368524],
+                    [0.31730127, 0.58325875, 0.64149243],
+                    [0.0947173, 0.48504758, 0.53909004]]
+      m_v = state1.m.eval()
+      c_v = state1.c.eval()
+      print('m_v', np.array_repr(m_v))
+      print('c_v', np.array_repr(c_v))
+      self.assertAllClose(m_expected, m_v)
+      self.assertAllClose(c_expected, c_v)
+
   def testQRNNPoolingCell(self):
     num_rnn_matrices = 4
     with self.session(use_gpu=False):
