@@ -121,7 +121,18 @@ class BaseInputGenerator(base_layer.BaseLayer):
     p = self.params
     cluster = self.cluster
     num_tpu_hosts = cluster.num_tpu_hosts
+    num_cores_per_host = cluster.total_worker_devices // num_tpu_hosts
+    tf.logging.info('num_cores_per_host {}'.format(num_cores_per_host))
+    tf.logging.info('num_devices_per_split {}'.format(
+        cluster.num_devices_per_split))
+
     assert num_tpu_hosts > 0, ('num_tpu_hosts: %d' % num_tpu_hosts)
+    if (cluster.num_devices_per_split > num_cores_per_host and
+        p.use_per_host_infeed):
+      tf.logging.fatal(
+          'Doesn\'t support per host infeed mode when '
+          'num_devices_per_split({}) > num_cores_per_host({})'.format(
+              cluster.num_devices_per_split, num_cores_per_host))
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
 
     with py_utils.outside_all_rewrites():

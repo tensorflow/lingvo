@@ -129,6 +129,26 @@ tf.flags.DEFINE_string(
 
 FLAGS = tf.flags.FLAGS
 
+# Map from split size to computation_shape for TPU model parallelism.
+SUPPORTED_SPLIT_SIZE = {
+    1: [1, 1, 1],
+    2: [1, 1, 2],
+    4: [1, 2, 2],
+    8: [2, 2, 2],
+    16: [4, 2, 2],
+    32: [4, 4, 2],
+    64: [4, 8, 2],
+    128: [8, 8, 2]
+}
+
+
+def ComputationShape(split_size):
+  """Decides the computation shape based on the split_size."""
+  assert (split_size in SUPPORTED_SPLIT_SIZE), ('Model parallelism with %d',
+                                                'devices is currently not'
+                                                ' supported.' % split_size)
+  return SUPPORTED_SPLIT_SIZE[split_size]
+
 
 # useful for debugging.
 def _StartShell(local_ns=None):
@@ -535,25 +555,6 @@ class TrainerTpu(base_runner.BaseRunner):
     num_devices_per_split = self._cluster.num_devices_per_split
     tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',
                     data_parallelism, num_devices_per_split)
-
-    def ComputationShape(split_size):
-      """Decides the computation shape based on the split_size."""
-      computation_shape = None
-      if split_size == 1:
-        computation_shape = [1, 1, 1]
-      elif split_size == 2:
-        computation_shape = [1, 1, 2]
-      elif split_size == 4:
-        computation_shape = [1, 2, 2]
-      elif split_size == 8:
-        computation_shape = [2, 2, 2]
-      elif split_size == 16:
-        computation_shape = [4, 2, 2]
-      else:
-        assert False, ('Model parallelism with %d devices is currently not'
-                       ' supported.' % split_size)
-      assert computation_shape is not None
-      return computation_shape
 
     self._steps_per_loop = min(self.params.train.tpu_steps_per_loop,
                                self.params.train.max_steps)
