@@ -299,7 +299,7 @@ class BaseRunner(object):
           tf.logging.info('Done. ShouldStop is True.')
           return
         if (FLAGS.enqueue_max_steps > 0 and
-            local_enqueue_steps > FLAGS.enqueue_max_steps):
+            local_enqueue_steps >= FLAGS.enqueue_max_steps):
           tf.logging.info('Done. FLAGS.enqueue_max_steps reached.')
           return
         local_enqueue_steps += 1
@@ -311,9 +311,10 @@ class BaseRunner(object):
         sess.run([op])
 
   def _GetSession(self, **kwargs):
+    graph = kwargs.pop('graph', self._graph)
     return tf.Session(
         self._tf_master,
-        graph=self._graph,
+        graph=graph,
         config=py_utils.SessionConfig(**kwargs))
 
   @classmethod

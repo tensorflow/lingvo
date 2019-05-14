@@ -86,6 +86,10 @@ FLAGS = tf.flags.FLAGS
 ENQUEUE_OPS = '__lingvo_enqueue_ops'
 CLOSE_QUEUE_OPS = '__lingvo_close_queue_ops'
 
+TPU_EMBEDDING_LOAD_OPS = '__lingvo_tpu_embedding_load_ops'
+TPU_EMBEDDING_RETRIEVE_OPS = '__lingvo_tpu_embedding_retrieve_ops'
+TPU_EMBEDDING = '__tpu_embedding'
+
 # pylint: disable=protected-access
 deprecation._PRINT_DEPRECATION_WARNINGS = False
 

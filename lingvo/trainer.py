@@ -44,6 +44,7 @@ from six.moves import zip
 import tensorflow as tf
 
 from lingvo import base_runner
+from tensorflow.contrib.tpu.python.tpu import device_assignment as device_assignment_lib
 from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.core.protobuf import config_pb2
 from lingvo import base_trial
@@ -569,18 +570,28 @@ class TrainerTpu(base_runner.BaseRunner):
     def _WaitTillInit():
       """Wait until the model is ready."""
       try:
-        with self._GetSession() as sess:
-          topology = sess.run(
-              tf.contrib.tpu.initialize_system(embedding_config=None, job=None))
-          device_assignment = tf.contrib.tpu.device_assignment(
-              topology,
-              computation_shape=ComputationShape(num_devices_per_split),
-              num_replicas=data_parallelism)
-          py_utils.SetTpuDeviceAssignment(device_assignment)
-          tf.logging.info('device_assignment.core_assignment: %s',
-                          str(device_assignment.core_assignment))
-          tf.logging.info('device_assignment.topology.device_coordinates: %s',
-                          str(device_assignment.topology.device_coordinates))
+        # tpu.initialize_system() is called with None as embedding_config, as
+        # embedding_config is not available yet. Later in _Loop, it is called
+        # with the correct embedding_config. Since it cannot be called twice in
+        # the same graph with different embedding_config, we use a dummy_graph
+        # here.
+        dummy_graph = tf.Graph()
+        with dummy_graph.as_default():
+          tpu_initialize_system_op = tf.compat.v1.tpu.initialize_system(
+              embedding_config=None, job=None)
+
+        with self._GetSession(graph=dummy_graph) as sess:
+          topology = sess.run(tpu_initialize_system_op)
+
+        device_assignment = device_assignment_lib.device_assignment(
+            topology,
+            computation_shape=ComputationShape(num_devices_per_split),
+            num_replicas=data_parallelism)
+        py_utils.SetTpuDeviceAssignment(device_assignment)
+        tf.logging.info('device_assignment.core_assignment: %s',
+                        str(device_assignment.core_assignment))
+        tf.logging.info('device_assignment.topology.device_coordinates: %s',
+                        str(device_assignment.topology.device_coordinates))
       except py_utils.transient_tf_errors as e:
         tf.logging.info('TPU initialization failed: %s', e)
         raise
@@ -601,6 +612,12 @@ class TrainerTpu(base_runner.BaseRunner):
             New summed metrics values and a train_op.
           """
           self._model = self.params.cls(self.params)
+          self._load_ops = tf.get_collection(py_utils.TPU_EMBEDDING_LOAD_OPS)
+          self._retrieve_ops = tf.get_collection(
+              py_utils.TPU_EMBEDDING_RETRIEVE_OPS)
+          tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
+          self._tpu_embedding = (tpu_embedding_collection[0]
+                                 if tpu_embedding_collection else None)
           self._model.ConstructFPropBPropGraph()
           per_step_eval_metrics = self._eval_metrics.SetMetrics(
               self._model.GetTask().eval_metrics, args)
@@ -731,7 +748,19 @@ class TrainerTpu(base_runner.BaseRunner):
     # Run training.
     self._RunLoop('trainer', self._Loop)
 
+  def _InfeedLoop(self, sess):
+    tf.logging.info('_InfeedLoop start')
+    for i in range(self._steps_per_loop):
+      tf.logging.info('_InfeedLoop %d', i)
+      sess.run(self.enqueue_ops)
+
   def StartEnqueueOp(self, op):
+    # When retrieve ops for TPU embedding is present, we use _InfeedLoop above
+    # instead to make sure enqueue and retrieve does not happen at the same
+    # time as required by TPU embedding.
+    # We can remove this by using a tf.while_loop driven infeed op.
+    if self._retrieve_ops:
+      return
     self._RunLoop(
         'trainer/enqueue_op/%s' % op.name, self._LoopEnqueue, loop_args=[op])
 
@@ -758,16 +787,21 @@ class TrainerTpu(base_runner.BaseRunner):
       tf.logging.info('Training skipped (trial requested to stop).')
       return
     with tf.container(self._container_id), self._GetSession() as sess:
+      config_proto = (self._tpu_embedding.config_proto
+                      if self._tpu_embedding is not None else None)
+      sess.run(
+          tf.compat.v1.tpu.initialize_system(
+              embedding_config=config_proto, job=None))
       sess.run(self.initialize_tables)
       sess.run(self._initialize_local_vars)
-      sess.run(
-          tf.contrib.tpu.initialize_system(embedding_config=None, job=None))
       if FLAGS.run_locally == 'tpu':
         sess.run(tf.global_variables_initializer())
       gsteps = py_utils.GetGlobalStep()
       global_step = sess.run(gsteps)
       self._initialized.set()
       eval_metrics = None
+
+      sess.run(self._load_ops)
 
       while True:
         if self._trial.ShouldStopAndMaybeReport(global_step, eval_metrics):
@@ -782,7 +816,18 @@ class TrainerTpu(base_runner.BaseRunner):
           tf.logging.info('Training finished.')
           return
 
+        if self._retrieve_ops:
+          infeed_loop_thread = threading.Thread(target=self._InfeedLoop(sess))
+          infeed_loop_thread.start()
+
         values, outfeeds = sess.run(self._tpu_train_ops)
+
+        if self._retrieve_ops:
+          infeed_loop_thread.join()
+          tf.logging.info('Retrieve params.')
+          sess.run(self._retrieve_ops)
+          tf.logging.info('Retrieve params done.')
+
         eval_metrics = self._eval_metrics.PackMetricsValues(values)
 
         # Note: global_step is incremented by self._steps_per_loop by the

@@ -26,6 +26,7 @@ import tensorflow as tf
 from tensorflow.contrib.tpu.python.tpu import tpu_function
 from tensorflow.python.framework import function
 from tensorflow.python.ops import io_ops
+from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 from lingvo.core import base_layer
 from lingvo.core import input_generator_helper as ig_helper
 from lingvo.core import py_utils
@@ -145,13 +146,33 @@ class BaseInputGenerator(base_layer.BaseLayer):
       input_ops_list = []
       queues = []
       first_batch = None
+      tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
+      tpu_embedding = (tpu_embedding_collection[0]
+                       if tpu_embedding_collection else None)
+      tpu_embedding_input_key = (tpu_embedding.feature_to_config_dict.keys()[0]
+                                 if tpu_embedding is not None else None)
       for task_id in range(num_infeed_hosts):
         host_device = '/task:{}/device:CPU:0'.format(task_id)
         with tf.device(host_device):
           batch = self.GetPreprocessedInputBatch()
+          if tpu_embedding_input_key is not None:
+            tpu_embedding_feature = batch.pop(tpu_embedding_input_key)
+
           if first_batch is None:
             first_batch = batch
           flat_batch = batch.FlattenItems()
+
+          if tpu_embedding is not None:
+            num_cores_per_host = tpu_embedding.num_cores_per_host
+            tpu_embedding_feature_splitted = tf.split(tpu_embedding_feature,
+                                                      num_cores_per_host)
+            enqueue_datas_list = []
+            for split in tpu_embedding_feature_splitted:
+              enqueue_data = tpu_embedding_lib.EnqueueData(
+                  tf.squeeze(split, axis=[1]))
+              enqueue_datas_list.append({tpu_embedding_input_key: enqueue_data})
+            input_ops_list += tpu_embedding.generate_enqueue_ops(
+                enqueue_datas_list)
 
           shapes, types = [], []
           for k, x in flat_batch:
