@@ -352,6 +352,51 @@ class LearningRateScheduleTest(test_utils.TestCase):
               [9000000, 0.5]
           ])
 
+  def testLinearRampupExponentialDecayScaledByNumSplitScheduleNoWarmUp(self):
+    p = lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
+    ).Set(
+        warmup=0, decay_start=32000000, decay_end=64000000, min=0.5)
+    with self.session(), cluster_factory.ForTestingWorker(
+        mode='sync', job='trainer_client', gpus=8):
+      lrs = p.Instantiate()
+      pts = [[i, lrs.Value(i).eval()] for i in range(0, 10000000, 1000000)]
+      self.assertAllClose(
+          pts,
+          [
+              # Constant
+              [0, 8.0],
+              [1000000, 8.0],
+              [2000000, 8.0],
+              [3000000, 8.0],
+              # Exponentially decreasing.
+              [4000000, 8.0],
+              [5000000, 4.0],
+              [6000000, 2.0],
+              [7000000, 1.0],
+              [8000000, 0.5],
+              [9000000, 0.5]
+          ])
+
+  def testLinearRampupExponentialDecayScaledByNumSplitScheduleExpOnly(self):
+    p = lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
+    ).Set(
+        warmup=0, decay_start=0, decay_end=32000000, min=0.5)
+    with self.session(), cluster_factory.ForTestingWorker(
+        mode='sync', job='trainer_client', gpus=8):
+      lrs = p.Instantiate()
+      pts = [[i, lrs.Value(i).eval()] for i in range(0, 6000000, 1000000)]
+      self.assertAllClose(
+          pts,
+          [
+              # Exponentially decreasing.
+              [0, 8.0],
+              [1000000, 4.0],
+              [2000000, 2.0],
+              [3000000, 1.0],
+              [4000000, 0.5],
+              [5000000, 0.5]
+          ])
+
   def testDevBasedSchedule(self):
     logdir = tf.test.get_temp_dir()
     tf.gfile.MkDir(os.path.join(logdir, 'eval_dev'))

@@ -394,14 +394,19 @@ class LinearRampupExponentialDecayScaledByNumSplitSchedule(
     decay_end = max(decay_start + 1.0, p.decay_end / splits)
     schedules = [
         LinearLearningRateSchedule.Params().Set(
-            start=(0., p.warmup_init), limit=(warmup_end, peak)),
-        LinearLearningRateSchedule.Params().Set(
             start=(warmup_end, peak), limit=(decay_start, peak)),
         ExponentialLearningRateSchedule.Params().Set(
             start=(decay_start, peak), limit=(decay_end, p.min)),
         LinearLearningRateSchedule.Params().Set(
             start=(0, p.max), limit=(decay_end, p.max)),
     ]
+    # Only include a warm up schedule if the warmup_end exceeds 0.0. Note that
+    # linear schedules must have x1 > x0 strictly.
+    if warmup_end > 0.0:
+      schedules = [
+          LinearLearningRateSchedule.Params().Set(
+              start=(0., p.warmup_init), limit=(warmup_end, peak))
+      ] + schedules
     self.CreateChild(
         'combine',
         CombinedMinimumLearningRateSchedule.Params().Set(schedules=schedules))
