@@ -217,7 +217,6 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
   def InputBatch(self):
     p = self.params
     ret = py_utils.NestedMap()
-
     ret.src = py_utils.NestedMap()
     input_name = 'ids' if p.for_mt else 'src_inputs'
     ret.src[input_name], ret.src.paddings = self._Sources()
@@ -242,6 +241,8 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
         return None
       return tf.cast(v, py_utils.FPropDtype(p)) if v.dtype.is_floating else v
 
+    ret.source_selected = tf.tile(
+        tf.expand_dims(self._bprop_onehot, 0), [p.source_shape[0], 1])
     return ret.Transform(_CastFloats)
 
   def _GetSourceInputsAndLabels(self, data_source):

@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import six
 from six.moves import range
 import tensorflow as tf
@@ -317,7 +318,8 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         treated as an empty list.
 
     Returns:
-      A tf.Tensor or `.NestedMap` of tf.Tensor
+      A tuple of tf.Tensors where the tensors which contain the input data and
+      have major dimension same as size of input batch.
     """
     raise NotImplementedError()
 
@@ -369,8 +371,10 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     sources.
 
     Returns:
-      A tf.Tensor or `.NestedMap` of tf.Tensor same as
-      `self._DataSourceFromFilePattern()`.
+      A tuple which contains the output of `self._DataSourceFromFilePattern()`
+      and a tensor of size [batch_size, number of data sources] which contains
+      the source selected for each element in the input batch. With cross batch
+      mixing the complete input batch comes from the same source.
 
     Raises:
       ValueError: If unknown token type.
@@ -394,10 +398,17 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       bprop_variable_filter = input_entry[2] if len(input_entry) > 2 else ''
       self._bprop_variable_filters.append(bprop_variable_filter)
     data_source, selected_bprop = py_utils.MixByWeight(inputs, weights)
+    # TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to
+    # use source_selected from input_batch.
+    assert isinstance(
+        data_source, collections.Sequence
+    ), 'Expected data_source to be a sequence, got: %s' % type(data_source)
     self._bprop_onehot = selected_bprop
-    return data_source
+    batch_size = tf.shape(data_source[0])[0]
+    return data_source, tf.tile(
+        tf.expand_dims(selected_bprop, 0), [batch_size, 1])
 
-  def _BuildDataSource(self):
+  def _BuildDataSourceWithMetadata(self):
     """Read and return input batch from `p.file_pattern`.
 
     `p.file_pattern` may be a string file_pattern or a
@@ -407,24 +418,44 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     examples from different sources may be mixed together.
 
     Returns:
-      A tf.Tensor or `.NestedMap` of tf.Tensor same as
-      `self._DataSourceFromFilePattern()`.
+      A tuple of tf.Tensor or `.NestedMap` of tf.Tensor same as
+      `self._DataSourceFromFilePattern()` and a tensor of size
+      [batch_size, number of data sources] or None.
 
     Raises:
       ValueError: If unknown token type.
     """
     p = self.params
     input_file_pattern = p.file_pattern
+    ret = py_utils.NestedMap()
     if isinstance(input_file_pattern, six.string_types):
-      return self._DataSourceFromFilePattern(input_file_pattern)
+      data, source_selected = self._DataSourceFromFilePattern(
+          input_file_pattern), None
     elif isinstance(input_file_pattern, list):
       if p.use_within_batch_mixing:
-        return self._BuildWithinBatchMixingDataSource()
+        data, source_selected = self._BuildWithinBatchMixingDataSource(), None
       else:
         # Otherwise fall back to MixByWeight-based approach.
-        return self._BuildCrossBatchMixingDataSource()
+        data, source_selected = self._BuildCrossBatchMixingDataSource()
     else:
       raise ValueError()
+    ret.data = data
+    ret.source_selected = source_selected
+    return ret
+
+  def _BuildDataSource(self):
+    """Read and return input batch from `p.file_pattern`.
+
+    Same as _BuildDataSourceWithMetadata but does not return any metadata.
+
+    Returns:
+      A tuple of tf.Tensor or `.NestedMap` of tf.Tensor same as
+      `self._DataSourceFromFilePattern()`.
+
+    Raises:
+      ValueError: If unknown token type.
+    """
+    return self._BuildDataSourceWithMetadata()['data']
 
 
 class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):

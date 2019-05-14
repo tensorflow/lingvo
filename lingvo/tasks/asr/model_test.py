@@ -70,7 +70,7 @@ class AsrModelTest(test_utils.TestCase):
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
-      decoder_theta = mdl._MakeDecoderTheta(mdl.theta)
+      decoder_theta = mdl._MakeDecoderTheta(theta=mdl.theta, input_batch=None)
       mdl.BProp()
       self.assertEqual(decoder_theta, mdl.theta.decoder)
 

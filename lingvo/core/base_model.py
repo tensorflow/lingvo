@@ -676,6 +676,7 @@ class BaseTask(base_layer.BaseLayer):
 
     # Mask gradients only if the mask is set.
     if self._per_input_gradient_mask:
+      # TODO(neerajgaur): Change this to use source_selected from input_batch.
       bprop_onehot = self.input_generator.GetInputSourceOneHot()
       self._var_grads = py_utils.MaskGradients(
           self._var_grads, self._per_input_gradient_mask, bprop_onehot)

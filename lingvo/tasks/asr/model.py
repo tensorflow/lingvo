@@ -107,7 +107,7 @@ class AsrModel(base_model.BaseTask):
     """
     return input_batch.tgt
 
-  def _MakeDecoderTheta(self, theta):
+  def _MakeDecoderTheta(self, theta, input_batch):
     """Compute theta to be used by the decoder for computing metrics and loss.
 
     This method can be over-ridden by child classes to add values to theta that
@@ -117,29 +117,32 @@ class AsrModel(base_model.BaseTask):
     was selected a child class could over-ride this method as follows:
 
     def _MakeDecoderTheta(self, theta):
-      decoder_theta = super(MyModel, self)._MakeDecoderTheta(theta)
-      decoder_theta.child_onehot = self.input_generator.GetInputSourceOneHot()
+      decoder_theta = super(MyModel, self)._MakeDecoderTheta(theta, input_batch)
+      decoder_theta.child_onehot = input_batch.source_selected
       return decoder_theta
 
     Args:
       theta: A `.NestedMap` object containing variable values used to compute
         loss and metrics.
+      input_batch: NestedMap containing input data in the current batch. Unused
+      here.
 
     Returns:
       theta: A copy of the decoder theta.
     """
+    del input_batch  # Unused
     return theta.decoder.DeepCopy()
 
   def ComputePredictions(self, theta, input_batch):
     input_batch_src = input_batch.src
     encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch_src)
     tgt = self._GetDecoderTargets(input_batch)
-    decoder_theta = self._MakeDecoderTheta(theta)
+    decoder_theta = self._MakeDecoderTheta(theta, input_batch)
     return self.decoder.ComputePredictions(decoder_theta, encoder_outputs, tgt)
 
   def ComputeLoss(self, theta, input_batch, predictions):
     tgt = self._GetDecoderTargets(input_batch)
-    decoder_theta = self._MakeDecoderTheta(theta)
+    decoder_theta = self._MakeDecoderTheta(theta, input_batch)
     return self.decoder.ComputeLoss(decoder_theta, predictions, tgt)
 
   def _FrontendAndEncoderFProp(self, theta, input_batch_src):
