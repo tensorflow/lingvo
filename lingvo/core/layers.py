@@ -2192,6 +2192,10 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     p.Define('input_dim', 0, 'Depth of the input to the network.')
     p.Define('hidden_layer_dims', [], 'Depth of the hidden layer outputs.')
     p.Define(
+        'projection', ProjectionLayer.Params(),
+        'Projection layer params. A single parameter that will be shared by'
+        'all layers.')
+    p.Define(
         'dropout', DropoutLayer.Params(),
         'Dropout layer params. Can be a single params or a tuple/list of params'
         ' having the same length as the number of layers.')
@@ -2255,7 +2259,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
         out_dim = p.hidden_layer_dims[i]
         proj_out_dim = out_dim
         name = '%s_%d' % (p.name, i)
-        params_i = ProjectionLayer.Params().Set(
+        params_i = p.projection.Copy().Set(
             batch_norm=batch_norm[i],
             weight_norm=weight_norm[i],
             has_bias=(not batch_norm[i]),
