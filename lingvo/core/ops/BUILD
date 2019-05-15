@@ -91,7 +91,6 @@ py_test(
 lingvo_cc_library(
     name = "record",
     srcs = [
-        "chain_record_yielder.cc",
         "record_batcher.cc",
         "record_debug.cc",
         "record_yielder.cc",
@@ -99,7 +98,6 @@ lingvo_cc_library(
         "weighted_mix_record_yielder.cc",
     ],
     hdrs = [
-        "chain_record_yielder.h",
         "record_batcher.h",
         "record_yielder.h",
         "sequential_record_yielder.h",
@@ -124,16 +122,6 @@ lingvo_cc_test(
 lingvo_cc_test(
     name = "weighted_mix_record_yielder_test",
     srcs = ["weighted_mix_record_yielder_test.cc"],
-    deps = [
-        ":input_common",
-        ":record",
-        ":yielder_test_helper",
-    ],
-)
-
-lingvo_cc_test(
-    name = "chain_record_yielder_test",
-    srcs = ["chain_record_yielder_test.cc"],
     deps = [
         ":input_common",
         ":record",
