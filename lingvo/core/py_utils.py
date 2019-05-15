@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections as py_collections
 import contextlib
 import hashlib
 import math
@@ -35,6 +36,7 @@ import tensorflow as tf
 from tensorflow.contrib.model_pruning.python.layers import core_layers as pruning_layers
 from tensorflow.contrib.tpu.python.tpu import tpu
 from tensorflow.contrib.tpu.python.tpu import tpu_function
+from tensorflow.core.framework import node_def_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.framework import function
 from tensorflow.python.util import deprecation
@@ -2813,3 +2815,87 @@ def RematerializeFn(fn, *xs):
   # returned from the Forward function when the bug is fixed.
   ResetStepSeed(final_step_seed)
   return ys
+
+
+# A set of names of stateful random number generator ops.
+# See tensorflow/core/ops/random_ops.cc
+_STATEFUL_RANDOM_OPS = {
+    # pyformat: disable
+    'RandomUniform',
+    'RandomUniformInt',
+    'RandomStandardNormal',
+    'ParameterizedTruncatedNormal',
+    'TruncatedNormal',
+    'RandomShuffle',
+    'Multinomial',
+    'RandomGamma',
+    'RandomPoisson',
+    'RandomPoissonV2',
+    # pyformat: enable
+}
+
+
+def StatefulRandomOpsInDefun(func, graph=None):
+  """Checks whether the Defun depends on stateful random number ops.
+
+  Stateful random number generator ops should be avoid in Recurrent() call.
+  Otherwise, these ops produce inconsistent values between FProp and BProp.
+
+  Args:
+    func: a _DefinedFunction to check.
+    graph: a Graph. Set None to use the default graph.
+
+  Returns:
+    A list of names of the stateful random ops.
+
+  Raises:
+    InvalidArgumentError: if the input func/graph is invalid.
+  """
+  if not isinstance(func, function._DefinedFunction):  # pylint: disable=protected-access
+    raise tf.errors.InvalidArgumentError(None, None,
+                                         'func is not a _DefinedFunction.')
+
+  if graph is None:
+    graph = tf.get_default_graph()
+  func.add_to_graph(graph)
+  graph_def = graph.as_graph_def()
+
+  # A dict from function name to FunctionDef.
+  func_defs = {x.signature.name: x for x in graph_def.library.function}
+
+  if func.definition.signature.name not in func_defs:
+    raise tf.errors.InvalidArgumentError(
+        None, None,
+        'Defun {} is not in the graph .'.format(func.definition.signature.name))
+
+  stateful_ops = []
+
+  # Recursively search for stateful random op.
+  nodes = py_collections.deque(func.definition.node_def)
+  while nodes:
+    node = nodes.pop()
+    assert isinstance(node, node_def_pb2.NodeDef), node
+
+    if node.op in _STATEFUL_RANDOM_OPS:
+      stateful_ops.append(node.op)
+      continue
+
+    def _AddDefunNodes(func_name):
+      """If the given func_name is a Defun, add its sub-nodes into nodes."""
+      if func_name in func_defs:
+        nodes.extend(func_defs[func_name].node_def)
+
+    # For functional.{While|For|If} ops, add their Defun attr into search.
+    if node.op == 'While':
+      _AddDefunNodes(node.attr['body'].func.name)
+      _AddDefunNodes(node.attr['cond'].func.name)
+    elif node.op == 'For':
+      _AddDefunNodes(node.attr['body'].func.name)
+    elif node.op == 'If':
+      _AddDefunNodes(node.attr['then_branch'].func.name)
+      _AddDefunNodes(node.attr['else_branch'].func.name)
+    else:
+      # For other op, check whether itself is a Defun op.
+      _AddDefunNodes(node.op)
+
+  return stateful_ops

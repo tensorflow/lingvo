@@ -46,7 +46,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
                                     unused_step_ids, states, num_hyps_per_beam):
         self.assertEqual(1, num_hyps_per_beam)
-        logits = tf.random_normal([batch_size, vocab_size], seed=8273747)
+        logits = tf.random.stateless_normal([batch_size, vocab_size],
+                                            seed=[8273747, 9])
         return (py_utils.NestedMap(log_probs=logits),
                 py_utils.NestedMap(step=states.step + 1))
 
@@ -54,7 +55,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
                                      unused_new_step_ids, states):
         return states
 
-      src_enc = tf.random_normal([src_len, batch_size, 8], seed=982774838)
+      src_enc = tf.random.stateless_normal([src_len, batch_size, 8],
+                                           seed=[982774838, 9])
       src_enc_padding = tf.constant(
           [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
           dtype=tf.float32)
@@ -76,8 +78,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       ])
       print(np.array_repr(ids))
       print(np.array_repr(lens))
-      expected_ids = [[10, 3, 4, 2, 2, 2, 2], [1, 1, 11, 6, 1, 0, 6]]
-      expected_lens = [4, 7]
+      expected_ids = [[9, 0, 2, 2, 2, 2, 2], [0, 0, 11, 8, 1, 0, 7]]
+      expected_lens = [3, 7]
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 
@@ -94,8 +96,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       ])
       print(np.array_repr(ids))
       print(np.array_repr(lens))
-      expected_ids = [[10, 11, 1, 9, 1, 7, 11], [10, 2, 2, 2, 2, 2, 2]]
-      expected_lens = [7, 2]
+      expected_ids = [[0, 0, 0, 0, 0, 0, 9], [0, 0, 11, 7, 1, 0, 7]]
+      expected_lens = [7, 7]
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 
@@ -126,7 +128,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
                                     unused_step_ids, states, num_hyps_per_beam):
         self.assertEqual(1, num_hyps_per_beam)
-        logits = tf.random_normal([batch_size, vocab_size], seed=8273747)
+        logits = tf.random.stateless_normal([batch_size, vocab_size],
+                                            seed=[8273747, 9])
         # Make it never predict <eos>.
         logits -= tf.one_hot([p.target_eos_id], vocab_size, 1e30)
         is_last_chunk = tf.equal(states.src_step, src_len - 1)
@@ -141,7 +144,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
             src_step=states.src_step + tf.cast(
                 tf.equal(new_step_ids, p.target_eoc_id), dtype=tf.int32))
 
-      src_enc = tf.random_normal([src_len, batch_size, 8], seed=982774838)
+      src_enc = tf.random.stateless_normal([src_len, batch_size, 8],
+                                           seed=[982774838, 9])
       src_enc_padding = tf.constant(
           [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
           dtype=tf.float32)
@@ -161,10 +165,10 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       print(np.array_repr(ids))
       print(np.array_repr(lens))
       expected_ids = [
-          [1, 0, 1, 0, 3, 1, 3, 3, 1, 3, 1, 0, 1, 3, 3, 0, 3, 2, 2, 2],
-          [0, 0, 1, 3, 1, 0, 1, 0, 1, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+          [0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+          [0, 0, 3, 3, 1, 0, 3, 0, 1, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
       ]
-      expected_lens = [18, 11]
+      expected_lens = [5, 11]
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 

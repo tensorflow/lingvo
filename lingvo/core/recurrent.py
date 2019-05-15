@@ -881,6 +881,12 @@ def _ReflectOnCellFn(cell_fn,
     else:
       tf.logging.warn('cell_fn contains stateful ops: %s', Fwd.stateful_ops)
 
+  stateful_random_ops = py_utils.StatefulRandomOpsInDefun(Fwd)
+  if stateful_random_ops:
+    raise tf.errors.InvalidArgumentError(
+        None, None, 'cell_fn depends on stateful random ops: {}'.format(
+            stateful_random_ops))
+
   captured_inputs = list(Fwd.captured_inputs)
 
   assert (not captured_inputs or allow_implicit_capture), (

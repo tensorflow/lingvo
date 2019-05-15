@@ -25,7 +25,9 @@ import numpy as np
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
+
 from tensorflow.python.framework import function
+from tensorflow.python.ops import functional_ops
 from lingvo import model_registry
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
@@ -1711,6 +1713,127 @@ class RematerializeFnTest(tf.test.TestCase):
       v1, v2, v3, v4 = sess.run([da1, db1, da2, db2])
       self.assertAllEqual(v1, v3)
       self.assertAllEqual(v2, v4)
+
+
+class StatefulRandomOpsInDefunTest(tf.test.TestCase):
+
+  def testFunctionWithStatelessOp(self):
+    @function.Defun()
+    def FunctionWithStatelessOp():
+      return tf.constant(42.0)
+
+    self.assertAllEqual(
+        [], py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessOp))
+
+  def testFunctionWithStatefulOp(self):
+    @function.Defun()
+    def FunctionWithStatefulOp():
+      return tf.random_uniform([100], maxval=10, dtype=tf.int32)
+
+    self.assertAllEqual(
+        ['RandomUniformInt'],
+        py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulOp))
+
+  def testFunctionWithStatelessFunctionCall(self):
+    @function.Defun()
+    def FunctionWithStatelessOp():
+      return tf.constant(42.0)
+
+    @function.Defun()
+    def FunctionWithStatelessFunctionCall():
+      return FunctionWithStatelessOp()
+
+    self.assertAllEqual(
+        [],
+        py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessFunctionCall))
+
+  def testFunctionWithStatefulFunctionCall(self):
+    @function.Defun()
+    def FunctionWithStatefulOp():
+      return tf.random_uniform([100], maxval=10, dtype=tf.int32)
+
+    @function.Defun()
+    def FunctionWithStatefulFunctionCall():
+      return FunctionWithStatefulOp()
+
+    self.assertAllEqual(
+        ['RandomUniformInt'],
+        py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionCall))
+
+  def testFunctionWithStatefulFunctionalWhile(self):
+    @function.Defun()
+    def FunctionWithStatefulFunctionalWhile():
+
+      @function.Defun(tf.float32, tf.int32)
+      def Cond(result, i):
+        del result
+        return tf.less(i, 4)
+
+      @function.Defun(tf.float32, tf.int32)
+      def Body(result, i):
+        return (result + tf.random_uniform(tf.shape(result)), i + 1)
+
+      return functional_ops.While([tf.zeros([2, 2]), 0], cond=Cond, body=Body)
+
+    self.assertAllEqual([
+        'RandomUniform'
+    ], py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalWhile))
+
+  def testFunctionWithStatefulFunctionalIf(self):
+    @function.Defun()
+    def FunctionWithStatefulFunctionalIf():
+
+      @function.Defun(tf.float32)
+      def ThenFn(x):
+        return tf.abs(x)
+
+      @function.Defun(tf.float32)
+      def ElseFn(x):
+        return tf.random_uniform(tf.shape(x))
+
+      return functional_ops.If(
+          tf.greater(tf.eye(2), 0.5), [tf.eye(2)], ThenFn, ElseFn)
+
+    self.assertAllEqual(
+        ['RandomUniform'],
+        py_utils.StatefulRandomOpsInDefun(FunctionWithStatefulFunctionalIf))
+
+  def testFunctionWithStatefulFunctionalFor(self):
+    @function.Defun()
+    def FunctionWithStatefulFunctionalFor():
+
+      @function.Defun(tf.float32)
+      def Body(result):
+        return [
+            result + tf.random_uniform(tf.shape(result)) +
+            tf.random_poisson([0.5, 1.5], tf.shape(result))
+        ]
+
+      return functional_ops.For(
+          start=0, limit=4, delta=1, inputs=[tf.eye(2)], body=Body)
+
+    self.assertAllEqual(['RandomPoissonV2', 'RandomUniform'],
+                        sorted(
+                            py_utils.StatefulRandomOpsInDefun(
+                                FunctionWithStatefulFunctionalFor)))
+
+  def testFunctionWithStatelessFunctionalFor(self):
+    @function.Defun()
+    def FunctionWithStatelessFunctionalFor():
+
+      @function.Defun(tf.float32)
+      def Body(result):
+        return [
+            result + tf.random.stateless_normal(
+                tf.shape(result), seed=tf.stack([0, 1]))
+        ]
+
+      return functional_ops.For(
+          start=0, limit=4, delta=1, inputs=[tf.eye(2)], body=Body)
+
+    self.assertAllEqual(
+        [],
+        py_utils.StatefulRandomOpsInDefun(FunctionWithStatelessFunctionalFor))
 
 
 if __name__ == '__main__':
