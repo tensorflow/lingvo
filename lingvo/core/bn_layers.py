@@ -329,6 +329,15 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
           collections=moving_collections)
       self.CreateVariable('moving_variance', mvv, trainable=False)
 
+  @classmethod
+  def GetVariableShapes(cls, params):
+    return {
+        'beta': [params.dim],
+        'gamma': [params.dim],
+        'moving_mean': [params.dim],
+        'moving_variance': [params.dim],
+    }
+
   def PostTrainingStepUpdate(self, global_step):
     """Updates moving_mean, moving_variance after each training step."""
     p = self.params

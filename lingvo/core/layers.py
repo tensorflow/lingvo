@@ -1937,6 +1937,14 @@ class SimpleFullSoftmax(SoftmaxLayer):
       for i in range(p.num_shards):
         self.CreateVariable('bias_%d' % i, pc, self.AddGlobalVN)
 
+  @classmethod
+  def GetVariableShapes(cls, params):
+    num_classes_per_shard = params.num_classes // params.num_shards
+    return dict([('weight_%d' % i, (params.input_dim, num_classes_per_shard))
+                 for i in range(params.num_shards)] +
+                [('bias_%d' % i, (num_classes_per_shard,))
+                 for i in range(params.num_shards)])
+
   def _GetInputs(self, inputs):
     if isinstance(inputs, list):
       assert len(inputs) == 1
@@ -3192,6 +3200,10 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
         collections=[self.__class__.__name__ + '_vars'])
     with tf.variable_scope(p.name):
       self.CreateVariable('w', w_pc)
+
+  @classmethod
+  def GetVariableShapes(cls, params):
+    return {'w': params.filter_shape}
 
   def FProp(self, theta, x):
     """Apply convolution to inputs.
