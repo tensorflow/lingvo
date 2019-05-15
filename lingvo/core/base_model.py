@@ -200,6 +200,11 @@ class BaseTask(base_layer.BaseLayer):
         'If > 0, each decoder summary will contain at most this many samples. '
         'If == 0, defaults to `samples_per_summary` for '
         'backwards compatibility.')
+    ep.Define(
+        'load_checkpoint_from', None,
+        'If not None, specifies a location for the checkpoint that '
+        'should be used for eval. One example format is a '
+        'checkpoint directory of a training run.')
     return p
 
   @base_layer.initializer

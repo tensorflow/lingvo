@@ -849,6 +849,20 @@ class TrainerTpu(base_runner.BaseRunner):
                                         outfeeds)
 
 
+def _TrainDirForEvals(train_dir, load_checkpoint_from):
+  """Returns the training directory for eval jobs."""
+  if not load_checkpoint_from:
+    # No location specified, use existing train_dir.
+    return train_dir
+
+  # If load_checkpoint_from is a directory, use it.
+  if tf.io.gfile.isdir(load_checkpoint_from):
+    return load_checkpoint_from
+
+  # Fail if we see an unexpected load_checkpoint_from.
+  raise ValueError('Invalid load_checkpoint_from: %s' % load_checkpoint_from)
+
+
 class Evaler(base_runner.BaseRunner):
   """Evaler."""
 
@@ -861,6 +875,8 @@ class Evaler(base_runner.BaseRunner):
     if self._model_task_name:
       self._eval_dir += '_' + str(self._model_task_name)
     tf.gfile.MakeDirs(self._eval_dir)
+    self._train_dir = _TrainDirForEvals(
+        self._train_dir, self.params.task.eval.load_checkpoint_from)
     self._summary_writer = self._CreateSummaryWriter(self._eval_dir)
     self._should_report_metrics = self._job_name.startswith(
         FLAGS.vizier_reporting_job)
@@ -1020,6 +1036,8 @@ class Decoder(base_runner.BaseRunner):
     self._decoder_dir = GetDecoderDir(self._logdir, self._job_name,
                                       self._model_task_name)
     tf.gfile.MakeDirs(self._decoder_dir)
+    self._train_dir = _TrainDirForEvals(
+        self._train_dir, self.params.task.eval.load_checkpoint_from)
     self._summary_writer = self._CreateSummaryWriter(self._decoder_dir)
     self._should_report_metrics = self._job_name.startswith(
         FLAGS.vizier_reporting_job)
