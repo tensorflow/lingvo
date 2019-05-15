@@ -18,7 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import six
 from six.moves import range
 import tensorflow as tf
@@ -421,11 +420,8 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     data_source, selected_bprop = py_utils.MixByWeight(inputs, weights)
     # TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to
     # use source_selected from input_batch.
-    assert isinstance(
-        data_source, collections.Sequence
-    ), 'Expected data_source to be a sequence, got: %s' % type(data_source)
     self._bprop_onehot = selected_bprop
-    batch_size = tf.shape(data_source[0])[0]
+    batch_size = tf.shape(tf.nest.flatten(data_source)[0])[0]
     return data_source, tf.tile(
         tf.expand_dims(selected_bprop, 0), [batch_size, 1])
 
