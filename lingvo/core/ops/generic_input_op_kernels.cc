@@ -146,7 +146,7 @@ class GenericInputProcessor : public RecordProcessor {
     return Status::OK();
   }
 
-  Status Merge(int64 bucket_id, const std::vector<TensorVec>& samples,
+  Status Merge(int64 bucket_size, const std::vector<TensorVec>& samples,
                TensorVec* batch) override {
     CHECK(!samples.empty());
     const auto num_samples = samples.size();

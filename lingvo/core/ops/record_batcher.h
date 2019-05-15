@@ -52,9 +52,9 @@ class RecordProcessor {
   virtual Status Process(const Rope& record, int64* bucket_key,
                          TensorVec* sample) = 0;
 
-  // Gives a list of training 'samples', all of which returned by Process() and
-  // bucketized into 'bucket_id'-th bucket, merges them into a single 'batch'.
-  virtual Status Merge(int64 bucket_id, const std::vector<TensorVec>& samples,
+  // Gives a list of training 'samples' returned by Process() and bucketed into
+  // a bucket with size `bucket_size`, merges them into a single 'batch'.
+  virtual Status Merge(int64 bucket_size, const std::vector<TensorVec>& samples,
                        TensorVec* batch) = 0;
 };
 

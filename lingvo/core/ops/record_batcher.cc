@@ -373,7 +373,7 @@ void RecordBatcher::MergerLoop() {
       const int64 id = p.first;
       auto* samples = &p.second;
       merged.clear();
-      Status s = processor_->Merge(id, *samples, &merged);
+      Status s = processor_->Merge(bucket_upper_bound_[id], *samples, &merged);
       samples->clear();
       if (!s.ok()) {
         LOG(WARNING) << "Failed to create a batch: " << s;

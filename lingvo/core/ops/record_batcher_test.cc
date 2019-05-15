@@ -56,7 +56,7 @@ class TestRP : public RecordProcessor {
     return Status::OK();
   }
 
-  Status Merge(int64 bucket_id, const std::vector<TensorVec>& samples,
+  Status Merge(int64 bucket_size, const std::vector<TensorVec>& samples,
                TensorVec* batch) override {
     const int64 n = samples.size();
     Tensor t(DT_STRING, {n});
