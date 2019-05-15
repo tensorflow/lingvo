@@ -152,8 +152,13 @@ class BasicRecordYielder : public RecordYielder {
   // Stop this yielder and then delete it.
   void Close() override;
 
-  // Returns the current epoch number.
-  virtual int64 current_epoch() const { return epoch_; }
+  // Returns the current epoch number. Epoch number starts from 1 and reflects
+  // the epoch number of the record returned by the next Yield() call.
+  virtual int64 current_epoch() const {
+    // TODO(tilarids): Use ReaderMutexLock here.
+    MutexLock l(&mu_);
+    return epoch_;
+  }
 
  protected:
   explicit BasicRecordYielder(const Options& opts);
@@ -187,10 +192,10 @@ class BasicRecordYielder : public RecordYielder {
   // Background threads. Owned.
   thread::ThreadPool* thread_;
 
-  // Epoch number.
-  std::atomic<int64> epoch_;
+  mutable Mutex mu_;
 
-  Mutex mu_;
+  // Epoch number.
+  int64 epoch_ GUARDED_BY(mu_);
 
   // Turned to true when the yielder is deleted.
   bool stop_ GUARDED_BY(mu_) = false;
@@ -203,7 +208,7 @@ class BasicRecordYielder : public RecordYielder {
   std::vector<Rope> buf_ GUARDED_BY(mu_);
 
   // True iff we are draining an epoch.
-  bool epoch_end_ = false;
+  bool epoch_end_ GUARDED_BY(mu_) = false;
 
   int64 num_records_yielded_in_epoch_ = 0;
 

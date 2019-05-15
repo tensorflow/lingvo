@@ -280,7 +280,7 @@ BasicRecordYielder::BasicRecordYielder(const Options& opts)
       thread_(new thread::ThreadPool(Env::Default(), ThreadOptions(),
                                      "record_yielder", 1 + opts.parallelism,
                                      /* low_latency_hint */ false)),
-      epoch_(0),
+      epoch_(1),
       rnd_(opts.seed),
       buf_empty_(this, &ME::BufEmpty),
       buf_not_full_(this, &ME::BufNotFull),
@@ -324,6 +324,9 @@ Status BasicRecordYielder::Yield(Rope* value, int* source_id) {
   if (status_.ok()) {
     CHECK(!stop_ && !buf_.empty());
     ExtractValue(value);
+    if (epoch_end_ && buf_.empty()) {
+      ++epoch_;
+    }
     if (source_id) {
       *source_id = static_cast<int>(opts_.source_id);
     }
@@ -340,9 +343,8 @@ bool BasicRecordYielder::ShouldFinish(const Status& s) {
 
 void BasicRecordYielder::MainLoop() {
   while (true) {
-    ++epoch_;
     num_records_yielded_in_epoch_ = 0;
-    LOG(INFO) << "Epoch " << epoch_ << " " << opts_.file_pattern;
+    LOG(INFO) << "Epoch " << current_epoch() << " " << opts_.file_pattern;
 
     // Finds all files.
     std::vector<string> filenames;
@@ -361,7 +363,7 @@ void BasicRecordYielder::MainLoop() {
     }
 
     // Shuffles these files according to the epoch # and random seed.
-    std::mt19937_64 shuffle_rnd(Hash64Combine(epoch_, shuffle_seed));
+    std::mt19937_64 shuffle_rnd(Hash64Combine(current_epoch(), shuffle_seed));
     std::shuffle(filenames.begin(), filenames.end(), shuffle_rnd);
 
     // Shards files and use one thread to go through each shard.
@@ -389,7 +391,7 @@ void BasicRecordYielder::MainLoop() {
       epoch_end_ = false;
     }
 
-    LOG(INFO) << "Epoch " << epoch_ << ": total records "
+    LOG(INFO) << "Epoch " << current_epoch() << ": total records "
               << num_records_yielded_in_epoch_;
   }
   main_loop_done_.Notify();
