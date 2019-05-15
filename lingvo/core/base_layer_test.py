@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from lingvo.core import base_layer
+from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 
@@ -295,6 +296,15 @@ class BaseLayerTest(test_utils.TestCase):
 
     with self.assertRaisesRegexp(AttributeError, 'INTERNAL'):
       _ = layer.bad_property
+
+  def testIsLayerParams(self):
+    self.assertTrue(base_layer.IsLayerParams(base_layer.BaseLayer.Params()))
+    self.assertTrue(base_layer.IsLayerParams(TestLayer.Params()))
+    self.assertFalse(base_layer.IsLayerParams(None))
+    self.assertFalse(base_layer.IsLayerParams(hyperparams.Params()))
+    self.assertFalse(
+        base_layer.IsLayerParams(
+            hyperparams.InstantiableParams(base_layer.Accumulator)))
 
 
 if __name__ == '__main__':

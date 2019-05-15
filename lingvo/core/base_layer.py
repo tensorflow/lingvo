@@ -757,3 +757,8 @@ class BaseLayer(object):
         for child in self._private_children.Flatten()
     ]
     return tf.group(*update_ops)
+
+
+def IsLayerParams(x):
+  return (isinstance(x, hyperparams.InstantiableParams) and
+          issubclass(x.cls, BaseLayer))
