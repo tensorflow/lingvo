@@ -152,6 +152,28 @@ class Adagrad(Base):
                            tf.reduce_mean(slot))
 
 
+class AdaDelta(Base):
+  """AdaDelta optimizer."""
+
+  @classmethod
+  def Params(cls):
+    p = super(AdaDelta, cls).Params()
+    p.Define('decay', 0.95,
+             'Discounting factor for the history/coming gradient')
+    p.Define(
+        'epsilon', 1e-8,
+        'Epsilon term for AdaDelta. Small value to avoid zero denominator.')
+    return p
+
+  def GetOptimizer(self, lr):
+    p = self.params
+    return tf.train.AdadeltaOptimizer(
+        learning_rate=lr, rho=p.decay, epsilon=p.epsilon)
+
+  def AddSummary(self, lr, optimizer, var_grad):
+    summary_utils.scalar('adadelta_lr', lr)
+
+
 class Adam(Base):
   """Adam."""
 
