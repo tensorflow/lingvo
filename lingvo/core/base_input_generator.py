@@ -421,7 +421,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     # TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to
     # use source_selected from input_batch.
     self._bprop_onehot = selected_bprop
-    batch_size = tf.shape(tf.nest.flatten(data_source)[0])[0]
+    batch_size = py_utils.GetShape(tf.nest.flatten(data_source)[0])[0]
     return data_source, tf.tile(
         tf.expand_dims(selected_bprop, 0), [batch_size, 1])
 
