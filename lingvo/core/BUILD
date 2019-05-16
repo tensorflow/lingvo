@@ -788,6 +788,7 @@ py_library(
     name = "recurrent",
     srcs = ["recurrent.py"],
     deps = [
+        ":cluster_factory",
         ":py_utils",
         ":sendrecv",
         # Implicit six dependency.
