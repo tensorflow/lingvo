@@ -293,16 +293,26 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
     else:
       return x
 
-  def FProp(self, theta, input_batch):
+  def zero_state(self, batch_size):
+    return py_utils.NestedMap(rnn=[l.zero_state(batch_size) for l in self.rnn])
+
+  def FProp(self, theta, input_batch, state0=None):
     p = self.params
     src_segment_id = None
     with tf.name_scope(p.name):
+      # Reshape to [t, b]
       inputs = py_utils.with_dependencies([
           py_utils.assert_shape_match(tf.shape(input_batch.ids), [-1, -1]),
           py_utils.assert_shape_match(
               tf.shape(input_batch.ids), tf.shape(input_batch.paddings))
       ], tf.transpose(input_batch.ids))
       paddings = tf.expand_dims(tf.transpose(input_batch.paddings), 2)
+
+      # Setup streaming states.
+      if not state0:
+        state0 = self.zero_state(tf.shape(inputs)[1])
+      state1 = py_utils.NestedMap(rnn=[None] * p.num_lstm_layers)
+
       xs = self.emb.EmbLookup(theta.emb, inputs)
       xs = self.ApplyClipping(theta, xs)
       summary_utils.histogram('input_emb', xs)
@@ -312,7 +322,8 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
       outputs_list = []
       for i in range(0, p.num_lstm_layers):
         layer = self.rnn[i]
-        ys, _ = layer.FProp(theta.rnn[i], xs, ps)
+        ys, state1.rnn[i] = layer.FProp(
+            theta.rnn[i], xs, ps, state0=state0.rnn[i])
         ys = self.dropout.FProp(theta.dropout, ys)
         if i >= p.residual_start:
           xs += ys  # Residual skip
@@ -327,7 +338,10 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
                                            outputs_list)
 
       return py_utils.NestedMap(
-          encoded=xs, padding=tf.squeeze(ps, [2]), segment_id=src_segment_id)
+          encoded=xs,
+          padding=tf.squeeze(ps, [2]),
+          segment_id=src_segment_id,
+          state=state1)
 
 
 class MTEncoderBiRNN(base_encoder.BaseEncoder):
