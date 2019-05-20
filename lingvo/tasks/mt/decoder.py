@@ -63,6 +63,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     p.Define('feed_attention_context_vec_to_softmax', False,
              'Whether to concatenate attention context vector to rnn output'
              ' before softmax.')
+    p.Define('per_example_tensors', False, 'Return per example tensors')
 
     # Default config for the softmax part.
     p.softmax.num_classes = 32000  # 32k
@@ -98,7 +99,10 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       target_segment_ids: A matrix of params.dtype. [time, batch].
 
     Returns:
-      A dictionary containing metrics for the xent loss and prediction accuracy.
+      A tuple (metrics, per_example_tensors)
+        metrics: A dictionary containing metrics for the xent loss and
+            prediction accuracy
+        per_example_tensors: A dictionary of per-example tensors.
     """
     p = self.params
     softmax_input = tf.reshape(softmax_input, [-1, p.softmax.input_dim])
@@ -145,10 +149,23 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
         final_loss = tf.reduce_mean(per_sequence_loss)
       loss_weight = py_utils.GetShape(per_sequence_loss)[0]
 
-    ret_dict = {
+    metrics = {
         'loss': (final_loss, loss_weight),
-        'log_pplx': (xent_loss.avg_xent, xent_loss.total_weight)
+        'log_pplx': (xent_loss.avg_xent, xent_loss.total_weight),
     }
+
+    per_example_tensors = {}
+    if p.per_example_tensors:
+      per_example_tensors['per_example_loss'] = tf.reshape(
+          xent_loss.per_example_xent, py_utils.GetShape(target_weights))
+      per_example_tensors['per_sequence_loss'] = tf.reduce_sum(
+          per_example_tensors['per_example_loss'] * target_weights, 0)
+      per_example_tensors['logits'] = tf.reshape(
+          xent_loss.logits,
+          tf.concat([py_utils.GetShape(target_weights), [-1]], 0))
+      per_example_tensors['log_probs'] = tf.reshape(
+          xent_loss.log_probs,
+          tf.concat([py_utils.GetShape(target_weights), [-1]], 0))
 
     # NOTE: tf.argmax is not implemented for the JF backend, see b/36093673
     # Skip the fraction_of_correct_next_step_preds during training.
@@ -164,8 +181,8 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       accuracy = tf.identity(
           correct_next_preds / num_preds,
           name='fraction_of_correct_next_step_preds')
-      ret_dict['fraction_of_correct_next_step_preds'] = (accuracy, num_preds)
-    return ret_dict
+      metrics['fraction_of_correct_next_step_preds'] = (accuracy, num_preds)
+    return metrics, per_example_tensors
 
   def ComputeLoss(self, theta, predictions, targets):
     """Populates a metrics dictionary based on the output of ComputePredictions.
@@ -190,7 +207,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       predictions = predictions.softmax_input
     return self._FPropSoftmax(theta, predictions, tf.transpose(targets.labels),
                               tf.transpose(targets.weights),
-                              tf.transpose(targets.paddings), segment_id), {}
+                              tf.transpose(targets.paddings), segment_id)
 
   def _TruncateTargetSequence(self, targets):
     """Truncate padded time steps from all sequences."""
