@@ -276,14 +276,27 @@ def HasRank(tensor, expected_rank):
     return tensor
 
 
-def HasShape(tensor, expected_shape):
-  """Syntactic sugar for asserting that tensor has the expected shape."""
+def HasShape(tensor, expected_shape, ndims=None):
+  """Syntactic sugar for asserting that tensor has the expected shape.
+
+  Args:
+    tensor: A Tensor.
+    expected_shape: A Python list or a 1D tensor.
+    ndims: If not None, check only the first `ndims` dimensions of `tensor`.
+      Must be equal to the length of `expected_shape` if not None.
+
+  Returns:
+    The input `tensor`
+  Raises:
+    A runtime error if the assertion fails.
+  """
   if FLAGS.enable_asserts:
     filepath, line, func, _ = traceback.extract_stack(limit=3)[-2]
     msg = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(r'.*/', '',
                                                  filepath), line, func)
     return with_dependencies([
-        py_x_ops.assert_shape_match(tf.shape(tensor), expected_shape, msg=msg)
+        py_x_ops.assert_shape_match(
+            tf.shape(tensor)[:ndims], expected_shape, msg=msg)
     ], tensor)
   else:
     return tensor
