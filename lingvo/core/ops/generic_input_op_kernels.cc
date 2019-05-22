@@ -159,6 +159,9 @@ class GenericInputProcessor : public RecordProcessor {
 
       for (int j = 0; j < num_outs; ++j) {
         const int pad_dim = dynamic_padding_dimensions_[j];
+        if (pad_dim == -1) {
+          continue;
+        }
         const int pad_value = dynamic_padding_constants_[j];
 
         int64 max_length = 0;

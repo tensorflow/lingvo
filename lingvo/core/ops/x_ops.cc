@@ -602,8 +602,6 @@ sequences: The string sequences. The shape is [batch_size].
 vocab_filepath: A path to a text file where each line is a BPE string token.
 )doc");
 
-
-
 REGISTER_OP("GenericInput")
     .Output("out: out_types")
     .INPUT_ATTRS  // Common input attributes.
@@ -629,7 +627,9 @@ processor: A function that processes a string (one record) and returns
 dynamic_padding_dimensions: If not empty, must be the same length as out.
     Specifies the 0-indexed dimension to pad dynamically for each output.
     The output is padded to the longest tensor in the batch along the dimension.
-    The first (0-th) dimension is _not_ the batch dimension.
+    The first (0-th) dimension is _not_ the batch dimension. A value of -1
+    indicates the specified output should not be padded, eg. if the output is a
+    scalar rather than a sequence.
 dynamic_padding_constants: Must be set if `dynamic_padding_dimension` is
     provided. The constant value to use for padding.
 )doc");
