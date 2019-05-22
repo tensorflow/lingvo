@@ -401,17 +401,22 @@ class BaseLayer(object):
       raise AttributeError('%s is not a sub-layer of %s.' % (name, self))
 
   def GetDescendant(self, path):
-    """Returns a descendent layer given the path.
+    """Returns a descendant layer given the path.
 
     Args:
       path: a comma separated string denoting a descendant of this layer.
 
     Returns:
-      The descendent layer.
+      The descendant layer.
+
+    Raises:
+      KeyError: if the descendant is not found.
     """
     sub = self
     if path:
       for k in path.split('.'):
+        if k not in sub.children:
+          raise KeyError('%s not found in %s' % (k, sub.children.keys()))
         sub = sub.children[k]
     return sub
 
