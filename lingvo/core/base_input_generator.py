@@ -148,30 +148,38 @@ class BaseInputGenerator(base_layer.BaseLayer):
       tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
       tpu_embedding = (tpu_embedding_collection[0]
                        if tpu_embedding_collection else None)
-      tpu_embedding_input_key = (tpu_embedding.feature_to_config_dict.keys()[0]
-                                 if tpu_embedding is not None else None)
+
+      tpu_embedding_input_keys = (
+          tpu_embedding.feature_to_config_dict.keys()
+          if tpu_embedding is not None else [])
+
       for task_id in range(num_infeed_hosts):
         host_device = '/task:{}/device:CPU:0'.format(task_id)
         with tf.device(host_device):
           batch = self.GetPreprocessedInputBatch()
-          if tpu_embedding_input_key is not None:
+          tpu_embedding_features = []
+          for tpu_embedding_input_key in tpu_embedding_input_keys:
             tpu_embedding_feature = batch.pop(tpu_embedding_input_key)
+            tpu_embedding_features.append(
+                (tpu_embedding_input_key, tpu_embedding_feature))
 
           if first_batch is None:
             first_batch = batch
           flat_batch = batch.FlattenItems()
 
           if tpu_embedding is not None:
+            enqueue_dict_per_core = [{}] * tpu_embedding.num_cores_per_host
             num_cores_per_host = tpu_embedding.num_cores_per_host
-            tpu_embedding_feature_splitted = tf.split(tpu_embedding_feature,
-                                                      num_cores_per_host)
-            enqueue_datas_list = []
-            for split in tpu_embedding_feature_splitted:
-              enqueue_data = tpu_embedding_lib.EnqueueData(
-                  tf.squeeze(split, axis=[1]))
-              enqueue_datas_list.append({tpu_embedding_input_key: enqueue_data})
+            for tpu_embedding_input_key, tpu_embedding_feature in tpu_embedding_features:
+              tpu_embedding_feature_splitted = tf.split(tpu_embedding_feature,
+                                                        num_cores_per_host)
+              for core, split in enumerate(tpu_embedding_feature_splitted):
+                enqueue_data = tpu_embedding_lib.EnqueueData(
+                    tf.squeeze(split, axis=[1]))
+                enqueue_dict_per_core[core][
+                    tpu_embedding_input_key] = enqueue_data
             input_ops_list += tpu_embedding.generate_enqueue_ops(
-                enqueue_datas_list)
+                enqueue_dict_per_core)
 
           shapes, types = [], []
           for k, x in flat_batch:

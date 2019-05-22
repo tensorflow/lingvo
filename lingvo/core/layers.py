@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import math
 import numbers
 import numpy as np
@@ -1169,7 +1170,7 @@ class EmbeddingLayer(base_layer.BaseLayer):
 class TPUEmbeddingLayer(base_layer.BaseLayer):
   """Embedding layer using TPU embedding.
 
-  Only support 1 table with 1 feature whose dimension 1 is of size 1.
+  Only support 1 table and multiple features whose dimension 1 is of size 1.
   Only support Adagrad.
   """
 
@@ -1179,7 +1180,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     p.Define('vocab_size', 0, 'Depth of the input.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
     p.Define('batch_size', 0, 'Per-core batch size.')
-    p.Define('input_key', None, 'Name of the input in InputBatch.')
+    p.Define('input_keys', None, 'Name of inputs in InputBatch.')
     p.Define('learning_rate', None, 'Learning rate.')
     p.Define('initial_accumulator', None, 'Initial value of accumulator.')
     p.Define('pipeline_execution_with_tensor_core', False,
@@ -1194,7 +1195,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.vocab_size > 0
     assert p.embedding_dim > 0
     assert p.batch_size > 0
-    assert p.input_key
+    assert p.input_keys
     assert p.learning_rate > 0
     assert p.initial_accumulator > 0
     assert p.name
@@ -1205,8 +1206,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
 
     self._ids_per_shard = int(math.ceil(float(p.vocab_size) / num_hosts))
     self._padded_vocab_size = self._ids_per_shard * num_hosts
-    self._feature_name = p.input_key
-    self._table_name = '{}_table'.format(self._feature_name)
+    self._feature_names = p.input_keys
+    self._table_name = '{}_table'.format(p.name)
     if py_utils.use_tpu():
       num_cores = cluster.params.worker.tpus_per_replica
       global_batch_size = (
@@ -1215,7 +1216,9 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
           self._padded_vocab_size, p.embedding_dim, combiner=None)
       table_to_config_dict = {self._table_name: table_config}
       feature_config = tpu_embedding_lib.FeatureConfig(self._table_name)
-      feature_to_config_dict = {self._feature_name: feature_config}
+      feature_to_config_dict = {}
+      for f in self._feature_names:
+        feature_to_config_dict[f] = feature_config
       mode = tpu_embedding_lib.TRAINING
       optimization_parameters = tpu_embedding_lib.AdagradParameters(
           p.learning_rate, p.initial_accumulator)
@@ -1290,11 +1293,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
                 tf.assign(accumulator_var, retrieved_accumulator))
             retrieve_op_list.append(retrieve_parameters_op)
 
-    if p.is_eval:
-      self._private_vars['wm'] = self._embedding_table_var
-      self._private_theta['wm'] = [
-          tf.identity(v) for v in self._embedding_table_var
-      ]
+    self._private_vars['wm'] = self._embedding_table_var
+    self._private_theta['wm'] = [
+        tf.identity(v) for v in self._embedding_table_var
+    ]
 
     if py_utils.use_tpu():
       tf.logging.info('adding load and retrieve ops to collection.')
@@ -1302,69 +1304,51 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       tf.add_to_collection(py_utils.TPU_EMBEDDING_RETRIEVE_OPS,
                            retrieve_op_list)
 
-    # Tracking this in lingvo so it gets assigned to the correct device.
-    with tf.variable_scope(p.name):
-      w_pc = py_utils.WeightParams(shape=[1], init=p.params_init, dtype=p.dtype)
-      self.CreateVariable('dummy_var', w_pc)
+  def EmbLookup(self, theta, ids_map):
+    """Looks up embedding vectors for each entry in ids_map.
 
-  def EmbLookupDefaultTheta(self, ids):
-    return self.EmbLookup(self.theta, ids)
-
-  def EmbLookup(self, theta, ids):
-    """Looks up embedding vectors for ids.
+    Since the TPUEmbedding is monolothic, and consulted once per
+    FProp/BPRop, we must centralize the lookup. Thus, for multiple
+    features, we contain them into a single-lookup rather than allowing
+    the caller to call Lookup multiple times.
 
     Args:
       theta: Named tuple with the weight matrix for the embedding.
-      ids: A rank-N int32 tensor.
+      ids_map: A dict of string -> list of rank-N int32 tensor.
 
     Returns:
-      A rank-(N+1) params.dtype tensor.
-      embs[indices, :] is the embedding vector for ids[indices].
+      An activations dict of string ->  rank-(N+1) params.dtype tensor.
     """
     p = self.params
 
-    @function.Defun(tf.float32, self.params.dtype)
-    def EmbBprop(dummy_emb, drets):
-      # Assuming dimension 1 is of size 1.
-      send_gradient_op = self._tpu_embedding.generate_send_gradients_op(
-          {self._feature_name: tf.squeeze(drets, axis=[1])})
-      with tf.control_dependencies([send_gradient_op]):
-        return tf.zeros_like(dummy_emb)
+    def EmbFprop(ids_map):
+      del ids_map
+      activations = self._tpu_embedding.get_activations()
+      tf.add_to_collection(py_utils.TPU_EMBEDDING_ACTIVATIONS, activations)
+      ret = collections.OrderedDict()
+      for k, v in activations.items():
+        ret[k] = tf.expand_dims(v, axis=[1])
+      return ret
 
-    @function.Defun(tf.float32, grad_func=EmbBprop)
-    def EmbFprop(dummy_emb):
-      del dummy_emb
-
-      rets = self._tpu_embedding.get_activations()[self._feature_name]
-      # Assuming dimension 1 is of size 1.
-      rets = tf.expand_dims(rets, axis=[1])
+    def CpuEmbLookup(wm, ids_map):
+      rets = collections.OrderedDict()
+      for k, ids in ids_map.items():
+        ids = tf.convert_to_tensor(ids)
+        ids = py_utils.with_dependencies(
+            [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
+        embs = tf.nn.embedding_lookup(wm, tf.reshape(ids, [-1]))
+        out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
+        rets[k] = tf.reshape(embs, out_shape)
       return rets
 
-    # For Controller (need to fool it into generating a slot var for dummy_var).
-    def DummyEmbLookup(dummy_emb, ids):
-      out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
-      zeros = tf.zeros(out_shape)
-      return zeros + dummy_emb
-
-    # For eval
-    def CpuEmbLookup(wm, ids):
-      del wm
-
-      embs = tf.nn.embedding_lookup(theta.wm, tf.reshape(ids, [-1]))
-      out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
-      return tf.reshape(embs, out_shape)
-
     if self._params.is_eval:
-      ids = tf.convert_to_tensor(ids)
-      ids = py_utils.with_dependencies(
-          [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
-      return CpuEmbLookup(self.theta.wm, ids)
+      return CpuEmbLookup(self.theta.wm, ids_map)
     elif not py_utils.use_tpu():
       # Contoller
-      return DummyEmbLookup(self.theta.dummy_var, ids)
+      return CpuEmbLookup(self.theta.wm, ids_map)
     else:
       # TPU Trainer
-      return EmbFprop(self.theta.dummy_var)
+      return EmbFprop(ids_map)
 
 
 class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):

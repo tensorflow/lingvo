@@ -662,6 +662,19 @@ class BaseTask(base_layer.BaseLayer):
     p = self.params
     tp = p.train
 
+    train_ops = []
+
+    # If we are using Tpu Embeddings, generate the monolithic send
+    # gradient op.
+    tpu_embedding_activations = tf.get_collection(
+        py_utils.TPU_EMBEDDING_ACTIVATIONS)
+    if tpu_embedding_activations:
+      tpu_embedding_activations_dict = tpu_embedding_activations[0]
+      tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
+      tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
+          self.loss, tpu_embedding_activations_dict, tpu_embedding)
+      train_ops.append(tpu_embedding_send_gradient_op)
+
     # Compute gradients.
     self._var_grads = py_utils.ComputeGradients(
         self.loss, vmap, tp.grad_aggregation_method,
@@ -718,7 +731,7 @@ class BaseTask(base_layer.BaseLayer):
     # TODO(rpang): try to structure _train_op as:
     #   tf.cond(skip_step, <only update skip stats>, <all updates>)
     # so that we skip all other updates when a step is skipped.
-    train_ops = [
+    train_ops += [
         var_update_op, batch_norm_updates, stats_updates,
         post_training_step_updates, mask_update_op
     ]

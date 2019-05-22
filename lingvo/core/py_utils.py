@@ -91,6 +91,7 @@ CLOSE_QUEUE_OPS = '__lingvo_close_queue_ops'
 TPU_EMBEDDING_LOAD_OPS = '__lingvo_tpu_embedding_load_ops'
 TPU_EMBEDDING_RETRIEVE_OPS = '__lingvo_tpu_embedding_retrieve_ops'
 TPU_EMBEDDING = '__tpu_embedding'
+TPU_EMBEDDING_ACTIVATIONS = '__tpu_embedding_activations'
 
 # pylint: disable=protected-access
 deprecation._PRINT_DEPRECATION_WARNINGS = False
@@ -1445,6 +1446,27 @@ def _ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
       aggregation_method=grad_aggregation_method,
       colocate_gradients_with_ops=colocate_gradients_with_ops,
       gate_gradients=gate_gradients)
+
+
+def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding):
+  """Returns a TpuEmbedding SendGradient op.
+
+  Args:
+   loss: The loss to backprop from.
+   activation_dict: String feature -> embedding activations dict.
+   tpu_embedding: TPUEmbedding instance.
+  """
+
+  # Scale the loss to account for the full batch size.
+  shards = tpu_function.get_tpu_context().number_of_shards
+  loss *= tf.constant(1.0 / shards, dtype=loss.dtype)
+
+  grads = tf.gradients(loss, activation_dict.values())
+  feature_to_gradient_dict = py_collections.OrderedDict(
+      zip(activation_dict.keys(), grads))
+  send_gradient_op = tpu_embedding.generate_send_gradients_op(
+      feature_to_gradient_dict)
+  return send_gradient_op
 
 
 def _ComputeGradientsTpu(loss, all_vars, grad_aggregation_method,
