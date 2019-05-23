@@ -289,12 +289,7 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     super(BatchNormLayerNoPadding, self).__init__(params)
     p = self.params
     assert p.name, 'Name of BatchNormLayerNoPadding is not set.'
-    assert p.dim > 0, 'dim should be positive'
     p.fprop_dtype = None
-    # Accumulate bn sufficient stats over micro-batches.
-    self.RegisterAccumulator('counts', AddingAccumulator([], p.dtype))
-    self.RegisterAccumulator('mean_ss', AddingAccumulator([p.dim], p.dtype))
-    self.RegisterAccumulator('variance_ss', AddingAccumulator([p.dim], p.dtype))
 
     # Skip L-P regularization for these variables.
     collections = [
@@ -328,6 +323,12 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
           dtype=p.dtype,
           collections=moving_collections)
       self.CreateVariable('moving_variance', mvv, trainable=False)
+
+    # Accumulate bn sufficient stats over micro-batches.
+    dim = self.vars.beta.shape[0]
+    self.RegisterAccumulator('counts', AddingAccumulator([], p.dtype))
+    self.RegisterAccumulator('mean_ss', AddingAccumulator([dim], p.dtype))
+    self.RegisterAccumulator('variance_ss', AddingAccumulator([dim], p.dtype))
 
   @classmethod
   def GetVariableShapes(cls, params):
@@ -431,8 +432,10 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     p = self.params
     inputs_dtype = inputs.dtype
     inputs = tf.cast(inputs, p.dtype)
-    inputs = py_utils.with_dependencies(
-        [py_utils.assert_shape_match([tf.shape(inputs)[-1]], [p.dim])], inputs)
+    inputs = py_utils.with_dependencies([
+        py_utils.assert_shape_match([tf.shape(inputs)[-1]], tf.shape(
+            theta.beta))
+    ], inputs)
     with tf.name_scope(p.name) as scope:
       if p.is_eval:
         outputs = tf.nn.batch_normalization(inputs, theta.moving_mean,

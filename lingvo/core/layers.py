@@ -194,7 +194,6 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     assert len(p.filter_shape) == 4
     assert len(p.filter_stride) == 2
     assert len(p.dilation_rate) == 2
-    assert all(x > 0 for x in p.filter_shape)
     assert all(x > 0 for x in p.filter_stride)
     assert all(x > 0 for x in p.dilation_rate)
     if any(x > 1 for x in p.dilation_rate):
@@ -3171,7 +3170,6 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
     assert len(p.filter_shape) == 4
     assert len(p.filter_stride) == 2
     assert len(p.dilations) == 2
-    assert all(x > 0 for x in p.filter_shape)
     assert all(x > 0 for x in p.filter_stride)
     self._CreateConvVariables()
 

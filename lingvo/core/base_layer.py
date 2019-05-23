@@ -26,6 +26,7 @@ import tensorflow as tf
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
+from lingvo.core import symbolic
 
 
 class _LocalLayerStack(threading.local):
@@ -277,6 +278,10 @@ class BaseLayer(object):
     self._private_accumulators = py_utils.NestedMap()
     # Layer-private functions. Add with AddFunction.
     self._private_fns = dict()
+    # Mapping from variable names to its symbolic shape.
+    # self._var_symbolic_shape_map['var_name'] will be a tuple of integers or
+    # symbolic expressions, one for each dimension of the variable.
+    self._var_symbolic_shape_map = dict()
 
     self.AddExtraTheta('global_step', py_utils.GetGlobalStep())
 
@@ -573,6 +578,10 @@ class BaseLayer(object):
     for acc, value in zip(accumulator_list, value_list):
       acc.SetValue(value)
 
+  def GetVariableSymbolicShape(self, var_name):
+    """Returns the variable's symbolic shape."""
+    return self._var_symbolic_shape_map.get(var_name, None)
+
   def CreateVariable(self, name, var_params, theta_fn=None, *args, **kwargs):
     """Create a variable of this layer according to the parameter `var_params`.
 
@@ -611,6 +620,10 @@ class BaseLayer(object):
           init=var_params.init,
           collections=(var_params.collections +
                        [py_utils.SKIP_LP_REGULARIZATION]))
+    self._var_symbolic_shape_map[name] = var_params.shape
+    if (var_params.shape and
+        any(symbolic.IsExpr(dim) for dim in var_params.shape)):
+      var_params.shape = symbolic.EvalExpr(var_params.shape)
     value, var = py_utils.CreateVariable(name, var_params, *args, **kwargs)
     self._private_vars[name] = var
     if theta_fn is not None:

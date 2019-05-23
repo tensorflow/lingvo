@@ -160,6 +160,7 @@ py_library(
         ":cluster_factory",
         ":hyperparams",
         ":py_utils",
+        ":symbolic",
         # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
@@ -1149,5 +1150,25 @@ py_test(
     deps = [
         ":test_utils",
         ":tshape",
+    ],
+)
+
+py_library(
+    name = "symbolic",
+    srcs = ["symbolic.py"],
+    deps = [
+        # Implicit sympy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "symbolic_test",
+    srcs = ["symbolic_test.py"],
+    deps = [
+        ":symbolic",
+        # Implicit sympy dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:test_utils",
     ],
 )
