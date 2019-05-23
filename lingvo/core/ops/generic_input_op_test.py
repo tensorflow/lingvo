@@ -26,14 +26,14 @@ import numpy as np
 from six.moves import range
 
 import tensorflow as tf
+from lingvo.core import generic_input
 from lingvo.core import test_utils
-from lingvo.core.ops import py_x_ops
 
 
 class GenericInputOpTest(test_utils.TestCase):
 
   def get_test_input(self, path, **kwargs):
-    return py_x_ops.GenericInput(
+    return generic_input.GenericInput(
         file_pattern='tfrecord:' + path,
         file_random_seed=0,
         file_buffer_size=32,
@@ -123,7 +123,7 @@ class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
   # Runs all GenericInputOp tests plus some more.
 
   def get_test_input(self, path, **kwargs):
-    return py_x_ops.GenericInput(
+    return generic_input.GenericInput(
         file_pattern=','.join(['tfrecord:' + path, 'tfrecord:' + path]),
         input_source_weights=[0.3, 0.7],
         file_random_seed=0,
@@ -153,7 +153,7 @@ class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
 
       # Samples random records from the data files and processes them
       # to generate batches.
-      strs, vals = py_x_ops.GenericInput(
+      strs, vals = generic_input.GenericInput(
           file_pattern=','.join(
               ['tfrecord:' + path1, 'tfrecord:' + path2, 'tfrecord:' + path3]),
           input_source_weights=[0.2, 0.3, 0.5],

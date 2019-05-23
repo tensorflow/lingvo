@@ -23,8 +23,8 @@ import tensorflow as tf
 from tensorflow.python.ops import inplace_ops
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
+from lingvo.core import generic_input
 from lingvo.core import py_utils
-from lingvo.core.ops import py_x_ops
 
 
 class AsrInput(base_input_generator.BaseSequenceInputGenerator):
@@ -63,7 +63,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
       return fval['uttid'], tgt_ids, tgt_labels, tgt_paddings, fval[
           'frames'], src_paddings, bucket_key
 
-    return py_x_ops.GenericInput(
+    return generic_input.GenericInput(
         file_pattern=file_pattern,
         processor=Proc,
         dynamic_padding_dimensions=[0] * 6,

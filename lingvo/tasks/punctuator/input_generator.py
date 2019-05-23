@@ -23,9 +23,9 @@ import tensorflow as tf
 
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
+from lingvo.core import generic_input
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
-from lingvo.core.ops import py_x_ops
 
 
 class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
@@ -94,7 +94,7 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
       an operation that when executed, calls `_ProcessLine` on a line read
     from `file_pattern`.
     """
-    return py_x_ops.GenericInput(
+    return generic_input.GenericInput(
         file_pattern=file_pattern,
         processor=self._ProcessLine,
         # Pad dimension 0 to the same length.

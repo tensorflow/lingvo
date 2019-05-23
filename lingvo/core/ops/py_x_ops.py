@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-from tensorflow.python.framework import function
 
 gen_x_ops = tf.load_op_library(
     tf.resource_loader.get_path_to_datafile('x_ops.so'))
@@ -60,19 +59,3 @@ id_to_ascii = gen_x_ops.id_to_ascii
 ngram_id_to_token = gen_x_ops.ngram_id_to_token
 bpe_ids_to_words = gen_x_ops.bpe_ids_to_words
 bpe_words_to_ids = gen_x_ops.bpe_words_to_ids
-
-
-def GenericInput(processor, *args, **kwargs):
-  # pylint: disable=protected-access
-  if not isinstance(processor, function._DefinedFunction):
-    # Helper if processor is a python callable.
-    processor = function.Defun(tf.string)(processor)
-  out_types = [
-      tf.DType(a.type) for a in processor.definition.signature.output_arg
-  ]
-  assert out_types[-1] == tf.int32, ('%s is not expected.' % out_types[-1])
-  return gen_x_ops.generic_input(
-      processor=processor, out_types=out_types[:-1], *args, **kwargs)
-
-
-GenericInput.__doc__ = gen_x_ops.generic_input.__doc__

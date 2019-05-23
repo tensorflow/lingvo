@@ -760,6 +760,16 @@ py_test(
 )
 
 py_library(
+    name = "generic_input",
+    srcs = ["generic_input.py"],
+    deps = [
+        # Implicit tensorflow dependency.
+        # Implicit tensorflow python framework_for_generated_wrappers dependency.
+        "//lingvo/core/ops:py_x_ops",
+    ],
+)
+
+py_library(
     name = "gpipe",
     srcs = ["gpipe.py"],
     deps = [

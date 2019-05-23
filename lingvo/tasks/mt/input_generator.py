@@ -22,9 +22,9 @@ import tensorflow as tf
 
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
+from lingvo.core import generic_input
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
-from lingvo.core.ops import py_x_ops
 
 
 class NmtInput(base_input_generator.BaseSequenceInputGenerator):
@@ -66,7 +66,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
               tf.reduce_sum(1.0 - features['target_padding'])))
       return [features[k] for k, _ in outputs] + [bucket_key]
 
-    return py_x_ops.GenericInput(
+    return generic_input.GenericInput(
         file_pattern=file_pattern,
         processor=Proc,
         dynamic_padding_dimensions=[0] * 6,

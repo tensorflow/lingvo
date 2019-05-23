@@ -32,7 +32,9 @@ gen_op_pylib(
     name = "py_x_ops",
     srcs = ["py_x_ops.py"],
     cc_lib_name = "x_ops",
-    kernel_deps = [":op_kernels"],
+    kernel_deps = [
+        ":op_kernels",
+    ],
 )
 
 # Op kernel deps.
@@ -272,10 +274,10 @@ py_test(
     srcs = ["generic_input_op_test.py"],
     python_version = "PY2",
     deps = [
-        ":py_x_ops",
         # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
+        "//lingvo/core:generic_input",
         "//lingvo/core:test_utils",
     ],
 )
