@@ -66,7 +66,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
               tf.reduce_sum(1.0 - features['target_padding'])))
       return [features[k] for k, _ in outputs] + [bucket_key]
 
-    return py_x_ops.generic_input(
+    return py_x_ops.GenericInput(
         file_pattern=file_pattern,
         processor=Proc,
         dynamic_padding_dimensions=[0] * 6,

@@ -94,7 +94,7 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
       an operation that when executed, calls `_ProcessLine` on a line read
     from `file_pattern`.
     """
-    return py_x_ops.generic_input(
+    return py_x_ops.GenericInput(
         file_pattern=file_pattern,
         processor=self._ProcessLine,
         # Pad dimension 0 to the same length.

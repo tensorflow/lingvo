@@ -63,7 +63,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
       return fval['uttid'], tgt_ids, tgt_labels, tgt_paddings, fval[
           'frames'], src_paddings, bucket_key
 
-    return py_x_ops.generic_input(
+    return py_x_ops.GenericInput(
         file_pattern=file_pattern,
         processor=Proc,
         dynamic_padding_dimensions=[0] * 6,

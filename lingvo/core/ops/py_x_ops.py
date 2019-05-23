@@ -62,7 +62,7 @@ bpe_ids_to_words = gen_x_ops.bpe_ids_to_words
 bpe_words_to_ids = gen_x_ops.bpe_words_to_ids
 
 
-def generic_input(processor, *args, **kwargs):
+def GenericInput(processor, *args, **kwargs):
   # pylint: disable=protected-access
   if not isinstance(processor, function._DefinedFunction):
     # Helper if processor is a python callable.
@@ -75,4 +75,4 @@ def generic_input(processor, *args, **kwargs):
       processor=processor, out_types=out_types[:-1], *args, **kwargs)
 
 
-generic_input.__doc__ = gen_x_ops.generic_input.__doc__
+GenericInput.__doc__ = gen_x_ops.generic_input.__doc__
