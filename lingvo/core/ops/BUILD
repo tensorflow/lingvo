@@ -278,6 +278,7 @@ py_test(
         # Implicit six dependency.
         # Implicit tensorflow dependency.
         "//lingvo/core:generic_input",
+        "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
     ],
 )

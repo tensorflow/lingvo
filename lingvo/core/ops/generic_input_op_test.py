@@ -27,6 +27,7 @@ from six.moves import range
 
 import tensorflow as tf
 from lingvo.core import generic_input
+from lingvo.core import py_utils
 from lingvo.core import test_utils
 
 
@@ -42,6 +43,12 @@ class GenericInputOpTest(test_utils.TestCase):
         **kwargs)
 
   def testBasic(self):
+    self._testBasic(use_nested_map=False)
+
+  def testNestedMap(self):
+    self._testBasic(use_nested_map=True)
+
+  def _testBasic(self, use_nested_map):
     # Generate a test file w/ 100 records.
     tmp = os.path.join(tf.test.get_temp_dir(), 'basic')
     with tf.python_io.TFRecordWriter(tmp) as w:
@@ -59,12 +66,21 @@ class GenericInputOpTest(test_utils.TestCase):
       # A record processor written in TF graph.
       def _process(record):
         num, = tf.py_func(str_to_num, [record], [tf.float32])
-        return record, tf.stack([num, tf.square(num)]), tf.to_int32(1)
+        num = tf.stack([num, tf.square(num)])
+        if use_nested_map:
+          return py_utils.NestedMap(record=record, num=num), tf.to_int32(1)
+        else:
+          return record, num, tf.to_int32(1)
 
       # Samples random records from the data files and processes them
       # to generate batches.
-      strs, vals = self.get_test_input(
+      inputs = self.get_test_input(
           tmp, bucket_upper_bound=[1], processor=_process)
+      if use_nested_map:
+        input_map = inputs[0]
+        strs, vals = input_map.record, input_map.num
+      else:
+        strs, vals = inputs
 
     with self.session(graph=g) as sess:
       record_seen = set()
