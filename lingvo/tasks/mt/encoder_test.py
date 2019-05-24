@@ -291,7 +291,8 @@ class TransformerEncoderTest(test_utils.TestCase):
       # pyformat: enable
       self.assertAllEqual(actual_enc_out.shape, [sl, bs, p.model_dim])
       self.assertAllEqual(actual_padding.shape, [sl, bs])
-      self.assertAllClose(expected_enc_out, actual_enc_out_sum)
+      self.assertAllClose(
+          expected_enc_out, actual_enc_out_sum, rtol=1e-05, atol=1e-05)
 
   def testForwardPassWithInputPacking(self):
     with self.session(use_gpu=False) as sess:
