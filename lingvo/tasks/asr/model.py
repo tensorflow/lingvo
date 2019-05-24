@@ -202,9 +202,6 @@ class AsrModel(base_model.BaseTask):
     with tf.name_scope('fprop'), tf.name_scope(p.name):
       encoder_outputs = self._FrontendAndEncoderFProp(self.theta,
                                                       input_batch.src)
-      if 'contextualizer' in self.decoder.theta:
-        self.decoder.contextualizer.SetContextMap(
-            input_batch.tgt, self.decoder.theta.contextualizer)
       decoder_outs = self.decoder.BeamSearchDecode(encoder_outputs)
       return self._ComputeDecoderMetrics(decoder_outs, input_batch)
 
