@@ -174,8 +174,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
               tpu_embedding_feature_splitted = tf.split(tpu_embedding_feature,
                                                         num_cores_per_host)
               for core, split in enumerate(tpu_embedding_feature_splitted):
+                # Dense to sparse. Note the assumption of a padding id.
+                sample_indices = tf.where(tf.not_equal(split, -1))
+                embedding_indices = tf.gather_nd(split, sample_indices)
                 enqueue_data = tpu_embedding_lib.EnqueueData(
-                    tf.squeeze(split, axis=[1]))
+                    embedding_indices, sample_indices)
                 enqueue_dict_per_core[core][
                     tpu_embedding_input_key] = enqueue_data
             input_ops_list += tpu_embedding.generate_enqueue_ops(

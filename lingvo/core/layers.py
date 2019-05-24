@@ -1169,8 +1169,12 @@ class EmbeddingLayer(base_layer.BaseLayer):
 class TPUEmbeddingLayer(base_layer.BaseLayer):
   """Embedding layer using TPU embedding.
 
-  Only support 1 table and multiple features whose dimension 1 is of size 1.
-  Only support Adagrad.
+  This layer has some important caveats, due to the interface of the
+  TPU embedding hardware. Its behavior most closely mimics that of
+  tf.nn.embedding_lookup_sparse.
+
+  Only support 1 table and multiple features.
+  Only supports Adagrad.
   """
 
   @classmethod
@@ -1185,6 +1189,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     p.Define('pipeline_execution_with_tensor_core', False,
              'Set to True to be faster. See tpu_embedding.py for details.')
     p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
+    p.Define('combiner', 'mean', 'Must be "sum", "sqrtn" or "mean"')
     return p
 
   @base_layer.initializer
@@ -1199,6 +1204,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.initial_accumulator > 0
     assert p.name
     assert p.num_tpu_hosts > 0
+    assert p.combiner
 
     cluster = self.cluster
     num_hosts = p.num_tpu_hosts
@@ -1212,7 +1218,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       global_batch_size = (
           self.params.batch_size * self.cluster.num_splits_per_client)
       table_config = tpu_embedding_lib.TableConfig(
-          self._padded_vocab_size, p.embedding_dim, combiner=None)
+          self._padded_vocab_size, p.embedding_dim, combiner=p.combiner)
       table_to_config_dict = {self._table_name: table_config}
       feature_config = tpu_embedding_lib.FeatureConfig(self._table_name)
       feature_to_config_dict = {}
@@ -1311,16 +1317,22 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     features, we contain them into a single-lookup rather than allowing
     the caller to call Lookup multiple times.
 
+    Currently, there's also an implied combination step which combines
+    the sequence into a single set of activations by sum, mean or
+    sqrtn.
+
     Args:
       theta: Named tuple with the weight matrix for the embedding.
-      ids_map: A dict of string -> list of rank-N int32 tensor.
+      ids_map: A dict of string -> [batch, sequence] int32 Tensor.
+               -1 is used as a padding id.
 
     Returns:
-      An activations dict of string ->  rank-(N+1) params.dtype tensor.
+      An activations dict of string ->  [batch, 1, embedding_dim] float32 Tensor
     """
     p = self.params
 
-    def EmbFprop(ids_map):
+    def TpuEmbLookup(ids_map):
+      """TPU Embedding lookup."""
       del ids_map
       activations = self._tpu_embedding.get_activations()
       tf.add_to_collection(py_utils.TPU_EMBEDDING_ACTIVATIONS, activations)
@@ -1329,25 +1341,36 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         ret[k] = tf.expand_dims(v, axis=[1])
       return ret
 
-    def CpuEmbLookup(wm, ids_map):
+    def CpuEmbLookup(theta, ids_map):
+      """CPU evaluation embedding lookup."""
       rets = collections.OrderedDict()
       for k, ids in ids_map.items():
-        ids = tf.convert_to_tensor(ids)
-        ids = py_utils.with_dependencies(
-            [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
-        embs = tf.nn.embedding_lookup(wm, tf.reshape(ids, [-1]))
-        out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
-        rets[k] = tf.reshape(embs, out_shape)
+        # Dense to sparse.
+        dense_shape = tf.shape(ids, out_type=tf.int64)
+        sample_indices = tf.cast(tf.where(tf.not_equal(ids, -1)), tf.int64)
+        embedding_indices = tf.cast(tf.gather_nd(ids, sample_indices), tf.int64)
+        sparse_ids = tf.SparseTensor(
+            indices=sample_indices,
+            values=embedding_indices,
+            dense_shape=dense_shape)
+        # [batch, embedding_dim]
+        embs = tf.nn.embedding_lookup_sparse(
+            theta.wm,
+            sparse_ids,
+            None,  # sp_weights
+            combiner=p.combiner)
+        # [batch, 1, embedding_dim]
+        rets[k] = tf.expand_dims(embs, 1)
       return rets
 
     if self._params.is_eval:
-      return CpuEmbLookup(self.theta.wm, ids_map)
+      return CpuEmbLookup(self.theta, ids_map)
     elif not py_utils.use_tpu():
       # Contoller
-      return CpuEmbLookup(self.theta.wm, ids_map)
+      return CpuEmbLookup(self.theta, ids_map)
     else:
       # TPU Trainer
-      return EmbFprop(ids_map)
+      return TpuEmbLookup(ids_map)
 
 
 class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
