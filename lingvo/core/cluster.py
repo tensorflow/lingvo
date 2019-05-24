@@ -51,6 +51,10 @@ class _Cluster(object):
     p.Define('name', '/job:localhost',
              'TensorFlow job spec, e.g., /job:trainer, /job:ps')
     p.Define('replicas', replicas, 'The number of tasks of a job.')
+    p.Define(
+        'targets', '', 'The target network address(es) to which we can '
+        'create tf sessions. E.g., a single ip:port, or a list of '
+        'comma-separated grpc://ip:port, etc.')
     p.Define('cpus_per_replica', 1, 'The number of CPU devices to use per '
              'replica.')
     p.Define('gpus_per_replica', 0, 'The number of GPU devices to use per '
@@ -162,7 +166,6 @@ class _Cluster(object):
     # the same as p.ps.name, that means ps is colocated with worker.
     assert p.ps.replicas >= 0
     assert p.ps.gpus_per_replica >= 0
-    assert p.input.replicas <= 1
     if p.mode == 'async' and p.job == 'controller':
       # There is only 1 controller.
       assert p.controller.replicas == 1
@@ -321,6 +324,14 @@ class _Cluster(object):
       return self.ListDevices(p.input)[0, 0]
     else:
       return ''
+
+  @property
+  def input_targets(self):
+    """Returns a list of network addresses of the input job."""
+    p = self.params.input
+    targets = p.targets.split(',')
+    assert p.replicas == len(targets), '{} vs. {}'.format(p.replicas, targets)
+    return targets
 
   def WorkerDeviceInModelSplit(self, device_index):
     """Returns the device to use for 'device_index' for the current model split.

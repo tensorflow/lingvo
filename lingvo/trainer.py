@@ -107,6 +107,10 @@ tf.flags.DEFINE_integer('ps_gpus', 0, 'Number of gpus to use per replica.')
 
 tf.flags.DEFINE_string('input_job', '/job:input', 'Job name')
 tf.flags.DEFINE_integer('input_replicas', 0, 'Number of replicas.')
+tf.flags.DEFINE_string(
+    'input_targets', '', 'Target network addresses for the '
+    'input job. E.g., a single ip:port, or a list of '
+    'comma-separated grpc://ip:port, etc.')
 
 tf.flags.DEFINE_string('evaler_job', '/job:evaler', 'Job name')
 tf.flags.DEFINE_integer('evaler_replicas', 0, 'Number of replicas.')
@@ -1311,6 +1315,7 @@ class RunnerManager(object):
 
     cluster.input.name = FLAGS.input_job
     cluster.input.replicas = FLAGS.input_replicas
+    cluster.input.targets = FLAGS.input_targets
 
     cluster.evaler.name = FLAGS.evaler_job
     cluster.evaler.replicas = FLAGS.evaler_replicas

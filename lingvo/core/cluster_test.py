@@ -364,6 +364,14 @@ class ClusterTest(test_utils.TestCase):
         job_name='/job:input', task_id=0, device_name='CPU', device_id=0)
     self.assertEqual(input_device, expected_device)
 
+  def testInputTargets(self):
+    p = cluster_factory.Cluster.Params()
+    p.input.name = '/job:input'
+    p.input.replicas = 2
+    p.input.targets = '10.100.1.1:10001,10.100.1.2:10002'
+    c = cluster_factory.Cluster(p)
+    self.assertEqual(c.input_targets, ['10.100.1.1:10001', '10.100.1.2:10002'])
+
   def testWorkerDeviceInModelSplitSync(self):
     p = cluster_factory.Cluster.Params()
     p.mode = 'sync'
