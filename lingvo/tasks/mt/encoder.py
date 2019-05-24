@@ -601,7 +601,10 @@ class TransformerEncoder(base_encoder.BaseEncoder):
         - padding: of shape [time, batch]
         - segment_id: [time, batch] if packed inputs are supported by the model
             (and all layers), or None otherwise.
+        - embedded_inputs: [time, batch, depth] embedded inputs tokens without
+            positional encodings.
     """
+
     p = self.params
     with tf.name_scope(p.name):
       src_segment_id = None
@@ -640,6 +643,9 @@ class TransformerEncoder(base_encoder.BaseEncoder):
                                             tf.reshape(input_ids, [-1]))
       input_embs = tf.reshape(input_embs,
                               [-1, max_time, p.token_emb.embedding_dim])
+      # [time, batch, dim]
+      orig_input_embs = tf.transpose(input_embs, [1, 0, 2])
+
       if p.packed_input:
         position_embs = self.position_emb.FPropWithPosition(
             theta.position_emb, src_segment_pos)
@@ -663,4 +669,7 @@ class TransformerEncoder(base_encoder.BaseEncoder):
     encoded, padding, segment_id = self.transformer_stack.FProp(
         theta.transformer_stack, transformer_input, paddings, src_segment_id)
     return py_utils.NestedMap(
-        encoded=encoded, padding=padding, segment_id=segment_id)
+        encoded=encoded,
+        padding=padding,
+        segment_id=segment_id,
+        embedded_inputs=orig_input_embs)
