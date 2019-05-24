@@ -168,7 +168,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
           flat_batch = batch.FlattenItems()
 
           if tpu_embedding is not None:
-            enqueue_dict_per_core = [{}] * tpu_embedding.num_cores_per_host
+            enqueue_dict_per_core = [
+                {} for _ in range(tpu_embedding.num_cores_per_host)
+            ]
             num_cores_per_host = tpu_embedding.num_cores_per_host
             for tpu_embedding_input_key, tpu_embedding_feature in tpu_embedding_features:
               tpu_embedding_feature_splitted = tf.split(tpu_embedding_feature,
