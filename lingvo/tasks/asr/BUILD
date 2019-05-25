@@ -72,6 +72,7 @@ py_library(
         "//lingvo/core:plot",
         "//lingvo/core:py_utils",
         "//lingvo/core:rnn_cell",
+        "//lingvo/core:spectrum_augmenter",
         "//lingvo/core:summary_utils",
     ],
 )

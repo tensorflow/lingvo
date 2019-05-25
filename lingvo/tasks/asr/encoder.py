@@ -31,6 +31,7 @@ from lingvo.core import plot
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
+from lingvo.core import spectrum_augmenter
 from lingvo.core import summary_utils
 
 ConvLSTMBlock = collections.namedtuple('ConvLSTMBlock', ('rnn', 'cnn'))
@@ -43,6 +44,10 @@ class AsrEncoder(base_encoder.BaseEncoder):
   def Params(cls):
     """Configs for AsrEncoder."""
     p = super(AsrEncoder, cls).Params()
+    p.Define('specaugment_network',
+             spectrum_augmenter.SpectrumAugmenter.Params(),
+             'Configs template for the agumentation network.')
+    p.Define('use_specaugment', False, 'Use specaugmentation or not.')
     p.Define('lstm_tpl', rnn_cell.LSTMCellSimple.Params(),
              'Configs template for the RNN layer.')
     p.Define('cnn_tpl', layers.ConvLayer.Params(),
@@ -142,6 +147,9 @@ class AsrEncoder(base_encoder.BaseEncoder):
     name = p.name
 
     with tf.variable_scope(name):
+      # Use specAugment or not.
+      if p.use_specaugment:
+        self.CreateChild('specaugment', p.specaugment_network.Copy())
       # First create the conv layers.
 
       assert p.num_cnn_layers == len(p.conv_filter_shapes)
@@ -297,6 +305,10 @@ class AsrEncoder(base_encoder.BaseEncoder):
     inputs, paddings = batch.src_inputs, batch.paddings
     outputs = py_utils.NestedMap()
     with tf.name_scope(p.name):
+      # Adding specAugmentation.
+      if p.use_specaugment and not p.is_eval:
+        inputs, paddings = self.specaugment.FProp(theta.specaugment, inputs,
+                                                  paddings)
       # Add a few extra padded timesteps at the end. This is for ensuring the
       # correctness of the conv-layers at the edges.
       if p.pad_steps > 0:

@@ -760,6 +760,31 @@ py_test(
 )
 
 py_library(
+    name = "spectrum_augmenter",
+    srcs = ["spectrum_augmenter.py"],
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_test(
+    name = "spectrum_augmenter_test",
+    srcs = ["spectrum_augmenter_test.py"],
+    python_version = "PY2",
+    shard_count = 1,
+    deps = [
+        ":py_utils",
+        ":spectrum_augmenter",
+        ":test_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
     name = "generic_input",
     srcs = ["generic_input.py"],
     deps = [

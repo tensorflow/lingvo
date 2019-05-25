@@ -306,6 +306,7 @@ class AsrModelTest(test_utils.TestCase):
           'PiecewiseConstantLearningRateSchedule',
           'ProjectionLayer',
           'SimpleFullSoftmax',
+          'SpectrumAugmenter',
           'TestInputGenerator',
       ])
       self.assertEqual(expected_layers, l_names)
