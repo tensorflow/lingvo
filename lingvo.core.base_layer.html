@@ -244,7 +244,9 @@ via layer.SetAccumulatorValues(). The reverse must be done on return.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>func</strong> – The __init__ method of <a class="reference internal" href="#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseLayer</span></code></a>’s subclasses.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A decorator wrapper for layer’s initializer.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A decorator wrapper for layer’s initializer. Note that this wrapper can
+be called multiple times for the same layer instance, once for each
+__init__() for classes on the class hierarchy.</td>
 </tr>
 </tbody>
 </table>
@@ -327,6 +329,23 @@ layer and its children layers.</li>
 </dd></dl>
 
 <dl class="classmethod">
+<dt id="lingvo.core.base_layer.BaseLayer.GetVariableShapes">
+<em class="property">classmethod </em><code class="descname">GetVariableShapes</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.GetVariableShapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.GetVariableShapes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dict of the layer’s variable names to shapes.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>params</strong> – The param of a layer of this layer type.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A dict mapping variable names to shapes inferred from params. The dict
+does not include variables of child layers.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
 <dt id="lingvo.core.base_layer.BaseLayer.FPropMeta">
 <em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>params</em>, <em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.base_layer.BaseLayer.FProp" title="lingvo.core.base_layer.BaseLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
@@ -334,12 +353,12 @@ layer and its children layers.</li>
 Don’t use or depend on it without consulting Lingvo authors.</p>
 <p>E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">32</span><span class="p">]))</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
 </pre></div>
 </div>
 <p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
-one <a class="reference internal" href="#lingvo.core.base_layer.BaseLayer.FProp" title="lingvo.core.base_layer.BaseLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, 32].
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of tensor shapes, which tells you what shape
+one <a class="reference internal" href="#lingvo.core.base_layer.BaseLayer.FProp" title="lingvo.core.base_layer.BaseLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
 of tensors this layer will return.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -356,7 +375,7 @@ of tensors this layer will return.</p>
 <ul class="simple">
 <li>flops - The estimated number of floating point operations incurred by
 this fprop.</li>
-<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.TensorShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
 represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
 </ul>
 </p>
@@ -379,6 +398,18 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="attribute">
+<dt id="lingvo.core.base_layer.BaseLayer.parent">
+<code class="descname">parent</code><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.parent" title="Permalink to this definition">¶</a></dt>
+<dd><p>None if self is the root layer, otherwise the parent layer of self.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.base_layer.BaseLayer.path">
+<code class="descname">path</code><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a ‘.’-separated string with all layer names from the root.</p>
+</dd></dl>
+
+<dl class="attribute">
 <dt id="lingvo.core.base_layer.BaseLayer.children">
 <code class="descname">children</code><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.children" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns children layers of this layer in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
@@ -387,14 +418,16 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dl class="method">
 <dt id="lingvo.core.base_layer.BaseLayer.GetDescendant">
 <code class="descname">GetDescendant</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.GetDescendant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.GetDescendant" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a descendent layer given the path.</p>
+<dd><p>Returns a descendant layer given the path.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> – a comma separated string denoting a descendant of this layer.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The descendent layer.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The descendant layer.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">KeyError</span></code> – if the descendant is not found.</td>
 </tr>
 </tbody>
 </table>
@@ -503,7 +536,7 @@ mechanism, it allows all such state to be handled uniformly and generically.</p>
 </pre></div>
 </div>
 <p>Then, typically in <a class="reference internal" href="#lingvo.core.base_layer.BaseLayer.PostTrainingStepUpdate" title="lingvo.core.base_layer.BaseLayer.PostTrainingStepUpdate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PostTrainingStepUpdate</span></code></a>:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">acc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">accumulator</span><span class="o">.</span><span class="n">mytracker</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">acc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">accumulator</span><span class="o">.</span><span class="n">mytracker</span>
 <span class="n">acc_value</span> <span class="o">=</span> <span class="n">acc</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>
 <span class="c1"># Do something with the value.</span>
 <span class="n">acc</span><span class="o">.</span><span class="n">Reset</span><span class="p">()</span>
@@ -550,6 +583,12 @@ extra theta.</li>
 </tr>
 </tbody>
 </table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_layer.BaseLayer.GetVariableSymbolicShape">
+<code class="descname">GetVariableSymbolicShape</code><span class="sig-paren">(</span><em>var_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.GetVariableSymbolicShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.GetVariableSymbolicShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the variable’s symbolic shape.</p>
 </dd></dl>
 
 <dl class="method">
@@ -633,7 +672,7 @@ new value to be used later for computation. Its signature must be
 
 <dl class="method">
 <dt id="lingvo.core.base_layer.BaseLayer.CreateChildren">
-<code class="descname">CreateChildren</code><span class="sig-paren">(</span><em>name</em>, <em>params_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.CreateChildren"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.CreateChildren" title="Permalink to this definition">¶</a></dt>
+<code class="descname">CreateChildren</code><span class="sig-paren">(</span><em>name</em>, <em>params_list</em>, <em>child_scopes=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.CreateChildren"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.CreateChildren" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a list of sub layers.</p>
 <p>The created sub layer list can be accessed by <code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code>. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
@@ -653,6 +692,7 @@ new value to be used later for computation. Its signature must be
 <li><strong>name</strong> – The name for the sub layers, which is used as the key
 into vars/theta.</li>
 <li><strong>params_list</strong> – <code class="xref py py-obj docutils literal notranslate"><span class="pre">Hyperparams</span></code> objects to instantiate a list of layers.</li>
+<li><strong>child_scopes</strong> – If not none, a variable_scope to set for each child.</li>
 </ul>
 </td>
 </tr>
@@ -722,6 +762,11 @@ return a TF op to be invoked during training after gradients are applied.</p>
 </dd></dl>
 
 </dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.base_layer.IsLayerParams">
+<code class="descclassname">lingvo.core.base_layer.</code><code class="descname">IsLayerParams</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#IsLayerParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.IsLayerParams" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 

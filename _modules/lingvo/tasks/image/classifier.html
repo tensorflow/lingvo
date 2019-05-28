@@ -340,7 +340,6 @@
     <span class="k">return</span> <span class="n">rets</span><span class="p">,</span> <span class="p">{}</span></div>
 
 <div class="viewcode-block" id="ModelV1.Decode"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV1.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;decode&#39;</span><span class="p">):</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
@@ -361,6 +360,7 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;extract&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Param for the layer to extract image features.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;label_smoothing&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;Smooth the labels towards 1/num_classes.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -373,24 +373,33 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;extract&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">extract</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ModelV2.FPropTower"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2.FPropTower">[docs]</a>  <span class="k">def</span> <span class="nf">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">data</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-
+<div class="viewcode-block" id="ModelV2.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="c1"># Forward through layers.</span>
     <span class="n">act</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">extract</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+    <span class="c1"># Avg pool</span>
+    <span class="n">act</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">act</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">act</span><span class="o">=</span><span class="n">act</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="ModelV2.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">data</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">act</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">act</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">act</span><span class="p">):</span>
-      <span class="c1"># Avg pool</span>
-      <span class="n">act</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&#39;s device: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">act</span><span class="o">.</span><span class="n">device</span><span class="p">))</span>
       <span class="c1"># Softmax</span>
       <span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int64</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+      <span class="n">onehot_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">smooth_positives</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span>
+        <span class="n">smooth_negatives</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span>
+        <span class="n">onehot_labels</span> <span class="o">=</span> <span class="n">onehot_labels</span> <span class="o">*</span> <span class="n">smooth_positives</span> <span class="o">+</span> <span class="n">smooth_negatives</span>
+
       <span class="n">xent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span>
           <span class="n">inputs</span><span class="o">=</span><span class="n">act</span><span class="p">,</span>
           <span class="n">class_weights</span><span class="o">=</span><span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">,</span>
-          <span class="n">class_ids</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span>
+          <span class="n">class_probabilities</span><span class="o">=</span><span class="n">onehot_labels</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_AddSummary</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">per_example_argmax</span><span class="p">)</span>
 
@@ -399,11 +408,55 @@
         <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
         <span class="s1">&#39;num_preds&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
     <span class="p">}</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_accuracy</span><span class="p">():</span>
       <span class="n">acc1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
       <span class="n">acc5</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
       <span class="n">rets</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">accuracy</span><span class="o">=</span><span class="p">(</span><span class="n">acc1</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span> <span class="n">acc5</span><span class="o">=</span><span class="p">(</span><span class="n">acc5</span><span class="p">,</span> <span class="n">batch</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">rets</span><span class="p">,</span> <span class="p">{}</span></div></div>
+    <span class="k">return</span> <span class="n">rets</span><span class="p">,</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="ModelV2._compute_accuracy"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2._compute_accuracy">[docs]</a>  <span class="k">def</span> <span class="nf">_compute_accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span></div>
+
+<div class="viewcode-block" id="ModelV2.Inference"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs inference subgraphs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dictionary of the form {&#39;subgraph_name&#39;: (fetches, feeds)}. Each of</span>
+<span class="sd">      fetches and feeds is itself a dictionary which maps a string name (which</span>
+<span class="sd">      describes the tensor) to a corresponding tensor in the inference graph</span>
+<span class="sd">      which should be fed/fetched from.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">subgraphs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;inference&#39;</span><span class="p">):</span>
+      <span class="n">subgraphs</span><span class="p">[</span><span class="s1">&#39;default&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InferenceSubgraph_Default</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">subgraphs</span></div>
+
+<div class="viewcode-block" id="ModelV2._InferenceSubgraph_Default"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2._InferenceSubgraph_Default">[docs]</a>  <span class="k">def</span> <span class="nf">_InferenceSubgraph_Default</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs graph for single-image inference.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      (fetches, feeds) where both fetches and feeds are dictionaries. Each</span>
+<span class="sd">      dictionary consists of keys corresponding to tensor names, and values</span>
+<span class="sd">      corresponding to a tensor in the graph which should be input/read from.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;default&#39;</span><span class="p">):</span>
+      <span class="n">normalized_image</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">data_shape</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;normalized_image&#39;</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">normalized_image</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span>
+          <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span><span class="p">],</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;logits&#39;</span><span class="p">)</span>
+      <span class="n">feeds</span> <span class="o">=</span> <span class="p">{</span>
+          <span class="s1">&#39;normalized_image&#39;</span><span class="p">:</span> <span class="n">normalized_image</span><span class="p">,</span>
+      <span class="p">}</span>
+      <span class="n">fetches</span> <span class="o">=</span> <span class="p">{</span>
+          <span class="s1">&#39;logits&#39;</span><span class="p">:</span> <span class="n">logits</span><span class="p">,</span>
+          <span class="s1">&#39;probs&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;probs&#39;</span><span class="p">),</span>
+          <span class="s1">&#39;prediction&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;prediction&#39;</span><span class="p">),</span>
+      <span class="p">}</span>
+      <span class="k">return</span> <span class="n">fetches</span><span class="p">,</span> <span class="n">feeds</span></div></div>
 </pre></div>
 
            </div>

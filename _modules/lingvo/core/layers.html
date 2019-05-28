@@ -163,20 +163,27 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">numbers</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">import</span> <span class="nn">sympy</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">functional_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">inplace_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">tpu_embedding</span> <span class="k">as</span> <span class="n">tpu_embedding_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">bn_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">conv_layers_with_time_padding</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">quant_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">recurrent</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
 
 
 <div class="viewcode-block" id="Gelu"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Gelu">[docs]</a><span class="k">def</span> <span class="nf">Gelu</span><span class="p">(</span><span class="n">input_tensor</span><span class="p">):</span>
@@ -202,7 +209,8 @@
     <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu6</span><span class="p">,</span>
     <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">,</span>
     <span class="s1">&#39;TANH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span>
-    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="n">Gelu</span>
+    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="n">Gelu</span><span class="p">,</span>
+    <span class="s1">&#39;SWISH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">swish</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="c1"># A subset of activation functions are supported by TFLite as fused activation</span>
@@ -244,301 +252,13 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
 
 
-<div class="viewcode-block" id="BatchNormLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer">[docs]</a><span class="k">class</span> <span class="nc">BatchNormLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Batch normalization layer.&quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="BatchNormLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BatchNormLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input/output.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">,</span>
-        <span class="s1">&#39;Decay in updating the mean and variance moving average used in&#39;</span>
-        <span class="s1">&#39; batch normalization.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;enable_cross_replica_sum_on_tpu&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="s1">&#39;If true, calls cross_replica_sum to the aggregate moving averages&#39;</span>
-        <span class="s1">&#39; across all replicas.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;use_moving_avg_in_training&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;If True, use global moving avg (mean, variance) during training&#39;</span>
-        <span class="s1">&#39; to avoid mismatch between train and eval, which then&#39;</span>
-        <span class="s1">&#39; essentially acts as an adaptive normalization step.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
-  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BatchNormLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
-
-    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_moving_avg_in_training</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
-        <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
-
-      <span class="c1"># Two statistics.</span>
-      <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_mean</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-          <span class="s1">&#39;moving_mean&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-      <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_variance</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-          <span class="s1">&#39;moving_variance&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span> <span class="o">=</span> <span class="mf">0.001</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decay</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">epsilon</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span>
-
-<div class="viewcode-block" id="BatchNormLayer._Moments"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer._Moments">[docs]</a>  <span class="nd">@staticmethod</span>
-  <span class="k">def</span> <span class="nf">_Moments</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">enable_cross_replica_sum_on_tpu</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Computes mean and variance over the valid data points in inputs.&quot;&quot;&quot;</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">mask</span><span class="p">)),</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">mask</span><span class="p">)),</span>
-    <span class="p">],</span> <span class="n">inputs</span><span class="p">)</span>
-    <span class="n">rank</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
-    <span class="n">reduce_over_dims</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="n">sum_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">inputs</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
-                          <span class="n">reduce_over_dims</span><span class="p">)</span>
-    <span class="n">count_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">reduce_over_dims</span><span class="p">)</span>
-    <span class="c1"># Input shape is guaranteed to be a multiple of mask shape because the</span>
-    <span class="c1"># inputs * mask op above was successfully broadcasted.</span>
-    <span class="n">mask_multiplier</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">mask</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">count_v</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_prod</span><span class="p">(</span><span class="n">mask_multiplier</span><span class="p">),</span> <span class="n">count_v</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="n">enable_cross_replica_sum_on_tpu</span><span class="p">:</span>
-      <span class="n">sum_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">sum_v</span><span class="p">)</span>
-      <span class="n">count_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">count_v</span><span class="p">)</span>
-
-    <span class="n">count_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">count_v</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-    <span class="n">mean</span> <span class="o">=</span> <span class="n">sum_v</span> <span class="o">/</span> <span class="n">count_v</span>
-    <span class="n">sum_vv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">((</span><span class="n">inputs</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">inputs</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">mask</span><span class="p">,</span>
-                           <span class="n">reduce_over_dims</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="n">enable_cross_replica_sum_on_tpu</span><span class="p">:</span>
-      <span class="n">sum_vv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">sum_vv</span><span class="p">)</span>
-
-    <span class="n">variance</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">sum_vv</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">sum_vv</span><span class="p">)),</span>
-    <span class="p">],</span> <span class="n">sum_vv</span> <span class="o">/</span> <span class="n">count_v</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span></div>
-
-<div class="viewcode-block" id="BatchNormLayer._GetDefaultPaddings"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer._GetDefaultPaddings">[docs]</a>  <span class="k">def</span> <span class="nf">_GetDefaultPaddings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Gets the default paddings for an input.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="BatchNormLayer.GetCurrentMoments"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer.GetCurrentMoments">[docs]</a>  <span class="k">def</span> <span class="nf">GetCurrentMoments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Gets the current computed moments, which should be applied at eval.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
-<span class="sd">        its children layers.</span>
-<span class="sd">      inputs: The inputs tensor.  Shaped [..., dim].</span>
-<span class="sd">      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as the</span>
-<span class="sd">        input tensor.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      Tuple of (mean, variance, beta, gamma).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_moving_avg_in_training</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_variance</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_variance</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span></div>
-
-<div class="viewcode-block" id="BatchNormLayer.ComputeAndUpdateMoments"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer.ComputeAndUpdateMoments">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeAndUpdateMoments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Computes moments and updates state.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
-<span class="sd">        its children layers.</span>
-<span class="sd">      inputs: The inputs tensor.  Shaped [..., dim].</span>
-<span class="sd">      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as the</span>
-<span class="sd">        input tensor.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      Tuple of (mean, variance, beta, gamma).</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetDefaultPaddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">]),</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
-    <span class="p">],</span> <span class="n">inputs</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
-        <span class="c1"># The mean and variance used for normalization.</span>
-        <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_variance</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Moments</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span>
-                                       <span class="n">p</span><span class="o">.</span><span class="n">enable_cross_replica_sum_on_tpu</span><span class="p">)</span>
-
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateBatchNormVars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_moving_mean</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decay</span><span class="p">)</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateBatchNormVars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_moving_variance</span><span class="p">,</span> <span class="n">variance</span><span class="p">,</span>
-                                     <span class="bp">self</span><span class="o">.</span><span class="n">_decay</span><span class="p">)</span>
-        <span class="c1"># Add some summaries for visualization.</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_mean&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mean</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_variance&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">variance</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_moving_mean&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_moving_mean</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_moving_variance&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_moving_variance</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_mean_diff&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mean</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_mean</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span>
-            <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_variance_diff&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">variance</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_variance</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_moving_avg_in_training</span><span class="p">:</span>
-          <span class="c1"># Use the global statistics for normalization.</span>
-          <span class="c1"># Control dependencies on mean and variance make sure</span>
-          <span class="c1"># moving_mean and variance will be updated for every training step.</span>
-          <span class="n">norm_mean</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span><span class="n">mean</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">_moving_mean</span><span class="p">)</span>
-          <span class="n">norm_variance</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span><span class="n">variance</span><span class="p">],</span>
-                                                     <span class="bp">self</span><span class="o">.</span><span class="n">_moving_variance</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="c1"># Use the batch statistics for normalization.</span>
-          <span class="n">norm_mean</span> <span class="o">=</span> <span class="n">mean</span>
-          <span class="n">norm_variance</span> <span class="o">=</span> <span class="n">variance</span>
-
-      <span class="n">norm_mean</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span>
-          <span class="n">norm_mean</span><span class="p">,</span> <span class="s1">&#39;mean of </span><span class="si">%s</span><span class="s1"> failed numeric check&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-      <span class="n">norm_variance</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span>
-          <span class="n">norm_variance</span><span class="p">,</span> <span class="s1">&#39;variance of </span><span class="si">%s</span><span class="s1"> failed numeric check&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_moving_avg_in_training</span><span class="p">:</span>
-        <span class="n">beta</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">gamma</span> <span class="o">=</span> <span class="mf">1.0</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">beta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span>
-        <span class="n">gamma</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span>
-      <span class="k">return</span> <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span></div>
-
-<div class="viewcode-block" id="BatchNormLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Apply batch normalization.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
-<span class="sd">        its children layers.</span>
-<span class="sd">      inputs: The inputs tensor.  Shaped [..., dim].</span>
-<span class="sd">      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as the</span>
-<span class="sd">        input tensor.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      Output after applying batch normalization, with the same shape as</span>
-<span class="sd">      &#39;inputs&#39;.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetDefaultPaddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeAndUpdateMoments</span><span class="p">(</span>
-          <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">norm_variance</span><span class="p">,</span>
-                                        <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">norm_variance</span><span class="p">)),</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm_mean</span><span class="p">)),</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm_variance</span><span class="p">)),</span>
-      <span class="p">]):</span>
-        <span class="n">bn_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">batch_normalization</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span><span class="p">,</span>
-                                              <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">)</span>
-      <span class="n">bn_output</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
-      <span class="k">return</span> <span class="n">bn_output</span></div>
-
-<div class="viewcode-block" id="BatchNormLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BatchNormLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
-    <span class="n">flops_per_element</span> <span class="o">=</span> <span class="mi">10</span>  <span class="c1"># Approximately 10 flops per element.</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">flops</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="n">flops_per_element</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
-
-
-<div class="viewcode-block" id="_ComputeConvOutputShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers._ComputeConvOutputShape">[docs]</a><span class="k">def</span> <span class="nf">_ComputeConvOutputShape</span><span class="p">(</span><span class="n">in_shape</span><span class="p">,</span>
-                            <span class="n">t_stride</span><span class="p">,</span>
-                            <span class="n">f_stride</span><span class="p">,</span>
-                            <span class="n">outc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                            <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;SAME&#39;</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Computes output shape for convolution and pooling layers.</span>
-
-<span class="sd">  If `in_shape` is a dynamic shape, the output will be Tensors, while if</span>
-<span class="sd">  `in_shape` is a list of ints then the output will also be a list of ints.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    in_shape: A length 4 Tensor or list representing the input shape.</span>
-<span class="sd">    t_stride: The stride along the time dimension.</span>
-<span class="sd">    f_stride: The stride along the frequency dimension.</span>
-<span class="sd">    outc: The expected output channel. If None, will use the input channel.</span>
-<span class="sd">    padding: &#39;SAME&#39; or &#39;VALID&#39;.</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    The expected output shape.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="c1"># In the order of batch, time, frequency, channel</span>
-  <span class="n">n</span> <span class="o">=</span> <span class="n">in_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-  <span class="n">t</span> <span class="o">=</span> <span class="n">in_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-  <span class="n">f</span> <span class="o">=</span> <span class="n">in_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-  <span class="n">c</span> <span class="o">=</span> <span class="n">in_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-  <span class="c1"># Last two dimensions has to be specified.</span>
-  <span class="k">assert</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">c</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-  <span class="k">if</span> <span class="n">padding</span> <span class="o">==</span> <span class="s1">&#39;VALID&#39;</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">t</span><span class="p">:</span>
-      <span class="n">t</span> <span class="o">-=</span> <span class="n">t_stride</span> <span class="o">-</span> <span class="mi">1</span>
-    <span class="n">f</span> <span class="o">-=</span> <span class="n">f_stride</span> <span class="o">-</span> <span class="mi">1</span>
-  <span class="n">ot</span> <span class="o">=</span> <span class="n">t</span>
-  <span class="k">if</span> <span class="n">ot</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">ot</span> <span class="o">=</span> <span class="p">(</span><span class="n">ot</span> <span class="o">+</span> <span class="n">t_stride</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">t_stride</span>
-  <span class="n">of</span> <span class="o">=</span> <span class="p">(</span><span class="n">f</span> <span class="o">+</span> <span class="n">f_stride</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">f_stride</span>
-  <span class="k">if</span> <span class="n">outc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">outc</span> <span class="o">=</span> <span class="n">c</span>
-  <span class="k">return</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">ot</span><span class="p">,</span> <span class="n">of</span><span class="p">,</span> <span class="n">outc</span><span class="p">]</span></div>
-
-
-<div class="viewcode-block" id="_ComputeConvOutputPadding"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers._ComputeConvOutputPadding">[docs]</a><span class="k">def</span> <span class="nf">_ComputeConvOutputPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span>
-                              <span class="n">window</span><span class="p">,</span>
-                              <span class="n">stride</span><span class="p">,</span>
-                              <span class="n">padding_algorithm</span><span class="o">=</span><span class="s1">&#39;SAME&#39;</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Computes paddings for convolution and pooling output.</span>
-
-<span class="sd">  out_padding[i] == 1 iff any in_padding corresponding to that output is 1.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    paddings: The paddings tensor. It is expected to be of shape [batch, time].</span>
-<span class="sd">    window: The size of the windows.</span>
-<span class="sd">    stride: The time-stride between adjacent windows.</span>
-<span class="sd">    padding_algorithm: &#39;SAME&#39; or &#39;VALID&#39;.</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    out_padding, The new padding tensor of size [batch, ceil(time / stride)].</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">stride</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">paddings</span>
-
-  <span class="c1"># Pad so input_length divides stride.</span>
-  <span class="n">input_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-  <span class="n">pad_len</span> <span class="o">=</span> <span class="p">(</span><span class="n">input_length</span> <span class="o">+</span> <span class="n">stride</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">stride</span> <span class="o">*</span> <span class="n">stride</span> <span class="o">-</span> <span class="n">input_length</span>
-  <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_len</span><span class="p">]],</span> <span class="n">constant_values</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
-  <span class="n">out_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
-      <span class="p">[</span><span class="n">window</span><span class="p">],</span>
-      <span class="s1">&#39;MAX&#39;</span><span class="p">,</span>
-      <span class="n">padding_algorithm</span><span class="p">,</span>
-      <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="n">stride</span><span class="p">],</span>
-  <span class="p">)</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">out_padding</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+<span class="c1"># TODO(yonghui/jonathanasdf): Remove the forwarded links.</span>
+<span class="n">_ComputeConvOutputShape</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">ComputeConvOutputShape</span>
+<span class="n">_ComputeConvOutputPadding</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">ComputeConvOutputPadding</span><span class="p">)</span>
+<span class="n">BatchNormLayer</span> <span class="o">=</span> <span class="n">bn_layers</span><span class="o">.</span><span class="n">BatchNormLayer</span>
+<span class="n">BatchNormLayerNoPadding</span> <span class="o">=</span> <span class="n">bn_layers</span><span class="o">.</span><span class="n">BatchNormLayerNoPadding</span>
+<span class="n">AddingAccumulator</span> <span class="o">=</span> <span class="n">bn_layers</span><span class="o">.</span><span class="n">AddingAccumulator</span>
 
 
 <div class="viewcode-block" id="BaseConv2DLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer">[docs]</a><span class="k">class</span> <span class="nc">BaseConv2DLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
@@ -619,7 +339,6 @@
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">):</span>
@@ -903,8 +622,8 @@
         <span class="c1"># NOTE: this may be slightly inaccurate when p.dilation_rate[0] &gt; 1.</span>
         <span class="c1"># But there&#39;s likely no real problems. Trying to set it gives an error:</span>
         <span class="c1"># pooling with SAME padding is not implemented for dilation_rate &gt; 1.</span>
-        <span class="c1"># NOTE: we use window=p.filter_stride[0] to be compatible with legacy</span>
-        <span class="c1"># implementation.  Consider updating it to be the actual shape.</span>
+        <span class="c1"># NOTE: window=p.filter_stride[0] means output i will be padded if any</span>
+        <span class="c1"># input in the stride between the two conv centers are padded.</span>
         <span class="n">conv_padding</span> <span class="o">=</span> <span class="n">_ComputeConvOutputPadding</span><span class="p">(</span>
             <span class="n">paddings</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">stride</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
@@ -1592,6 +1311,213 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">out_shape</span><span class="p">)</span></div></div>
 
 
+<div class="viewcode-block" id="TPUEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">TPUEmbeddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Embedding layer using TPU embedding.</span>
+
+<span class="sd">  This layer has some important caveats, due to the interface of the</span>
+<span class="sd">  TPU embedding hardware. Its behavior most closely mimics that of</span>
+<span class="sd">  tf.nn.embedding_lookup_sparse.</span>
+
+<span class="sd">  Only support 1 table and multiple features.</span>
+<span class="sd">  Only supports Adagrad.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TPUEmbeddingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Per-core batch size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_keys&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Name of inputs in InputBatch.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Learning rate.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_accumulator&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Initial value of accumulator.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pipeline_execution_with_tensor_core&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Set to True to be faster. See tpu_embedding.py for details.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_tpu_hosts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of TPU hosts.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;combiner&#39;</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;Must be &quot;sum&quot;, &quot;sqrtn&quot; or &quot;mean&quot;&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_keys</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">combiner</span>
+
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+    <span class="n">num_hosts</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_hosts</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_padded_vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span> <span class="o">*</span> <span class="n">num_hosts</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_keys</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_table&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">num_cores</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span>
+      <span class="n">global_batch_size</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
+      <span class="n">table_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TableConfig</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_padded_vocab_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
+      <span class="n">table_to_config_dict</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">:</span> <span class="n">table_config</span><span class="p">}</span>
+      <span class="n">feature_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">FeatureConfig</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">)</span>
+      <span class="n">feature_to_config_dict</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span><span class="p">:</span>
+        <span class="n">feature_to_config_dict</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="n">feature_config</span>
+      <span class="n">mode</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TRAINING</span>
+      <span class="n">optimization_parameters</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">AdagradParameters</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">)</span>
+      <span class="n">device_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">DeviceConfig</span><span class="p">(</span>
+          <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">,</span>
+          <span class="n">num_hosts</span><span class="o">=</span><span class="n">num_hosts</span><span class="p">,</span>
+          <span class="n">job_name</span><span class="o">=</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TPUEmbedding</span><span class="p">(</span>
+          <span class="n">table_to_config_dict</span><span class="p">,</span>
+          <span class="n">feature_to_config_dict</span><span class="p">,</span>
+          <span class="n">global_batch_size</span><span class="p">,</span>
+          <span class="n">mode</span><span class="p">,</span>
+          <span class="n">master</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">optimization_parameters</span><span class="o">=</span><span class="n">optimization_parameters</span><span class="p">,</span>
+          <span class="n">pipeline_execution_with_tensor_core</span><span class="o">=</span><span class="n">p</span>
+          <span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">,</span>
+          <span class="n">device_config</span><span class="o">=</span><span class="n">device_config</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="p">)</span>
+    <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="n">w_ada</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_table_var</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_hosts</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+          <span class="n">device_name</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">device_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/replica:0/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+              <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_name</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
+          <span class="n">_</span><span class="p">,</span> <span class="n">vi_var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_table_var</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vi_var</span><span class="p">)</span>
+
+          <span class="c1"># Only trainer and controller needs the slot variables.</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+            <span class="k">continue</span>
+          <span class="n">_</span><span class="p">,</span> <span class="n">accumulator_var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+              <span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">/Adagrad&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">w_ada</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+          <span class="c1"># Only the Trainer needs these ops.</span>
+          <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;creating load and retrieve ops.&#39;</span><span class="p">)</span>
+            <span class="n">load_parameters_op</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">tpu_ops</span><span class="o">.</span><span class="n">load_tpu_embedding_adagrad_parameters</span><span class="p">(</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="n">vi_var</span><span class="p">,</span>
+                    <span class="n">accumulators</span><span class="o">=</span><span class="n">accumulator_var</span><span class="p">,</span>
+                    <span class="n">table_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">,</span>
+                    <span class="n">num_shards</span><span class="o">=</span><span class="n">num_hosts</span><span class="p">,</span>
+                    <span class="n">shard_id</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
+            <span class="n">load_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">load_parameters_op</span><span class="p">)</span>
+
+            <span class="n">retrieved_table</span><span class="p">,</span> <span class="n">retrieved_accumulator</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">tpu_ops</span>
+                <span class="o">.</span><span class="n">retrieve_tpu_embedding_adagrad_parameters</span><span class="p">(</span>
+                    <span class="n">table_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">,</span>
+                    <span class="n">num_shards</span><span class="o">=</span><span class="n">num_hosts</span><span class="p">,</span>
+                    <span class="n">shard_id</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
+            <span class="n">retrieve_parameters_op</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">control_flow_ops</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">vi_var</span><span class="p">,</span> <span class="n">retrieved_table</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">accumulator_var</span><span class="p">,</span> <span class="n">retrieved_accumulator</span><span class="p">))</span>
+            <span class="n">retrieve_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">retrieve_parameters_op</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_table_var</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_table_var</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;adding load and retrieve ops to collection.&#39;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_LOAD_OPS</span><span class="p">,</span> <span class="n">load_op_list</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_RETRIEVE_OPS</span><span class="p">,</span>
+                           <span class="n">retrieve_op_list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TPUEmbeddingLayer.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Looks up embedding vectors for each entry in ids_map.</span>
+
+<span class="sd">    Since the TPUEmbedding is monolothic, and consulted once per</span>
+<span class="sd">    FProp/BPRop, we must centralize the lookup. Thus, for multiple</span>
+<span class="sd">    features, we contain them into a single-lookup rather than allowing</span>
+<span class="sd">    the caller to call Lookup multiple times.</span>
+
+<span class="sd">    Currently, there&#39;s also an implied combination step which combines</span>
+<span class="sd">    the sequence into a single set of activations by sum, mean or</span>
+<span class="sd">    sqrtn.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Named tuple with the weight matrix for the embedding.</span>
+<span class="sd">      ids_map: A dict of string -&gt; [batch, sequence] int32 Tensor.</span>
+<span class="sd">               -1 is used as a padding id.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An activations dict of string -&gt;  [batch, 1, embedding_dim] float32 Tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">def</span> <span class="nf">TpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;TPU Embedding lookup.&quot;&quot;&quot;</span>
+      <span class="k">del</span> <span class="n">ids_map</span>
+      <span class="n">activations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">get_activations</span><span class="p">()</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_ACTIVATIONS</span><span class="p">,</span> <span class="n">activations</span><span class="p">)</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">activations</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">ret</span>
+
+    <span class="k">def</span> <span class="nf">CpuEmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;CPU evaluation embedding lookup.&quot;&quot;&quot;</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">ids_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="c1"># Dense to sparse.</span>
+        <span class="n">dense_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">out_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">sample_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">embedding_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">sample_indices</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+        <span class="n">sparse_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">(</span>
+            <span class="n">indices</span><span class="o">=</span><span class="n">sample_indices</span><span class="p">,</span>
+            <span class="n">values</span><span class="o">=</span><span class="n">embedding_indices</span><span class="p">,</span>
+            <span class="n">dense_shape</span><span class="o">=</span><span class="n">dense_shape</span><span class="p">)</span>
+        <span class="c1"># [batch, embedding_dim]</span>
+        <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup_sparse</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span>
+            <span class="n">sparse_ids</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">,</span>  <span class="c1"># sp_weights</span>
+            <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
+        <span class="c1"># [batch, 1, embedding_dim]</span>
+        <span class="n">rets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">rets</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="c1"># Contoller</span>
+      <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># TPU Trainer</span>
+      <span class="k">return</span> <span class="n">TpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="SimpleEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">SimpleEmbeddingLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;An embedding layer that is simple to compile (by XLA and Toco).</span>
 
@@ -2162,6 +2088,14 @@
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
+<div class="viewcode-block" id="SimpleFullSoftmax.GetVariableShapes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.GetVariableShapes">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetVariableShapes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="n">num_classes_per_shard</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">//</span> <span class="n">params</span><span class="o">.</span><span class="n">num_shards</span>
+    <span class="k">return</span> <span class="nb">dict</span><span class="p">([(</span><span class="s1">&#39;weight_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">num_classes_per_shard</span><span class="p">))</span>
+                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">num_shards</span><span class="p">)]</span> <span class="o">+</span>
+                <span class="p">[(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">num_classes_per_shard</span><span class="p">,))</span>
+                 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">num_shards</span><span class="p">)])</span></div>
+
 <div class="viewcode-block" id="SimpleFullSoftmax._GetInputs"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._GetInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_GetInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
@@ -2297,7 +2231,7 @@
       <span class="n">class_ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">class_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
       <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">per_example_argmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_XentLossByChunk</span><span class="p">(</span>
           <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="ow">is</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">class_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="k">assert</span> <span class="n">logits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span>
@@ -2417,6 +2351,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input to the network.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_layer_dims&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Depth of the hidden layer outputs.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;projection&#39;</span><span class="p">,</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="s1">&#39;Projection layer params. A single parameter that will be shared by&#39;</span>
+        <span class="s1">&#39;all layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="s1">&#39;Dropout layer params. Can be a single params or a tuple/list of params&#39;</span>
         <span class="s1">&#39; having the same length as the number of layers.&#39;</span><span class="p">)</span>
@@ -2430,6 +2368,11 @@
         <span class="s1">&#39;The activation function to use. Can be a single string, or a&#39;</span>
         <span class="s1">&#39; tuple/list of strings having the same length as the number&#39;</span>
         <span class="s1">&#39; of layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;weight_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether or not to apply weight normalization to weights. This can be &#39;</span>
+        <span class="s1">&#39;a single bool or a tuple/list of bools having the same length as the &#39;</span>
+        <span class="s1">&#39;number of layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_connections&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Must be None.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bn_fold_weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Force folding the batch normalization &#39;</span>
@@ -2449,6 +2392,12 @@
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch_norm</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">batch_norm</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch_norm</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+    <span class="n">weight_norm</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">weight_norm</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">weight_norm</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">weight_norm</span> <span class="o">=</span> <span class="p">[</span><span class="n">weight_norm</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+
     <span class="n">activation</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">activation</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
       <span class="n">activation</span> <span class="o">=</span> <span class="p">[</span><span class="n">activation</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
@@ -2469,8 +2418,9 @@
         <span class="n">out_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">proj_out_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
         <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
-        <span class="n">params_i</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">params_i</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">batch_norm</span><span class="o">=</span><span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+            <span class="n">weight_norm</span><span class="o">=</span><span class="n">weight_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
             <span class="n">has_bias</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
             <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
             <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
@@ -2510,15 +2460,28 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DropoutLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keep_prob&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Keep probability.&#39;</span><span class="p">)</span>
+    <span class="c1"># noise_shape is unknown when building layer params.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;noise_shape&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A 1-D `Tensor` of type `int32`, representing&#39;</span>
         <span class="s1">&#39; the shape for randomly generated keep/drop flags.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;noise_shape_broadcast_dims&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A list of dimension where the noise shape is broadcasted. For &#39;</span>
+        <span class="s1">&#39;example, noise_shape = [n, h, w, 1] when &#39;</span>
+        <span class="s1">&#39;noise_shape_broadcast_dims=[-1] &#39;</span><span class="p">)</span>
     <span class="c1"># We typically want to replace dropout by expectation during eval.</span>
     <span class="c1"># However, in certain cases E(f(x)) != f(E(x)), and replacing dropout by its</span>
     <span class="c1"># expectation during eval leads to worse quality.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_at_eval&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether or not to also perform dropout at eval time.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="DropoutLayer._Dropout"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DropoutLayer._Dropout">[docs]</a>  <span class="k">def</span> <span class="nf">_Dropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">noise_shape</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span>
+        <span class="n">keep_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keep_prob</span><span class="p">,</span>
+        <span class="n">noise_shape</span><span class="o">=</span><span class="n">noise_shape</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DropoutLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DropoutLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply dropout to inputs.</span>
@@ -2532,12 +2495,20 @@
 <span class="sd">      inputs with dropout applied at training time.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_at_eval</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span>
-          <span class="n">inputs</span><span class="p">,</span>
-          <span class="n">keep_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span><span class="p">,</span>
-          <span class="n">noise_shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">noise_shape</span><span class="p">,</span>
-          <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_at_eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span><span class="p">,</span> <span class="n">numbers</span><span class="o">.</span><span class="n">Real</span><span class="p">)</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">inputs</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">noise_shape_broadcast_dims</span><span class="p">:</span>
+        <span class="n">noise_shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">noise_shape</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">noise_shape_broadcast_dims</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">dim</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">noise_shape</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid broadcasted dim </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dim</span><span class="p">))</span>
+          <span class="n">noise_shape</span><span class="p">[</span><span class="n">dim</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">noise_shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">noise_shape</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">noise_shape</span><span class="p">)</span>
+      <span class="n">ret</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
+      <span class="k">return</span> <span class="n">ret</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">inputs</span></div>
 
@@ -2549,37 +2520,15 @@
         <span class="n">flops</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="n">flops_per_element</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
 
 
-<div class="viewcode-block" id="DeterministicDropoutLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeterministicDropoutLayer">[docs]</a><span class="k">class</span> <span class="nc">DeterministicDropoutLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+<div class="viewcode-block" id="DeterministicDropoutLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeterministicDropoutLayer">[docs]</a><span class="k">class</span> <span class="nc">DeterministicDropoutLayer</span><span class="p">(</span><span class="n">DropoutLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Apply dropout during trainig.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="DeterministicDropoutLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeterministicDropoutLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DeterministicDropoutLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keep_prob&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Keep probability.&#39;</span><span class="p">)</span>
-    <span class="c1"># We typically want to replace dropout by expectation during eval.</span>
-    <span class="c1"># However, in certain cases E(f(x)) != f(E(x)), and replacing dropout by its</span>
-    <span class="c1"># expectation during eval leads to worse quality.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_at_eval&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-             <span class="s1">&#39;Whether or not to also perform dropout at eval time.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-<div class="viewcode-block" id="DeterministicDropoutLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeterministicDropoutLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Apply dropout to inputs.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
-<span class="sd">        its children layers.</span>
-<span class="sd">      inputs: The inputs tensor.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      inputs with dropout applied at training time.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">&lt;</span> <span class="mf">1.0</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_at_eval</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DeterministicDropout</span><span class="p">(</span>
-          <span class="n">inputs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOpSeedPair</span><span class="p">(</span><span class="n">op_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">inputs</span></div></div>
+<div class="viewcode-block" id="DeterministicDropoutLayer._Dropout"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeterministicDropoutLayer._Dropout">[docs]</a>  <span class="k">def</span> <span class="nf">_Dropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">noise_shape</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DeterministicDropout</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span>
+        <span class="n">keep_prob</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">keep_prob</span><span class="p">,</span>
+        <span class="n">seeds</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">),</span>
+        <span class="n">noise_shape</span><span class="o">=</span><span class="n">noise_shape</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LayerNorm"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm">[docs]</a><span class="k">class</span> <span class="nc">LayerNorm</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -2642,7 +2591,13 @@
       <span class="n">x_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_norm</span><span class="p">,</span> <span class="n">x_shape</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">x_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">bias</span>
 
-    <span class="k">return</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayerNorm.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">flops</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
 
 
 <div class="viewcode-block" id="ConvSetLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSetLayer">[docs]</a><span class="k">class</span> <span class="nc">ConvSetLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
@@ -3383,7 +3338,6 @@
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dilations</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CreateConvVariables</span><span class="p">()</span>
 
@@ -3396,6 +3350,10 @@
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Conv2DLayerNoPadding.GetVariableShapes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Conv2DLayerNoPadding.GetVariableShapes">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetVariableShapes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;w&#39;</span><span class="p">:</span> <span class="n">params</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">}</span></div>
 
 <div class="viewcode-block" id="Conv2DLayerNoPadding.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Conv2DLayerNoPadding.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply convolution to inputs.</span>
@@ -3422,19 +3380,18 @@
 <div class="viewcode-block" id="Conv2DLayerNoPadding.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Conv2DLayerNoPadding.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
-    <span class="n">b</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">inputs</span>
     <span class="n">fh</span><span class="p">,</span> <span class="n">fw</span><span class="p">,</span> <span class="n">ic</span><span class="p">,</span> <span class="n">oc</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span>
     <span class="k">assert</span> <span class="n">ic</span> <span class="o">==</span> <span class="n">c</span>
     <span class="n">sh</span><span class="p">,</span> <span class="n">sw</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">padding</span> <span class="o">==</span> <span class="s1">&#39;SAME&#39;</span><span class="p">:</span>
-      <span class="n">oh</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">sh</span><span class="p">)))</span>
-      <span class="n">ow</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">sw</span><span class="p">)))</span>
+      <span class="n">oh</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">ceiling</span><span class="p">(</span><span class="n">h</span> <span class="o">/</span> <span class="n">sh</span><span class="p">)</span>
+      <span class="n">ow</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">ceiling</span><span class="p">(</span><span class="n">w</span> <span class="o">/</span> <span class="n">sw</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">oh</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">h</span> <span class="o">-</span> <span class="n">fh</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">sh</span><span class="p">)))</span>
-      <span class="n">ow</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">w</span> <span class="o">-</span> <span class="n">fw</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="n">sw</span><span class="p">)))</span>
+      <span class="n">oh</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">ceiling</span><span class="p">((</span><span class="n">h</span> <span class="o">-</span> <span class="n">fh</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">sh</span><span class="p">)</span>
+      <span class="n">ow</span> <span class="o">=</span> <span class="n">sympy</span><span class="o">.</span><span class="n">ceiling</span><span class="p">((</span><span class="n">w</span> <span class="o">-</span> <span class="n">fw</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">sw</span><span class="p">)</span>
     <span class="n">flops</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">oh</span> <span class="o">*</span> <span class="n">ow</span> <span class="o">*</span> <span class="n">fh</span> <span class="o">*</span> <span class="n">fw</span> <span class="o">*</span> <span class="n">ic</span> <span class="o">*</span> <span class="n">oc</span> <span class="o">*</span> <span class="mi">2</span>  <span class="c1"># mul/add counts as 2 flop.</span>
-    <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">ow</span><span class="p">,</span> <span class="n">oc</span><span class="p">])</span>
-
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="n">oh</span><span class="p">,</span> <span class="n">ow</span><span class="p">,</span> <span class="n">oc</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">outputs</span><span class="p">,))</span></div></div>
 
 
@@ -3488,6 +3445,81 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_activations</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">FetchFwd</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_activations</span><span class="p">)</span> <span class="k">if</span> <span class="n">num</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_activations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="GluLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GluLayer">[docs]</a><span class="k">class</span> <span class="nc">GluLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Gated Linear Unit.</span>
+
+<span class="sd">  See https://arxiv.org/abs/1612.08083 for more details.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GluLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GluLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GluLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the layer input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the layer output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dense_tpl&#39;</span><span class="p">,</span> <span class="n">FCLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(),</span> <span class="s1">&#39;Fully connected layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Non-linearity applied after the dense layer in the value branch.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_tpl&#39;</span><span class="p">,</span> <span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Dropout applied to output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;apply_residual&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether or not to add inputs to outputs.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">GluLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">:</span>
+      <span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_residual</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">output_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># Initialize value feed-forward layer.</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dense_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;value_layer&#39;</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">output_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;value_layer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+      <span class="c1"># Initialize gate feed-forward layer.</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dense_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gate_layer&#39;</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;SIGMOID&#39;</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">output_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gate_layer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+      <span class="c1"># Initialize layer norm.</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;layer_norm&#39;</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+      <span class="c1"># Initialize dropout.</span>
+      <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GluLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GluLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">value_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">value_layer</span><span class="p">,</span> <span class="n">inputs_normalized</span><span class="p">,</span>
+                                    <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gate_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gate_layer</span><span class="p">,</span> <span class="n">inputs_normalized</span><span class="p">,</span>
+                                  <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">glu_output</span> <span class="o">=</span> <span class="n">values</span> <span class="o">*</span> <span class="n">gates</span>
+    <span class="n">glu_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dropout</span><span class="p">,</span> <span class="n">glu_output</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">apply_residual</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">glu_output</span>
+    <span class="k">return</span> <span class="n">glu_output</span></div></div>
 </pre></div>
 
            </div>

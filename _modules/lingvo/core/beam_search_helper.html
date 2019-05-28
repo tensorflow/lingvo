@@ -233,10 +233,14 @@
 <span class="sd">        Returns:</span>
 <span class="sd">          initial_results: a `.NestedMap` of initial results. It should contain</span>
 <span class="sd">              the following tensors at the minimum.</span>
-<span class="sd">                  log_probs: The initial log probs for each of the tokens in</span>
-<span class="sd">                      the target vocab, of shape [tgt_batch, vocab_size].</span>
-<span class="sd">                  atten_probs: The initial attention probs, of shape [tgt_batch,</span>
-<span class="sd">                      src_len].</span>
+<span class="sd">              .log_probs: The initial log probs for each of the tokens in</span>
+<span class="sd">                  the target vocab, of shape [num_hyps_per_beam * src_batch,</span>
+<span class="sd">                  vocab_size]. src_batch &quot;b&quot; and hyp_per_beam &quot;h&quot; is</span>
+<span class="sd">                  represented at index (h * src_batch + b).</span>
+<span class="sd">              .atten_probs: The initial attention probs, of shape [</span>
+<span class="sd">                  num_hyps_per_beam * src_batch, src_len]. src_batch &quot;b&quot;</span>
+<span class="sd">                  and hyp_per_beam &quot;h&quot; is represented at index</span>
+<span class="sd">                  (h * src_batch + b).</span>
 <span class="sd">          states: a `.NestedMap` of tensors representing states that the client</span>
 <span class="sd">              would like to keep track of for each hyp.</span>
 
@@ -254,7 +258,7 @@
 <span class="sd">          theta: A NestedMap object containing weights&#39; values of this</span>
 <span class="sd">              layer and its children layers.</span>
 <span class="sd">          encoder_outputs: A NestedMap computed by encoder.</span>
-<span class="sd">          step_ids: A tensor of shape [tgt_batch, 1].</span>
+<span class="sd">          step_ids: A tensor of shape [num_hyps_per_beam * src_batch, 1].</span>
 <span class="sd">          in_states: A `.NestedMap` of tensors representing states that the</span>
 <span class="sd">              clients would like to keep track of for each of the active hyps.</span>
 <span class="sd">        Returns:</span>
@@ -262,12 +266,16 @@
 <span class="sd">              the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors at the minimal.</span>
 <span class="sd">              Optionally it may contain &#39;is_last_chunk&#39; if it is decoding a</span>
 <span class="sd">              neural transducer model.</span>
-<span class="sd">          atten_probs: The updated attention probs, of shape [tgt_batch,</span>
-<span class="sd">              src_len].</span>
-<span class="sd">          log_probs: Log prob for each of the tokens in the target vocab. This</span>
-<span class="sd">              is of shape [tgt_batch, vocab_size].</span>
-<span class="sd">          is_last_chunk: Whether or not each of the hyp is at the end of a</span>
-<span class="sd">              chunk. If non-empty, it is of shape [tgt_batch, 1]</span>
+<span class="sd">              .atten_probs: The updated attention probs, of shape</span>
+<span class="sd">                  [num_hyps_per_beam * src_batch, src_len]. src_batch &quot;b&quot; and</span>
+<span class="sd">                  hyp_per_beam &quot;h&quot; is represented at index (h * src_batch + b).</span>
+<span class="sd">              .log_probs: Log prob for each of the tokens in the target vocab.</span>
+<span class="sd">                  This is of shape [num_hyps_per_beam * src_batch, vocab_size].</span>
+<span class="sd">                  src_batch &quot;b&quot; and hyp_per_beam &quot;h&quot; is represented at index</span>
+<span class="sd">                  (h * src_batch + b).</span>
+<span class="sd">              .is_last_chunk: Whether or not each of the hyp is at the end of a</span>
+<span class="sd">                  chunk. If non-empty, it is of shape</span>
+<span class="sd">                  [num_hyps_per_beam * src_batch, 1].</span>
 <span class="sd">          out_states: A `.NestedMap`. The updated states. This &#39;out_states&#39;</span>
 <span class="sd">              should be of the exact same structure as &#39;in_states&#39;</span>
 
@@ -354,6 +362,10 @@
         <span class="s1">&#39;dimension of the hyp states. Otherwise, timing becomes the major &#39;</span>
         <span class="s1">&#39;dimension, and the gathers are performed along the second-to-major &#39;</span>
         <span class="s1">&#39;dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;local_eos_threshold&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mf">100.0</span><span class="p">,</span>
+        <span class="s1">&#39;During beam search, allow &lt;/s&gt; to terminate a hyp if the local score &#39;</span>
+        <span class="s1">&#39;for &lt;/s&gt; is greater than local_eos_threshold.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;beam_search&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -373,7 +385,9 @@
 <span class="sd">      | num_hyps_per_beam = Number of hyps to keep per source sequence.</span>
 <span class="sd">      | num_hyps = num_beams * num_hyps_per_beam</span>
 <span class="sd">      | src_seq_len = Number of time steps in the source sequence.</span>
+<span class="sd">      | src_batch = Number of examples in the source sequence.</span>
 <span class="sd">      | tgt_seq_len = Maximum allowed time steps in the target sequence.</span>
+<span class="sd">      | tgt_batch = num_hyps_per_beam * src_batch</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of the decoder</span>
@@ -428,7 +442,8 @@
          <span class="n">merge_paths</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">merge_paths</span><span class="p">,</span>
          <span class="n">allow_empty_terminated_hyp</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_empty_terminated_hyp</span><span class="p">,</span>
          <span class="n">ensure_full_beam</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ensure_full_beam</span><span class="p">,</span>
-         <span class="n">force_eos_in_last_step</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">force_eos_in_last_step</span><span class="p">)</span>
+         <span class="n">force_eos_in_last_step</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">force_eos_in_last_step</span><span class="p">,</span>
+         <span class="n">local_eos_threshold</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">local_eos_threshold</span><span class="p">)</span>
 
     <span class="n">new_step_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out_hyps</span><span class="p">[</span><span class="n">cur_step</span><span class="p">,</span> <span class="p">:],</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">))</span>
     <span class="n">new_step_ids</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">step_ids</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
@@ -596,7 +611,7 @@
 <span class="sd">    The same structure as tensors but of corresponding `TensorShape` objects.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">shapes</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">framework</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">tensors</span><span class="p">):</span>
+  <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">tensors</span><span class="p">):</span>
     <span class="n">shape</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="n">none_shapes</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">shape</span><span class="p">:</span>
@@ -606,8 +621,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
 
-  <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">tensors</span><span class="p">)(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">framework</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">shapes</span><span class="p">))</span></div>
+  <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">tensors</span><span class="p">)(</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">pack_sequence_as</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">shapes</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="MergeBeamSearchOutputs"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.MergeBeamSearchOutputs">[docs]</a><span class="k">def</span> <span class="nf">MergeBeamSearchOutputs</span><span class="p">(</span><span class="n">max_hyps_per_beam</span><span class="p">,</span> <span class="n">beam_search_outputs</span><span class="p">):</span>

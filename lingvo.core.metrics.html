@@ -393,6 +393,55 @@ tpu.batch_parallel.</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="lingvo.core.metrics.AUCMetric">
+<em class="property">class </em><code class="descclassname">lingvo.core.metrics.</code><code class="descname">AUCMetric</code><span class="sig-paren">(</span><em>mode='roc'</em>, <em>samples=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<p>Class to compute the AUC score for binary classification.</p>
+<dl class="method">
+<dt id="lingvo.core.metrics.AUCMetric.Update">
+<code class="descname">Update</code><span class="sig-paren">(</span><em>label</em>, <em>prob</em>, <em>weight=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric.Update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the metrics.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>label</strong> – An array to specify the groundtruth binary labels. Values must be
+either 0 or 1.</li>
+<li><strong>prob</strong> – An array to specify the prediction probabilities. Values must be
+within [0, 1.0].</li>
+<li><strong>weight</strong> – An array to specify the sample weight for the auc computation.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.metrics.AUCMetric.value">
+<code class="descname">value</code><a class="headerlink" href="#lingvo.core.metrics.AUCMetric.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.metrics.AUCMetric.Summary">
+<code class="descname">Summary</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric.Summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts the current state of this metric to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> – A string to use as the summary value tag.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

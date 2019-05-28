@@ -165,7 +165,6 @@
 
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
 
 <span class="n">gen_x_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">load_op_library</span><span class="p">(</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">resource_loader</span><span class="o">.</span><span class="n">get_path_to_datafile</span><span class="p">(</span><span class="s1">&#39;x_ops.so&#39;</span><span class="p">))</span>
@@ -205,22 +204,6 @@
 <span class="n">ngram_id_to_token</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">ngram_id_to_token</span>
 <span class="n">bpe_ids_to_words</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">bpe_ids_to_words</span>
 <span class="n">bpe_words_to_ids</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">bpe_words_to_ids</span>
-
-
-<div class="viewcode-block" id="generic_input"><a class="viewcode-back" href="../../../../lingvo.core.ops.py_x_ops.html#lingvo.core.ops.py_x_ops.generic_input">[docs]</a><span class="k">def</span> <span class="nf">generic_input</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-  <span class="c1"># pylint: disable=protected-access</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="n">function</span><span class="o">.</span><span class="n">_DefinedFunction</span><span class="p">):</span>
-    <span class="c1"># Helper if processor is a python callable.</span>
-    <span class="n">processor</span> <span class="o">=</span> <span class="n">function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">)(</span><span class="n">processor</span><span class="p">)</span>
-  <span class="n">out_types</span> <span class="o">=</span> <span class="p">[</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">type</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">processor</span><span class="o">.</span><span class="n">definition</span><span class="o">.</span><span class="n">signature</span><span class="o">.</span><span class="n">output_arg</span>
-  <span class="p">]</span>
-  <span class="k">assert</span> <span class="n">out_types</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is not expected.&#39;</span> <span class="o">%</span> <span class="n">out_types</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-  <span class="k">return</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
-      <span class="n">processor</span><span class="o">=</span><span class="n">processor</span><span class="p">,</span> <span class="n">out_types</span><span class="o">=</span><span class="n">out_types</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
-
-
-<span class="n">generic_input</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="o">.</span><span class="vm">__doc__</span>
 </pre></div>
 
            </div>

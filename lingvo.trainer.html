@@ -170,6 +170,12 @@ $ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>im
 </div>
 <p>To use GPU, add <code class="xref py py-obj docutils literal notranslate"><span class="pre">--config=cuda</span></code> to build command and set <code class="xref py py-obj docutils literal notranslate"><span class="pre">--run_locally=gpu</span></code>.</p>
 <dl class="function">
+<dt id="lingvo.trainer.ComputationShape">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">ComputationShape</code><span class="sig-paren">(</span><em>split_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#ComputationShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.ComputationShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decides the computation shape based on the split_size.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.trainer._StartShell">
 <code class="descclassname">lingvo.trainer.</code><code class="descname">_StartShell</code><span class="sig-paren">(</span><em>local_ns=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_StartShell"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._StartShell" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -289,6 +295,11 @@ $ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>im
 <dd></dd></dl>
 
 <dl class="method">
+<dt id="lingvo.trainer.TrainerTpu._InfeedLoop">
+<code class="descname">_InfeedLoop</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#TrainerTpu._InfeedLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.TrainerTpu._InfeedLoop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="lingvo.trainer.TrainerTpu.StartEnqueueOp">
 <code class="descname">StartEnqueueOp</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#TrainerTpu.StartEnqueueOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.TrainerTpu.StartEnqueueOp" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -309,6 +320,12 @@ $ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>im
 <code class="descname">_Loop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#TrainerTpu._Loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer.TrainerTpu._Loop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.trainer._TrainDirForEvals">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">_TrainDirForEvals</code><span class="sig-paren">(</span><em>train_dir</em>, <em>load_checkpoint_from</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_TrainDirForEvals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._TrainDirForEvals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the training directory for eval jobs.</p>
 </dd></dl>
 
 <dl class="class">
@@ -518,6 +535,11 @@ step. If they diverge, uses the retrieved id and prints a warning.</p>
 <dl class="method">
 <dt id="lingvo.trainer.RunnerManager.TrainerTpu.StartEnqueueOp">
 <code class="descname">StartEnqueueOp</code><span class="sig-paren">(</span><em>op</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.TrainerTpu.StartEnqueueOp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.trainer.RunnerManager.TrainerTpu._InfeedLoop">
+<code class="descname">_InfeedLoop</code><span class="sig-paren">(</span><em>sess</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.TrainerTpu._InfeedLoop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">

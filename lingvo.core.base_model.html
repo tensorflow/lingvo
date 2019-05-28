@@ -168,7 +168,7 @@
 <p>Base model.</p>
 <dl class="function">
 <dt id="lingvo.core.base_model.CreateTaskGlobalStep">
-<code class="descclassname">lingvo.core.base_model.</code><code class="descname">CreateTaskGlobalStep</code><span class="sig-paren">(</span><em>params</em>, <em>task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#CreateTaskGlobalStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.CreateTaskGlobalStep" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.base_model.</code><code class="descname">CreateTaskGlobalStep</code><span class="sig-paren">(</span><em>task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#CreateTaskGlobalStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.CreateTaskGlobalStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create if needed and return the global_step.</p>
 </dd></dl>
 
@@ -443,6 +443,37 @@ file pattern.</td>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.core.base_model.BaseTask._GetGlobalGradScale">
+<code class="descname">_GetGlobalGradScale</code><span class="sig-paren">(</span><em>all_grad_norm</em>, <em>has_nan_or_inf</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._GetGlobalGradScale"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._GetGlobalGradScale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a scaling factor for all gradients according to their norm.</p>
+<p>In case there are NaN or Inf values the function will return 0.0.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>all_grad_norm</strong> – A scalar represeting the total norm of all vars.</li>
+<li><strong>has_nan_or_inf</strong> – A scalar of 0 or 1, indicating whether there is any NaN or
+Inf in input gradients.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
+<dt>the gradient scale. 0 if gradient updates should be skipped</dt>
+<dd><p class="first last">for the step.</p>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">grad_scale</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.core.base_model.BaseTask.ScaleGradients">
 <code class="descname">ScaleGradients</code><span class="sig-paren">(</span><em>var_grads</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ScaleGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ScaleGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scales gradients according to training params.</p>
@@ -452,15 +483,18 @@ file pattern.</td>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>var_grads</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">(has_nan_or_inf, grad_scale, final_var_grads).<ul class="simple">
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
 <li>has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN
 or Inf in input gradients.</li>
-<li>grad_scale: the gradient scale. 0 if gradient updates should be skipped
-for the step.</li>
 <li>final_var_grads: a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> whose values are (var, grad) pairs,
 where gradients have already been scaled.</li>
+<li>grad_scale: the gradient scale. 0 if gradient updates should be skipped
+for the step. (Optional, only returned in case global norm clipping is
+used.)</li>
 </ul>
 </td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing</td>
 </tr>
 </tbody>
 </table>

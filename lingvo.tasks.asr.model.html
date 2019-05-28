@@ -185,6 +185,62 @@
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.tasks.asr.model.AsrModel._GetDecoderTargets">
+<code class="descname">_GetDecoderTargets</code><span class="sig-paren">(</span><em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel._GetDecoderTargets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel._GetDecoderTargets" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns targets which will be forwarded to the decoder.</p>
+<blockquote>
+<div>Subclasses can override this method to change the target that is used by
+the decoder. For example, a subclass could add additional targets that
+can be forwared to the decoder.</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>input_batch</strong> – a NestedMap which contains the targets.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a NestedMap corresponding to the target selected.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.model.AsrModel._MakeDecoderTheta">
+<code class="descname">_MakeDecoderTheta</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel._MakeDecoderTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel._MakeDecoderTheta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute theta to be used by the decoder for computing metrics and loss.</p>
+<p>This method can be over-ridden by child classes to add values to theta that
+is passed to the decoder.</p>
+<p>For example, to pass the one hot vector which indicates which data source
+was selected a child class could over-ride this method as follows:</p>
+<dl class="docutils">
+<dt>def _MakeDecoderTheta(self, theta):</dt>
+<dd>decoder_theta = super(MyModel, self)._MakeDecoderTheta(theta, input_batch)
+decoder_theta.child_onehot = input_batch.source_selected
+return decoder_theta</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values used to compute
+loss and metrics.</li>
+<li><strong>input_batch</strong> – NestedMap containing input data in the current batch. Unused</li>
+<li><strong>here.</strong> – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A copy of the decoder theta.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">theta</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.tasks.asr.model.AsrModel.ComputePredictions">
 <code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
@@ -283,6 +339,25 @@ children layers.</li>
 <dt id="lingvo.tasks.asr.model.AsrModel.Decode">
 <code class="descname">Decode</code><span class="sig-paren">(</span><em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel.Decode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.model.AsrModel._GetTargetForDecoderMetrics">
+<code class="descname">_GetTargetForDecoderMetrics</code><span class="sig-paren">(</span><em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/model.html#AsrModel._GetTargetForDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.model.AsrModel._GetTargetForDecoderMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns targets which will be used to compute decoder metrics.</p>
+<blockquote>
+<div>Subclasses can override this method to change the target that is used when
+calculating decoder metrics.</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>input_batch</strong> – a NestedMap which contains the targets.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">a NestedMap containing ‘ids’, ‘labels’, ‘paddings’, ‘weights’</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">

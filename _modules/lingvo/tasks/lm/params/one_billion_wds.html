@@ -318,6 +318,61 @@
   <span class="n">NUM_SAMPLED</span> <span class="o">=</span> <span class="mi">8</span>
   <span class="n">NUM_SOFTMAX_SHARDS</span> <span class="o">=</span> <span class="mi">8</span>
   <span class="n">RNN_STATE_DIM</span> <span class="o">=</span> <span class="mi">32</span></div>
+
+
+<span class="c1"># Word-level log-pplx on eval_test: 0.02@13.4k</span>
+<span class="c1"># Try the following params and deploy 8 accelerators to train a bigger model</span>
+<span class="c1"># LAYERS = 94  #4.9B params</span>
+<span class="c1"># MAX_SEQLEN = 1024</span>
+<span class="c1"># SPLITS = [10, 22, 34, 46, 58, 70, 82, 94]  # On 8 accelerator, 16G mem each.</span>
+<span class="c1"># BATCH_SIZE = 32</span>
+<span class="c1"># NUM_MICRO_BATCHES = 32</span>
+<div class="viewcode-block" id="OneBWdsGPipeTransformer"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformer">[docs]</a><span class="nd">@model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span>
+<span class="k">class</span> <span class="nc">OneBWdsGPipeTransformer</span><span class="p">(</span><span class="n">WordLevelOneBwdsBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;LM using gpipe transformer.&quot;&quot;&quot;</span>
+  <span class="n">VOCAB_SIZE</span> <span class="o">=</span> <span class="mi">32000</span>
+  <span class="n">EMBEDDING_DIM</span> <span class="o">=</span> <span class="mi">2048</span>
+  <span class="n">BATCH_SIZE</span> <span class="o">=</span> <span class="mi">8</span>
+  <span class="n">MAX_SEQLEN</span> <span class="o">=</span> <span class="mi">100</span>
+  <span class="n">LAYERS</span> <span class="o">=</span> <span class="mi">6</span>
+  <span class="c1"># GPIPE related params.</span>
+  <span class="n">SPLITS</span> <span class="o">=</span> <span class="mi">1</span>
+  <span class="n">NUM_MICRO_BATCHES</span> <span class="o">=</span> <span class="mi">1</span>
+
+<div class="viewcode-block" id="OneBWdsGPipeTransformer.Train"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformer.Train">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">OneBWdsGPipeTransformer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Train</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">MAX_SEQLEN</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">BATCH_SIZE</span><span class="p">]</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">fixed_input_shape</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="OneBWdsGPipeTransformer.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformer.Task">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Language model on 1bw dataset using gpipe transformer.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">FixedShapeInputLanguageModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;1bwds_wpm_level_lm&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lm</span> <span class="o">=</span> <span class="n">lm_layers</span><span class="o">.</span><span class="n">GPipeTransformerLm</span><span class="o">.</span><span class="n">CommonParams</span><span class="p">(</span>
+        <span class="n">model_dim</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">VOCAB_SIZE</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">LAYERS</span><span class="p">,</span>
+        <span class="n">splits</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">SPLITS</span><span class="p">,</span>
+        <span class="n">num_micro_batches</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">NUM_MICRO_BATCHES</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">softmax_max_alloc</span><span class="o">=</span><span class="mi">128</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">**</span><span class="mi">20</span><span class="p">),</span>
+        <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">ParamsA</span><span class="p">(),</span>
+        <span class="n">clip_gradient_norm_to_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">grad_norm_to_clip_to_zero</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">lr_schedule</span><span class="o">=</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">40000</span><span class="p">,</span> <span class="n">worker_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">model_dim</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
 </pre></div>
 
            </div>

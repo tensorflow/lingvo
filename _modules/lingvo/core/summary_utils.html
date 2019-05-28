@@ -261,16 +261,13 @@
 <span class="sd">      source sequence.</span>
 <span class="sd">    tgt_paddings: A tensor of binary paddings shaped [target_len, batch] for the</span>
 <span class="sd">      target sequence.</span>
-<span class="sd">    transcripts: Optional, transcripts shaped [batch, target_len] for the source</span>
+<span class="sd">    transcripts: Optional, transcripts shaped [batch, source_len] for the source</span>
 <span class="sd">      sequence.</span>
 <span class="sd">    max_outputs: Integer maximum number of elements of the batch to plot.</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    The added image summary.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">name</span> <span class="o">=</span> <span class="n">attention_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/Attention&#39;</span>
   <span class="k">if</span> <span class="ow">not</span> <span class="n">_ShouldAddSummary</span><span class="p">():</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;disabled_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span>
   <span class="n">fig</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">max_outputs</span><span class="o">=</span><span class="n">max_outputs</span><span class="p">)</span>
   <span class="n">src_lens</span> <span class="o">=</span> <span class="n">SequenceLength</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">src_paddings</span><span class="p">))</span>
   <span class="n">tgt_lens</span> <span class="o">=</span> <span class="n">SequenceLength</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tgt_paddings</span><span class="p">))</span>
@@ -290,7 +287,7 @@
         <span class="n">title</span><span class="o">=</span><span class="n">atten</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
         <span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Input&#39;</span><span class="p">,</span>
         <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Output&#39;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">fig</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span></div>
+  <span class="n">fig</span><span class="o">.</span><span class="n">Finalize</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="AddNormSummary"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.AddNormSummary">[docs]</a><span class="k">def</span> <span class="nf">AddNormSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">vs_gs</span><span class="p">):</span>
@@ -314,21 +311,17 @@
 <div class="viewcode-block" id="CollectVarHistogram"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.CollectVarHistogram">[docs]</a><span class="k">def</span> <span class="nf">CollectVarHistogram</span><span class="p">(</span><span class="n">vs_gs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Adds histogram summaries for variables and gradients.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">SummaryNamePrefix</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">n</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span>
-
-  <span class="k">for</span> <span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="ow">in</span> <span class="n">vs_gs</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
-        <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;/summary&#39;</span><span class="p">):</span>
-      <span class="n">name_prefix</span> <span class="o">=</span> <span class="n">SummaryNamePrefix</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span> <span class="ow">in</span> <span class="n">vs_gs</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/summary&#39;</span><span class="p">):</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">):</span>
         <span class="n">var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="o">.</span><span class="n">indices</span><span class="p">)</span>
         <span class="n">grad</span> <span class="o">=</span> <span class="n">grad</span><span class="o">.</span><span class="n">values</span>
       <span class="k">if</span> <span class="n">var</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_complex</span><span class="p">:</span>
         <span class="n">var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
         <span class="n">grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">grad</span><span class="p">)</span>
-      <span class="n">histogram</span><span class="p">(</span><span class="n">name_prefix</span> <span class="o">+</span> <span class="s1">&#39;var_hist&#39;</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
-      <span class="n">histogram</span><span class="p">(</span><span class="n">name_prefix</span> <span class="o">+</span> <span class="s1">&#39;grad_hist&#39;</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span></div>
+
+    <span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;var_hist/&#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+    <span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;grad_hist/&#39;</span> <span class="o">+</span> <span class="n">name</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

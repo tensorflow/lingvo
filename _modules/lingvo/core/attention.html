@@ -189,19 +189,16 @@
   <span class="k">return</span> <span class="n">Decorator</span></div>
 
 
-<div class="viewcode-block" id="_ApplyAttentionDropout"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention._ApplyAttentionDropout">[docs]</a><span class="k">def</span> <span class="nf">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">prng_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_ApplyAttentionDropout"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention._ApplyAttentionDropout">[docs]</a><span class="k">def</span> <span class="nf">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Apply attention dropout according to the given parameters.</span>
 
 <span class="sd">  If `params.atten_dropout_deterministic` is set to True, the dropout will be</span>
-<span class="sd">  fully deterministic (requires `step_state` and `prng_seed`).</span>
+<span class="sd">  fully deterministic.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    params: The parameters of attention layer.</span>
 <span class="sd">    x: A float Tensor on which to apply dropout.</span>
-<span class="sd">    step_state: (Optional) A `.NestedMap` with `global_step` and `time_step`.</span>
-<span class="sd">      Required for deterministic dropout.</span>
-<span class="sd">    prng_seed: (Optional) An int seed for pseudo random number generator.</span>
-<span class="sd">      Required for deterministic dropout.</span>
+<span class="sd">    global_step: Required for deterministic dropout.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A Tensor with the same shape as `x`.</span>
@@ -210,21 +207,12 @@
     <span class="k">return</span> <span class="n">x</span>
 
   <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_deterministic</span><span class="p">:</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">step_state</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
-      <span class="k">assert</span> <span class="s1">&#39;global_step&#39;</span> <span class="ow">in</span> <span class="n">step_state</span><span class="p">,</span> <span class="n">step_state</span><span class="o">.</span><span class="n">DebugString</span><span class="p">()</span>
-      <span class="k">assert</span> <span class="s1">&#39;time_step&#39;</span> <span class="ow">in</span> <span class="n">step_state</span><span class="p">,</span> <span class="n">step_state</span><span class="o">.</span><span class="n">DebugString</span><span class="p">()</span>
-      <span class="k">assert</span> <span class="n">prng_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-      <span class="n">seeds</span> <span class="o">=</span> <span class="n">prng_seed</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">step_state</span><span class="o">.</span><span class="n">global_step</span><span class="p">,</span> <span class="n">step_state</span><span class="o">.</span><span class="n">time_step</span><span class="p">])</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">prng_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-      <span class="n">seeds</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOpSeedPair</span><span class="p">(</span><span class="n">prng_seed</span><span class="p">)</span>
-
+    <span class="n">seeds</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DeterministicDropout</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
                                          <span class="n">seeds</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">random_seed</span> <span class="k">else</span> <span class="n">prng_seed</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="BaseAttentionLayer"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">BaseAttentionLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
@@ -256,11 +244,7 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;params.name is not set.&#39;</span><span class="p">)</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_source_init_done</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BaseAttentionLayer.InitForSourcePacked"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer.InitForSourcePacked">[docs]</a>  <span class="k">def</span> <span class="nf">InitForSourcePacked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -334,7 +318,6 @@
                                      <span class="n">query_vec</span><span class="p">,</span>
                                      <span class="n">attention_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
@@ -347,8 +330,6 @@
 <span class="sd">      attention_state: previous attention state.</span>
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step. If</span>
 <span class="sd">        not None, it should have shape [target_batch_size, source_seq_length].</span>
-<span class="sd">      step_state: A `.NestedMap` containing `global_step` and `time_step`.</span>
-<span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [batch_size].</span>
 
 <span class="sd">    Returns:</span>
@@ -367,7 +348,6 @@
                            <span class="n">query_vec</span><span class="p">,</span>
                            <span class="n">attention_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                           <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
@@ -382,8 +362,6 @@
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A `.NestedMap` containing `global_step` and `time_step`.</span>
-<span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [batch_size].</span>
 
 <span class="sd">    Returns:</span>
@@ -395,9 +373,10 @@
 <span class="sd">        dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_init_done</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packed_src</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">,</span>
-        <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">step_state</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_packed_src</span><span class="p">,</span>
+                                               <span class="n">query_vec</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">,</span>
+                                               <span class="n">per_step_source_padding</span><span class="p">,</span>
+                                               <span class="n">query_segment_id</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseAttentionLayer.GetInitializationSourceState"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer.GetInitializationSourceState">[docs]</a>  <span class="k">def</span> <span class="nf">GetInitializationSourceState</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the attention initialization state.</span>
@@ -483,7 +462,8 @@
     <span class="c1"># Generating packed input mask for attention padding.</span>
     <span class="n">source_segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">source_segment_ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">query_segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-        <span class="n">query_segment_ids</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_segment_ids</span><span class="p">)[</span><span class="mi">2</span><span class="p">]])</span>
+        <span class="n">query_segment_ids</span><span class="p">,</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_segment_ids</span><span class="p">)[</span><span class="mi">2</span><span class="p">]])</span>
     <span class="n">padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">source_segment_ids</span><span class="p">,</span> <span class="n">query_segment_ids</span><span class="p">),</span> <span class="n">padding</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">padding</span><span class="p">))</span>
@@ -590,7 +570,7 @@
     <span class="c1"># Adds the atten function into the graph&#39;s library.</span>
     <span class="k">def</span> <span class="nf">Atten</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span>
               <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">,</span>
-              <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">step_state</span><span class="p">):</span>
+              <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Computes the attention context vector.</span>
 
 <span class="sd">      Args:</span>
@@ -603,8 +583,7 @@
 <span class="sd">        query_vec: [target_batch, query_dim]</span>
 <span class="sd">        query_segment_id: [target_batch]</span>
 <span class="sd">        per_step_source_padding: [target_batch, source_length]</span>
-<span class="sd">        step_state: A `.NestedMap` containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
-<span class="sd">          Required for deterministic dropout.</span>
+<span class="sd">        global_step: Required for deterministic dropout.</span>
 
 <span class="sd">      Note: concated_source_vecs are the vectors that are used to compute the</span>
 <span class="sd">      attention score between the query_vec and each concated_source_vec.</span>
@@ -635,7 +614,7 @@
 
       <span class="c1"># Apply dropout to weights if applicable.</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">step_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span><span class="p">)</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
       <span class="c1"># Reshape probs to be of shape</span>
       <span class="c1"># [target_batch/source_batch, source_batch, source_length]</span>
@@ -659,7 +638,7 @@
     <span class="k">def</span> <span class="nf">AttenSameBatchSize</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
                            <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span>
                            <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">,</span>
-                           <span class="n">step_state</span><span class="p">):</span>
+                           <span class="n">global_step</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Computes the attention context vector.</span>
 
 <span class="sd">      Args:</span>
@@ -668,12 +647,11 @@
 <span class="sd">        source_padding: [sl, b]</span>
 <span class="sd">        source_segment_id: [sl, b]</span>
 <span class="sd">        concated_source_vecs: [sl, b, hidden_dim].</span>
-<span class="sd">        concated_source_contexts: [b, sl, hidden_dim]</span>
+<span class="sd">        concated_source_contexts: [b, sl, context_dim]</span>
 <span class="sd">        query_vec: [b, query_dim]</span>
 <span class="sd">        query_segment_id: [b]</span>
 <span class="sd">        per_step_source_padding: [b, sl]</span>
-<span class="sd">        step_state: A `.NestedMap` containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
-<span class="sd">          Required for deterministic dropout.</span>
+<span class="sd">        global_step: Required for deterministic dropout.</span>
 
 <span class="sd">      Returns:</span>
 <span class="sd">        attention context vectors and probabilities.</span>
@@ -681,7 +659,7 @@
       <span class="c1"># TODO(jiaye): support dropout</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;dropout is not supported&#39;</span><span class="p">)</span>
-      <span class="k">del</span> <span class="n">step_state</span>
+      <span class="k">del</span> <span class="n">global_step</span>
 
       <span class="c1"># [b, hidden_dim]</span>
       <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
@@ -722,9 +700,9 @@
       <span class="c1"># concated_source_vecs[i, :, :].</span>
       <span class="c1"># Reshaped probs is of shape [b, 1, sl]</span>
       <span class="n">reshaped_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-      <span class="c1"># [b, 1, sl] * [b, sl, hidden_dim] = [b, 1, hidden_dim]</span>
+      <span class="c1"># [b, 1, sl] * [b, sl, context_dim] = [b, 1, context_dim]</span>
       <span class="n">contexts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">reshaped_probs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">)</span>
-      <span class="c1"># Reshaped context is of shape [b, hidden_dim]</span>
+      <span class="c1"># Reshaped context is of shape [b, context_dim]</span>
       <span class="n">contexts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">contexts</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">contexts</span><span class="p">,</span> <span class="n">probs</span>
 
@@ -795,7 +773,6 @@
                                      <span class="n">query_vec</span><span class="p">,</span>
                                      <span class="n">attention_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
@@ -817,8 +794,6 @@
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A `.NestedMap` containing `global_step` and `time_step`.</span>
-<span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [batch_size]</span>
 
 <span class="sd">    Returns:</span>
@@ -852,10 +827,11 @@
       <span class="n">query_segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source_padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
-    <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span><span class="p">(</span>
-        <span class="n">hidden</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span>
-        <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">,</span>
-        <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">step_state</span><span class="p">)</span>
+    <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span><span class="p">(</span><span class="n">hidden</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span>
+                                  <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span>
+                                  <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span>
+                                  <span class="n">query_segment_id</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">,</span>
+                                  <span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">attention_state</span></div></div>
 
@@ -988,7 +964,7 @@
 
     <span class="k">def</span> <span class="nf">Atten</span><span class="p">(</span><span class="n">per_dim_scale</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
               <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span>
-              <span class="n">query_segment_id</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">step_state</span><span class="p">):</span>
+              <span class="n">query_segment_id</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Main attention function.</span>
 
 <span class="sd">      Args:</span>
@@ -1000,9 +976,7 @@
 <span class="sd">        query_vec:                [target_batch, source_dim].</span>
 <span class="sd">        query_segment_id:         [target_batch].</span>
 <span class="sd">        per_step_source_padding:  [target_batch, source_seq_length]</span>
-<span class="sd">        step_state:               A `.NestedMap` containing &#39;global_step&#39; and</span>
-<span class="sd">                                  &#39;time_step&#39;. Required for deterministic</span>
-<span class="sd">                                  dropout.</span>
+<span class="sd">        global_step:              Required for deterministic dropout.</span>
 
 <span class="sd">      Note: concated_source_vecs are the vectors that are used to compute the</span>
 <span class="sd">      attention score between the query_vec and each concated_source_vec.</span>
@@ -1034,7 +1008,7 @@
 
       <span class="c1"># Apply dropout to weights if applicable.</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">step_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span><span class="p">)</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">_ApplyAttentionDropout</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
       <span class="c1"># Weight each frame with the probability and sum them.</span>
       <span class="c1"># [source_batch, n, time] * [source_batch, time, context_dim]</span>
@@ -1101,7 +1075,6 @@
                                      <span class="n">query_vec</span><span class="p">,</span>
                                      <span class="n">attention_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
@@ -1118,8 +1091,6 @@
 <span class="sd">          AdditiveAttention, and is simply passed through.</span>
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch, source_seq_length].</span>
-<span class="sd">      step_state: A `.NestedMap` containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
-<span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: Query segment id with shape [target_batch].</span>
 
 <span class="sd">    Returns:</span>
@@ -1155,7 +1126,7 @@
     <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span><span class="p">(</span>
         <span class="n">ScaleFn</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">per_dim_scale</span><span class="p">),</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">,</span>
         <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span>
-        <span class="n">query_segment_id</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">step_state</span><span class="p">)</span>
+        <span class="n">query_segment_id</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">attention_state</span></div></div>
 
 
@@ -1513,7 +1484,6 @@
                                      <span class="n">query_vec</span><span class="p">,</span>
                                      <span class="n">attention_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
@@ -1528,8 +1498,6 @@
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A `.NestedMap` containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
-<span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [target_batch].</span>
 
 <span class="sd">    Note: concated_source_vecs are the vectors that are used to compute the</span>
@@ -1590,17 +1558,20 @@
                                         <span class="p">[</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">att_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">,</span> <span class="n">query_vec_projected</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">,</span>
-        <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">step_state</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span>
+        <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ctx_post_proj</span><span class="p">:</span>
       <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
           <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">)</span>
       <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
           <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj_b</span><span class="p">),</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_add&#39;</span><span class="p">)</span>
+
+    <span class="c1"># explicitly name this tensor for potential future reference</span>
+    <span class="n">multi_headed_atten_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">prob</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;multi_headed_atten_prob&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(laurenzo): Use a better named range function (we want to represent</span>
     <span class="c1"># 0..1 probs).</span>
-    <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRSoftmax</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">1</span><span class="p">))</span>
+    <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRSoftmax</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">multi_headed_atten_prob</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">att_state</span> <span class="o">=</span> <span class="n">_RecursiveReshape</span><span class="p">(</span><span class="n">att_state</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">att_state</span>
@@ -1682,7 +1653,6 @@
                                            <span class="n">query_vec</span><span class="p">,</span>
                                            <span class="n">attention_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                            <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                           <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                            <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Same as the ComputeContextVectorWithSource api above, except values ...</span>
 
@@ -1698,8 +1668,6 @@
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A `.NestedMap` containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
-<span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [target_batch].</span>
 
 <span class="sd">    Returns:</span>
@@ -1710,7 +1678,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">PackCachedSource</span><span class="p">(</span><span class="n">cached_src</span><span class="p">),</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">,</span>
-        <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">step_state</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span></div>
+        <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="LocationSensitiveAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.LocationSensitiveAttention">[docs]</a><span class="k">class</span> <span class="nc">LocationSensitiveAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">):</span>
@@ -1827,16 +1795,17 @@
       <span class="k">def</span> <span class="nf">CollapseOutDim</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
 
+      <span class="c1"># =&gt; [sl, sb, hd]</span>
+      <span class="n">location_feats</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">location_feats</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
       <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
           <span class="n">CollapseOutDim</span><span class="p">(</span><span class="n">location_feats</span><span class="p">),</span> <span class="n">location_var</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;logits_mul&#39;</span><span class="p">)</span>
 
-      <span class="n">sl</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">location_feats</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-      <span class="n">tb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">location_feats</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">hd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">location_var</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-      <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">location_hidden</span><span class="p">,</span> <span class="p">[</span><span class="n">tb</span><span class="p">,</span> <span class="n">sl</span><span class="p">,</span> <span class="n">hd</span><span class="p">])</span>
-      <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">location_hidden</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
-      <span class="n">sb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec_reshaped</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
-      <span class="n">bs_mult</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec_reshaped</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">sl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">location_feats</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">tb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">location_feats</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">hd</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">location_var</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">location_hidden</span><span class="p">,</span> <span class="p">[</span><span class="n">sl</span><span class="p">,</span> <span class="n">tb</span><span class="p">,</span> <span class="n">hd</span><span class="p">])</span>
+      <span class="n">sb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec_reshaped</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+      <span class="n">bs_mult</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec_reshaped</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">location_hidden</span><span class="p">,</span> <span class="p">[</span><span class="n">sl</span><span class="p">,</span> <span class="n">bs_mult</span><span class="p">,</span> <span class="n">sb</span><span class="p">,</span> <span class="n">hd</span><span class="p">])</span>
 
       <span class="c1"># Shape of summed is [sl, tb/sb, sb, hidden_dim].</span>
@@ -1851,7 +1820,7 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">summed</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">]),</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">hidden_v</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
           <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;logits&#39;</span><span class="p">)</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">summed</span><span class="p">)[:</span><span class="mi">3</span><span class="p">])</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">summed</span><span class="p">)[:</span><span class="mi">3</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">logits</span>
 
     <span class="nd">@_ConditionalDefun</span><span class="p">(</span>
@@ -1867,7 +1836,7 @@
 <span class="sd">        concated_source_vecs: Tensor of shape [sl, batch, dim]</span>
 <span class="sd">        query_vec_transformed: Tensor of shape [batch, dim]</span>
 <span class="sd">        hidden_v: Tensor of shape [dim]</span>
-<span class="sd">        location_feats: Tensor of shape [batch, sl, location_feature_dim]</span>
+<span class="sd">        location_feats: Tensor of shape [batch, location_feature_dim, sl]</span>
 <span class="sd">        location_var: Tensor of shape [location_feature_dim, dim]</span>
 
 <span class="sd">      Returns:</span>
@@ -1878,8 +1847,8 @@
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
 
       <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
-      <span class="c1"># =&gt; [sl, batch, hd]</span>
-      <span class="n">location_feats</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">location_feats</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="c1"># =&gt; [sl, sb, hd]</span>
+      <span class="n">location_feats</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">location_feats</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
       <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
           <span class="n">CollapseOutDim</span><span class="p">(</span><span class="n">location_feats</span><span class="p">),</span> <span class="n">location_var</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;logits_mul&#39;</span><span class="p">)</span>
       <span class="n">sl</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">location_feats</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -1903,8 +1872,7 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">summed</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">]),</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">hidden_v</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
           <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;logits&#39;</span><span class="p">)</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">summed</span><span class="p">)[:</span><span class="mi">2</span><span class="p">])</span>
-      <span class="c1"># ==&gt; of shape [sl, tb]</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">summed</span><span class="p">)[:</span><span class="mi">2</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">logits</span>
 
     <span class="k">def</span> <span class="nf">Atten</span><span class="p">(</span><span class="n">hidden_var</span><span class="p">,</span> <span class="n">query_var</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span>
@@ -1912,34 +1880,19 @@
               <span class="n">location_filter_var</span><span class="p">,</span> <span class="n">location_var</span><span class="p">,</span> <span class="n">per_step_source_padding</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Computes the attention context vector.&quot;&quot;&quot;</span>
       <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-      <span class="c1"># attention_state shape [batch, slen, len(p.location_features)]</span>
+      <span class="c1"># attention_state shape [batch, len(p.location_features), slen]</span>
       <span class="c1"># it contains previous and accumulated attention probabilites.</span>
-      <span class="n">attention_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
-          <span class="n">attention_state</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">)])</span>
+      <span class="n">attention_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span>
+                                          <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
       <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
-        <span class="n">location_feats</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qconv1d</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">location_filter_var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-            <span class="mi">1</span><span class="p">,</span>
-            <span class="s1">&#39;SAME&#39;</span><span class="p">,</span>
-            <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
-            <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;atten_conv&#39;</span><span class="p">)</span>
-        <span class="n">location_feats</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">location_feats</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">location_feats</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qconv1d</span><span class="p">(</span>
-            <span class="n">attention_state</span><span class="p">,</span>
-            <span class="n">location_filter_var</span><span class="p">,</span>
-            <span class="mi">1</span><span class="p">,</span>
-            <span class="s1">&#39;SAME&#39;</span><span class="p">,</span>
-            <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
-            <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;atten_conv&#39;</span><span class="p">)</span>
+      <span class="n">location_feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyConv</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">location_filter_var</span><span class="p">)</span>
+
       <span class="c1"># concated_source_vecs is of shape [sl, sb, dims]</span>
       <span class="c1"># concated_source_contexts is of shape [sb, sl, context_dim]</span>
       <span class="c1"># query_vec is of shape [tb, dims]</span>
-      <span class="n">sb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-      <span class="n">tb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">sb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">tb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">multiplier</span> <span class="o">=</span> <span class="n">tb</span> <span class="o">//</span> <span class="n">sb</span>
       <span class="c1"># concated_source_vecs is reshaped to [sl, 1, sb, hidden_dims]</span>
       <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -1990,29 +1943,13 @@
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="k">del</span> <span class="n">per_step_source_padding</span>
       <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-      <span class="c1"># attention_state shape [batch, slen, len(p.location_features)]</span>
+      <span class="c1"># attention_state shape [batch, len(p.location_features), slen]</span>
       <span class="c1"># it contains previous and accumulated attention probabilites.</span>
-      <span class="n">attention_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
-          <span class="n">attention_state</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">)])</span>
+      <span class="n">attention_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span>
+                                          <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
       <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
-        <span class="n">location_feats</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qconv1d</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">location_filter_var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-            <span class="mi">1</span><span class="p">,</span>
-            <span class="s1">&#39;SAME&#39;</span><span class="p">,</span>
-            <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
-            <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;atten_conv&#39;</span><span class="p">)</span>
-        <span class="n">location_feats</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">location_feats</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">location_feats</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qconv1d</span><span class="p">(</span>
-            <span class="n">attention_state</span><span class="p">,</span>
-            <span class="n">location_filter_var</span><span class="p">,</span>
-            <span class="mi">1</span><span class="p">,</span>
-            <span class="s1">&#39;SAME&#39;</span><span class="p">,</span>
-            <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
-            <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;atten_conv&#39;</span><span class="p">)</span>
+      <span class="n">location_feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyConv</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">location_filter_var</span><span class="p">)</span>
       <span class="n">query_vec_transformed</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
           <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_var</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;atten_matmul&#39;</span><span class="p">)</span>
       <span class="c1"># logits is of shape [sl, sb]</span>
@@ -2051,6 +1988,34 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_encode_source</span> <span class="o">=</span> <span class="n">EncodeSource</span>
 
+<div class="viewcode-block" id="LocationSensitiveAttention._ApplyConv"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.LocationSensitiveAttention._ApplyConv">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">,</span> <span class="n">location_filter_var</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies the convolution on attention state.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
+    <span class="n">attention_state_f32</span> <span class="o">=</span> <span class="n">attention_state</span>
+    <span class="n">location_filter_var_f32</span> <span class="o">=</span> <span class="n">location_filter_var</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+      <span class="n">attention_state_f32</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">location_filter_var_f32</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">location_filter_var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">data_format</span> <span class="o">=</span> <span class="s1">&#39;NCW&#39;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">():</span>
+      <span class="c1"># NCW format is not supported on CPU.</span>
+      <span class="n">attention_state_f32</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">attention_state_f32</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="n">data_format</span> <span class="o">=</span> <span class="s1">&#39;NWC&#39;</span>
+    <span class="n">location_feats</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qconv1d</span><span class="p">(</span>
+        <span class="n">attention_state_f32</span><span class="p">,</span>
+        <span class="n">location_filter_var_f32</span><span class="p">,</span>
+        <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;SAME&#39;</span><span class="p">,</span>
+        <span class="n">data_format</span><span class="o">=</span><span class="n">data_format</span><span class="p">,</span>
+        <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;atten_conv&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">():</span>
+      <span class="n">location_feats</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">location_feats</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+      <span class="n">location_feats</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">location_feats</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="c1"># [sb, hd, sl]</span>
+    <span class="k">return</span> <span class="n">location_feats</span></div>
+
 <div class="viewcode-block" id="LocationSensitiveAttention.PackSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.LocationSensitiveAttention.PackSource">[docs]</a>  <span class="k">def</span> <span class="nf">PackSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">theta</span><span class="p">,</span>
                  <span class="n">source_vecs</span><span class="p">,</span>
@@ -2082,16 +2047,12 @@
     <span class="n">num_features</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_features</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
-              <span class="p">[</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="n">source_seq_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_features</span><span class="p">],</span>
-              <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="n">num_features</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="n">num_features</span><span class="p">,</span> <span class="n">source_seq_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                   <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
 
       <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRSoftmax</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-      <span class="c1"># Having the last dim being 1 or 2 is very inefficient on tpu, and hence</span>
-      <span class="c1"># we reshape to combine the last two dims.</span>
-      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="p">[</span><span class="n">decoder_batch_size</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">state</span></div>
 
 <div class="viewcode-block" id="LocationSensitiveAttention.ComputeContextVectorWithSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.LocationSensitiveAttention.ComputeContextVectorWithSource">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeContextVectorWithSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -2100,7 +2061,6 @@
                                      <span class="n">query_vec</span><span class="p">,</span>
                                      <span class="n">attention_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
@@ -2112,16 +2072,14 @@
 <span class="sd">      query_vec: a tensor of shape [batch_size, query_dim].</span>
 <span class="sd">      attention_state: If</span>
 <span class="sd">        `params().location_features == [&#39;PREV_PROBS&#39;, &#39;CUMULATIVE_PROBS&#39;]`,</span>
-<span class="sd">        then `attention_state` is a tensor of shape [batch_size, src_len * 2].</span>
+<span class="sd">        then `attention_state` is a tensor of shape [batch_size, 2, src_len].</span>
 
-<span class="sd">        - attention_state[:, :, 0] contains previous attention probabilities</span>
-<span class="sd">        - attention_state[:, :, 1] contains a sum over previous timesteps of</span>
+<span class="sd">        - attention_state[:, 0, :] contains previous attention probabilities</span>
+<span class="sd">        - attention_state[:, 1, :] contains a sum over previous timesteps of</span>
 <span class="sd">          attention probabilities.</span>
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A `.NestedMap` containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
-<span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: Query segment id with shape [batch_size].</span>
 
 <span class="sd">    Note: concated_source_vecs are the vectors that are used to compute the</span>
@@ -2147,8 +2105,8 @@
     <span class="n">source_padding</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_padding</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">same_batch_size</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">per_step_source_padding</span> <span class="ow">is</span> <span class="kc">None</span>
-    <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">source_seq_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">source_seq_length</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">per_step_source_padding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">zero</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">query_batch_size</span><span class="p">,</span> <span class="n">source_seq_length</span><span class="p">],</span>
@@ -2161,11 +2119,6 @@
     <span class="n">location_filter</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddPerStepVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">location_filter_var</span><span class="p">)</span>
     <span class="n">location</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddPerStepVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">location_var</span><span class="p">)</span>
 
-    <span class="n">bs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">attention_state</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">num_location_features</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">)</span>
-    <span class="n">attention_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span>
-                                 <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_location_features</span><span class="p">])</span>
-
     <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span><span class="p">(</span>
         <span class="n">hidden</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span>
         <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">,</span> <span class="n">location_filter</span><span class="p">,</span>
@@ -2174,15 +2127,12 @@
     <span class="n">new_feats</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;PREV_PROBS&#39;</span><span class="p">:</span> <span class="n">prob</span><span class="p">}</span>
     <span class="k">if</span> <span class="s1">&#39;CUMULATIVE_PROBS&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">:</span>
       <span class="c1"># Quantization must match the _PaddedSoftmax method.</span>
+      <span class="n">cum_prob_index</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;CUMULATIVE_PROBS&#39;</span><span class="p">)</span>
       <span class="n">new_feats</span><span class="p">[</span><span class="s1">&#39;CUMULATIVE_PROBS&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRSoftmax</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
-              <span class="n">prob</span><span class="p">,</span>
-              <span class="n">attention_state</span><span class="p">[:,</span> <span class="p">:,</span>
-                              <span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="s1">&#39;CUMULATIVE_PROBS&#39;</span><span class="p">)]),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">[:,</span> <span class="n">cum_prob_index</span><span class="p">,</span> <span class="p">:]),</span>
           <span class="n">narrow_to_asym_bit_depth</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="n">new_attention_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">new_feats</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">new_attention_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">new_attention_state</span><span class="p">,</span> <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">new_attention_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">new_feats</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">],</span>
+                                   <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">new_attention_state</span></div></div>
 
 
@@ -2199,8 +2149,8 @@
 <span class="sd">    A tensor of shape [tb, sl].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="c1"># source_padding is of shape [sl, sb].</span>
-  <span class="n">sl</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-  <span class="n">sb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">sl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">sb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
 
   <span class="k">if</span> <span class="n">per_step_source_padding</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">zero</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">source_padding</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -2331,19 +2281,6 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;MonotonicAttention_vars&#39;</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;hidden_bias_var&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
 
-      <span class="c1"># Create seeds for stateless random number generator.</span>
-      <span class="n">random_seed_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span>
-      <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_counter</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;atten_step_counter&#39;</span><span class="p">,</span>
-          <span class="n">params</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                       <span class="n">random_seed_dtype</span><span class="p">),</span>
-          <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-      <span class="n">vname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_counter</span><span class="o">.</span><span class="n">name</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">vname</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">random_seed_dtype</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
-
     <span class="k">def</span> <span class="nf">EncodeSource</span><span class="p">(</span><span class="n">src_w</span><span class="p">,</span> <span class="n">vecs</span><span class="p">,</span> <span class="n">ctxs</span><span class="p">):</span>
       <span class="n">time</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
       <span class="n">ctxs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">ctxs</span><span class="p">,</span> <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
@@ -2388,10 +2325,7 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">decoder_batch_size</span><span class="p">,),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
           <span class="n">source_seq_length</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-          <span class="n">emit_probs</span><span class="o">=</span><span class="n">emit_probs</span><span class="p">,</span>
-          <span class="c1"># stateless.stateless_random_normal() requires seeds of shape [2].</span>
-          <span class="n">random_seed</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_counter</span><span class="p">]))</span></div>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">emit_probs</span><span class="o">=</span><span class="n">emit_probs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MonotonicAttention.ComputeProbabilities"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MonotonicAttention.ComputeProbabilities">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeProbabilities</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span>
                            <span class="n">merged_source_padding</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">):</span>
@@ -2468,9 +2402,9 @@
             <span class="n">p_choose_i</span><span class="p">,</span> <span class="n">previous_attention</span><span class="p">,</span> <span class="s1">&#39;hard&#39;</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Compute pre-sigmoid noise.</span>
-        <span class="n">activation_noise</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">stateless</span><span class="o">.</span><span class="n">stateless_random_normal</span><span class="p">(</span>
+        <span class="n">activation_noise</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">stateless_normal</span><span class="p">(</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">logits</span><span class="p">),</span>
-            <span class="n">attention_state</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="c1"># Compute sigmoid probabilities.</span>
         <span class="n">p_choose_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span>
@@ -2483,8 +2417,7 @@
             <span class="n">p_choose_i</span><span class="p">,</span> <span class="n">previous_attention</span><span class="p">,</span> <span class="s1">&#39;parallel&#39;</span><span class="p">)</span>
 
     <span class="c1"># [tb, sl].</span>
-    <span class="k">return</span> <span class="n">probs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">emit_probs</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span> <span class="n">random_seed</span><span class="o">=</span><span class="n">attention_state</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">probs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">emit_probs</span><span class="o">=</span><span class="n">probs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MonotonicAttention.ComputeContextVectorWithSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MonotonicAttention.ComputeContextVectorWithSource">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeContextVectorWithSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                      <span class="n">theta</span><span class="p">,</span>
@@ -2492,7 +2425,6 @@
                                      <span class="n">query_vec</span><span class="p">,</span>
                                      <span class="n">attention_state</span><span class="p">,</span>
                                      <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
@@ -2506,8 +2438,6 @@
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A `.NestedMap` containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
-<span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [batch_size].</span>
 
 <span class="sd">    Note: concated_source_vecs are the vectors that are used to compute the</span>
@@ -2552,12 +2482,7 @@
       <span class="n">summed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">summed</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
       <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">summed</span><span class="p">,</span> <span class="p">[</span><span class="n">tb</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-    <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">new_state</span></div>
-
-<div class="viewcode-block" id="MonotonicAttention.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MonotonicAttention.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Update self._step_counter with the global_step value.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_counter</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_counter</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div></div>
+    <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">new_state</span></div></div>
 
 
 <div class="viewcode-block" id="GmmMonotonicAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.GmmMonotonicAttention">[docs]</a><span class="k">class</span> <span class="nc">GmmMonotonicAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">):</span>
@@ -2601,8 +2526,6 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;GMM&#39;</span><span class="p">,</span> <span class="n">gmm_params</span><span class="p">)</span>
 
       <span class="c1"># TODO(ngyuzh): change variance to scale to make it simpler.</span>
-      <span class="c1"># noinline and compiled cannot be set at the same time</span>
-      <span class="nd">@function</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span><span class="p">,</span> <span class="n">noinline</span><span class="o">=</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">())</span>
       <span class="k">def</span> <span class="nf">EvalGmmPdfs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Evaluate the location GMMs on all encoder positions.&quot;&quot;&quot;</span>
         <span class="c1"># encoder_positions: [batch, 1, timesteps, 1]</span>
@@ -2709,7 +2632,6 @@
                                      <span class="n">query_vec</span><span class="p">,</span>
                                      <span class="n">attention_state</span><span class="p">,</span>
                                      <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                     <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                      <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes the context vector given the current query output.</span>
 
@@ -2729,8 +2651,6 @@
 <span class="sd">      per_step_source_padding: Source sequence padding to apply at this step.</span>
 <span class="sd">        If not None, it should be of shape [target_batch_size,</span>
 <span class="sd">        source_seq_length].</span>
-<span class="sd">      step_state: A `.NestedMap` containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
-<span class="sd">        Required for deterministic dropout.</span>
 <span class="sd">      query_segment_id: a tensor of shape [batch_size]</span>
 
 <span class="sd">    Note: concated_source_vecs are the vectors that are used to compute the</span>

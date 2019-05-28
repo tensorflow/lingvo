@@ -174,7 +174,7 @@
 <span class="sd">  E.g.::</span>
 
 <span class="sd">    with Cluster(cluster_params) as foo:</span>
-<span class="sd">      model = p.cls(p)</span>
+<span class="sd">      model = p.Instantiate()</span>
 <span class="sd">      model.FProp()  # FProp can access foo through cluster_factory.Current().</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">stack</span> <span class="o">=</span> <span class="n">Cluster</span><span class="o">.</span><span class="n">_cluster_stack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
@@ -189,23 +189,26 @@
                      <span class="n">gpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">split_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                      <span class="n">tpus</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                     <span class="n">add_summary</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                     <span class="n">add_summary</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                     <span class="n">cpus</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a Cluster for unittesting with a worker.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-  <span class="k">if</span> <span class="n">mode</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">mode</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">p</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span>
-  <span class="k">if</span> <span class="n">job</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">job</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">p</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="n">job</span>
-  <span class="k">if</span> <span class="n">gpus</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">gpus</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="n">gpus</span>
-  <span class="k">if</span> <span class="n">tpus</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">tpus</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="o">=</span> <span class="n">tpus</span>
     <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="mi">1</span>
-  <span class="k">if</span> <span class="n">split_size</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">cpus</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">cpus_per_replica</span> <span class="o">=</span> <span class="n">cpus</span>
+  <span class="k">if</span> <span class="n">split_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">p</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="n">split_size</span>
-  <span class="k">if</span> <span class="n">add_summary</span><span class="p">:</span>
+  <span class="k">if</span> <span class="n">add_summary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">p</span><span class="o">.</span><span class="n">add_summary</span> <span class="o">=</span> <span class="n">add_summary</span>
-  <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">p</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span></div>
 </pre></div>
 
            </div>

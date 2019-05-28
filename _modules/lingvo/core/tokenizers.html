@@ -235,14 +235,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">append_eos</span> <span class="o">=</span> <span class="n">external_append_eos</span>
 
-    <span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringsToIdsImpl</span><span class="p">(</span><span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span>
-                                                   <span class="n">languages</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-      <span class="n">batch_size</span> <span class="o">=</span> <span class="n">strs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">ids</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_length</span><span class="p">])</span>
-      <span class="n">labels</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_length</span><span class="p">])</span>
-      <span class="n">paddings</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">max_length</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">ids</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringsToIdsImpl</span><span class="p">(</span><span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTokenizer._StringsToIdsImpl"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer._StringsToIdsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>

@@ -284,7 +284,9 @@
 
     <span class="c1"># Rewrite fetches and feeds to map to their tensor name instead of</span>
     <span class="c1"># Tensor instance.</span>
-    <span class="n">named_fetches</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">fetches</span><span class="p">)}</span>
+    <span class="n">named_fetches</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">fetches</span><span class="p">)</span> <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="p">}</span>
     <span class="n">named_feeds</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">feeds</span><span class="p">)}</span>
 
     <span class="c1"># Export as subgraph.</span>
@@ -416,7 +418,6 @@
   <span class="k">def</span> <span class="nf">Export</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
              <span class="n">model_cfg</span><span class="p">,</span>
              <span class="n">model_task_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-             <span class="n">per_step_inference</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
              <span class="n">device_options</span><span class="o">=</span><span class="n">InferenceDeviceOptions</span><span class="p">(</span>
                  <span class="n">device</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
                  <span class="n">retain_device_placement</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -426,7 +427,8 @@
              <span class="n">freeze_checkpoint</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
              <span class="n">freeze_defaults</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
              <span class="n">export_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-             <span class="n">subgraph_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+             <span class="n">subgraph_filter</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">random_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Exports a InferenceGraph proto with piecewise subgraphs.</span>
 
 <span class="sd">    Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.</span>
@@ -436,8 +438,6 @@
 <span class="sd">        model_registry.GetParams(modelname, &#39;Test&#39;) or model_params.Model().</span>
 <span class="sd">      model_task_name: The task to generate an inference graph for. Should be</span>
 <span class="sd">        None for single-task models.</span>
-<span class="sd">      per_step_inference: Whether the exported graph will be driven step-by-step</span>
-<span class="sd">        instead of being end-to-end.</span>
 <span class="sd">      device_options: Device options for the accelerator used for serving.</span>
 <span class="sd">      freeze_checkpoint: The checkpoint to load. Loads and freezes the model if</span>
 <span class="sd">        given.</span>
@@ -446,6 +446,7 @@
 <span class="sd">      export_path: If not None, write the inference graph in ASCII to this path.</span>
 <span class="sd">      subgraph_filter: If not None or empty, export only this list of inference</span>
 <span class="sd">        subgraphs.</span>
+<span class="sd">      random_seed: Fixes the random seed in the exported inference graph.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      InferenceGraph proto.</span>
@@ -473,15 +474,14 @@
         <span class="n">task</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="c1"># Configure the model.</span>
+    <span class="n">model_cfg</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">=</span> <span class="n">random_seed</span>
     <span class="n">model_cfg</span><span class="o">.</span><span class="n">is_eval</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">model_cfg</span><span class="o">.</span><span class="n">is_inference</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">task_param</span> <span class="ow">in</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-        <span class="n">task_param</span><span class="o">.</span><span class="n">per_step_infer</span> <span class="o">=</span> <span class="n">per_step_inference</span>
         <span class="n">_DisablePackedInput</span><span class="p">(</span><span class="n">task_param</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">model_cfg</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">per_step_infer</span> <span class="o">=</span> <span class="n">per_step_inference</span>
       <span class="n">_DisablePackedInput</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Model </span><span class="si">%s</span><span class="s1">. Params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
@@ -489,6 +489,7 @@
     <span class="c1"># Instantiate the graph.</span>
     <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">set_random_seed</span><span class="p">(</span><span class="n">random_seed</span><span class="p">)</span>
       <span class="n">cluster</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">model_cfg</span><span class="o">.</span><span class="n">cluster</span><span class="p">)</span>
       <span class="n">device</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()</span>
       <span class="n">tpu_const_scope</span> <span class="o">=</span> <span class="n">_DummyScope</span><span class="p">()</span>
@@ -508,46 +509,56 @@
           <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateDtype</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateFpropDtype</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
 
+        <span class="c1"># Hard-code TPU-related flags prior to instantiating model.</span>
         <span class="n">old_enable_asserts</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span>
+        <span class="n">old_xla_device</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span>
         <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
           <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="n">mdl</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">)</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="n">old_enable_asserts</span>
-        <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">_MakeVariableDictionary</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span> <span class="k">else</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">())</span>
+          <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="s1">&#39;tpu&#39;</span>
 
-        <span class="k">if</span> <span class="n">bfloat16_override</span><span class="p">:</span>
-          <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="n">bfloat16_variables</span>
-              <span class="o">.</span><span class="n">get_saver_spec_for_variables_with_bf16_overrides</span><span class="p">(</span>
-                  <span class="n">variables_to_restore</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">variables_to_restore</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">mdl</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="n">model_cfg</span><span class="p">)</span>
+          <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">_MakeVariableDictionary</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span>
+              <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span> <span class="k">else</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">())</span>
 
-        <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">saver_var_spec</span><span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">gen_init_op</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">bfloat16_override</span><span class="p">:</span>
+            <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">bfloat16_variables</span>
+                <span class="o">.</span><span class="n">get_saver_spec_for_variables_with_bf16_overrides</span><span class="p">(</span>
+                    <span class="n">variables_to_restore</span><span class="p">))</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">variables_to_restore</span>
 
-        <span class="n">model_task</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">model_task_name</span><span class="p">)</span>
+          <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">saver_var_spec</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">gen_init_op</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
 
-        <span class="n">inference_graph_proto</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
-        <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">model_task</span><span class="o">.</span><span class="n">Inference</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-          <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">ConvertSubgraphDictToProto</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">subgraph</span> <span class="ow">in</span> <span class="n">subgraphs_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-          <span class="k">if</span> <span class="ow">not</span> <span class="n">subgraph_filter</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">subgraph_filter</span><span class="p">:</span>
-            <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
+          <span class="n">model_task</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">model_task_name</span><span class="p">)</span>
 
-        <span class="c1"># Add a table init op and global variable init op to the graph.</span>
-        <span class="c1"># Tables can be declared anywhere in the graph, so this op has to be</span>
-        <span class="c1"># added last.</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
+          <span class="n">inference_graph_proto</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
+          <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">model_task</span><span class="o">.</span><span class="n">Inference</span><span class="p">()</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">ConvertSubgraphDictToProto</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">subgraph</span> <span class="ow">in</span> <span class="n">subgraphs_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">subgraph_filter</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">subgraph_filter</span><span class="p">:</span>
+              <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
+
+          <span class="c1"># Add a table init op and global variable init op to the graph.</span>
+          <span class="c1"># Tables can be declared anywhere in the graph, so this op has to be</span>
+          <span class="c1"># added last.</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+          <span class="c1"># Reset TPU-related flags after model instantiation.</span>
+          <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="n">old_enable_asserts</span>
+          <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="n">old_xla_device</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Graph contains ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
                     <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()])</span>
+
+    <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">saver</span><span class="o">.</span><span class="n">as_saver_def</span><span class="p">())</span>
 
     <span class="c1"># Freezing.</span>
     <span class="k">if</span> <span class="n">freeze_defaults</span> <span class="ow">or</span> <span class="n">freeze_checkpoint</span><span class="p">:</span>
@@ -566,7 +577,6 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">output_op_names</span> <span class="o">=</span> <span class="n">GetOutputOpNames</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="n">inference_graph_proto</span><span class="p">)</span>
 
-      <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">saver</span><span class="o">.</span><span class="n">as_saver_def</span><span class="p">())</span>
       <span class="c1"># Prune the graph to just the parts we need.</span>
       <span class="c1"># To support restoring, we have to not prune out the restore node.</span>
       <span class="n">output_op_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
@@ -615,6 +625,7 @@
 
     <span class="n">cluster_params</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
     <span class="n">cluster_params</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;decoder&#39;</span>
+    <span class="n">cluster_params</span><span class="o">.</span><span class="n">add_summary</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">Update</span><span class="p">(</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">controller</span><span class="p">)</span>
     <span class="n">Update</span><span class="p">(</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">worker</span><span class="p">)</span>
     <span class="n">Update</span><span class="p">(</span><span class="n">cluster_params</span><span class="o">.</span><span class="n">ps</span><span class="p">)</span>

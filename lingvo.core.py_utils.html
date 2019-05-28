@@ -310,8 +310,28 @@ these keywards.</li>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.HasShape">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">HasShape</code><span class="sig-paren">(</span><em>tensor</em>, <em>expected_shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#HasShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.HasShape" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">HasShape</code><span class="sig-paren">(</span><em>tensor</em>, <em>expected_shape</em>, <em>ndims=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#HasShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.HasShape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Syntactic sugar for asserting that tensor has the expected shape.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>tensor</strong> – A Tensor.</li>
+<li><strong>expected_shape</strong> – A Python list or a 1D tensor.</li>
+<li><strong>ndims</strong> – If not None, check only the first <code class="xref py py-obj docutils literal notranslate"><span class="pre">ndims</span></code> dimensions of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tensor</span></code>.
+Must be equal to the length of <code class="xref py py-obj docutils literal notranslate"><span class="pre">expected_shape</span></code> if not None.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The input <code class="xref py py-obj docutils literal notranslate"><span class="pre">tensor</span></code></p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last">A runtime error if the assertion fails.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -342,6 +362,11 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <dl class="function">
 <dt id="lingvo.core.py_utils.use_tpu">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">use_tpu</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#use_tpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.use_tpu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.nas_run">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">nas_run</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#nas_run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.nas_run" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
@@ -559,6 +584,60 @@ This is different from FlattenItems.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.py_utils.RNNCellStateInit">
+<em class="property">class </em><code class="descclassname">lingvo.core.py_utils.</code><code class="descname">RNNCellStateInit</code><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RNNCellStateInit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RNNCellStateInit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>State initialization functions for RNN cell init state.</p>
+<dl class="staticmethod">
+<dt id="lingvo.core.py_utils.RNNCellStateInit._Params">
+<em class="property">static </em><code class="descname">_Params</code><span class="sig-paren">(</span><em>method</em>, <em>seed</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RNNCellStateInit._Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RNNCellStateInit._Params" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.py_utils.RNNCellStateInit.Zeros">
+<em class="property">static </em><code class="descname">Zeros</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RNNCellStateInit.Zeros"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RNNCellStateInit.Zeros" title="Permalink to this definition">¶</a></dt>
+<dd><p>tf.zeros().</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.py_utils.RNNCellStateInit.RandomNormal">
+<em class="property">static </em><code class="descname">RandomNormal</code><span class="sig-paren">(</span><em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RNNCellStateInit.RandomNormal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RNNCellStateInit.RandomNormal" title="Permalink to this definition">¶</a></dt>
+<dd><p>tf.random.normal().</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.DefaultRNNCellStateInit">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">DefaultRNNCellStateInit</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#DefaultRNNCellStateInit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.DefaultRNNCellStateInit" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.InitRNNCellState">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">InitRNNCellState</code><span class="sig-paren">(</span><em>shape</em>, <em>init=None</em>, <em>dtype=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#InitRNNCellState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.InitRNNCellState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initial state definitions for RNN cell implementations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>shape</strong> – A array of ints for specifying the shape of the state.</li>
+<li><strong>init</strong> – Hyperparameters as returned by one of the static implemetaitons in
+RNNCellStateInit.</li>
+<li><strong>dtype</strong> – The dype of the states. Defaults to tf.float32.</li>
+<li><strong>name</strong> – An optional name for the operation.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A Tensor of the specified shape, and sampled from the distribution as
+defined by the init parameters.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.py_utils.WeightInit">
 <em class="property">class </em><code class="descclassname">lingvo.core.py_utils.</code><code class="descname">WeightInit</code><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/2.7/library/functions.html#object" title="(in Python v2.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -617,6 +696,18 @@ This is different from FlattenItems.</p>
 </dd></dl>
 
 <dl class="staticmethod">
+<dt id="lingvo.core.py_utils.WeightInit.GaussianSqrtFanIn">
+<em class="property">static </em><code class="descname">GaussianSqrtFanIn</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.GaussianSqrtFanIn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.GaussianSqrtFanIn" title="Permalink to this definition">¶</a></dt>
+<dd><p>scale * tf.random_normal(0, 1 / sqrt(fan_in)).</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.py_utils.WeightInit.GaussianSqrtFanOut">
+<em class="property">static </em><code class="descname">GaussianSqrtFanOut</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.GaussianSqrtFanOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.GaussianSqrtFanOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>scale * tf.random_normal(0, 1 / sqrt(fan_out)).</p>
+</dd></dl>
+
+<dl class="staticmethod">
 <dt id="lingvo.core.py_utils.WeightInit.UniformSqrtDim">
 <em class="property">static </em><code class="descname">UniformSqrtDim</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.UniformSqrtDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.UniformSqrtDim" title="Permalink to this definition">¶</a></dt>
 <dd><p>scale * tf.uniform(-1 / sqrt(dim0), 1 / sqrt(dim0)).</p>
@@ -632,6 +723,18 @@ This is different from FlattenItems.</p>
 <dt id="lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim">
 <em class="property">static </em><code class="descname">TruncatedGaussianSqrtDim</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.TruncatedGaussianSqrtDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim" title="Permalink to this definition">¶</a></dt>
 <dd><p>scale * tf.truncated_normal(0, 1 / sqrt(dim0)).</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanIn">
+<em class="property">static </em><code class="descname">TruncatedGaussianSqrtFanIn</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.TruncatedGaussianSqrtFanIn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanIn" title="Permalink to this definition">¶</a></dt>
+<dd><p>scale * tf.truncated_normal(0, 1 / sqrt(fan_in)).</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanOut">
+<em class="property">static </em><code class="descname">TruncatedGaussianSqrtFanOut</code><span class="sig-paren">(</span><em>scale=1.0</em>, <em>seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.TruncatedGaussianSqrtFanOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>scale * tf.truncated_normal(0, 1 / sqrt(fan_out)).</p>
 </dd></dl>
 
 <dl class="staticmethod">
@@ -726,6 +829,12 @@ new_name_format will be interpolated using the matched groups.</td>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.GetFanInFanOut">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GetFanInFanOut</code><span class="sig-paren">(</span><em>shape</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetFanInFanOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetFanInFanOut" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns (fan_in, fan_out) of a weight variable of the give shape.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.CreateVariable">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">CreateVariable</code><span class="sig-paren">(</span><em>name</em>, <em>params</em>, <em>reuse=None</em>, <em>trainable=True</em>, <em>init_wrapper=None</em>, <em>collections=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CreateVariable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CreateVariable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates tf.Variable according to param_config.</p>
@@ -758,9 +867,21 @@ a var, var pair.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.py_utils.GetOrCreateGlobalStep">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GetOrCreateGlobalStep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetOrCreateGlobalStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetOrCreateGlobalStep" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create if needed and return the global_step.</p>
+<dt id="lingvo.core.py_utils.GlobalStepContext">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GlobalStepContext</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwds</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GlobalStepContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GlobalStepContext" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.GetGlobalStep">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GetGlobalStep</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetGlobalStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetGlobalStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the global_step.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.GetOrCreateGlobalStepVar">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GetOrCreateGlobalStepVar</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetOrCreateGlobalStepVar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetOrCreateGlobalStepVar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the global_step variable, creating it if it does not exist.</p>
+<p>Prefer GetGlobalStep if a tensor rather than a tf.Variable is sufficient.</p>
 </dd></dl>
 
 <dl class="function">
@@ -841,20 +962,69 @@ the loading rules.</li>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils._ComputeGradientsSimple">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_ComputeGradientsSimple</code><span class="sig-paren">(</span><em>loss</em>, <em>all_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsSimple" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_ComputeGradientsSimple</code><span class="sig-paren">(</span><em>loss</em>, <em>all_vars</em>, <em>grad_aggregation_method</em>, <em>colocate_gradients_with_ops</em>, <em>gate_gradients</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsSimple"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsSimple" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.ComputeTpuEmbeddingGradients">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ComputeTpuEmbeddingGradients</code><span class="sig-paren">(</span><em>loss</em>, <em>activation_dict</em>, <em>tpu_embedding</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeTpuEmbeddingGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeTpuEmbeddingGradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a TpuEmbedding SendGradient op.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>loss</strong> – The loss to backprop from.</li>
+<li><strong>activation_dict</strong> – String feature -&gt; embedding activations dict.</li>
+<li><strong>tpu_embedding</strong> – TPUEmbedding instance.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils._ComputeGradientsTpu">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_ComputeGradientsTpu</code><span class="sig-paren">(</span><em>loss</em>, <em>all_vars</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpu" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_ComputeGradientsTpu</code><span class="sig-paren">(</span><em>loss</em>, <em>all_vars</em>, <em>grad_aggregation_method</em>, <em>colocate_gradients_with_ops</em>, <em>gate_gradients</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpu" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients for local loss across whole TPU cluster.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils._ComputeGradientsTpuNas">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">_ComputeGradientsTpuNas</code><span class="sig-paren">(</span><em>loss</em>, <em>all_vars</em>, <em>grad_aggregation_method</em>, <em>colocate_gradients_with_ops</em>, <em>gate_gradients</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpuNas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpuNas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes gradients for local loss across whole TPU cluster.</p>
+<p>This implementation specializes for the case where weight params maybe used
+for different number of times in the forward computation, so that gradients
+should be normalized by the actual number of times they are being computed.</p>
+<p>TODO(yonghui): Maybe merge this implementation with the _ComputeGradientsTpu
+one.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>loss</strong> – The loss to backprop from.</li>
+<li><strong>all_vars</strong> – Vars with respect to which gradients are to be computed.</li>
+<li><strong>grad_aggregation_method</strong> – aggregation method to use when calling
+tf.gradients.</li>
+<li><strong>colocate_gradients_with_ops</strong> – boolean, whether or not to colocate gradient op
+with the original op.</li>
+<li><strong>gate_gradients</strong> – boolean, flag to be passed to tf.gradients.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">gradients to be passed back.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.ComputeGradients">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ComputeGradients</code><span class="sig-paren">(</span><em>loss</em>, <em>vmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes gradients of variables in vmap w.r.t.</p>
-<p>to loss.</p>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ComputeGradients</code><span class="sig-paren">(</span><em>loss</em>, <em>vmap</em>, <em>grad_aggregation_method=1</em>, <em>colocate_gradients_with_ops=True</em>, <em>gate_gradients=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes gradients of variables in vmap w.r.t loss.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -862,6 +1032,13 @@ the loading rules.</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>loss</strong> – A scalar Tensor.</li>
 <li><strong>vmap</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of variables.</li>
+<li><strong>grad_aggregation_method</strong> – Specifies the method used to combine gradient
+terms. Accepted values are constants defined in the class
+AggregationMethod.</li>
+<li><strong>colocate_gradients_with_ops</strong> – If True, try colocating gradients with the
+corresponding op.</li>
+<li><strong>gate_gradients</strong> – If True, add a tuple around the gradients returned for an
+operations. This avoids some race conditions.</li>
 </ul>
 </td>
 </tr>
@@ -880,8 +1057,7 @@ for var. grad is guaranteed to be not None.</p>
 <dl class="function">
 <dt id="lingvo.core.py_utils.MaskGradients">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">MaskGradients</code><span class="sig-paren">(</span><em>var_grad</em>, <em>grad_mask</em>, <em>grad_onehot</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#MaskGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.MaskGradients" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes gradients of variables in vmap w.r.t.</p>
-<p>loss.</p>
+<dd><p>Computes gradients of non-masked variables in vmap w.r.t loss.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -893,7 +1069,7 @@ for var. grad is guaranteed to be not None.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">var_grad - a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, mask *  gradient).</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">var_grad - a <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, mask * gradient).</p>
 </td>
 </tr>
 </tbody>
@@ -916,6 +1092,30 @@ applies to every entry.</li>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient * grad_scale). In particular, if
+grad_scale is 0, the result gradient is always 0, even if the input
+gradient is inf or nan.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.ApplyGradNormCliping">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ApplyGradNormCliping</code><span class="sig-paren">(</span><em>vs_gs</em>, <em>norm=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ApplyGradNormCliping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ApplyGradNormCliping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clip gradients to norm on same device as corresponding variables.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>vs_gs</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient).</li>
+<li><strong>norm</strong> – Each tensor’s gradient will be scaled down to have a maximum L2-norm
+value of <code class="xref py py-obj docutils literal notranslate"><span class="pre">norm</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, scaled_gradient). In particular, if
 grad_scale is 0, the result gradient is always 0, even if the input
 gradient is inf or nan.</p>
 </td>
@@ -1032,7 +1232,7 @@ matching structures.</li>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.WeightedAvg">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">WeightedAvg</code><span class="sig-paren">(</span><em>values</em>, <em>weights</em>, <em>sum_reduction_fn=&lt;function reduce_sum_v1&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightedAvg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightedAvg" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">WeightedAvg</code><span class="sig-paren">(</span><em>values</em>, <em>weights</em>, <em>sum_reduction_fn=&lt;function reduce_sum_v1&gt;</em>, <em>name=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightedAvg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightedAvg" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes weighted average of values from a tensor.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1041,7 +1241,8 @@ matching structures.</li>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>values</strong> – a tensor of values</li>
 <li><strong>weights</strong> – a tensor of weights</li>
-<li><strong>sum_reduction_fn</strong> – called to reduce the values and weights to single value.</li>
+<li><strong>sum_reduction_fn</strong> – called to reduce the values and weights to single value</li>
+<li><strong>name</strong> – name of metric.</li>
 </ul>
 </td>
 </tr>
@@ -1138,31 +1339,53 @@ of <code class="xref py py-obj docutils literal notranslate"><span class="pre">l
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.GetStepSeed">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GetStepSeed</code><span class="sig-paren">(</span><em>graph=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetStepSeed" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GetStepSeed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetStepSeed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Gets step_seed.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.ResetStepSeed">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ResetStepSeed</code><span class="sig-paren">(</span><em>graph=None</em>, <em>seed=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ResetStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ResetStepSeed" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">ResetStepSeed</code><span class="sig-paren">(</span><em>seed=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ResetStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ResetStepSeed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Resets step_seed to specified value.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.GetIncStepSeed">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GetIncStepSeed</code><span class="sig-paren">(</span><em>graph=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetIncStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetIncStepSeed" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GetIncStepSeed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetIncStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetIncStepSeed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns and increments the step_seed.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.py_utils.GetOpSeedPair">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GetOpSeedPair</code><span class="sig-paren">(</span><em>op_seed=None</em>, <em>graph=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetOpSeedPair"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetOpSeedPair" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the seed pair for an operation given op_seed.</p>
+<dt id="lingvo.core.py_utils.GenerateStepSeedPair">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">GenerateStepSeedPair</code><span class="sig-paren">(</span><em>p</em>, <em>global_step</em>, <em>op_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GenerateStepSeedPair"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GenerateStepSeedPair" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a seed pair for deterministic random operations in functional loops.</p>
+<p>This function retrieves a unique seed pair on each call, based off the current
+global step and step seed. The step seed ensures this function returns a
+unique seed pair on each call: calling this function automatically increments
+the step seed. The step seed is automatically reset at the beginning of each
+global step in the model’s FProp and works transparently through recurrent.py.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> – A hyperparams.Params object, containing keys ‘random_seed’ and
+‘is_inference’.</li>
+<li><strong>global_step</strong> – The global step.</li>
+<li><strong>op_seed</strong> – An additional operation-level seed to apply.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A size 2 tensor of op seeds to use for stateless_random ops.</p>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.DeterministicDropout">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">DeterministicDropout</code><span class="sig-paren">(</span><em>x</em>, <em>keep_prob</em>, <em>seeds</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#DeterministicDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.DeterministicDropout" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">DeterministicDropout</code><span class="sig-paren">(</span><em>x</em>, <em>keep_prob</em>, <em>seeds</em>, <em>noise_shape=None</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#DeterministicDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.DeterministicDropout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Similar to <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.nn.dropout()</span></code>, but fully deterministic.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1170,9 +1393,11 @@ of <code class="xref py py-obj docutils literal notranslate"><span class="pre">l
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>x</strong> – A float Tensor on which to apply dropout.</li>
-<li><strong>keep_prob</strong> – A scalar of keep probability.</li>
+<li><strong>keep_prob</strong> – A scalar <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of keep probability.</li>
 <li><strong>seeds</strong> – A Tensor of shape [2]. 2 seeds for deterministic random number
 generator.</li>
+<li><strong>noise_shape</strong> – A 1-D <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>, representing the shape for
+randomly generated keep/drop flags.</li>
 <li><strong>name</strong> – An optional name for this operation.</li>
 </ul>
 </td>
@@ -1536,7 +1761,7 @@ A one-hot vector of the source selected.</p>
 <dl class="function">
 <dt id="lingvo.core.py_utils.CheckShapes">
 <code class="descclassname">lingvo.core.py_utils.</code><code class="descname">CheckShapes</code><span class="sig-paren">(</span><em>shapes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CheckShapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CheckShapes" title="Permalink to this definition">¶</a></dt>
-<dd><p>Asserts that shapes is a tuple of fully defined tf.TensorShape.</p>
+<dd><p>Asserts that shapes is a tuple of tshape.Shape.</p>
 </dd></dl>
 
 <dl class="function">
@@ -1594,6 +1819,55 @@ A one-hot vector of the source selected.</p>
 </td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A string tensor of [batch].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.RematerializeFn">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">RematerializeFn</code><span class="sig-paren">(</span><em>fn</em>, <em>*xs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#RematerializeFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.RematerializeFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls fn and rematerializes fn in the backward pass.</p>
+<p>fn(<a href="#id1"><span class="problematic" id="id2">*</span></a>xs) -&gt; ys, where xs and ys can be a single tensor or a tuple of tensors.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fn</strong> – A python function to be rematerialized in the backprop pass.</li>
+<li><strong>*xs</strong> – A single tensor or a list/tuple of tensors. ‘xs’ are input args to the
+fn function.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">fn(<a href="#id3"><span class="problematic" id="id4">*</span></a>xs)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.StatefulRandomOpsInDefun">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">StatefulRandomOpsInDefun</code><span class="sig-paren">(</span><em>func</em>, <em>graph=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#StatefulRandomOpsInDefun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.StatefulRandomOpsInDefun" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks whether the Defun depends on stateful random number ops.</p>
+<p>Stateful random number generator ops should be avoid in Recurrent() call.
+Otherwise, these ops produce inconsistent values between FProp and BProp.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>func</strong> – a _DefinedFunction to check.</li>
+<li><strong>graph</strong> – a Graph. Set None to use the default graph.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A list of names of the stateful random ops.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><code class="xref py py-exc docutils literal notranslate"><span class="pre">InvalidArgumentError</span></code> – if the input func/graph is invalid.</p>
 </td>
 </tr>
 </tbody>

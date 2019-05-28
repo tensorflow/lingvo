@@ -189,6 +189,9 @@
              <span class="s1">&#39;computation.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;integer_source_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Generate integers as source values &#39;</span>
              <span class="s1">&#39;with this value as an upper bound.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;float_source_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Generate floats as source values &#39;</span>
+        <span class="s1">&#39;with this value as an upper bound.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;for_mt&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;True if this is for mt models; &#39;</span>
              <span class="s1">&#39;this affects some parts of batch generation&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_key&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;If non-empty, targets will be specified in &#39;</span>
@@ -203,7 +206,21 @@
              <span class="s1">&#39;language code (e.g. &quot;zh-CN&quot;) are acceptted.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;align_label_with_frame&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to generate label-frame alignments.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bprop_filter&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;The filter to apply to one of the sources.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bprop_filters&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;If set, simulates a multi source&#39;</span>
+        <span class="s1">&#39;input and sets filters for each source i.e the first filter&#39;</span>
+        <span class="s1">&#39;corresponds to the first source etc. The number of sources is set&#39;</span>
+        <span class="s1">&#39;to the length of this param.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;number_sources&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Integer which specifies the number of&#39;</span>
+        <span class="s1">&#39;sources. Cannot be used along with bprop_filters.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;source_selected&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Integer which specifies the index of the&#39;</span>
+        <span class="s1">&#39;source selected. Corresponds to the data source that would be&#39;</span>
+        <span class="s1">&#39;sampled by the input_generator when given multiple file_patterns.&#39;</span>
+        <span class="s1">&#39;This has an effect only when number_sources is set and greater than 1.&#39;</span>
+        <span class="s1">&#39;Can use either constant values or a tensor like&#39;</span>
+        <span class="s1">&#39;tf.mod(tf.train.get_or_create_global_step(), num_sources)&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_transcript&#39;</span><span class="p">,</span> <span class="s1">&#39;dummy_transcript&#39;</span><span class="p">,</span>
              <span class="s1">&#39;Text to use for transcript.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -223,10 +240,17 @@
                        <span class="s1">&#39;(</span><span class="si">%d</span><span class="s1">) when both have to be set.&#39;</span> <span class="o">%</span>
                        <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">target_key_target_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">target_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cur_iter</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_filter</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_filter</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_filter</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_filters</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">number_sources</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Number of sources will be set to length of bprop_filters, the param&#39;</span>
+          <span class="s1">&#39;number_sources should not be used when bprop_filters is set.&#39;</span><span class="p">)</span>
+    <span class="n">number_sources</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">number_sources</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_filters</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_filters</span>
+      <span class="n">number_sources</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bprop_filters</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">number_sources</span> <span class="ow">and</span> <span class="n">number_sources</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
-          <span class="mi">2</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">source_selected</span><span class="p">,</span> <span class="n">number_sources</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TestInputGenerator._check_paddings"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model_test_input_generator.html#lingvo.tasks.asr.model_test_input_generator.TestInputGenerator._check_paddings">[docs]</a>  <span class="k">def</span> <span class="nf">_check_paddings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;check_paddings&#39;</span><span class="p">):</span>
@@ -267,15 +291,20 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cur_iter_in_seed</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_cur_iter</span> <span class="o">+=</span> <span class="mi">1</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">integer_source_max</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">source_shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">1000</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_iter</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">integer_source_max</span><span class="p">:</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
           <span class="n">p</span><span class="o">.</span><span class="n">source_shape</span><span class="p">,</span>
           <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">integer_source_max</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span>
           <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">1000</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_iter</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">float_source_max</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">source_shape</span><span class="p">,</span>
+          <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">float_source_max</span><span class="p">,</span>
+          <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">1000</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_iter</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">source_shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">1000</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_iter</span><span class="p">)</span>
 
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
@@ -326,14 +355,13 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">d</span></div>
 
-<div class="viewcode-block" id="TestInputGenerator.InputBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model_test_input_generator.html#lingvo.tasks.asr.model_test_input_generator.TestInputGenerator.InputBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="TestInputGenerator.GlobalBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model_test_input_generator.html#lingvo.tasks.asr.model_test_input_generator.TestInputGenerator.GlobalBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">GlobalBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">target_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div>
 
 <div class="viewcode-block" id="TestInputGenerator.InputBatch"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model_test_input_generator.html#lingvo.tasks.asr.model_test_input_generator.TestInputGenerator.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-
     <span class="n">ret</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">input_name</span> <span class="o">=</span> <span class="s1">&#39;ids&#39;</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">for_mt</span> <span class="k">else</span> <span class="s1">&#39;src_inputs&#39;</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="p">[</span><span class="n">input_name</span><span class="p">],</span> <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Sources</span><span class="p">()</span>
@@ -358,6 +386,8 @@
         <span class="k">return</span> <span class="kc">None</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span> <span class="k">else</span> <span class="n">v</span>
 
+    <span class="n">ret</span><span class="o">.</span><span class="n">source_selected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">source_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">ret</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_CastFloats</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TestInputGenerator._GetSourceInputsAndLabels"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model_test_input_generator.html#lingvo.tasks.asr.model_test_input_generator.TestInputGenerator._GetSourceInputsAndLabels">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSourceInputsAndLabels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source</span><span class="p">):</span>
@@ -366,9 +396,10 @@
     <span class="c1"># The data are laid out in the channel-major order. In order to move channel</span>
     <span class="c1"># to the last dimension, a tf.transpose of the data is needed.</span>
     <span class="n">src_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">src_inputs</span><span class="p">,</span>
-                   <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">src_inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_channels</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span>
-                             <span class="mi">0</span><span class="p">)),</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">src_inputs</span><span class="p">,</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">src_inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_channels</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="mi">0</span><span class="p">)),</span>
+        <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">src_inputs</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">labels</span></div>
 
 <div class="viewcode-block" id="TestInputGenerator.SetBpropType"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model_test_input_generator.html#lingvo.tasks.asr.model_test_input_generator.TestInputGenerator.SetBpropType">[docs]</a>  <span class="k">def</span> <span class="nf">SetBpropType</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

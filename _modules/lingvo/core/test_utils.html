@@ -169,12 +169,29 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span>
     <span class="s1">&#39;update_goldens&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;Update the goldens, rather than diffing against them.&#39;</span><span class="p">)</span>
 
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+
+<div class="viewcode-block" id="TestCase"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase">[docs]</a><span class="k">class</span> <span class="nc">TestCase</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;TestCase that performs Lingvo-specific setup.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TestCase.setUp"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase.setUp">[docs]</a>  <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TestCase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setUp</span><span class="p">()</span>
+    <span class="c1"># Ensure the global_step variable is created in the default graph.</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TestCase._create_session"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase._create_session">[docs]</a>  <span class="k">def</span> <span class="nf">_create_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">sess</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TestCase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_create_session</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">sess</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="c1"># Ensure the global_step variable is created in every new session.</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">sess</span></div></div>
 
 
 <div class="viewcode-block" id="_ReplaceOneLineInFile"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils._ReplaceOneLineInFile">[docs]</a><span class="k">def</span> <span class="nf">_ReplaceOneLineInFile</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="n">linenum</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>

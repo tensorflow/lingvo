@@ -168,8 +168,8 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">inplace_ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">generic_input</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 
 
 <div class="viewcode-block" id="AsrInput"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.input_generator.html#lingvo.tasks.asr.input_generator.AsrInput">[docs]</a><span class="k">class</span> <span class="nc">AsrInput</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">):</span>
@@ -208,7 +208,7 @@
       <span class="k">return</span> <span class="n">fval</span><span class="p">[</span><span class="s1">&#39;uttid&#39;</span><span class="p">],</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">fval</span><span class="p">[</span>
           <span class="s1">&#39;frames&#39;</span><span class="p">],</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">bucket_key</span>
 
-    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
         <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
         <span class="n">processor</span><span class="o">=</span><span class="n">Proc</span><span class="p">,</span>
         <span class="n">dynamic_padding_dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span>

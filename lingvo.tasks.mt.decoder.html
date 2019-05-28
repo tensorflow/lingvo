@@ -197,7 +197,17 @@ layer and its children layers.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A dictionary containing metrics for the xent loss and prediction accuracy.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>A tuple (metrics, per_example_tensors)</dt>
+<dd><dl class="first docutils">
+<dt>metrics: A dictionary containing metrics for the xent loss and</dt>
+<dd><p class="first last">prediction accuracy</p>
+</dd>
+</dl>
+<p class="last">per_example_tensors: A dictionary of per-example tensors.</p>
+</dd>
+</dl>
+</p>
 </td>
 </tr>
 </tbody>
@@ -207,7 +217,31 @@ layer and its children layers.</li>
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder.ComputeLoss">
 <code class="descname">ComputeLoss</code><span class="sig-paren">(</span><em>theta</em>, <em>predictions</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Populates a metrics dictionary based on the output of ComputePredictions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – Nested map describing decoder model parameters.</li>
+<li><strong>predictions</strong> – NestedMap describing the decoding process, requiring:
+.softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</li>
+<li><strong>targets</strong> – NestedMap describing the target sequences.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">A map from metric name (a python string) to a tuple (value, weight).
+Both value and weight are scalar Tensors.
+A map from name to arbitrary tensors, where the first dimension must be
+the batch index.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Two dicts</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._TruncateTargetSequence">
@@ -218,6 +252,42 @@ layer and its children layers.</li>
 <dl class="method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsSummary">
 <code class="descname">_AddAttenProbsSummary</code><span class="sig-paren">(</span><em>source_paddings</em>, <em>targets</em>, <em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._AddAttenProbsSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsSummary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add summary of attention probs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</li>
+<li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</li>
+<li><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsHistogramSummary">
+<code class="descname">_AddAttenProbsHistogramSummary</code><span class="sig-paren">(</span><em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._AddAttenProbsHistogramSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsHistogramSummary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add histogram summary of attention probs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsImageSummary">
+<code class="descname">_AddAttenProbsImageSummary</code><span class="sig-paren">(</span><em>source_paddings</em>, <em>targets</em>, <em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._AddAttenProbsImageSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsImageSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add image summary of attention probs.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -227,8 +297,8 @@ layer and its children layers.</li>
 <li><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</li>
 <li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
 predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</li>
-<li><strong>atten_probs</strong> – a list of attention probs, each element is of shape
-[tgt_len, tgt_batch, src_len].</li>
+<li><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</li>
 </ul>
 </td>
 </tr>
@@ -402,6 +472,54 @@ override <code class="xref py py-obj docutils literal notranslate"><span class="
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps">
+<code class="descname">_ExpandToNumHyps</code><span class="sig-paren">(</span><em>source_enc_len</em>, <em>num_hyps_per_beam</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._ExpandToNumHyps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Repeat each value according to num hyps.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>source_enc_len</strong> – source encoder length; int [batch].</li>
+<li><strong>num_hyps_per_beam</strong> – number of hypotheses</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">New version of source_enc_len; int [batch * num_hyps_per_beam].
+Target_batch is (num_hyps_per_beam * batch).
+Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2
+–&gt; [3, 2, 1, 3, 2, 1]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.decoder.TransformerDecoder._RemoveEOSProbs">
+<code class="descname">_RemoveEOSProbs</code><span class="sig-paren">(</span><em>p</em>, <em>probs</em>, <em>source_enc_len</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._RemoveEOSProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._RemoveEOSProbs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove the attention probs on EOS symbol and renormalize.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>p</strong> – decoder params.</li>
+<li><strong>probs</strong> – attention probs matrix; float [batch, target_len, source_len].</li>
+<li><strong>source_enc_len</strong> – source encoder length; int [batch].</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">probs with value on last actual token (EOS token) replaced by 0 and
+renormalized so that final dim (src_len) sums to 1 again; float
+[batch, target_len, source_len].</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder._FProp">
 <code class="descname">_FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>targets</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
@@ -429,7 +547,12 @@ predict. Each tensor in targets is of shape [batch, time].</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Output of last decoder layer, [target_time, target_batch, source_dim].</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+attention: <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of attention distributions of shape
+[batch, target_length, source_length].</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing output of last decoder layer and attention probs</p>
 </td>
 </tr>
 </tbody>
@@ -463,9 +586,11 @@ been decoded.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A pair (last_decoder_out, prefix_states), where last_decoder_out is the
-output of the last decoder layer of shape [batch, model_dim], and
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_states</span></code> is the update prefix states.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tuple (last_decoder_out, prefix_states, atten_probs), where
+last_decoder_out is the output of the last decoder layer of
+shape [batch, model_dim], <code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_states</span></code> is the update prefix states,
+and atten_probs contains attention in shape [batch, src_len] for the
+given target position.</p>
 </td>
 </tr>
 </tbody>
@@ -496,7 +621,12 @@ predict. Each tensor in targets is of shape [batch, time].</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A Tensor with shape [time, batch, params.softmax.input_dim].</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+attention: <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of attention distributions of shape
+[batch, time, source_len].</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing utput of last decoder layer and attention probs</p>
 </td>
 </tr>
 </tbody>
@@ -624,6 +754,83 @@ shape [tgt_batch, vocab_size].</p>
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>encoder_outputs</strong> – the outputs of the encoder.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><a class="reference internal" href="lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="lingvo.core.beam_search_helper.BeamSearchDecodeOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code></a>, A namedtuple whose elements are tensors.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsScalarSummary">
+<code class="descname">_AddAttenProbsScalarSummary</code><span class="sig-paren">(</span><em>source_paddings</em>, <em>targets</em>, <em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._AddAttenProbsScalarSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsScalarSummary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add scalar summary of multi-headed transformer attention probs.</p>
+<p>This summary is primarily used to show statistics of the multi-headed
+attention that reveals potential sparsity related properties. The
+multi-headed attention probability tensors are exposed by
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">MultiHeadedAttention.ComputeContextVectorWithSource</span></code> with the name
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">multi_headed_atten_prob</span></code>. The following statistics are summarized:</p>
+<ul class="simple">
+<li>1_v_2: margin of the largest value vs. the 2nd largest</li>
+<li>1_v_3: similar, but vs the 3rd largest</li>
+<li><dl class="first docutils">
+<dt>mean: mean of the attention probs. NOTE: the sequences in a mini-batch</dt>
+<dd>are not always of the same length. The attention probability for the
+padded time index in target sequences are removed. However, the padding
+for the source sequences are left unchanged. As a result, the atten
+probs vectors will have some extra zero entries, so the mean calculated
+here will be smaller than the true mean.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>source_padding_ratio: as explained above, the source paddings are not</dt>
+<dd>handled when computing the mean. This summary show the average ratio
+of time-steps that are padded values in the source sequences, to give
+a reference of roughly how much the mean summarized above should be
+adjusted.</dd>
+</dl>
+</li>
+<li>1_v_mean: margin of the largest value vs the mean value.</li>
+<li><dl class="first docutils">
+<dt>sum: the sum of the attention prob vectors. Should always be 1, for sanity</dt>
+<dd>check only.</dd>
+</dl>
+</li>
+</ul>
+<p>The quantity above are computed for each sequence in the mini-batch, each
+valid (target) sequence index, and each attention head, and then the
+average value is reported to the tensorboard as a scalar summary.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</li>
+<li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</li>
+<li><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsSummary">
+<code class="descname">_AddAttenProbsSummary</code><span class="sig-paren">(</span><em>source_paddings</em>, <em>targets</em>, <em>atten_probs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._AddAttenProbsSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsSummary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add summary of attention probs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>source_paddings</strong> – source padding, of shape [src_len, src_batch].</li>
+<li><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</li>
+<li><strong>atten_probs</strong> – a list of attention probs, each element is of shape [tgt_len,
+tgt_batch, src_len].</li>
+</ul>
+</td>
 </tr>
 </tbody>
 </table>

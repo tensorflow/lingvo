@@ -173,10 +173,10 @@
 
 <dl class="function">
 <dt id="lingvo.core.attention._ApplyAttentionDropout">
-<code class="descclassname">lingvo.core.attention.</code><code class="descname">_ApplyAttentionDropout</code><span class="sig-paren">(</span><em>params</em>, <em>x</em>, <em>step_state=None</em>, <em>prng_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#_ApplyAttentionDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention._ApplyAttentionDropout" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.attention.</code><code class="descname">_ApplyAttentionDropout</code><span class="sig-paren">(</span><em>params</em>, <em>x</em>, <em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#_ApplyAttentionDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention._ApplyAttentionDropout" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply attention dropout according to the given parameters.</p>
 <p>If <code class="xref py py-obj docutils literal notranslate"><span class="pre">params.atten_dropout_deterministic</span></code> is set to True, the dropout will be
-fully deterministic (requires <code class="xref py py-obj docutils literal notranslate"><span class="pre">step_state</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">prng_seed</span></code>).</p>
+fully deterministic.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
@@ -184,10 +184,7 @@ fully deterministic (requires <code class="xref py py-obj docutils literal notra
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>params</strong> – The parameters of attention layer.</li>
 <li><strong>x</strong> – A float Tensor on which to apply dropout.</li>
-<li><strong>step_state</strong> – (Optional) A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with <code class="xref py py-obj docutils literal notranslate"><span class="pre">global_step</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">time_step</span></code>.
-Required for deterministic dropout.</li>
-<li><strong>prng_seed</strong> – (Optional) An int seed for pseudo random number generator.
-Required for deterministic dropout.</li>
+<li><strong>global_step</strong> – Required for deterministic dropout.</li>
 </ul>
 </td>
 </tr>
@@ -277,7 +274,7 @@ inspected or modified by its callers.</p>
 
 <dl class="method">
 <dt id="lingvo.core.attention.BaseAttentionLayer.ComputeContextVectorWithSource">
-<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>step_state=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#BaseAttentionLayer.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.BaseAttentionLayer.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#BaseAttentionLayer.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.BaseAttentionLayer.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the context vector given the current query output.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -292,8 +289,6 @@ InitForSourcePacked.</li>
 <li><strong>attention_state</strong> – previous attention state.</li>
 <li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
 not None, it should have shape [target_batch_size, source_seq_length].</li>
-<li><strong>step_state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing <code class="xref py py-obj docutils literal notranslate"><span class="pre">global_step</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">time_step</span></code>.
-Required for deterministic dropout.</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size].</li>
 </ul>
 </td>
@@ -322,7 +317,7 @@ Required for deterministic dropout.</li>
 
 <dl class="method">
 <dt id="lingvo.core.attention.BaseAttentionLayer.ComputeContextVector">
-<code class="descname">ComputeContextVector</code><span class="sig-paren">(</span><em>theta</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>step_state=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#BaseAttentionLayer.ComputeContextVector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.BaseAttentionLayer.ComputeContextVector" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ComputeContextVector</code><span class="sig-paren">(</span><em>theta</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#BaseAttentionLayer.ComputeContextVector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.BaseAttentionLayer.ComputeContextVector" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the context vector given the current query output.</p>
 <p>Unlike <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer.ComputeContextVectorWithSource" title="lingvo.core.attention.BaseAttentionLayer.ComputeContextVectorWithSource"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputeContextVectorWithSource</span></code></a> which explicitly asks for the packed
 source tensors, <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer.ComputeContextVector" title="lingvo.core.attention.BaseAttentionLayer.ComputeContextVector"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputeContextVector</span></code></a> uses the class’ internal variables.</p>
@@ -338,8 +333,6 @@ layer and its children layers.</li>
 <li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
 If not None, it should be of shape [target_batch_size,
 source_seq_length].</li>
-<li><strong>step_state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing <code class="xref py py-obj docutils literal notranslate"><span class="pre">global_step</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">time_step</span></code>.
-Required for deterministic dropout.</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size].</li>
 </ul>
 </td>
@@ -501,7 +494,7 @@ layer and its children layers.</li>
 
 <dl class="method">
 <dt id="lingvo.core.attention.AdditiveAttention.ComputeContextVectorWithSource">
-<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>step_state=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#AdditiveAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.AdditiveAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#AdditiveAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.AdditiveAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the context vector given the current query output.</p>
 <p>Note: <code class="xref py py-obj docutils literal notranslate"><span class="pre">packed_src.source_vecs</span></code> are the vectors that are used to compute the
 attention score between the <code class="xref py py-obj docutils literal notranslate"><span class="pre">query_vec</span></code> and each <code class="xref py py-obj docutils literal notranslate"><span class="pre">packed_src.source_vecs</span></code>.
@@ -524,8 +517,6 @@ InitForSourcePacked.</li>
 <li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
 If not None, it should be of shape [target_batch_size,
 source_seq_length].</li>
-<li><strong>step_state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing <code class="xref py py-obj docutils literal notranslate"><span class="pre">global_step</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">time_step</span></code>.
-Required for deterministic dropout.</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size]</li>
 </ul>
 </td>
@@ -606,7 +597,7 @@ hidden_dim], <code class="xref py py-obj docutils literal notranslate"><span cla
 
 <dl class="method">
 <dt id="lingvo.core.attention.DotProductAttention.ComputeContextVectorWithSource">
-<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>step_state=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#DotProductAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.DotProductAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#DotProductAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.DotProductAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the context vector given the current query output.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -625,8 +616,6 @@ consecutive rows, each group containing source_batch rows.</li>
 AdditiveAttention, and is simply passed through.</li>
 <li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
 If not None, it should be of shape [target_batch, source_seq_length].</li>
-<li><strong>step_state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing ‘global_step’ and ‘time_step’.
-Required for deterministic dropout.</li>
 <li><strong>query_segment_id</strong> – Query segment id with shape [target_batch].</li>
 </ul>
 </td>
@@ -736,6 +725,12 @@ attention prob.</li>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.core.attention.LocationSensitiveAttention._ApplyConv">
+<code class="descname">_ApplyConv</code><span class="sig-paren">(</span><em>attention_state</em>, <em>location_filter_var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#LocationSensitiveAttention._ApplyConv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.LocationSensitiveAttention._ApplyConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies the convolution on attention state.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.core.attention.LocationSensitiveAttention.PackSource">
 <code class="descname">PackSource</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_contexts</em>, <em>source_padding</em>, <em>source_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#LocationSensitiveAttention.PackSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.LocationSensitiveAttention.PackSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Packs source vectors.</p>
@@ -775,7 +770,7 @@ inspected or modified by its callers.</p>
 
 <dl class="method">
 <dt id="lingvo.core.attention.LocationSensitiveAttention.ComputeContextVectorWithSource">
-<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>step_state=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#LocationSensitiveAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.LocationSensitiveAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state=None</em>, <em>per_step_source_padding=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#LocationSensitiveAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.LocationSensitiveAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the context vector given the current query output.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -789,18 +784,16 @@ InitForSourcePacked.</li>
 <li><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</li>
 <li><strong>attention_state</strong> – <p>If
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">params().location_features</span> <span class="pre">==</span> <span class="pre">['PREV_PROBS',</span> <span class="pre">'CUMULATIVE_PROBS']</span></code>,
-then <code class="xref py py-obj docutils literal notranslate"><span class="pre">attention_state</span></code> is a tensor of shape [batch_size, src_len * 2].</p>
+then <code class="xref py py-obj docutils literal notranslate"><span class="pre">attention_state</span></code> is a tensor of shape [batch_size, 2, src_len].</p>
 <ul>
-<li>attention_state[:, :, 0] contains previous attention probabilities</li>
-<li>attention_state[:, :, 1] contains a sum over previous timesteps of
+<li>attention_state[:, 0, :] contains previous attention probabilities</li>
+<li>attention_state[:, 1, :] contains a sum over previous timesteps of
 attention probabilities.</li>
 </ul>
 </li>
 <li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
 If not None, it should be of shape [target_batch_size,
 source_seq_length].</li>
-<li><strong>step_state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing ‘global_step’ and ‘time_step’.
-Required for deterministic dropout.</li>
 <li><strong>query_segment_id</strong> – Query segment id with shape [batch_size].</li>
 </ul>
 </td>
@@ -944,7 +937,7 @@ inspected or modified by its callers.</p>
 
 <dl class="method">
 <dt id="lingvo.core.attention.MonotonicAttention.ComputeContextVectorWithSource">
-<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state</em>, <em>per_step_source_padding=None</em>, <em>step_state=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MonotonicAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MonotonicAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state</em>, <em>per_step_source_padding=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MonotonicAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MonotonicAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the context vector given the current query output.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -960,8 +953,6 @@ InitForSourcePacked.</li>
 <li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
 If not None, it should be of shape [target_batch_size,
 source_seq_length].</li>
-<li><strong>step_state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing ‘global_step’ and ‘time_step’.
-Required for deterministic dropout.</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size].</li>
 </ul>
 </td>
@@ -994,12 +985,6 @@ concated_source_vecs.</p>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.attention.MonotonicAttention.PostTrainingStepUpdate">
-<code class="descname">PostTrainingStepUpdate</code><span class="sig-paren">(</span><em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MonotonicAttention.PostTrainingStepUpdate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MonotonicAttention.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update self._step_counter with the global_step value.</p>
 </dd></dl>
 
 </dd></dl>
@@ -1057,7 +1042,7 @@ inspected or modified by its callers.</p>
 
 <dl class="method">
 <dt id="lingvo.core.attention.GmmMonotonicAttention.ComputeContextVectorWithSource">
-<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state</em>, <em>per_step_source_padding=None</em>, <em>step_state=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#GmmMonotonicAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.GmmMonotonicAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
+<code class="descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em>theta</em>, <em>packed_src</em>, <em>query_vec</em>, <em>attention_state</em>, <em>per_step_source_padding=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#GmmMonotonicAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.GmmMonotonicAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the context vector given the current query output.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1081,8 +1066,6 @@ InitForSourcePacked.</li>
 <li><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step.
 If not None, it should be of shape [target_batch_size,
 source_seq_length].</li>
-<li><strong>step_state</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing ‘global_step’ and ‘time_step’.
-Required for deterministic dropout.</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size]</li>
 </ul>
 </td>

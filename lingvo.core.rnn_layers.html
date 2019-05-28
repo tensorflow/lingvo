@@ -290,6 +290,12 @@ The final recurrent state.</p>
 <em class="property">class </em><code class="descclassname">lingvo.core.rnn_layers.</code><code class="descname">StackedFRNNLayerByLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedFRNNLayerByLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedFRNNLayerByLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_layers.StackedRNNBase" title="lingvo.core.rnn_layers.StackedRNNBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_layers.StackedRNNBase</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
 <p>An implemention of StackedRNNBase which computes layer-by-layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.rnn_layers.StackedFRNNLayerByLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedFRNNLayerByLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedFRNNLayerByLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
 <dl class="method">
 <dt id="lingvo.core.rnn_layers.StackedFRNNLayerByLayer.zero_state">
 <code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedFRNNLayerByLayer.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedFRNNLayerByLayer.zero_state" title="Permalink to this definition">¶</a></dt>
@@ -811,7 +817,7 @@ side_info: Nested map of intermediate results needed for post-processing</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple (atten_context, rnn_output, atten_probs).</p>
 <ul class="simple">
-<li>atten_context: a tensor of [time, batch, attention.hidden_dim].</li>
+<li>atten_context: a tensor of [time, batch, attention.context_dim].</li>
 <li>rnn_output: a tensor of [time, batch, rcell.num_output_nodes].</li>
 <li>atten_probs: a tensor of [time, batch, source_seq_length].</li>
 </ul>
@@ -853,7 +859,7 @@ support masking with packed inputs.</li>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A tuple (atten_context, rnn_output, atten_probs, final_state).</p>
 <ul class="simple">
-<li>atten_context: a tensor of [time, batch, attention.hidden_dim].</li>
+<li>atten_context: a tensor of [time, batch, attention.context_dim].</li>
 <li>rnn_output: a tensor of [time, batch, rcell.num_output_nodes].</li>
 <li>atten_probs: a tensor of [time, batch, source_seq_length].</li>
 <li>final_state: The final recurrent state.</li>

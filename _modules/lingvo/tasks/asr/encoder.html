@@ -176,6 +176,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">rnn_cell</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">rnn_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">spectrum_augmenter</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
 
 <span class="n">ConvLSTMBlock</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;ConvLSTMBlock&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="s1">&#39;cnn&#39;</span><span class="p">))</span>
@@ -188,6 +189,10 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Configs for AsrEncoder.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AsrEncoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;specaugment_network&#39;</span><span class="p">,</span>
+             <span class="n">spectrum_augmenter</span><span class="o">.</span><span class="n">SpectrumAugmenter</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Configs template for the agumentation network.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_specaugment&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use specaugmentation or not.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lstm_tpl&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs template for the RNN layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cnn_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">ConvLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -287,6 +292,9 @@
     <span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># Use specAugment or not.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_specaugment</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;specaugment&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">specaugment_network</span><span class="o">.</span><span class="n">Copy</span><span class="p">())</span>
       <span class="c1"># First create the conv layers.</span>
 
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_cnn_layers</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">conv_filter_shapes</span><span class="p">)</span>
@@ -442,6 +450,10 @@
     <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">src_inputs</span><span class="p">,</span> <span class="n">batch</span><span class="o">.</span><span class="n">paddings</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="c1"># Adding specAugmentation.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_specaugment</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">specaugment</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">specaugment</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
+                                                  <span class="n">paddings</span><span class="p">)</span>
       <span class="c1"># Add a few extra padded timesteps at the end. This is for ensuring the</span>
       <span class="c1"># correctness of the conv-layers at the edges.</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_steps</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>

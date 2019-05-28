@@ -439,11 +439,6 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;min_prob_step (</span><span class="si">%d</span><span class="s1">) &lt;= prob_decay_start_step (</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span>
                        <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">min_prob_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">prob_decay_start_step</span><span class="p">))</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
     <span class="bp">self</span><span class="o">.</span><span class="n">_font_properties</span> <span class="o">=</span> <span class="n">font_manager</span><span class="o">.</span><span class="n">FontProperties</span><span class="p">(</span>
         <span class="n">fname</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_plot_font_properties</span><span class="p">)</span>
 
@@ -511,28 +506,21 @@
     <span class="n">additional_context_dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">contextualizer</span><span class="o">.</span><span class="n">GetContextDim</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">audio_context_dim</span> <span class="o">+</span> <span class="n">additional_context_dim</span></div>
 
-<div class="viewcode-block" id="AsrDecoderBase._ApplyDropout"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._ApplyDropout">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyDropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                    <span class="n">x_in</span><span class="p">,</span>
-                    <span class="n">deterministic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">extra_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                    <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrDecoderBase._ApplyDropout"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._ApplyDropout">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyDropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x_in</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">extra_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">x_in</span>
 
-    <span class="n">seed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prng_seed</span>
-    <span class="k">if</span> <span class="n">extra_seed</span><span class="p">:</span>
-      <span class="n">seed</span> <span class="o">+=</span> <span class="n">extra_seed</span>
     <span class="k">if</span> <span class="n">deterministic</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">step_state</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)</span>
-      <span class="k">assert</span> <span class="s1">&#39;global_step&#39;</span> <span class="ow">in</span> <span class="n">step_state</span><span class="p">,</span> <span class="n">step_state</span><span class="o">.</span><span class="n">DebugString</span><span class="p">()</span>
-      <span class="k">assert</span> <span class="s1">&#39;time_step&#39;</span> <span class="ow">in</span> <span class="n">step_state</span><span class="p">,</span> <span class="n">step_state</span><span class="o">.</span><span class="n">DebugString</span><span class="p">()</span>
-      <span class="n">seeds</span> <span class="o">=</span> <span class="n">seed</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">step_state</span><span class="o">.</span><span class="n">global_step</span><span class="p">,</span> <span class="n">step_state</span><span class="o">.</span><span class="n">time_step</span><span class="p">])</span>
+      <span class="n">seeds</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">extra_seed</span><span class="p">:</span>
+        <span class="n">seeds</span> <span class="o">+=</span> <span class="n">extra_seed</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DeterministicDropout</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span> <span class="n">seeds</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">:</span>
-        <span class="n">seed</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="n">seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+      <span class="k">if</span> <span class="n">seed</span> <span class="ow">and</span> <span class="n">extra_seed</span><span class="p">:</span>
+        <span class="n">seed</span> <span class="o">+=</span> <span class="n">extra_seed</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase._InitAttention"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase._InitAttention">[docs]</a>  <span class="k">def</span> <span class="nf">_InitAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">):</span>
@@ -553,7 +541,6 @@
                     <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns initial state of RNNs, and attention.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">step_state</span> <span class="o">=</span> <span class="n">misc_zero_states</span><span class="o">.</span><span class="n">step_state</span>
     <span class="n">rnn_states</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span><span class="p">):</span>
       <span class="n">rnn_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rnn_cell</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">bs</span><span class="p">))</span>
@@ -567,8 +554,7 @@
             <span class="n">packed_src</span><span class="p">,</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn_cell_dim</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
             <span class="n">zero_atten_state</span><span class="p">,</span>
-            <span class="n">per_step_source_padding</span><span class="o">=</span><span class="n">per_step_source_padding</span><span class="p">,</span>
-            <span class="n">step_state</span><span class="o">=</span><span class="n">step_state</span><span class="p">))</span>
+            <span class="n">per_step_source_padding</span><span class="o">=</span><span class="n">per_step_source_padding</span><span class="p">))</span>
     <span class="n">atten_context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">contextualizer</span><span class="o">.</span><span class="n">ZeroAttention</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">contextualizer</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">misc_zero_states</span><span class="p">,</span> <span class="n">atten_context</span><span class="p">,</span> <span class="n">packed_src</span><span class="p">)</span>
 
@@ -580,7 +566,8 @@
     <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="AsrDecoderBase.DecoderStepZeroState"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.DecoderStepZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">DecoderStepZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">,</span> <span class="n">bs</span><span class="p">):</span>
-    <span class="n">misc_zero_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MiscZeroState</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">,</span> <span class="n">bs</span><span class="p">)</span>
+    <span class="n">misc_zero_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">MiscZeroState</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">,</span>
+                                          <span class="n">bs</span><span class="p">)</span>
     <span class="n">rnn_states</span><span class="p">,</span> <span class="n">atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">atten_states</span><span class="p">,</span> <span class="n">packed_src</span> <span class="o">=</span> <span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">BaseZeroState</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">bs</span><span class="p">,</span> <span class="n">misc_zero_states</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
@@ -626,7 +613,7 @@
     <span class="n">source_encs</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">encoded</span>
     <span class="n">source_paddings</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;disabled_decoder_example&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="k">return</span>
 
     <span class="k">def</span> <span class="nf">_ToTensor</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="n">stack</span><span class="p">()</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorArray</span><span class="p">)</span> <span class="k">else</span> <span class="n">t</span>
@@ -659,7 +646,7 @@
 
     <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="s1">&#39;transcripts&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;disabled_decoder_example&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="k">return</span>
     <span class="n">transcript</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">transcripts</span><span class="p">[:</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
 
     <span class="n">srclen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">source_paddings</span><span class="p">[:,</span> <span class="n">index</span><span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -1079,7 +1066,7 @@
 
       <span class="n">target_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
       <span class="n">target_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target_embs</span><span class="p">,</span> <span class="p">[</span><span class="n">dec_bs</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb_dim</span><span class="p">])</span>
-      <span class="n">target_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyDropout</span><span class="p">(</span><span class="n">target_embs</span><span class="p">)</span>
+      <span class="n">target_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyDropout</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">target_embs</span><span class="p">)</span>
       <span class="n">target_info_tas</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetInitialTargetInfo</span><span class="p">(</span><span class="n">targets</span><span class="p">,</span> <span class="n">max_seq_length</span><span class="p">,</span>
                                                    <span class="n">target_embs</span><span class="p">)</span>
 
@@ -1171,7 +1158,7 @@
       <span class="n">state0</span><span class="o">.</span><span class="n">step_outs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">dec_bs</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">],</span>
                                   <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
       <span class="n">target_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">targets</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
-      <span class="n">target_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyDropout</span><span class="p">(</span><span class="n">target_embs</span><span class="p">)</span>
+      <span class="n">target_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyDropout</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">target_embs</span><span class="p">)</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
           <span class="nb">id</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">ids</span><span class="p">),</span>
           <span class="n">label</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">labels</span><span class="p">),</span>
@@ -1209,13 +1196,6 @@
 
       <span class="n">accumulated_states</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
           <span class="n">recurrent_theta</span><span class="p">,</span> <span class="n">state0_no_fusion</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">RnnStep</span><span class="p">)</span>
-      <span class="c1"># Give them names, so that they can be fetched in unit tests.</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
-          <span class="n">accumulated_states</span><span class="o">.</span><span class="n">misc_states</span><span class="o">.</span><span class="n">step_state</span><span class="o">.</span><span class="n">global_step</span><span class="p">,</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;accumulated_global_steps&#39;</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
-          <span class="n">accumulated_states</span><span class="o">.</span><span class="n">misc_states</span><span class="o">.</span><span class="n">step_state</span><span class="o">.</span><span class="n">time_step</span><span class="p">,</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;accumulated_time_steps&#39;</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax_uses_attention</span><span class="p">:</span>
         <span class="n">step_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
@@ -1316,17 +1296,14 @@
     <span class="c1"># TODO(syzhang): unify the API to always pass in packed_src.</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Must be implemented by sub-classes.&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="AsrDecoderBase.MiscZeroState"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.MiscZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">MiscZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">,</span> <span class="n">bs</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrDecoderBase.MiscZeroState"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoderBase.MiscZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">MiscZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">,</span> <span class="n">bs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns initial state for other miscellaneous states, if any.&quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">encoder_outputs</span>
-    <span class="n">misc_zero_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">step_state</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-            <span class="n">global_step</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">(),</span>
-            <span class="n">time_step</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)))</span>
+    <span class="n">misc_zero_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_label_prob</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">misc_zero_state</span><span class="o">.</span><span class="n">prev_predicted_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target_ids</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">bs</span><span class="p">])</span>
-      <span class="n">step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStep</span><span class="p">())</span>
+      <span class="n">step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_float</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
       <span class="n">sampling_p</span> <span class="o">=</span> <span class="p">(</span><span class="n">step</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">prob_decay_start_step</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decay_interval</span>
       <span class="n">groundtruth_p</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_label_prob</span> <span class="o">*</span> <span class="n">sampling_p</span><span class="p">)</span>
       <span class="n">groundtruth_p</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">groundtruth_p</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">min_ground_truth_prob</span><span class="p">)</span>
@@ -1400,8 +1377,6 @@
         <span class="c1"># pred_ids: [bs]</span>
         <span class="n">pred_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">log_prob_sample</span><span class="p">),</span> <span class="p">[</span><span class="n">bs</span><span class="p">])</span>
         <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">misc_states</span><span class="o">.</span><span class="n">prev_predicted_ids</span> <span class="o">=</span> <span class="n">pred_ids</span>
-
-    <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">misc_states</span><span class="o">.</span><span class="n">step_state</span><span class="o">.</span><span class="n">time_step</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">return</span> <span class="n">decoder_step_state</span></div></div>
 
 
@@ -1434,7 +1409,6 @@
                         <span class="n">packed_src</span><span class="p">,</span>
                         <span class="n">attention_state</span><span class="p">,</span>
                         <span class="n">per_step_src_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                        <span class="n">step_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                         <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs attention and computes context vector.</span>
 
@@ -1451,7 +1425,6 @@
 <span class="sd">        Varies with the type of attention, but is usually a Tensor or a</span>
 <span class="sd">        NestedMap of Tensors of shape [batch_size, &lt;state_dim&gt;].</span>
 <span class="sd">      per_step_src_padding: Source sequence padding to apply at this step.</span>
-<span class="sd">      step_state: A NestedMap containing &#39;global_step&#39; and &#39;time_step&#39;.</span>
 <span class="sd">      query_segment_id: a tensor of shape [batch_size].</span>
 
 <span class="sd">    Returns:</span>
@@ -1468,7 +1441,6 @@
         <span class="n">rnn_out</span><span class="p">,</span>
         <span class="n">attention_state</span><span class="o">=</span><span class="n">attention_state</span><span class="p">,</span>
         <span class="n">per_step_source_padding</span><span class="o">=</span><span class="n">per_step_src_padding</span><span class="p">,</span>
-        <span class="n">step_state</span><span class="o">=</span><span class="n">step_state</span><span class="p">,</span>
         <span class="n">query_segment_id</span><span class="o">=</span><span class="n">query_segment_id</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrDecoder.SingleDecodeStep"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder.html#lingvo.tasks.asr.decoder.AsrDecoder.SingleDecodeStep">[docs]</a>  <span class="k">def</span> <span class="nf">SingleDecodeStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -1522,8 +1494,7 @@
          <span class="n">rnn_out</span><span class="p">,</span>
          <span class="n">packed_src</span><span class="p">,</span>
          <span class="n">decoder_step_state</span><span class="o">.</span><span class="n">atten_states</span><span class="p">,</span>
-         <span class="n">per_step_src_padding</span><span class="o">=</span><span class="n">per_step_src_padding</span><span class="p">,</span>
-         <span class="n">step_state</span><span class="o">=</span><span class="n">misc_states</span><span class="o">.</span><span class="n">step_state</span><span class="p">)</span>
+         <span class="n">per_step_src_padding</span><span class="o">=</span><span class="n">per_step_src_padding</span><span class="p">)</span>
     <span class="c1"># Here the attention context is being updated according to the</span>
     <span class="c1"># contextualizer (the default contextualizer is a no-op).</span>
     <span class="n">new_atten_context</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">contextualizer</span><span class="o">.</span><span class="n">QueryAttention</span><span class="p">(</span>
@@ -1538,11 +1509,10 @@
       <span class="n">new_rnn_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_rnn_states_i</span><span class="p">)</span>
       <span class="n">new_rnn_out</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">(</span><span class="n">new_rnn_states_i</span><span class="p">)</span>
       <span class="n">new_rnn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyDropout</span><span class="p">(</span>
+          <span class="n">theta</span><span class="p">,</span>
           <span class="n">new_rnn_out</span><span class="p">,</span>
           <span class="n">deterministic</span><span class="o">=</span><span class="n">use_deterministic_random</span><span class="p">,</span>
-          <span class="c1"># Use i * 1000 as extra seed to make dropout at every layer different.</span>
-          <span class="n">extra_seed</span><span class="o">=</span><span class="n">i</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
-          <span class="n">step_state</span><span class="o">=</span><span class="n">misc_states</span><span class="o">.</span><span class="n">step_state</span><span class="p">)</span>
+          <span class="n">extra_seed</span><span class="o">=</span><span class="n">i</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">residual_start</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
         <span class="n">rnn_out</span> <span class="o">+=</span> <span class="n">new_rnn_out</span>
       <span class="k">else</span><span class="p">:</span>

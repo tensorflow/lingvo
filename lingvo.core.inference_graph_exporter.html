@@ -365,7 +365,7 @@ colocating with the closure of output ops in the returned array.</li>
 <p>Class for exporting inference graphs.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.inference_graph_exporter.InferenceGraphExporter.Export">
-<em class="property">classmethod </em><code class="descname">Export</code><span class="sig-paren">(</span><em>model_cfg</em>, <em>model_task_name=None</em>, <em>per_step_inference=False</em>, <em>device_options=InferenceDeviceOptions(device=''</em>, <em>retain_device_placement=False</em>, <em>var_options=None</em>, <em>gen_init_op=True</em>, <em>dtype_override=None)</em>, <em>freeze_checkpoint=None</em>, <em>freeze_defaults=False</em>, <em>export_path=None</em>, <em>subgraph_filter=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#InferenceGraphExporter.Export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceGraphExporter.Export" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="descname">Export</code><span class="sig-paren">(</span><em>model_cfg</em>, <em>model_task_name=None</em>, <em>device_options=InferenceDeviceOptions(device=''</em>, <em>retain_device_placement=False</em>, <em>var_options=None</em>, <em>gen_init_op=True</em>, <em>dtype_override=None)</em>, <em>freeze_checkpoint=None</em>, <em>freeze_defaults=False</em>, <em>export_path=None</em>, <em>subgraph_filter=None</em>, <em>random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#InferenceGraphExporter.Export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.InferenceGraphExporter.Export" title="Permalink to this definition">¶</a></dt>
 <dd><p>Exports a InferenceGraph proto with piecewise subgraphs.</p>
 <p>Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -377,8 +377,6 @@ colocating with the closure of output ops in the returned array.</li>
 model_registry.GetParams(modelname, ‘Test’) or model_params.Model().</li>
 <li><strong>model_task_name</strong> – The task to generate an inference graph for. Should be
 None for single-task models.</li>
-<li><strong>per_step_inference</strong> – Whether the exported graph will be driven step-by-step
-instead of being end-to-end.</li>
 <li><strong>device_options</strong> – Device options for the accelerator used for serving.</li>
 <li><strong>freeze_checkpoint</strong> – The checkpoint to load. Loads and freezes the model if
 given.</li>
@@ -387,6 +385,7 @@ early testing of downstream tools without having a checkpoint.</li>
 <li><strong>export_path</strong> – If not None, write the inference graph in ASCII to this path.</li>
 <li><strong>subgraph_filter</strong> – If not None or empty, export only this list of inference
 subgraphs.</li>
+<li><strong>random_seed</strong> – Fixes the random seed in the exported inference graph.</li>
 </ul>
 </td>
 </tr>

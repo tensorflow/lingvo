@@ -195,9 +195,15 @@
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseInputGenerator.InputBatchSize">
-<code class="descname">InputBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.InputBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.InputBatchSize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the batch size for the current step.</p>
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.GlobalBatchSize">
+<code class="descname">GlobalBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GlobalBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GlobalBatchSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the number of samples for the current step, used for stats.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.InfeedBatchSize">
+<code class="descname">InfeedBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.InfeedBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.InfeedBatchSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the number of samples in InputBatch.</p>
 </dd></dl>
 
 <dl class="method">
@@ -291,7 +297,8 @@ treated as an empty list.</li>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tuple of tf.Tensors where the tensors which contain the input data and
+have major dimension same as size of input batch.</p>
 </td>
 </tr>
 </tbody>
@@ -331,8 +338,33 @@ sources.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>.</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tuple which contains the output of <code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>
+and a tensor of size [batch_size, number of data sources] which contains
+the source selected for each element in the input batch. With cross batch
+mixing the complete input batch comes from the same source.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata">
+<code class="descname">_BuildDataSourceWithMetadata</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read and return input batch from <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code>.</p>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code> may be a string file_pattern or a
+list of (file_pattern, weight, [bprop_variable_filter]) tuples.
+bprop_variable_filter is optional. When bprop_variable_filter is used,
+batches will always contain the examples from the same source. Otherwise,
+examples from different sources may be mixed together.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tuple of tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code> and a tensor of size
+[batch_size, number of data sources] or None.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
 </tr>
@@ -344,16 +376,12 @@ sources.</p>
 <dt id="lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSource">
 <code class="descname">_BuildDataSource</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGeneratorFromFiles._BuildDataSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSource" title="Permalink to this definition">¶</a></dt>
 <dd><p>Read and return input batch from <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code>.</p>
-<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">p.file_pattern</span></code> may be a string file_pattern or a
-list of (file_pattern, weight, [bprop_variable_filter]) tuples.
-bprop_variable_filter is optional. When bprop_variable_filter is used,
-batches will always contain the examples from the same source. Otherwise,
-examples from different sources may be mixed together.</p>
+<p>Same as _BuildDataSourceWithMetadata but does not return any metadata.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">A tuple of tf.Tensor or <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensor same as
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">self._DataSourceFromFilePattern()</span></code>.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ValueError</span></code> – If unknown token type.</td>
@@ -381,9 +409,15 @@ examples from different sources may be mixed together.</p>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.InputBatchSize">
-<code class="descname">InputBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.InputBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.InputBatchSize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the batch size for the current step.</p>
+<dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.GlobalBatchSize">
+<code class="descname">GlobalBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.GlobalBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.GlobalBatchSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the number of samples for the current step, used for stats.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.InfeedBatchSize">
+<code class="descname">InfeedBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.InfeedBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.InfeedBatchSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the number of samples in InputBatch.</p>
 </dd></dl>
 
 <dl class="method">

@@ -310,17 +310,45 @@ object as created by <a class="reference internal" href="#lingvo.tasks.image.cla
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.image.classifier.ModelV2.FPropTower">
-<code class="descname">FPropTower</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2.FPropTower"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2.FPropTower" title="Permalink to this definition">¶</a></dt>
-<dd><p>Forward propagation through one tower of the model.</p>
+<dt id="lingvo.tasks.image.classifier.ModelV2.ComputePredictions">
+<code class="descname">ComputePredictions</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
+<p>The output can be in the form of probablistic distributions, e.g., softmax
+logits for discrete outputs, mixture of logistics for continuous values, or
+regression values.</p>
+<p>For training/evaluation, the output will be used for computing loss and
+gradient updates, including comparing predicted distributions between
+teacher and student for distillation. During inference the output can be
+used to compute final outputs, perhaps with sampling.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task
-copied to this tower’s devices.</li>
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</li>
 <li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Predictions, either a single Tensor, a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, or a namedtuple.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.image.classifier.ModelV2.ComputeLoss">
+<code class="descname">ComputeLoss</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em>, <em>predictions</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes loss and other metrics for the given predictions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variable values of this task.</li>
+<li><strong>input_batch</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing input tensors to this tower.</li>
+<li><strong>predictions</strong> – The output of <a class="reference internal" href="#lingvo.tasks.image.classifier.ModelV2.ComputePredictions" title="lingvo.tasks.image.classifier.ModelV2.ComputePredictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputePredictions</span></code></a>.</li>
 </ul>
 </td>
 </tr>
@@ -333,6 +361,46 @@ index.</p>
 </tr>
 <tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">Two dicts</p>
 </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.image.classifier.ModelV2._compute_accuracy">
+<code class="descname">_compute_accuracy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2._compute_accuracy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2._compute_accuracy" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.image.classifier.ModelV2.Inference">
+<code class="descname">Inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2.Inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2.Inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs inference subgraphs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(fetches, feeds)}. Each of
+fetches and feeds is itself a dictionary which maps a string name (which
+describes the tensor) to a corresponding tensor in the inference graph
+which should be fed/fetched from.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">A dictionary of the form {‘subgraph_name’</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.image.classifier.ModelV2._InferenceSubgraph_Default">
+<code class="descname">_InferenceSubgraph_Default</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/image/classifier.html#ModelV2._InferenceSubgraph_Default"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.image.classifier.ModelV2._InferenceSubgraph_Default" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs graph for single-image inference.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(fetches, feeds) where both fetches and feeds are dictionaries. Each
+dictionary consists of keys corresponding to tensor names, and values
+corresponding to a tensor in the graph which should be input/read from.</td>
 </tr>
 </tbody>
 </table>

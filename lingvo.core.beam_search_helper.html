@@ -254,10 +254,14 @@
   Returns:
     initial_results: a `.NestedMap` of initial results. It should contain
         the following tensors at the minimum.
-            log_probs: The initial log probs for each of the tokens in
-                the target vocab, of shape [tgt_batch, vocab_size].
-            atten_probs: The initial attention probs, of shape [tgt_batch,
-                src_len].
+        .log_probs: The initial log probs for each of the tokens in
+            the target vocab, of shape [num_hyps_per_beam * src_batch,
+            vocab_size]. src_batch &quot;b&quot; and hyp_per_beam &quot;h&quot; is
+            represented at index (h * src_batch + b).
+        .atten_probs: The initial attention probs, of shape [
+            num_hyps_per_beam * src_batch, src_len]. src_batch &quot;b&quot;
+            and hyp_per_beam &quot;h&quot; is represented at index
+            (h * src_batch + b).
     states: a `.NestedMap` of tensors representing states that the client
         would like to keep track of for each hyp.
 </pre></div>
@@ -273,7 +277,7 @@ is called:</p>
     theta: A NestedMap object containing weights&#39; values of this
         layer and its children layers.
     encoder_outputs: A NestedMap computed by encoder.
-    step_ids: A tensor of shape [tgt_batch, 1].
+    step_ids: A tensor of shape [num_hyps_per_beam * src_batch, 1].
     in_states: A `.NestedMap` of tensors representing states that the
         clients would like to keep track of for each of the active hyps.
   Returns:
@@ -281,12 +285,16 @@ is called:</p>
         the &#39;atten_probs&#39; and &#39;log_probs&#39; tensors at the minimal.
         Optionally it may contain &#39;is_last_chunk&#39; if it is decoding a
         neural transducer model.
-    atten_probs: The updated attention probs, of shape [tgt_batch,
-        src_len].
-    log_probs: Log prob for each of the tokens in the target vocab. This
-        is of shape [tgt_batch, vocab_size].
-    is_last_chunk: Whether or not each of the hyp is at the end of a
-        chunk. If non-empty, it is of shape [tgt_batch, 1]
+        .atten_probs: The updated attention probs, of shape
+            [num_hyps_per_beam * src_batch, src_len]. src_batch &quot;b&quot; and
+            hyp_per_beam &quot;h&quot; is represented at index (h * src_batch + b).
+        .log_probs: Log prob for each of the tokens in the target vocab.
+            This is of shape [num_hyps_per_beam * src_batch, vocab_size].
+            src_batch &quot;b&quot; and hyp_per_beam &quot;h&quot; is represented at index
+            (h * src_batch + b).
+        .is_last_chunk: Whether or not each of the hyp is at the end of a
+            chunk. If non-empty, it is of shape
+            [num_hyps_per_beam * src_batch, 1].
     out_states: A `.NestedMap`. The updated states. This &#39;out_states&#39;
         should be of the exact same structure as &#39;in_states&#39;
 </pre></div>
@@ -323,7 +331,9 @@ is called:</p>
 <div class="line">num_hyps_per_beam = Number of hyps to keep per source sequence.</div>
 <div class="line">num_hyps = num_beams * num_hyps_per_beam</div>
 <div class="line">src_seq_len = Number of time steps in the source sequence.</div>
+<div class="line">src_batch = Number of examples in the source sequence.</div>
 <div class="line">tgt_seq_len = Maximum allowed time steps in the target sequence.</div>
+<div class="line">tgt_batch = num_hyps_per_beam * src_batch</div>
 </div>
 </div></blockquote>
 <table class="docutils field-list" frame="void" rules="none">

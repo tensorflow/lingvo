@@ -282,13 +282,13 @@ output range must have either qt or qmin/qmax specified manually.</p>
 <dl class="method">
 <dt id="lingvo.core.quant_utils.QuantizableLayer.QRRelu">
 <code class="descname">QRRelu</code><span class="sig-paren">(</span><em>t</em>, <em>domain='relu'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRRelu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRRelu" title="Permalink to this definition">¶</a></dt>
-<dd><p>Quantizes the output of a softmax (0, 1.0).</p>
+<dd><p>Quantizes the output of a relu (0, 1.0).</p>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.quant_utils.QuantizableLayer.QRRelu6">
 <code class="descname">QRRelu6</code><span class="sig-paren">(</span><em>t</em>, <em>domain='relu6'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.QRRelu6"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.QRRelu6" title="Permalink to this definition">¶</a></dt>
-<dd><p>Quantizes the output of a softmax (0, 1.0).</p>
+<dd><p>Quantizes the output of a relu6 (0, 6.0).</p>
 </dd></dl>
 
 <dl class="method">
@@ -762,32 +762,25 @@ constants that are not used arithmetically. This exists to support padding.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule.CurrentCap">
-<code class="descname">CurrentCap</code><span class="sig-paren">(</span><em>theta</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.CurrentCap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.CurrentCap" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the current clipping cap value.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule.Value">
-<code class="descname">Value</code><span class="sig-paren">(</span><em>current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.Value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.Value" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.quant_utils.LinearClippingCapSchedule._Value">
+<code class="descname">_Value</code><span class="sig-paren">(</span><em>current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule._Value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule._Value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the current clipping cap.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>current_step</strong> – The current global step value.</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Returns the current clipping cap value given the current training
-global step.</td>
-</tr>
-</tbody>
-</table>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.quant_utils.LinearClippingCapSchedule.PostTrainingStepUpdate">
 <code class="descname">PostTrainingStepUpdate</code><span class="sig-paren">(</span><em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#LinearClippingCapSchedule.PostTrainingStepUpdate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.LinearClippingCapSchedule.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update the cap value.</p>
+<dd><p>Returns a TF op which will be invoked at each training step.</p>
+<p>Subclasses of <code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseLayer</span></code> can implement this method. The method should
+return a TF op to be invoked during training after gradients are applied.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>global_step</strong> – the global step.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 </dd></dl>
@@ -968,29 +961,14 @@ if None.</p>
 </table>
 </dd></dl>
 
-<dl class="method">
-<dt id="lingvo.core.quant_utils.FakeQuantizationSchedule.PostTrainingStepUpdate">
-<code class="descname">PostTrainingStepUpdate</code><span class="sig-paren">(</span><em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#FakeQuantizationSchedule.PostTrainingStepUpdate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.FakeQuantizationSchedule.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update the cap value.</p>
-</dd></dl>
-
 </dd></dl>
 
 <dl class="class">
 <dt id="lingvo.core.quant_utils.QDomain">
-<em class="property">class </em><code class="descclassname">lingvo.core.quant_utils.</code><code class="descname">QDomain</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="descclassname">lingvo.core.quant_utils.</code><code class="descname">QDomain</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Base class for a quantization domain layer.</p>
 <p>This implementation doubles as a no-op quantization domain.</p>
-<dl class="method">
-<dt id="lingvo.core.quant_utils.QDomain._EnableGlobalStepAccess">
-<code class="descname">_EnableGlobalStepAccess</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain._EnableGlobalStepAccess"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain._EnableGlobalStepAccess" title="Permalink to this definition">¶</a></dt>
-<dd><p>Called by subclass init to initialize the global step counter.</p>
-<p>Should be called from __init__ in an appropriate variable scope. Will add
-a ‘global_step’ variable to the layer and a post step update to manage
-it.</p>
-</dd></dl>
-
 <dl class="attribute">
 <dt id="lingvo.core.quant_utils.QDomain.bits">
 <code class="descname">bits</code><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.bits" title="Permalink to this definition">¶</a></dt>
@@ -1003,12 +981,6 @@ it.</p>
 </tr>
 </tbody>
 </table>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.quant_utils.QDomain.PostTrainingStepUpdate">
-<code class="descname">PostTrainingStepUpdate</code><span class="sig-paren">(</span><em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QDomain.PostTrainingStepUpdate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QDomain.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update the cap value.</p>
 </dd></dl>
 
 <dl class="method">
@@ -1138,30 +1110,30 @@ QuantizeTensors updating the appropriate value.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.quant_utils.SymetricScheduledClipQDomain">
-<em class="property">class </em><code class="descclassname">lingvo.core.quant_utils.</code><code class="descname">SymetricScheduledClipQDomain</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymetricScheduledClipQDomain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymetricScheduledClipQDomain" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain">
+<em class="property">class </em><code class="descclassname">lingvo.core.quant_utils.</code><code class="descname">SymmetricScheduledClipQDomain</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.quant_utils.QDomain" title="lingvo.core.quant_utils.QDomain"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QDomain</span></code></a></p>
-<p>A quantization domain that does symetric scheduled clipping.</p>
+<p>A quantization domain that does symmetric scheduled clipping.</p>
 <p>This contains a BaseClippingCapSchedule which handles the actual clipping. It
 defaults to a FakeQuantizationSchedule.</p>
 <p>This clipping domain will aid in quantizing layers that are known to tolerate
 operation within known ranges (such as LSTM cells). The clipping range will
-converge over a range of steps and is setup to match ideal, symetric ranges
+converge over a range of steps and is setup to match ideal, symmetric ranges
 for quantized types.</p>
 <dl class="classmethod">
-<dt id="lingvo.core.quant_utils.SymetricScheduledClipQDomain.Params">
-<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymetricScheduledClipQDomain.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymetricScheduledClipQDomain.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="attribute">
-<dt id="lingvo.core.quant_utils.SymetricScheduledClipQDomain.bits">
-<code class="descname">bits</code><a class="headerlink" href="#lingvo.core.quant_utils.SymetricScheduledClipQDomain.bits" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.bits">
+<code class="descname">bits</code><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.bits" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.quant_utils.SymetricScheduledClipQDomain.QuantizeWeight">
-<code class="descname">QuantizeWeight</code><span class="sig-paren">(</span><em>w</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymetricScheduledClipQDomain.QuantizeWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymetricScheduledClipQDomain.QuantizeWeight" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeWeight">
+<code class="descname">QuantizeWeight</code><span class="sig-paren">(</span><em>w</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeWeight" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a weight.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1176,8 +1148,8 @@ for quantized types.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.quant_utils.SymetricScheduledClipQDomain.QuantizeNaturalRange">
-<code class="descname">QuantizeNaturalRange</code><span class="sig-paren">(</span><em>t</em>, <em>min_value</em>, <em>max_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymetricScheduledClipQDomain.QuantizeNaturalRange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymetricScheduledClipQDomain.QuantizeNaturalRange" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeNaturalRange">
+<code class="descname">QuantizeNaturalRange</code><span class="sig-paren">(</span><em>t</em>, <em>min_value</em>, <em>max_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeNaturalRange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeNaturalRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a tensor with a known, natural range.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1198,8 +1170,8 @@ for quantized types.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.quant_utils.SymetricScheduledClipQDomain.QuantizeConstantRange">
-<code class="descname">QuantizeConstantRange</code><span class="sig-paren">(</span><em>t</em>, <em>min_value</em>, <em>max_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymetricScheduledClipQDomain.QuantizeConstantRange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymetricScheduledClipQDomain.QuantizeConstantRange" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeConstantRange">
+<code class="descname">QuantizeConstantRange</code><span class="sig-paren">(</span><em>t</em>, <em>min_value</em>, <em>max_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeConstantRange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeConstantRange" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a true-constant range that is not used for arithmetic.</p>
 <p>This supports special values like padding that should have a precise
 range that we do not deviate from.</p>
@@ -1222,8 +1194,8 @@ range that we do not deviate from.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.quant_utils.SymetricScheduledClipQDomain.QuantizeTensors">
-<code class="descname">QuantizeTensors</code><span class="sig-paren">(</span><em>t_name</em>, <em>ts</em>, <em>eval_only=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymetricScheduledClipQDomain.QuantizeTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymetricScheduledClipQDomain.QuantizeTensors" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeTensors">
+<code class="descname">QuantizeTensors</code><span class="sig-paren">(</span><em>t_name</em>, <em>ts</em>, <em>eval_only=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#SymmetricScheduledClipQDomain.QuantizeTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeTensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Quantizes a tensor with t_name previously created with CreateTensor.</p>
 <p>If applicable, each of the passed tensors contributes to a shared
 range.</p>
@@ -1270,7 +1242,7 @@ increases the count and expands the min/max (initially zeros).</p>
 <dt id="lingvo.core.quant_utils.PassiveAsymQDomain">
 <em class="property">class </em><code class="descclassname">lingvo.core.quant_utils.</code><code class="descname">PassiveAsymQDomain</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.quant_utils.QDomain" title="lingvo.core.quant_utils.QDomain"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QDomain</span></code></a></p>
-<p>A quantization domain that does passive, asymetric quantization.</p>
+<p>A quantization domain that does passive, asymmetric quantization.</p>
 <p>See: <a class="reference external" href="https://arxiv.org/abs/1712.05877">https://arxiv.org/abs/1712.05877</a></p>
 <p>This quantization domain will adjust to min/max ranges during training
 time, recording them into vars via an exponential moving average and then
@@ -1418,7 +1390,17 @@ QuantizeTensors updating the appropriate value.</p>
 <dl class="method">
 <dt id="lingvo.core.quant_utils.PassiveAsymQDomain.PostTrainingStepUpdate">
 <code class="descname">PostTrainingStepUpdate</code><span class="sig-paren">(</span><em>global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain.PostTrainingStepUpdate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain.PostTrainingStepUpdate" title="Permalink to this definition">¶</a></dt>
-<dd><p>Update the cap value.</p>
+<dd><p>Returns a TF op which will be invoked at each training step.</p>
+<p>Subclasses of <code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseLayer</span></code> can implement this method. The method should
+return a TF op to be invoked during training after gradients are applied.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>global_step</strong> – the global step.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="method">

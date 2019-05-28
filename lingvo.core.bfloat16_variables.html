@@ -35,7 +35,7 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.build_data module" href="lingvo.core.build_data.html" />
+    <link rel="next" title="lingvo.core.bn_layers module" href="lingvo.core.bn_layers.html" />
     <link rel="prev" title="lingvo.core.beam_search_helper module" href="lingvo.core.beam_search_helper.html" /> 
 </head>
 
@@ -189,82 +189,6 @@ inference.</p>
 </pre></div>
 </div>
 </div></blockquote>
-<dl class="function">
-<dt id="lingvo.core.bfloat16_variables.quantization_noise_from_step_num">
-<code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">quantization_noise_from_step_num</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#quantization_noise_from_step_num"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.quantization_noise_from_step_num" title="Permalink to this definition">¶</a></dt>
-<dd><p>A quantization noise equal to (phi * (step_num + 1)) mod 1.0.</p>
-<p>quantization_noise is a float32 scalar in [0, 1). quantization_noise should
-take different values across different steps, approximating a uniform
-distribution over [0, 1).</p>
-<p>In the case of replicated TPU training, quantization_noise should be identical
-across replicas in order to keep the parameters identical across replicas.
-The natural choice for quantization_noise would be tf.random_uniform(),
-but this is not possible for TPU, since there is currently no way to seed
-the different cores to produce identical values across replicas. Instead we
-use this quantization_noise_from_step_num() to generate noise.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">a float32 scalar</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.core.bfloat16_variables.randomized_roundoff_to_bfloat16">
-<code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">randomized_roundoff_to_bfloat16</code><span class="sig-paren">(</span><em>x</em>, <em>quantization_noise</em>, <em>cand1</em>, <em>cand2</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#randomized_roundoff_to_bfloat16"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.randomized_roundoff_to_bfloat16" title="Permalink to this definition">¶</a></dt>
-<dd><p>Round-off x to cand1 or to cand2 in an unbiased way.</p>
-<p>Cand1 and cand2 are the same shape as x.
-For every element of x, the corresponding elements of cand1 and cand2 should
-be the two closest bfloat16 values to x.  Order does not matter.
-cand1 and cand2 must differ from each other.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>x</strong> – A float32 Tensor.</li>
-<li><strong>quantization_noise</strong> – A Tensor broadcastable to the shape of x containing
-random uniform values in [0.0, 1.0].</li>
-<li><strong>cand1</strong> – A bfloat16 Tensor the same shape as x.</li>
-<li><strong>cand2</strong> – A bfloat16 Tensor the same shape as x.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A bfloat16 Tensor.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.core.bfloat16_variables.to_bfloat16_unbiased">
-<code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">to_bfloat16_unbiased</code><span class="sig-paren">(</span><em>x</em>, <em>quantization_noise=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#to_bfloat16_unbiased"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.to_bfloat16_unbiased" title="Permalink to this definition">¶</a></dt>
-<dd><p>Convert a float32 to a bfloat16 using randomized roundoff.</p>
-<p>The current implementation uses quantization_noise_from_step_num to generate
-quantization_noise, which requires global_step, and is not deterministic.
-To use it for inference, it might be feasible to replace the noise generation
-function with a constant, e.g., 0.5.</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>x</strong> – A float32 Tensor.</li>
-<li><strong>quantization_noise</strong> – A float, specifying the quantization noise.</li>
-</ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A bfloat16 Tensor, with the same shape as x.</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
 <dl class="class">
 <dt id="lingvo.core.bfloat16_variables.Bfloat16VariableSaveable">
 <em class="property">class </em><code class="descclassname">lingvo.core.bfloat16_variables.</code><code class="descname">Bfloat16VariableSaveable</code><span class="sig-paren">(</span><em>var</em>, <em>orig_dtype</em>, <em>slice_spec</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bfloat16_variables.html#Bfloat16VariableSaveable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bfloat16_variables.Bfloat16VariableSaveable" title="Permalink to this definition">¶</a></dt>
@@ -325,7 +249,7 @@ Variable object.</td>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.build_data.html" class="btn btn-neutral float-right" title="lingvo.core.build_data module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.bn_layers.html" class="btn btn-neutral float-right" title="lingvo.core.bn_layers module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="lingvo.core.beam_search_helper.html" class="btn btn-neutral float-left" title="lingvo.core.beam_search_helper module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>

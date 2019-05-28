@@ -170,6 +170,7 @@
 <span class="kn">from</span> <span class="nn">tensorflow.contrib.tpu.python.tpu</span> <span class="k">import</span> <span class="n">tpu_function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="k">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">io_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="k">import</span> <span class="n">tpu_embedding</span> <span class="k">as</span> <span class="n">tpu_embedding_lib</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">input_generator_helper</span> <span class="k">as</span> <span class="n">ig_helper</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
@@ -205,6 +206,7 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_made_tpu_infeed</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="c1"># parameter to tell the bprop one hot for all the files.</span>
+    <span class="c1"># TODO(ankurbpn): Initialize when using sources from mixed record yielders.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="c1"># Each entry is a regular expression specifying the set of variables</span>
     <span class="c1"># to bprop per data source.</span>
@@ -221,14 +223,19 @@
     <span class="sd">&quot;&quot;&quot;Get the current bprop type of the input generator batch.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator.InputBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.InputBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Returns the batch size for the current step.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BaseInputGenerator.GlobalBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GlobalBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">GlobalBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the number of samples for the current step, used for stats.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span></div>
+
+<div class="viewcode-block" id="BaseInputGenerator.InfeedBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.InfeedBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the number of samples in InputBatch.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
-
+    <span class="c1"># Here we do not call self.GlobalBatchSize() since it can be overridden,</span>
+    <span class="c1"># e.g., when packed inputs are used.</span>
+    <span class="n">batch_per_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span>
     <span class="c1"># If use_per_host_infeed, each input op is only responsible</span>
     <span class="c1"># for generating a subset of the whole batch.</span>
-    <span class="n">batch_per_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_size </span><span class="si">%d</span><span class="s1"> cluster.num_tpu_hosts </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">,</span>
                       <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">)</span>
@@ -260,7 +267,18 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+    <span class="n">num_cores_per_host</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">total_worker_devices</span> <span class="o">//</span> <span class="n">num_tpu_hosts</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_cores_per_host </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">num_cores_per_host</span><span class="p">))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_devices_per_split </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span><span class="p">))</span>
+
     <span class="k">assert</span> <span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;num_tpu_hosts: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">num_tpu_hosts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span> <span class="o">&gt;</span> <span class="n">num_cores_per_host</span> <span class="ow">and</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">):</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span>
+          <span class="s1">&#39;Doesn</span><span class="se">\&#39;</span><span class="s1">t support per host infeed mode when &#39;</span>
+          <span class="s1">&#39;num_devices_per_split(</span><span class="si">{}</span><span class="s1">) &gt; num_cores_per_host(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+              <span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span><span class="p">,</span> <span class="n">num_cores_per_host</span><span class="p">))</span>
     <span class="n">num_infeed_hosts</span> <span class="o">=</span> <span class="n">num_tpu_hosts</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="k">else</span> <span class="mi">1</span>
 
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
@@ -272,13 +290,46 @@
       <span class="n">input_ops_list</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">queues</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">first_batch</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">)</span>
+      <span class="n">tpu_embedding</span> <span class="o">=</span> <span class="p">(</span><span class="n">tpu_embedding_collection</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                       <span class="k">if</span> <span class="n">tpu_embedding_collection</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+
+      <span class="n">tpu_embedding_input_keys</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">feature_to_config_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+          <span class="k">if</span> <span class="n">tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
+
       <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
         <span class="n">host_device</span> <span class="o">=</span> <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
           <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
+          <span class="n">tpu_embedding_features</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="k">for</span> <span class="n">tpu_embedding_input_key</span> <span class="ow">in</span> <span class="n">tpu_embedding_input_keys</span><span class="p">:</span>
+            <span class="n">tpu_embedding_feature</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">tpu_embedding_input_key</span><span class="p">)</span>
+            <span class="n">tpu_embedding_features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="n">tpu_embedding_input_key</span><span class="p">,</span> <span class="n">tpu_embedding_feature</span><span class="p">))</span>
+
           <span class="k">if</span> <span class="n">first_batch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">first_batch</span> <span class="o">=</span> <span class="n">batch</span>
           <span class="n">flat_batch</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()</span>
+
+          <span class="k">if</span> <span class="n">tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">enqueue_dict_per_core</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="p">{}</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">num_cores_per_host</span><span class="p">)</span>
+            <span class="p">]</span>
+            <span class="n">num_cores_per_host</span> <span class="o">=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">num_cores_per_host</span>
+            <span class="k">for</span> <span class="n">tpu_embedding_input_key</span><span class="p">,</span> <span class="n">tpu_embedding_feature</span> <span class="ow">in</span> <span class="n">tpu_embedding_features</span><span class="p">:</span>
+              <span class="n">tpu_embedding_feature_splitted</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">tpu_embedding_feature</span><span class="p">,</span>
+                                                        <span class="n">num_cores_per_host</span><span class="p">)</span>
+              <span class="k">for</span> <span class="n">core</span><span class="p">,</span> <span class="n">split</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tpu_embedding_feature_splitted</span><span class="p">):</span>
+                <span class="c1"># Dense to sparse. Note the assumption of a padding id.</span>
+                <span class="n">sample_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                <span class="n">embedding_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">split</span><span class="p">,</span> <span class="n">sample_indices</span><span class="p">)</span>
+                <span class="n">enqueue_data</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">EnqueueData</span><span class="p">(</span>
+                    <span class="n">embedding_indices</span><span class="p">,</span> <span class="n">sample_indices</span><span class="p">)</span>
+                <span class="n">enqueue_dict_per_core</span><span class="p">[</span><span class="n">core</span><span class="p">][</span>
+                    <span class="n">tpu_embedding_input_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">enqueue_data</span>
+            <span class="n">input_ops_list</span> <span class="o">+=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">(</span>
+                <span class="n">enqueue_dict_per_core</span><span class="p">)</span>
 
           <span class="n">shapes</span><span class="p">,</span> <span class="n">types</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
           <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">flat_batch</span><span class="p">:</span>
@@ -324,7 +375,7 @@
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallism</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">,</span> <span class="n">tpu_infeed_op</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">core</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">core</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
       <span class="n">tensors</span> <span class="o">=</span> <span class="n">queues</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">generate_dequeue_op</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">first_batch</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span></div>
 
@@ -383,10 +434,21 @@
         <span class="s1">&#39;record is about 500KB, the buffer needs 5GB ram.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;file_parallelism&#39;</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="s1">&#39;How many files to read concurrently.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, optimize the values of &#39;</span>
+        <span class="s1">&#39;bucket_upper_bound except the last one after every N records &#39;</span>
+        <span class="s1">&#39;based on the current input length distribution.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;flush_every_n&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If non-zero, flushes all batches buffered &#39;</span>
         <span class="s1">&#39;so far every these many records are yielded.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_batcher_threads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of threads to use for input &#39;</span>
              <span class="s1">&#39;record batcher.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;require_sequential_order&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If true, the input op is required to process the file glob as &#39;</span>
+        <span class="s1">&#39;well as the contents of each file in a deterministic sequential order.&#39;</span>
+        <span class="s1">&#39; This is intended for unit tests. Setting this automatically disables &#39;</span>
+        <span class="s1">&#39;file_random_seed, file_buffer_size, file_parallelism, &#39;</span>
+        <span class="s1">&#39;num_batcher_threads, and requires a single file_pattern.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_within_batch_mixing&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to mix records from &#39;</span>
         <span class="s1">&#39;different input sources within batch or across batches (the &#39;</span>
@@ -409,8 +471,10 @@
         <span class="s1">&#39;file_random_seed&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_random_seed</span><span class="p">,</span>
         <span class="s1">&#39;file_buffer_size&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_buffer_size</span><span class="p">,</span>
         <span class="s1">&#39;file_parallelism&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">file_parallelism</span><span class="p">,</span>
+        <span class="s1">&#39;bucket_adjust_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_adjust_every_n</span><span class="p">,</span>
         <span class="s1">&#39;flush_every_n&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">flush_every_n</span><span class="p">,</span>
         <span class="s1">&#39;num_threads&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">num_batcher_threads</span><span class="p">,</span>
+        <span class="s1">&#39;require_sequential_order&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">require_sequential_order</span><span class="p">,</span>
     <span class="p">})</span>
     <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputOpBucketingArgs</span><span class="p">())</span>
     <span class="k">return</span> <span class="n">args</span></div>
@@ -418,7 +482,7 @@
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._InputOpBucketingArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._InputOpBucketingArgs">[docs]</a>  <span class="k">def</span> <span class="nf">_InputOpBucketingArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">{</span>
         <span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1000000000</span><span class="p">],</span>
-        <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">InputBatchSize</span><span class="p">()],</span>
+        <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">()],</span>
     <span class="p">}</span></div>
 
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">input_source_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -432,7 +496,8 @@
 <span class="sd">        treated as an empty list.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor</span>
+<span class="sd">      A tuple of tf.Tensors where the tensors which contain the input data and</span>
+<span class="sd">      have major dimension same as size of input batch.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
@@ -484,8 +549,10 @@
 <span class="sd">    sources.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
-<span class="sd">      `self._DataSourceFromFilePattern()`.</span>
+<span class="sd">      A tuple which contains the output of `self._DataSourceFromFilePattern()`</span>
+<span class="sd">      and a tensor of size [batch_size, number of data sources] which contains</span>
+<span class="sd">      the source selected for each element in the input batch. With cross batch</span>
+<span class="sd">      mixing the complete input batch comes from the same source.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
@@ -509,10 +576,14 @@
       <span class="n">bprop_variable_filter</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_entry</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bprop_variable_filter</span><span class="p">)</span>
     <span class="n">data_source</span><span class="p">,</span> <span class="n">selected_bprop</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MixByWeight</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span>
+    <span class="c1"># TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to</span>
+    <span class="c1"># use source_selected from input_batch.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span> <span class="o">=</span> <span class="n">selected_bprop</span>
-    <span class="k">return</span> <span class="n">data_source</span></div>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">data_source</span><span class="p">)[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">data_source</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">selected_bprop</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSourceWithMetadata">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildDataSourceWithMetadata</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Read and return input batch from `p.file_pattern`.</span>
 
 <span class="sd">    `p.file_pattern` may be a string file_pattern or a</span>
@@ -522,24 +593,44 @@
 <span class="sd">    examples from different sources may be mixed together.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
-<span class="sd">      `self._DataSourceFromFilePattern()`.</span>
+<span class="sd">      A tuple of tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
+<span class="sd">      `self._DataSourceFromFilePattern()` and a tensor of size</span>
+<span class="sd">      [batch_size, number of data sources] or None.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">      ValueError: If unknown token type.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">input_file_pattern</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">)</span>
+      <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span>
+          <span class="n">input_file_pattern</span><span class="p">),</span> <span class="kc">None</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_file_pattern</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_within_batch_mixing</span><span class="p">:</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildWithinBatchMixingDataSource</span><span class="p">()</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildWithinBatchMixingDataSource</span><span class="p">(),</span> <span class="kc">None</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># Otherwise fall back to MixByWeight-based approach.</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildCrossBatchMixingDataSource</span><span class="p">()</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">source_selected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildCrossBatchMixingDataSource</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span></div></div>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">source_selected</span> <span class="o">=</span> <span class="n">source_selected</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="BaseInputGeneratorFromFiles._BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Read and return input batch from `p.file_pattern`.</span>
+
+<span class="sd">    Same as _BuildDataSourceWithMetadata but does not return any metadata.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tuple of tf.Tensor or `.NestedMap` of tf.Tensor same as</span>
+<span class="sd">      `self._DataSourceFromFilePattern()`.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If unknown token type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSourceWithMetadata</span><span class="p">()[</span><span class="s1">&#39;data&#39;</span><span class="p">]</span></div></div>
 
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseSequenceInputGenerator</span><span class="p">(</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">):</span>
@@ -609,10 +700,26 @@
         <span class="p">]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scaled_bucket_batch_limit</span>
 
-<div class="viewcode-block" id="BaseSequenceInputGenerator.InputBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.InputBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseSequenceInputGenerator.GlobalBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.GlobalBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">GlobalBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># TODO(rpang): rename self._input_batch_size to _global_input_batch_size.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No input batch size is defined.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span></div>
+
+<div class="viewcode-block" id="BaseSequenceInputGenerator.InfeedBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.InfeedBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No input batch size is defined.&#39;</span><span class="p">)</span>
+    <span class="n">batch_per_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span>
+    <span class="c1"># If use_per_host_infeed, each input op is only responsible</span>
+    <span class="c1"># for generating a subset of the whole batch.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_size </span><span class="si">%d</span><span class="s1"> cluster.num_tpu_hosts </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">,</span>
+                      <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">)</span>
+      <span class="n">batch_per_input</span> <span class="o">//=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_per_input: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">batch_per_input</span></div>
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator._InputOpBucketingArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator._InputOpBucketingArgs">[docs]</a>  <span class="k">def</span> <span class="nf">_InputOpBucketingArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -726,7 +833,7 @@
 
     <span class="c1"># Loads data and label into memory and keep it around.</span>
     <span class="n">data</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">cached_call</span><span class="p">(</span><span class="n">f</span><span class="o">=</span><span class="n">ReadData</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">])</span>
-    <span class="n">b</span><span class="p">,</span> <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">InputBatchSize</span><span class="p">(),</span> <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">data_shape</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">(),</span> <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">data_shape</span><span class="p">)</span>
     <span class="n">data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">shape</span><span class="p">)</span>
     <span class="n">label</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">label</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">data</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
@@ -821,7 +928,7 @@
     <span class="n">dataset</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span>
             <span class="n">p</span><span class="o">.</span><span class="n">input_files</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="nb">bool</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">randomize_order</span><span class="p">))</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">contrib</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">parallel_interleave</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">parallel_interleave</span><span class="p">(</span>
                     <span class="n">dataset_factory</span><span class="p">,</span>
                     <span class="n">cycle_length</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">parallel_readers</span><span class="p">,</span>
                     <span class="n">sloppy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">randomize_order</span><span class="p">)))</span>
@@ -833,6 +940,7 @@
     <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">batch</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">drop_remainder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
         <span class="n">ParseAndProcess</span><span class="p">,</span> <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">parallel_readers</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">prefetch</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
     <span class="n">iterator</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">make_one_shot_iterator</span><span class="p">()</span>
     <span class="n">input_batch</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">input_batch</span></div></div>

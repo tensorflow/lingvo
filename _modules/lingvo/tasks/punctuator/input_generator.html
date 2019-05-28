@@ -168,9 +168,9 @@
 
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">generic_input</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tokenizers</span>
-<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 
 
 <div class="viewcode-block" id="PunctuatorInput"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput">[docs]</a><span class="k">class</span> <span class="nc">PunctuatorInput</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">):</span>
@@ -239,7 +239,7 @@
 <span class="sd">      an operation that when executed, calls `_ProcessLine` on a line read</span>
 <span class="sd">    from `file_pattern`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">py_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
         <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
         <span class="n">processor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ProcessLine</span><span class="p">,</span>
         <span class="c1"># Pad dimension 0 to the same length.</span>

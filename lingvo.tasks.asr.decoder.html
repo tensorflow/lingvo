@@ -413,7 +413,7 @@ updated tensor array.</li>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.decoder.AsrDecoderBase._ApplyDropout">
-<code class="descname">_ApplyDropout</code><span class="sig-paren">(</span><em>x_in</em>, <em>deterministic=False</em>, <em>extra_seed=None</em>, <em>step_state=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoderBase._ApplyDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoderBase._ApplyDropout" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_ApplyDropout</code><span class="sig-paren">(</span><em>theta</em>, <em>x_in</em>, <em>deterministic=False</em>, <em>extra_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoderBase._ApplyDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoderBase._ApplyDropout" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="method">
@@ -762,7 +762,7 @@ current step.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.decoder.AsrDecoderBase.MiscZeroState">
-<code class="descname">MiscZeroState</code><span class="sig-paren">(</span><em>encoder_outputs</em>, <em>target_ids</em>, <em>bs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoderBase.MiscZeroState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoderBase.MiscZeroState" title="Permalink to this definition">¶</a></dt>
+<code class="descname">MiscZeroState</code><span class="sig-paren">(</span><em>theta</em>, <em>encoder_outputs</em>, <em>target_ids</em>, <em>bs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoderBase.MiscZeroState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoderBase.MiscZeroState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns initial state for other miscellaneous states, if any.</p>
 </dd></dl>
 
@@ -831,7 +831,7 @@ if logits is None for while loop based unrolling.</p>
 
 <dl class="method">
 <dt id="lingvo.tasks.asr.decoder.AsrDecoder._ComputeAttention">
-<code class="descname">_ComputeAttention</code><span class="sig-paren">(</span><em>theta</em>, <em>rnn_out</em>, <em>packed_src</em>, <em>attention_state</em>, <em>per_step_src_padding=None</em>, <em>step_state=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoder._ComputeAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoder._ComputeAttention" title="Permalink to this definition">¶</a></dt>
+<code class="descname">_ComputeAttention</code><span class="sig-paren">(</span><em>theta</em>, <em>rnn_out</em>, <em>packed_src</em>, <em>attention_state</em>, <em>per_step_src_padding=None</em>, <em>query_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/decoder.html#AsrDecoder._ComputeAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.decoder.AsrDecoder._ComputeAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs attention and computes context vector.</p>
 <p>Can be overridden by a child class if attention is computed differently.</p>
 <table class="docutils field-list" frame="void" rules="none">
@@ -849,7 +849,6 @@ attention.</li>
 Varies with the type of attention, but is usually a Tensor or a
 NestedMap of Tensors of shape [batch_size, &lt;state_dim&gt;].</li>
 <li><strong>per_step_src_padding</strong> – Source sequence padding to apply at this step.</li>
-<li><strong>step_state</strong> – A NestedMap containing ‘global_step’ and ‘time_step’.</li>
 <li><strong>query_segment_id</strong> – a tensor of shape [batch_size].</li>
 </ul>
 </td>

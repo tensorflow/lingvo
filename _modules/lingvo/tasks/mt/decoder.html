@@ -173,7 +173,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_decoder</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers_with_attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">model_helper</span>
@@ -209,6 +208,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;feed_attention_context_vec_to_softmax&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to concatenate attention context vector to rnn output&#39;</span>
              <span class="s1">&#39; before softmax.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;per_example_tensors&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Return per example tensors&#39;</span><span class="p">)</span>
 
     <span class="c1"># Default config for the softmax part.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">=</span> <span class="mi">32000</span>  <span class="c1"># 32k</span>
@@ -244,7 +244,10 @@
 <span class="sd">      target_segment_ids: A matrix of params.dtype. [time, batch].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A dictionary containing metrics for the xent loss and prediction accuracy.</span>
+<span class="sd">      A tuple (metrics, per_example_tensors)</span>
+<span class="sd">        metrics: A dictionary containing metrics for the xent loss and</span>
+<span class="sd">            prediction accuracy</span>
+<span class="sd">        per_example_tensors: A dictionary of per-example tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">softmax_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">softmax_input</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
@@ -291,10 +294,23 @@
         <span class="n">final_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">per_sequence_loss</span><span class="p">)</span>
       <span class="n">loss_weight</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">per_sequence_loss</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="n">ret_dict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">final_loss</span><span class="p">,</span> <span class="n">loss_weight</span><span class="p">),</span>
-        <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent_loss</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">xent_loss</span><span class="o">.</span><span class="n">total_weight</span><span class="p">)</span>
+        <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent_loss</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">xent_loss</span><span class="o">.</span><span class="n">total_weight</span><span class="p">),</span>
     <span class="p">}</span>
+
+    <span class="n">per_example_tensors</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">:</span>
+      <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;per_example_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">xent_loss</span><span class="o">.</span><span class="n">per_example_xent</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_weights</span><span class="p">))</span>
+      <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;per_sequence_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+          <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;per_example_loss&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;logits&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">xent_loss</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_weights</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="mi">0</span><span class="p">))</span>
+      <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;log_probs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">xent_loss</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_weights</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="mi">0</span><span class="p">))</span>
 
     <span class="c1"># NOTE: tf.argmax is not implemented for the JF backend, see b/36093673</span>
     <span class="c1"># Skip the fraction_of_correct_next_step_preds during training.</span>
@@ -310,16 +326,33 @@
       <span class="n">accuracy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
           <span class="n">correct_next_preds</span> <span class="o">/</span> <span class="n">num_preds</span><span class="p">,</span>
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">)</span>
-      <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">num_preds</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ret_dict</span></div>
+      <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;fraction_of_correct_next_step_preds&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">accuracy</span><span class="p">,</span> <span class="n">num_preds</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example_tensors</span></div>
 
 <div class="viewcode-block" id="MTBaseDecoder.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Populates a metrics dictionary based on the output of ComputePredictions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Nested map describing decoder model parameters.</span>
+<span class="sd">      predictions: NestedMap describing the decoding process, requiring:</span>
+<span class="sd">        .softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">      targets: NestedMap describing the target sequences.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Two dicts:</span>
+<span class="sd">      A map from metric name (a python string) to a tuple (value, weight).</span>
+<span class="sd">      Both value and weight are scalar Tensors.</span>
+<span class="sd">      A map from name to arbitrary tensors, where the first dimension must be</span>
+<span class="sd">      the batch index.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">segment_id</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
       <span class="n">segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+      <span class="n">predictions</span> <span class="o">=</span> <span class="n">predictions</span><span class="o">.</span><span class="n">softmax_input</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropSoftmax</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">labels</span><span class="p">),</span>
                               <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span><span class="p">),</span>
-                              <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">),</span> <span class="n">segment_id</span><span class="p">),</span> <span class="p">{}</span></div>
+                              <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">),</span> <span class="n">segment_id</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MTBaseDecoder._TruncateTargetSequence"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._TruncateTargetSequence">[docs]</a>  <span class="k">def</span> <span class="nf">_TruncateTargetSequence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Truncate padded time steps from all sequences.&quot;&quot;&quot;</span>
@@ -353,18 +386,43 @@
     <span class="k">return</span> <span class="n">targets</span></div>
 
 <div class="viewcode-block" id="MTBaseDecoder._AddAttenProbsSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddAttenProbsSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add summary of attention probs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      source_paddings: source padding, of shape [src_len, src_batch].</span>
+<span class="sd">      targets: A dict of string to tensors representing the targets one try to</span>
+<span class="sd">        predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</span>
+<span class="sd">      atten_probs: a list of attention probs, each element is of shape [tgt_len,</span>
+<span class="sd">        tgt_batch, src_len].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
+      <span class="k">return</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsImageSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsHistogramSummary</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MTBaseDecoder._AddAttenProbsHistogramSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsHistogramSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddAttenProbsHistogramSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add histogram summary of attention probs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      atten_probs: a list of attention probs, each element is of shape [tgt_len,</span>
+<span class="sd">        tgt_batch, src_len].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">probs</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">):</span>
+      <span class="c1"># a prefix from the context will be used, which looks like</span>
+      <span class="c1"># fprop/wmt14_en_de_transformer/tower_0_0/dec/</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;atten</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">probs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MTBaseDecoder._AddAttenProbsImageSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._AddAttenProbsImageSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddAttenProbsImageSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Add image summary of attention probs.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      source_paddings: source padding, of shape [src_len, src_batch].</span>
 <span class="sd">      targets: A dict of string to tensors representing the targets one try to</span>
-<span class="sd">          predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</span>
-<span class="sd">      atten_probs: a list of attention probs, each element is of shape</span>
-<span class="sd">          [tgt_len, tgt_batch, src_len].</span>
+<span class="sd">        predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</span>
+<span class="sd">      atten_probs: a list of attention probs, each element is of shape [tgt_len,</span>
+<span class="sd">        tgt_batch, src_len].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
-      <span class="k">return</span>
-
     <span class="n">num_rows</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span>
     <span class="n">fig</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">MatplotlibFigureSummary</span><span class="p">(</span>
         <span class="s1">&#39;decoder_example&#39;</span><span class="p">,</span>
@@ -488,7 +546,8 @@
         <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">params_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span>
-              <span class="mf">1.</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">query_dim</span><span class="p">))</span>
+              <span class="mf">1.</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">query_dim</span><span class="p">),</span>
+              <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
         <span class="n">atten_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
         <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_rnn_cell_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -568,7 +627,12 @@
 <span class="sd">        predict. Each tensor in targets is of shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A Tensor with shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">      A `.NestedMap` containing information about the decoding process. At a</span>
+<span class="sd">      minimum, this should contain:</span>
+<span class="sd">        softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">        attention: `.NestedMap` of attention distributions of shape [batch,</span>
+<span class="sd">                   time, source_len].</span>
+<span class="sd">        source_enc_len: Lengths of source sentences. Tensor of shape [batch].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">source_paddings</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span>
@@ -595,15 +659,20 @@
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyDropout</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_emb_out</span> <span class="o">=</span> <span class="n">inputs</span>
 
-        <span class="c1"># Layer 0 interwines with attention.</span>
-        <span class="p">(</span><span class="n">atten_ctxs</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="p">,</span>
-            <span class="n">source_encs</span><span class="p">,</span>
-            <span class="n">source_paddings</span><span class="p">,</span>
-            <span class="n">inputs</span><span class="p">,</span>
-            <span class="n">target_paddings</span><span class="p">,</span>
-            <span class="n">src_segment_id</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-            <span class="n">segment_id</span><span class="o">=</span><span class="n">target_segment_id</span><span class="p">)</span>
+        <span class="c1"># Layer 0 intertwines with attention.</span>
+        <span class="p">(</span><span class="n">accumulated_states</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span>
+         <span class="n">side_info</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">AccumulateStates</span><span class="p">(</span>
+             <span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="p">,</span>
+             <span class="n">source_encs</span><span class="p">,</span>
+             <span class="n">source_paddings</span><span class="p">,</span>
+             <span class="n">inputs</span><span class="p">,</span>
+             <span class="n">target_paddings</span><span class="p">,</span>
+             <span class="n">src_segment_id</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+             <span class="n">segment_id</span><span class="o">=</span><span class="n">target_segment_id</span><span class="p">)</span>
+
+        <span class="p">(</span><span class="n">atten_ctxs</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">PostProcessStates</span><span class="p">(</span>
+            <span class="n">accumulated_states</span><span class="p">,</span> <span class="n">side_info</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="p">[</span><span class="n">atten_probs</span><span class="p">])</span>
 
         <span class="n">atten_ctxs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">atten_ctxs</span><span class="p">)</span>
@@ -627,7 +696,31 @@
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">feed_attention_context_vec_to_softmax</span><span class="p">:</span>
           <span class="n">xs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">xs</span><span class="p">,</span> <span class="n">atten_ctxs</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">xs</span>
+        <span class="c1"># Get intermediate attention information</span>
+        <span class="n">atten_states</span> <span class="o">=</span> <span class="n">accumulated_states</span><span class="o">.</span><span class="n">atten_state</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">atten_states</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+          <span class="n">additional_atten_probs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+              <span class="p">[(</span><span class="n">name</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span>
+               <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">tensor</span> <span class="ow">in</span> <span class="n">atten_states</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()</span>
+               <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;probs&#39;</span><span class="p">)])</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">additional_atten_probs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">attention_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">probs</span><span class="o">=</span><span class="n">accumulated_states</span><span class="o">.</span><span class="n">atten_probs</span><span class="p">)</span>
+        <span class="n">attention_map</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">additional_atten_probs</span><span class="p">)</span>
+
+        <span class="c1"># Transpose attention probs from [target_length, batch, source_length]</span>
+        <span class="c1"># to [batch, target_length, source_length]</span>
+        <span class="k">def</span> <span class="nf">_TransposeAttentions</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+        <span class="n">attention_map</span> <span class="o">=</span> <span class="n">attention_map</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_TransposeAttentions</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+          <span class="n">source_enc_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">softmax_input</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span>
+            <span class="n">attention</span><span class="o">=</span><span class="n">attention_map</span><span class="p">,</span>
+            <span class="n">source_enc_len</span><span class="o">=</span><span class="n">source_enc_len</span><span class="p">)</span>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/InitDecoder&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_InitDecoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">):</span>
@@ -895,6 +988,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;is_transparent&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set, expects a tensor of shape &#39;</span>
         <span class="s1">&#39;[time, batch, source_dim, num_trans_layers] as source encodings.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;add_multiheaded_attention_scalar_summary&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If set, will include scalar summaries for multi-headed attention&#39;</span>
+        <span class="s1">&#39; to visualize the sparsity statistics of attention weights.&#39;</span><span class="p">)</span>
 
     <span class="c1"># Default config for the token embedding.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="mi">32000</span>
@@ -958,6 +1055,73 @@
       <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
 
+<div class="viewcode-block" id="TransformerDecoder._ExpandToNumHyps"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps">[docs]</a>  <span class="k">def</span> <span class="nf">_ExpandToNumHyps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_enc_len</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Repeat each value according to num hyps.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      source_enc_len: source encoder length; int [batch].</span>
+<span class="sd">      num_hyps_per_beam: number of hypotheses</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      New version of source_enc_len; int [batch * num_hyps_per_beam].</span>
+<span class="sd">      Target_batch is (num_hyps_per_beam * batch).</span>
+<span class="sd">      Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2</span>
+<span class="sd">      --&gt; [3, 2, 1, 3, 2, 1]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">source_enc_len</span><span class="p">,</span> <span class="n">multiples</span><span class="o">=</span><span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">x</span></div>
+
+<div class="viewcode-block" id="TransformerDecoder._RemoveEOSProbs"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._RemoveEOSProbs">[docs]</a>  <span class="k">def</span> <span class="nf">_RemoveEOSProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">source_enc_len</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Remove the attention probs on EOS symbol and renormalize.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      p: decoder params.</span>
+<span class="sd">      probs: attention probs matrix; float [batch, target_len, source_len].</span>
+<span class="sd">      source_enc_len: source encoder length; int [batch].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      probs with value on last actual token (EOS token) replaced by 0 and</span>
+<span class="sd">      renormalized so that final dim (src_len) sums to 1 again; float</span>
+<span class="sd">      [batch, target_len, source_len].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">source_enc_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">source_enc_len</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">])</span>
+
+    <span class="c1"># Set -1 values</span>
+    <span class="n">target_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">probs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">replacements</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">target_len</span><span class="p">],</span>
+                           <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">index_0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">batch</span><span class="p">),</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">index_0</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">target_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">index_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">index_1</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">target_len</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">index_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">index_1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">index_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_enc_len</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># Note the -1</span>
+    <span class="n">index_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">index_2</span><span class="p">)</span>
+    <span class="n">index_2</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">target_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="n">index</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">index_0</span><span class="p">,</span> <span class="n">index_1</span><span class="p">,</span> <span class="n">index_2</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Original update matrix contained -1 values. Change all to 1 except for</span>
+    <span class="c1"># those positions coming from scatter which will be 0.</span>
+    <span class="n">updates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">scatter_nd</span><span class="p">(</span>
+        <span class="n">index</span><span class="p">,</span> <span class="n">updates</span><span class="o">=</span><span class="n">replacements</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">probs</span><span class="p">))</span>
+    <span class="n">updates</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="n">probs</span> <span class="o">*</span> <span class="n">updates</span>
+
+    <span class="c1"># Normalize to that probs sum to 1.</span>
+    <span class="c1"># Add eps to sum to deal with case where all probs except last one are 0.</span>
+    <span class="c1"># In this case then, attention probs will not sum to 1 but this seems still</span>
+    <span class="c1"># better then evenly distributing attention probs in this case.</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">epsilon</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">s</span> <span class="o">+=</span> <span class="n">epsilon</span>
+    <span class="n">res</span> <span class="o">/=</span> <span class="n">s</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
 <div class="viewcode-block" id="TransformerDecoder._FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._FProp">[docs]</a>  <span class="k">def</span> <span class="nf">_FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decodes `targets` given encoded source.</span>
 
@@ -979,7 +1143,10 @@
 <span class="sd">        predict. Each tensor in targets is of shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Output of last decoder layer, [target_time, target_batch, source_dim].</span>
+<span class="sd">      `.NestedMap` containing output of last decoder layer and attention probs:</span>
+<span class="sd">        softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">        attention: `.NestedMap` of attention distributions of shape</span>
+<span class="sd">        [batch, target_length, source_length].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">source_encs</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">encoded</span>
@@ -1034,8 +1201,15 @@
       <span class="n">input_embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">input_embs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
       <span class="n">input_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">input_dropout</span><span class="p">,</span> <span class="n">input_embs</span><span class="p">)</span>
 
-      <span class="n">atten_probs</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+        <span class="n">src_enc_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">div</span><span class="p">(</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">src_enc_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandToNumHyps</span><span class="p">(</span><span class="n">src_enc_len</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
+
       <span class="n">layer_in</span> <span class="o">=</span> <span class="n">input_embs</span>
+      <span class="n">per_layer_attn_probs</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_theta</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trans</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">trans</span><span class="p">)):</span>
         <span class="c1"># [time, batch, model_dim]</span>
         <span class="n">layer_out</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
@@ -1047,11 +1221,27 @@
             <span class="n">source_segment_id</span><span class="o">=</span><span class="n">target_segment_id</span><span class="p">,</span>
             <span class="n">aux_segment_id</span><span class="o">=</span><span class="n">src_segment_id</span><span class="p">)</span>
         <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
-        <span class="n">atten_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+        <span class="n">pl_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+          <span class="c1"># For packed inputs we are currently not removing the EOS token.</span>
+          <span class="n">per_layer_attn_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pl_probs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># Remove attention weight on last (EOS) token and re-normalize</span>
+          <span class="c1"># so that last dimension sums to 1. See b/129097156.</span>
+          <span class="c1"># Original probs shape: [trg time, batch, src time]</span>
+          <span class="n">norma_atten_probs_3d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RemoveEOSProbs</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">pl_probs</span><span class="p">,</span> <span class="n">src_enc_len</span><span class="p">)</span>
+          <span class="n">per_layer_attn_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">norma_atten_probs_3d</span><span class="p">)</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
+      <span class="c1"># per_layer_attn_probs shape: [batch, trg time, src time]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">per_layer_attn_probs</span><span class="p">)</span>
 
-      <span class="k">return</span> <span class="n">layer_out</span></div>
+      <span class="c1"># Aggregate per-layer attention probs.</span>
+      <span class="n">aggregated_atten_probs</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">per_layer_attn_probs</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_layer_attn_probs</span><span class="p">))</span>
+
+      <span class="n">attention_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">probs</span><span class="o">=</span><span class="n">aggregated_atten_probs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">softmax_input</span><span class="o">=</span><span class="n">layer_out</span><span class="p">,</span> <span class="n">attention</span><span class="o">=</span><span class="n">attention_map</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.ExtendStep"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_ids</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">prefix_states</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Extend prefix as represented by `prefix_states` by one more step.</span>
@@ -1073,9 +1263,11 @@
 <span class="sd">        been decoded.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A pair (last_decoder_out, prefix_states), where last_decoder_out is the</span>
-<span class="sd">      output of the last decoder layer of shape [batch, model_dim], and</span>
-<span class="sd">      `prefix_states` is the update prefix states.</span>
+<span class="sd">      A tuple (last_decoder_out, prefix_states, atten_probs), where</span>
+<span class="sd">      last_decoder_out is the output of the last decoder layer of</span>
+<span class="sd">      shape [batch, model_dim], `prefix_states` is the update prefix states,</span>
+<span class="sd">      and atten_probs contains attention in shape [batch, src_len] for the</span>
+<span class="sd">      given target position.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">source_paddings</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span>
@@ -1107,17 +1299,44 @@
       <span class="n">out_prefix_states</span> <span class="o">=</span> <span class="n">prefix_states</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">prefix_states</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
       <span class="n">layer_in</span> <span class="o">=</span> <span class="n">input_embs</span>
+
+      <span class="c1"># Infer num_hyps_per_beam: new_ids has orig_batch_size * num_hyps_per_beam</span>
+      <span class="c1"># source_paddings has orig_batch_size.</span>
+      <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">div</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">new_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+
+      <span class="c1"># Infer true source encoder length from the padding.</span>
+      <span class="n">src_enc_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+      <span class="c1"># Need to expand src_enc_len to reflect multiple hypotheses.</span>
+      <span class="n">src_enc_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandToNumHyps</span><span class="p">(</span><span class="n">src_enc_len</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
+
+      <span class="n">atten_probs</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_theta</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trans</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">trans</span><span class="p">)):</span>
         <span class="c1"># [time, batch, model_dim]</span>
         <span class="n">layer_prefix_states</span> <span class="o">=</span> <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span>
-        <span class="n">layer_out</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">updated_prefix_states</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
+        <span class="n">layer_out</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">updated_prefix_states</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
             <span class="n">layer_theta</span><span class="p">,</span> <span class="n">layer_in</span><span class="p">,</span> <span class="n">layer_prefix_states</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
             <span class="n">source_paddings</span><span class="p">,</span>
             <span class="n">t</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;tpu_beam_search&#39;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
         <span class="n">out_prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">updated_prefix_states</span>
         <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
 
-      <span class="k">return</span> <span class="n">layer_out</span><span class="p">,</span> <span class="n">out_prefix_states</span></div>
+        <span class="c1"># Enforce shape: [batch, src_len]</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+
+        <span class="c1"># Remove attention weight on last (EOS) token and re-normalize</span>
+        <span class="c1"># so that last dimension sums to 1. See b/129097156.</span>
+        <span class="n">probs_3d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">probs_3d</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RemoveEOSProbs</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">probs_3d</span><span class="p">,</span> <span class="n">src_enc_len</span><span class="p">)</span>
+        <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">probs_3d</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">atten_probs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+
+      <span class="c1"># Aggregate per-layer attention probs.</span>
+      <span class="n">aggregated_atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">layer_out</span><span class="p">,</span> <span class="n">out_prefix_states</span><span class="p">,</span> <span class="n">aggregated_atten_probs</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder.ComputePredictions"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decodes `targets` given encoded source.</span>
@@ -1136,7 +1355,10 @@
 <span class="sd">        predict. Each tensor in targets is of shape [batch, time].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A Tensor with shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">      A `.NestedMap` containing utput of last decoder layer and attention probs:</span>
+<span class="sd">        softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</span>
+<span class="sd">        attention: `.NestedMap` of attention distributions of shape</span>
+<span class="sd">        [batch, time, source_len].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span></div>
 
@@ -1176,8 +1398,9 @@
         <span class="n">atten_probs</span><span class="o">=</span><span class="n">atten_probs</span><span class="p">)</span>
 
     <span class="n">batch_size</span> <span class="o">=</span> <span class="n">num_hyps</span>
-    <span class="n">key_channels</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
-    <span class="n">value_channels</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
+    <span class="n">atten_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_hidden_dim</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">atten_hidden_dim</span><span class="p">:</span>
+      <span class="n">atten_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;tpu_beam_search&#39;</span><span class="p">:</span>
       <span class="n">seq_len</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_seq_len</span>
@@ -1185,12 +1408,12 @@
       <span class="n">seq_len</span> <span class="o">=</span> <span class="mi">0</span>
 
     <span class="n">prefix_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
-        <span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>  <span class="c1"># pylint:disable=g-complex-comprehension</span>
             <span class="s1">&#39;key&#39;</span><span class="p">:</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">key_channels</span><span class="p">],</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">atten_hidden_dim</span><span class="p">],</span>
                          <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
             <span class="s1">&#39;value&#39;</span><span class="p">:</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">value_channels</span><span class="p">],</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">atten_hidden_dim</span><span class="p">],</span>
                          <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
         <span class="p">})</span> <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">)</span>
     <span class="p">})</span>
@@ -1235,10 +1458,9 @@
 
     <span class="n">new_states</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
-    <span class="n">layer_out</span><span class="p">,</span> <span class="n">updated_prefix_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
-                                                       <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-                                                       <span class="n">target_time</span><span class="p">,</span>
-                                                       <span class="n">prefix_states</span><span class="p">)</span>
+    <span class="n">layer_out</span><span class="p">,</span> <span class="n">updated_prefix_states</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">target_time</span><span class="p">,</span>
+        <span class="n">prefix_states</span><span class="p">)</span>
 
     <span class="n">new_states</span><span class="o">.</span><span class="n">prefix_states</span> <span class="o">=</span> <span class="n">updated_prefix_states</span>
     <span class="n">new_states</span><span class="o">.</span><span class="n">time_step</span> <span class="o">=</span> <span class="n">target_time</span> <span class="o">+</span> <span class="mi">1</span>
@@ -1247,16 +1469,10 @@
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">softmax_input</span><span class="p">])</span>
 
     <span class="n">num_hyps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">source_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="c1"># [time * batch, num_classes] -&gt; [time, batch, num_classes]</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span><span class="p">))</span>
     <span class="c1"># [time, batch, num_classes] -&gt; [batch, time, num_classes]</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
-
-    <span class="c1"># Dummy attention probs</span>
-    <span class="n">atten_probs</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="n">source_len</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="o">/</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">source_len</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
 
     <span class="c1"># Only return logits for the last ids</span>
     <span class="n">log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
@@ -1277,7 +1493,124 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TransformerDecoder._AddAttenProbsScalarSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsScalarSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddAttenProbsScalarSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add scalar summary of multi-headed transformer attention probs.</span>
+
+<span class="sd">    This summary is primarily used to show statistics of the multi-headed</span>
+<span class="sd">    attention that reveals potential sparsity related properties. The</span>
+<span class="sd">    multi-headed attention probability tensors are exposed by</span>
+<span class="sd">    `MultiHeadedAttention.ComputeContextVectorWithSource` with the name</span>
+<span class="sd">    `multi_headed_atten_prob`. The following statistics are summarized:</span>
+
+<span class="sd">    - 1_v_2: margin of the largest value vs. the 2nd largest</span>
+<span class="sd">    - 1_v_3: similar, but vs the 3rd largest</span>
+<span class="sd">    - mean: mean of the attention probs. NOTE: the sequences in a mini-batch</span>
+<span class="sd">        are not always of the same length. The attention probability for the</span>
+<span class="sd">        padded time index in target sequences are removed. However, the padding</span>
+<span class="sd">        for the source sequences are left unchanged. As a result, the atten</span>
+<span class="sd">        probs vectors will have some extra zero entries, so the mean calculated</span>
+<span class="sd">        here will be smaller than the true mean.</span>
+<span class="sd">    - source_padding_ratio: as explained above, the source paddings are not</span>
+<span class="sd">        handled when computing the mean. This summary show the average ratio</span>
+<span class="sd">        of time-steps that are padded values in the source sequences, to give</span>
+<span class="sd">        a reference of roughly how much the mean summarized above should be</span>
+<span class="sd">        adjusted.</span>
+<span class="sd">    - 1_v_mean: margin of the largest value vs the mean value.</span>
+<span class="sd">    - sum: the sum of the attention prob vectors. Should always be 1, for sanity</span>
+<span class="sd">        check only.</span>
+
+<span class="sd">    The quantity above are computed for each sequence in the mini-batch, each</span>
+<span class="sd">    valid (target) sequence index, and each attention head, and then the</span>
+<span class="sd">    average value is reported to the tensorboard as a scalar summary.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      source_paddings: source padding, of shape [src_len, src_batch].</span>
+<span class="sd">      targets: A dict of string to tensors representing the targets one try to</span>
+<span class="sd">        predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</span>
+<span class="sd">      atten_probs: a list of attention probs, each element is of shape [tgt_len,</span>
+<span class="sd">        tgt_batch, src_len].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">default_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+    <span class="c1"># looks like fprop/wmt14_en_de_transformer/tower_0_0/dec</span>
+    <span class="n">name_scope</span> <span class="o">=</span> <span class="n">default_graph</span><span class="o">.</span><span class="n">get_name_scope</span><span class="p">()</span>
+    <span class="c1"># NOTE: shapes</span>
+    <span class="c1"># source_paddings: [src_len, src_batch]</span>
+    <span class="c1"># targets.paddings: [tgt_batch, tgt_len].</span>
+    <span class="n">source_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">source_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">target_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">target_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">num_heads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">trans</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_attention_heads</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">source_batch</span><span class="p">,</span> <span class="n">target_batch</span><span class="p">)]):</span>
+      <span class="n">target_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">target_batch</span><span class="p">)</span>
+
+    <span class="n">source_padding_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">source_padding_ratio</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;source_padding_ratio&#39;</span><span class="p">,</span>
+                         <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">source_padding_ratio</span><span class="p">))</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)):</span>
+      <span class="n">suffix</span> <span class="o">=</span> <span class="s1">&#39;_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+      <span class="c1"># Tensor exported from MultiHeadedAttention.ComputeContextVectorWithSource</span>
+      <span class="c1"># shape [target_time * batch_size, num_heads, source_time]</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">mha_probs</span> <span class="o">=</span> <span class="n">default_graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span>
+            <span class="n">name_scope</span> <span class="o">+</span> <span class="p">(</span><span class="s1">&#39;/aux_atten</span><span class="si">{}</span><span class="s1">/MultiHeadedAttention/&#39;</span>
+                          <span class="s1">&#39;ComputeContextVectorWithSource/&#39;</span>
+                          <span class="s1">&#39;multi_headed_atten_prob:0&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">suffix</span><span class="p">))</span>
+      <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
+        <span class="c1"># no such tensor found, stop here</span>
+        <span class="k">return</span>
+
+      <span class="n">mha_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">mha_probs</span><span class="p">,</span> <span class="p">(</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_batch</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">source_time</span><span class="p">))</span>
+
+      <span class="c1"># remove time padding from target_time</span>
+      <span class="c1"># (tgt_t, batch, n_heads, src_t) =&gt; (n_valid, n_heads, src_t)</span>
+      <span class="c1"># explicit reshape is used here to give masks static ndims, otherwise</span>
+      <span class="c1"># tf.boolean_mask will fail</span>
+      <span class="n">masks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_batch</span><span class="p">))</span>
+      <span class="n">mha_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">mha_probs</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+
+      <span class="c1"># note we did not remove invalid entries according to source_paddings,</span>
+      <span class="c1"># because the result will no longer be a rectangular tensor, just</span>
+      <span class="c1"># remember when interpreting some statistics like mean, there are some</span>
+      <span class="c1"># padded zero entries due to non-uniform sequence lengths</span>
+
+      <span class="c1"># (n_valid, n_heads, src_t) =&gt; (n_valid*n_heads, src_t)</span>
+      <span class="n">mha_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mha_probs</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">mha_probs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+
+      <span class="n">probs_top3</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="n">mha_probs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+      <span class="n">probs_mean</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">mha_probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">probs_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mha_probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># sanity check</span>
+
+      <span class="n">margins_12</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">probs_top3</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">probs_top3</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+      <span class="n">margins_13</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">probs_top3</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">probs_top3</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="n">margins_1m</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">probs_top3</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">probs_mean</span><span class="p">)</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;1_v_2/atten</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">margins_12</span><span class="p">)</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;1_v_3/atten</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">margins_13</span><span class="p">)</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;1_v_mean/atten</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">margins_1m</span><span class="p">)</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;mean/atten</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">probs_mean</span><span class="p">))</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;sum/atten</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">probs_sum</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="TransformerDecoder._AddAttenProbsSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._AddAttenProbsSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddAttenProbsSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add summary of attention probs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      source_paddings: source padding, of shape [src_len, src_batch].</span>
+<span class="sd">      targets: A dict of string to tensors representing the targets one try to</span>
+<span class="sd">        predict. Each tensor in targets is of shape [tgt_batch, tgt_len].</span>
+<span class="sd">      atten_probs: a list of attention probs, each element is of shape [tgt_len,</span>
+<span class="sd">        tgt_batch, src_len].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerDecoder</span><span class="p">,</span>
+          <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_multiheaded_attention_scalar_summary</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsScalarSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

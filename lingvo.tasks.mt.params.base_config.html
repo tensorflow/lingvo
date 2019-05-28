@@ -224,7 +224,7 @@ because this parameter is often not used.</li>
 
 <dl class="function">
 <dt id="lingvo.tasks.mt.params.base_config.SetupTransformerParams">
-<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">SetupTransformerParams</code><span class="sig-paren">(</span><em>p</em>, <em>name</em>, <em>vocab_size</em>, <em>model_dim</em>, <em>hidden_dim</em>, <em>num_heads</em>, <em>num_layers</em>, <em>learning_rate</em>, <em>warmup_steps</em>, <em>residual_dropout_prob=0.1</em>, <em>input_dropout_prob=0.0</em>, <em>atten_dropout_prob=0.0</em>, <em>relu_dropout_prob=0.0</em>, <em>label_smoothing_uncertainty=0.1</em>, <em>is_transparent=False</em>, <em>activation='RELU'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#SetupTransformerParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.SetupTransformerParams" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">SetupTransformerParams</code><span class="sig-paren">(</span><em>p</em>, <em>name</em>, <em>vocab_size</em>, <em>model_dim</em>, <em>hidden_dim</em>, <em>num_heads</em>, <em>num_layers</em>, <em>learning_rate</em>, <em>warmup_steps</em>, <em>residual_dropout_prob=0.1</em>, <em>input_dropout_prob=0.0</em>, <em>atten_dropout_prob=0.0</em>, <em>relu_dropout_prob=0.0</em>, <em>label_smoothing_uncertainty=0.1</em>, <em>is_transparent=False</em>, <em>activation='RELU'</em>, <em>add_unnormalized_residuals=False</em>, <em>atten_hidden_dim=0</em>, <em>num_encoder_layers=None</em>, <em>num_decoder_layers=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#SetupTransformerParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.SetupTransformerParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Common model setup for different transformer models.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -256,6 +256,11 @@ applied</li>
 <li><strong>is_transparent</strong> – If set, decoder layers attend to weighted combinations of
 encoder layers.</li>
 <li><strong>activation</strong> – Non-linearity for feed-forward layers.</li>
+<li><strong>add_unnormalized_residuals</strong> – If set, uses un-normalized residuals in
+TransformerAttentionLayer</li>
+<li><strong>atten_hidden_dim</strong> – Explicitly set attention hidden dim.</li>
+<li><strong>num_encoder_layers</strong> – to set a different number of layers for the encoder.</li>
+<li><strong>num_decoder_layers</strong> – to set a different number of layers for the decoder.</li>
 </ul>
 </td>
 </tr>
@@ -269,13 +274,13 @@ encoder layers.</li>
 
 <dl class="function">
 <dt id="lingvo.tasks.mt.params.base_config.SetupTransformerDecoder">
-<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">SetupTransformerDecoder</code><span class="sig-paren">(</span><em>model_dim</em>, <em>vocab_size</em>, <em>num_layers</em>, <em>num_heads</em>, <em>hidden_dim</em>, <em>residual_dropout_prob=0.1</em>, <em>input_dropout_prob=0.0</em>, <em>atten_dropout_prob=0.0</em>, <em>relu_dropout_prob=0.0</em>, <em>label_smoothing_uncertainty=0.1</em>, <em>is_transparent=False</em>, <em>activation='RELU'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#SetupTransformerDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.SetupTransformerDecoder" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">SetupTransformerDecoder</code><span class="sig-paren">(</span><em>model_dim</em>, <em>vocab_size</em>, <em>num_layers</em>, <em>num_heads</em>, <em>hidden_dim</em>, <em>residual_dropout_prob=0.1</em>, <em>input_dropout_prob=0.0</em>, <em>atten_dropout_prob=0.0</em>, <em>relu_dropout_prob=0.0</em>, <em>label_smoothing_uncertainty=0.1</em>, <em>is_transparent=False</em>, <em>activation='RELU'</em>, <em>add_unnormalized_residuals=False</em>, <em>atten_hidden_dim=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#SetupTransformerDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.SetupTransformerDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Common setup for transformer model decoder.</p>
 </dd></dl>
 
 <dl class="function">
 <dt id="lingvo.tasks.mt.params.base_config.SetupTransformerEncoder">
-<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">SetupTransformerEncoder</code><span class="sig-paren">(</span><em>model_dim</em>, <em>vocab_size</em>, <em>num_layers</em>, <em>num_heads</em>, <em>hidden_dim</em>, <em>residual_dropout_prob=0.1</em>, <em>input_dropout_prob=0.0</em>, <em>atten_dropout_prob=0.0</em>, <em>relu_dropout_prob=0.0</em>, <em>is_transparent=False</em>, <em>activation='RELU'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#SetupTransformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.SetupTransformerEncoder" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.tasks.mt.params.base_config.</code><code class="descname">SetupTransformerEncoder</code><span class="sig-paren">(</span><em>model_dim</em>, <em>vocab_size</em>, <em>num_layers</em>, <em>num_heads</em>, <em>hidden_dim</em>, <em>residual_dropout_prob=0.1</em>, <em>input_dropout_prob=0.0</em>, <em>atten_dropout_prob=0.0</em>, <em>relu_dropout_prob=0.0</em>, <em>is_transparent=False</em>, <em>activation='RELU'</em>, <em>add_unnormalized_residuals=False</em>, <em>atten_hidden_dim=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/params/base_config.html#SetupTransformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.params.base_config.SetupTransformerEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Common setup for transformer model encoder.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -294,6 +299,9 @@ and positional embeddings as well context vectors (attention values).</li>
 <li><strong>relu_dropout_prob</strong> – used in transformer feedforward layer.</li>
 <li><strong>is_transparent</strong> – if set, outputs a merger of embeddings and layer outputs.</li>
 <li><strong>activation</strong> – Non-linearity for feed-forward layers.</li>
+<li><strong>add_unnormalized_residuals</strong> – If set, uses un-normalized residuals in
+TransformerAttentionLayer</li>
+<li><strong>atten_hidden_dim</strong> – Explicitly set attention hidden dim.</li>
 </ul>
 </td>
 </tr>

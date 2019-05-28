@@ -199,6 +199,50 @@ effective learning rate.</td>
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.lr_schedule.ConstantOne">
+<em class="property">class </em><code class="descclassname">lingvo.core.lr_schedule.</code><code class="descname">ConstantOne</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#ConstantOne"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.ConstantOne" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.lr_schedule.BaseLearningRateSchedule" title="lingvo.core.lr_schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.lr_schedule.BaseLearningRateSchedule</span></code></a></p>
+<p>A lr schedule remains constant 1.</p>
+<dl class="method">
+<dt id="lingvo.core.lr_schedule.ConstantOne.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#ConstantOne.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.ConstantOne.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.lr_schedule.ConstantOne.FProp" title="lingvo.core.lr_schedule.ConstantOne.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.lr_schedule.ConstantOne.FProp" title="lingvo.core.lr_schedule.ConstantOne.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.lr_schedule.PiecewiseConstantLearningRateSchedule">
 <em class="property">class </em><code class="descclassname">lingvo.core.lr_schedule.</code><code class="descname">PiecewiseConstantLearningRateSchedule</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#PiecewiseConstantLearningRateSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.PiecewiseConstantLearningRateSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.lr_schedule.BaseLearningRateSchedule" title="lingvo.core.lr_schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.lr_schedule.BaseLearningRateSchedule</span></code></a></p>
@@ -358,6 +402,56 @@ calls <a class="reference internal" href="#lingvo.core.lr_schedule.ExponentialLe
 </pre></div>
 </div>
 <p>The implementation of <a class="reference internal" href="#lingvo.core.lr_schedule.ExponentialLearningRateSchedule.FProp" title="lingvo.core.lr_schedule.ExponentialLearningRateSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.lr_schedule.StepwiseExponentialSchedule">
+<em class="property">class </em><code class="descclassname">lingvo.core.lr_schedule.</code><code class="descname">StepwiseExponentialSchedule</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#StepwiseExponentialSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.StepwiseExponentialSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.lr_schedule.BaseLearningRateSchedule" title="lingvo.core.lr_schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.lr_schedule.BaseLearningRateSchedule</span></code></a></p>
+<p>Exponential decay every N steps.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.lr_schedule.StepwiseExponentialSchedule.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#StepwiseExponentialSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.StepwiseExponentialSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.lr_schedule.StepwiseExponentialSchedule.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#StepwiseExponentialSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.StepwiseExponentialSchedule.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.lr_schedule.StepwiseExponentialSchedule.FProp" title="lingvo.core.lr_schedule.StepwiseExponentialSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.lr_schedule.StepwiseExponentialSchedule.FProp" title="lingvo.core.lr_schedule.StepwiseExponentialSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
 the theta and the inputs. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
 <span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -596,6 +690,56 @@ layer and its children layers.</li>
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.lr_schedule.LinearRampupCosineSchedule">
+<em class="property">class </em><code class="descclassname">lingvo.core.lr_schedule.</code><code class="descname">LinearRampupCosineSchedule</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#LinearRampupCosineSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.LinearRampupCosineSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.lr_schedule.BaseLearningRateSchedule" title="lingvo.core.lr_schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.lr_schedule.BaseLearningRateSchedule</span></code></a></p>
+<p>A cosine decaying learning rate schedule with a linear rampup phase.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.lr_schedule.LinearRampupCosineSchedule.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#LinearRampupCosineSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.LinearRampupCosineSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.lr_schedule.LinearRampupCosineSchedule.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#LinearRampupCosineSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.LinearRampupCosineSchedule.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.lr_schedule.LinearRampupCosineSchedule.FProp" title="lingvo.core.lr_schedule.LinearRampupCosineSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.lr_schedule.LinearRampupCosineSchedule.FProp" title="lingvo.core.lr_schedule.LinearRampupCosineSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.lr_schedule.DevBasedSchedule">
 <em class="property">class </em><code class="descclassname">lingvo.core.lr_schedule.</code><code class="descname">DevBasedSchedule</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/lr_schedule.html#DevBasedSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.lr_schedule.DevBasedSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.lr_schedule.BaseLearningRateSchedule" title="lingvo.core.lr_schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.lr_schedule.BaseLearningRateSchedule</span></code></a></p>
@@ -674,8 +818,9 @@ with angle from 0 to pi (e.g., <a class="reference external" href="https://arxiv
 is implemented here.</p>
 <dl class="docutils">
 <dt>where:</dt>
-<dd>angle = pi * current_step / total_steps
-value = initial_value * (1 + cosine(angle)) / 2</dd>
+<dd>angle = pi * min(1, current_step / total_steps)
+decay_gap = initial_value - final_value
+value = final_value + decay_gap * (1 + cosine(angle)) / 2</dd>
 </dl>
 <dl class="classmethod">
 <dt id="lingvo.core.lr_schedule.CosineSchedule.Params">
