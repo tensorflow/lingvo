@@ -98,9 +98,9 @@ class RecordYielder {
   // Yields one 'value' and the id of the source.
   // source_id is useful to specify the source when reading from multiple input
   // sources. To read from multiple input sources and keep track of the
-  // source id, create a WeightedRecordYielder and create a BasicRecordYielder
-  // for each source. Each BasicRecordYielder can be assigned a source_id,
-  // which is assigned to the argument here.
+  // source id, create a WeightedMixRecordYielder and create a
+  // BasicRecordYielder for each source. Each BasicRecordYielder can be assigned
+  // a source_id, which is assigned to the argument here.
   // A nullptr can be provided as input for source_id.
   virtual Status Yield(Rope* value, int* source_id) = 0;
 
