@@ -174,9 +174,9 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">early_stop</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">task_scheduler</span>
 
@@ -274,8 +274,7 @@
               <span class="s1">&#39;Clip gradient to 0 if its norm exceeds this value.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Params for GradNormTracker.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Params for the optimizer.&#39;</span><span class="p">)</span>
-    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span>
-              <span class="n">lr_schedule</span><span class="o">.</span><span class="n">ContinuousLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">schedule</span><span class="o">.</span><span class="n">ContinuousLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
               <span class="s1">&#39;Learning rate decay schedule.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;early_stop&#39;</span><span class="p">,</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">EarlyStop</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
               <span class="s1">&#39;Early stopping based on dev-set performance.&#39;</span><span class="p">)</span>
@@ -1109,7 +1108,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;distillation_loss_weight&#39;</span><span class="p">,</span>
         <span class="c1"># Only uses distillation loss by default.</span>
-        <span class="n">lr_schedule</span><span class="o">.</span><span class="n">ConstantOne</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">schedule</span><span class="o">.</span><span class="n">ConstantOne</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="s1">&#39;A schedule of distillation loss weight. &#39;</span>
         <span class="s1">&#39;The weight determines the fraction of total loss contributed by &#39;</span>
         <span class="s1">&#39;distillation loss, while the rest loss will be computed against &#39;</span>

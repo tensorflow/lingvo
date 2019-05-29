@@ -167,11 +167,11 @@
 
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">rnn_cell</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">rnn_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">decoder</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">encoder</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">input_generator</span>
@@ -353,7 +353,7 @@
       <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">ParamsB</span><span class="p">(),</span>
       <span class="n">clip_gradient_norm_to_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
       <span class="n">grad_norm_to_clip_to_zero</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-      <span class="n">lr_schedule</span><span class="o">=</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">lr_schedule</span><span class="o">=</span><span class="n">schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">warmup_steps</span><span class="o">=</span><span class="n">warmup_steps</span><span class="p">,</span> <span class="n">worker_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">model_dim</span><span class="o">=</span><span class="n">model_dim</span><span class="p">))</span>
 
   <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">12000</span>
@@ -635,7 +635,7 @@
 
   <span class="c1"># Optimization setup.</span>
   <span class="n">learning_rate_schedule</span> <span class="o">=</span> <span class="p">(</span>
-      <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
       <span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">warmup</span><span class="o">=</span><span class="n">lr_warmup_steps</span><span class="p">,</span>
           <span class="n">decay_start</span><span class="o">=</span><span class="n">lr_decay_start</span><span class="p">,</span>

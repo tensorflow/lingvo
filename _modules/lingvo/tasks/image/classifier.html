@@ -171,10 +171,10 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">lr_schedule</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">plot</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">schedule</span>
 
 
 <div class="viewcode-block" id="BaseClassifier"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.BaseClassifier">[docs]</a><span class="k">class</span> <span class="nc">BaseClassifier</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>
@@ -254,9 +254,8 @@
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">1e-4</span>  <span class="c1"># Adam base LR.</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">lr_schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span>
-        <span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">warmup</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">decay_start</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">decay_end</span><span class="o">=</span><span class="mi">1000000</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">))</span>
+        <span class="n">schedule</span><span class="o">.</span><span class="n">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+        <span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">warmup</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">decay_start</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">decay_end</span><span class="o">=</span><span class="mi">1000000</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mf">0.1</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
