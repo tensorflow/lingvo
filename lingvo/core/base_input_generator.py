@@ -34,7 +34,7 @@ from lingvo.core.ops import py_x_ops
 
 
 class BaseInputGenerator(base_layer.BaseLayer):
-  """The base input generator."""
+  """The abstract base input generator."""
 
   @classmethod
   def Params(cls):
