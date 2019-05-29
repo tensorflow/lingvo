@@ -184,13 +184,13 @@
 <dd><p>Returns a fixed size mask starting from a random position.</p>
 <dl class="docutils">
 <dt>In this function:</dt>
-<dd><ol class="first arabic simple">
+<dd><ol class="first last arabic simple">
 <li>Sample random lengths less than max_length with shape (batch_size,).</li>
+<li>Truncate lengths to a max of range * max_ratio, so that each mask is
+fully contained within the corresponding sequence.</li>
+<li>Random sample start points with in (choose_range - lengths).</li>
+<li>Return a mask where (lengths - start points) * mask_size are all zeros.</li>
 </ol>
-<p class="last">2) Truncate lengths to a max of range * max_ratio, so that each mask is
-fully contained within the corresponding sequence.
-3) Random sample start points with in (choose_range - lengths).
-4) Return a mask where (lengths - start points) * mask_size are all zeros.</p>
 </dd>
 </dl>
 <table class="docutils field-list" frame="void" rules="none">

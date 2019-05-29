@@ -2921,15 +2921,15 @@
 <span class="k">def</span> <span class="nf">RematerializeFn</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">xs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Calls fn and rematerializes fn in the backward pass.</span>
 
-<span class="sd">  fn(*xs) -&gt; ys, where xs and ys can be a single tensor or a tuple of tensors.</span>
+<span class="sd">  `fn(*xs) -&gt; ys`, where xs and ys can be a single tensor or a tuple of tensors.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    fn: A python function to be rematerialized in the backprop pass.</span>
-<span class="sd">    *xs: A single tensor or a list/tuple of tensors. &#39;xs&#39; are input args to the</span>
+<span class="sd">    *xs: A single tensor or a list/tuple of tensors. `xs` are input args to the</span>
 <span class="sd">      fn function.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    fn(*xs)</span>
+<span class="sd">    `fn(*xs)`</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">initial_step_seed</span> <span class="o">=</span> <span class="n">GetStepSeed</span><span class="p">()</span>
   <span class="n">final_step_seed</span> <span class="o">=</span> <span class="n">zlib</span><span class="o">.</span><span class="n">adler32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;new_step_seed&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">encode</span><span class="p">())</span>

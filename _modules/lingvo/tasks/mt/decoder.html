@@ -244,10 +244,12 @@
 <span class="sd">      target_segment_ids: A matrix of params.dtype. [time, batch].</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A tuple (metrics, per_example_tensors)</span>
-<span class="sd">        metrics: A dictionary containing metrics for the xent loss and</span>
-<span class="sd">            prediction accuracy</span>
-<span class="sd">        per_example_tensors: A dictionary of per-example tensors.</span>
+<span class="sd">      A tuple (metrics, per_example_tensors).</span>
+<span class="sd">        metrics:</span>
+<span class="sd">          A dictionary containing metrics for the xent loss and prediction</span>
+<span class="sd">          accuracy.</span>
+<span class="sd">        per_example_tensors:</span>
+<span class="sd">          A dictionary of per-example tensors.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">softmax_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">softmax_input</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
@@ -339,11 +341,12 @@
 <span class="sd">      targets: NestedMap describing the target sequences.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Two dicts:</span>
-<span class="sd">      A map from metric name (a python string) to a tuple (value, weight).</span>
-<span class="sd">      Both value and weight are scalar Tensors.</span>
-<span class="sd">      A map from name to arbitrary tensors, where the first dimension must be</span>
-<span class="sd">      the batch index.</span>
+<span class="sd">      Two dicts.</span>
+
+<span class="sd">        - A map from metric name (a python string) to a tuple (value, weight).</span>
+<span class="sd">          Both value and weight are scalar Tensors.</span>
+<span class="sd">        - A map from name to arbitrary tensors, where the first dimension must</span>
+<span class="sd">          be the batch index.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">segment_id</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
