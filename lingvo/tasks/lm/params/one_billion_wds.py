@@ -23,9 +23,9 @@ import os
 from lingvo import model_registry
 from lingvo.core import base_model_params
 from lingvo.core import layers
-from lingvo.core import lr_schedule
 from lingvo.core import optimizer
 from lingvo.core import py_utils
+from lingvo.core import schedule
 from lingvo.core import tokenizers
 from lingvo.tasks.lm import input_generator as lm_inp
 from lingvo.tasks.lm import layers as lm_layers
@@ -135,7 +135,7 @@ class WordLevelOneBwdsBase(base_model_params.SingleTaskModelParams):
     # threshold.
     tp.learning_rate = 0.2
     tp.lr_schedule = (
-        lr_schedule.PiecewiseConstantLearningRateSchedule.Params().Set(
+        schedule.PiecewiseConstantLearningRateSchedule.Params().Set(
             boundaries=[], values=[1.0]))
     tp.l2_regularizer_weight = None  # No regularization.
     tp.optimizer = optimizer.Adagrad.Params()
@@ -225,6 +225,6 @@ class OneBWdsGPipeTransformer(WordLevelOneBwdsBase):
         optimizer=optimizer.Adam.ParamsA(),
         clip_gradient_norm_to_value=0.0,
         grad_norm_to_clip_to_zero=0.0,
-        lr_schedule=lr_schedule.TransformerLearningRateSchedule.Params().Set(
+        lr_schedule=schedule.TransformerLearningRateSchedule.Params().Set(
             warmup_steps=40000, worker_replicas=1, model_dim=cls.EMBEDDING_DIM))
     return p

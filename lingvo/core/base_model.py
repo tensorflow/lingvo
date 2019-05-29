@@ -29,9 +29,9 @@ from lingvo.core import build_data
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import hyperparams
-from lingvo.core import lr_schedule
 from lingvo.core import optimizer
 from lingvo.core import py_utils
+from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 
@@ -129,8 +129,7 @@ class BaseTask(base_layer.BaseLayer):
               'Clip gradient to 0 if its norm exceeds this value.')
     tp.Define('grad_norm_tracker', None, 'Params for GradNormTracker.')
     tp.Define('optimizer', optimizer.Adam.Params(), 'Params for the optimizer.')
-    tp.Define('lr_schedule',
-              lr_schedule.ContinuousLearningRateSchedule.Params(),
+    tp.Define('lr_schedule', schedule.ContinuousLearningRateSchedule.Params(),
               'Learning rate decay schedule.')
     tp.Define('early_stop', early_stop.EarlyStop.Params(),
               'Early stopping based on dev-set performance.')
@@ -964,7 +963,7 @@ class DistillationTask(BaseTask):
     p.Define(
         'distillation_loss_weight',
         # Only uses distillation loss by default.
-        lr_schedule.ConstantOne.Params(),
+        schedule.ConstantOne.Params(),
         'A schedule of distillation loss weight. '
         'The weight determines the fraction of total loss contributed by '
         'distillation loss, while the rest loss will be computed against '

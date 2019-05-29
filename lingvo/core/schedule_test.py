@@ -26,7 +26,7 @@ from six.moves import range
 import tensorflow as tf
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
-from lingvo.core import lr_schedule
+from lingvo.core import schedule
 from lingvo.core import test_utils
 
 
@@ -34,13 +34,13 @@ class LearningRateScheduleTest(test_utils.TestCase):
 
   def testConstantOne(self):
     with self.session(use_gpu=False):
-      p = lr_schedule.ConstantOne.Params()
+      p = schedule.ConstantOne.Params()
       lrs = p.Instantiate()
       for x in [0, 10, 100, 1000000]:
         self.assertAllClose(lrs.Value(x).eval(), 1.0)
 
   def testPiecewiseConstant(self):
-    cls = lr_schedule.PiecewiseConstantLearningRateSchedule
+    cls = schedule.PiecewiseConstantLearningRateSchedule
     with self.session(use_gpu=False):
       bs = [300000, 400000, 500000]
       vs = [1.0, 0.1, 0.01, 0.001]
@@ -52,7 +52,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose([1.0, 0.1, 0.01, 0.001], outs)
 
   def testContinuousLearningRateSchedule(self):
-    p = lr_schedule.ContinuousLearningRateSchedule.Params()
+    p = schedule.ContinuousLearningRateSchedule.Params()
     p.start_step = 1000
     p.half_life_steps = 100
     p.min = 0.1
@@ -78,7 +78,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
             decay.Value(step + 100).eval() * 2.)
 
   def testContinuousLearningRateSchedule_CanOverrideStart(self):
-    p = lr_schedule.ContinuousLearningRateSchedule.Params()
+    p = schedule.ContinuousLearningRateSchedule.Params()
     p.initial_value = 2.0
     p.start_step = 1000
     p.half_life_steps = 100
@@ -91,7 +91,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(decay.Value(1300).eval(), 0.25)
 
   def testStepwiseExponentialSchedule(self):
-    p = lr_schedule.StepwiseExponentialSchedule.Params()
+    p = schedule.StepwiseExponentialSchedule.Params()
     p.decay = 0.5
     p.num_steps_per_decay = 1000
     decay = p.Instantiate()
@@ -103,7 +103,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(decay.Value(2000).eval(), 0.25)
 
   def testTransformerLearningRateSchedule(self):
-    p = lr_schedule.TransformerLearningRateSchedule.Params()
+    p = schedule.TransformerLearningRateSchedule.Params()
     p.warmup_steps = 4000
     p.model_dim = 512
     lrs = p.Instantiate()
@@ -133,7 +133,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
             lrs.Value(step + 10).eval() + lrs.Value(step - 10).eval())
 
   def testTransformerLearningRateScheduleWithDecayEnd(self):
-    p = lr_schedule.TransformerLearningRateSchedule.Params()
+    p = schedule.TransformerLearningRateSchedule.Params()
     p.warmup_steps = 4000
     p.model_dim = 512
     p.decay_end = 5000
@@ -163,11 +163,11 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(6000).eval())
 
   def testTransformerLearningRateScheduleNoWarmUp(self):
-    params = lr_schedule.TransformerLearningRateScheduleNoWarmUp.Params().Set(
+    params = schedule.TransformerLearningRateScheduleNoWarmUp.Params().Set(
         decay_start=4000, model_dim=512)
     lrs = params.cls(params)
 
-    base_params = lr_schedule.TransformerLearningRateSchedule.Params().Set(
+    base_params = schedule.TransformerLearningRateSchedule.Params().Set(
         warmup_steps=4000, model_dim=512)
     base_lrs = base_params.cls(base_params)
 
@@ -188,7 +188,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(base_lrs.Value(5000).eval(), lrs.Value(5000).eval())
 
   def testPolynomialLRSchedule(self):
-    p = lr_schedule.PolynomialLearningRateSchedule.Params().Set(
+    p = schedule.PolynomialLearningRateSchedule.Params().Set(
         power=2, start=(0, 0.), limit=(20000, 2.))
     with self.session():
       lrs = p.Instantiate()
@@ -202,12 +202,12 @@ class LearningRateScheduleTest(test_utils.TestCase):
           ])
 
   def testCombinedLRSchedule(self):
-    p = lr_schedule.CombinedMinimumLearningRateSchedule.Params().Set(schedules=[
-        lr_schedule.LinearLearningRateSchedule.Params().Set(
+    p = schedule.CombinedMinimumLearningRateSchedule.Params().Set(schedules=[
+        schedule.LinearLearningRateSchedule.Params().Set(
             start=(0., 1.), limit=(2000000, 8.)),
-        lr_schedule.LinearLearningRateSchedule.Params().Set(
+        schedule.LinearLearningRateSchedule.Params().Set(
             start=(2000000., 8.), limit=(4000000, 8.)),
-        lr_schedule.ExponentialLearningRateSchedule.Params().Set(
+        schedule.ExponentialLearningRateSchedule.Params().Set(
             start=(4000000., 8.), limit=(8000000, 0.5))
     ])
     with self.session():
@@ -232,7 +232,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
           ])
 
   def testLinearRampupExponentialDecayScaledByNumSplitSchedule(self):
-    p = lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
+    p = schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
     ).Set(
         warmup=250000, decay_start=32000000, decay_end=64000000, min=0.5)
     with self.session(), cluster_factory.ForTestingWorker(
@@ -258,7 +258,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
           ])
 
   def testLinearRampupExponentialDecayScaledByNumSplitScheduleWarmUpInit(self):
-    p = lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
+    p = schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
     ).Set(
         warmup_init=0,
         warmup=250000,
@@ -288,7 +288,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
           ])
 
   def testLinearRampupExponentialDecayScaledByNumSplitScheduleWithCap(self):
-    p = lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
+    p = schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
     ).Set(
         warmup=250000,
         decay_start=32000000,
@@ -319,7 +319,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
 
   def testLinearRampupExponentialDecayScaledByNumSplitScheduleWithNumSplits(
       self):
-    p = lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
+    p = schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
     ).Set(
         warmup=250000,
         decay_start=32000000,
@@ -353,7 +353,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
           ])
 
   def testLinearRampupExponentialDecayScaledByNumSplitScheduleNoWarmUp(self):
-    p = lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
+    p = schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
     ).Set(
         warmup=0, decay_start=32000000, decay_end=64000000, min=0.5)
     with self.session(), cluster_factory.ForTestingWorker(
@@ -378,7 +378,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
           ])
 
   def testLinearRampupExponentialDecayScaledByNumSplitScheduleExpOnly(self):
-    p = lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
+    p = schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params(
     ).Set(
         warmup=0, decay_start=0, decay_end=32000000, min=0.5)
     with self.session(), cluster_factory.ForTestingWorker(
@@ -401,7 +401,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     logdir = tf.test.get_temp_dir()
     tf.gfile.MkDir(os.path.join(logdir, 'eval_dev'))
 
-    p = lr_schedule.DevBasedSchedule.Params()
+    p = schedule.DevBasedSchedule.Params()
     p.tolerance = 1.0
     p.window = 2
     p.decay = 0.5
@@ -442,7 +442,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(lrs.Value(0).eval(), 0.20)
 
   def testLinearRampupPiecewiseConstantSchedule(self):
-    p = lr_schedule.LinearRampupPiecewiseConstantSchedule.Params().Set(
+    p = schedule.LinearRampupPiecewiseConstantSchedule.Params().Set(
         boundaries=[40, 64, 80, 96],
         lrs=[1.0, 0.1, 0.01, 0.001],
     )
@@ -457,7 +457,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
                 [12, 0.08], [13, 0.008], [14, 0.008]])
 
   def testCosineSchedule(self):
-    p = lr_schedule.CosineSchedule.Params().Set(
+    p = schedule.CosineSchedule.Params().Set(
         initial_value=3.0, final_value=1.0, total_steps=400000)
     with self.session():
       lrs = p.Instantiate()
@@ -474,7 +474,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
           ])
 
   def testLinearRampupCosineSchedule(self):
-    p = lr_schedule.LinearRampupCosineSchedule.Params().Set(
+    p = schedule.LinearRampupCosineSchedule.Params().Set(
         warmup_steps=200, initial_value=2.0, total_steps=400000)
     with self.session():
       lrs = p.Instantiate()
@@ -495,11 +495,11 @@ class LearningRateScheduleTest(test_utils.TestCase):
 
   def testPiecewiseSchedule(self):
     # Linear ramp-up in 20000 steps, cosine decay in 40000 steps.
-    p0 = lr_schedule.LinearLearningRateSchedule.Params().Set(
+    p0 = schedule.LinearLearningRateSchedule.Params().Set(
         start=(0, 0.), limit=(20000, 2.))
-    p1 = lr_schedule.CosineSchedule.Params().Set(
+    p1 = schedule.CosineSchedule.Params().Set(
         initial_value=2.0, total_steps=40000)
-    p = lr_schedule.PiecewiseSchedule.Params().Set(
+    p = schedule.PiecewiseSchedule.Params().Set(
         boundaries=[20000], schedules=[p0, p1])
     with self.session():
       lrs = p.Instantiate()

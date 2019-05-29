@@ -24,8 +24,8 @@ py_library(
     deps = [
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",
-        "//lingvo/core:lr_schedule",
         "//lingvo/core:py_utils",
+        "//lingvo/core:schedule",
         "//lingvo/core:tokenizers",
         "//lingvo/tasks/asr:input_generator",
         "//lingvo/tasks/asr:model",

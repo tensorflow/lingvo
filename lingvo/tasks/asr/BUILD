@@ -195,9 +195,9 @@ py_library(
         # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
-        "//lingvo/core:lr_schedule",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
+        "//lingvo/core:schedule",
         "//lingvo/tools:audio_lib",
     ],
 )
@@ -218,8 +218,8 @@ py_test(
         # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:cluster_factory",
-        "//lingvo/core:lr_schedule",
         "//lingvo/core:py_utils",
+        "//lingvo/core:schedule",
         "//lingvo/core:summary_utils",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",

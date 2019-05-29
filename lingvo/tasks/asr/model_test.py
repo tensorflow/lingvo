@@ -28,8 +28,8 @@ import tensorflow as tf
 
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
-from lingvo.core import lr_schedule
 from lingvo.core import py_utils
+from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import test_helper
 from lingvo.core import test_utils
@@ -268,7 +268,7 @@ class AsrModelTest(test_utils.TestCase):
       tf.set_random_seed(93820985)
       p = self._testParams()
       p.train.lr_schedule = (
-          lr_schedule.ContinuousLearningRateSchedule.Params().Set(
+          schedule.ContinuousLearningRateSchedule.Params().Set(
               start_step=350000, half_life_steps=45000))
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()

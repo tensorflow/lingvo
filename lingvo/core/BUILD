@@ -202,9 +202,9 @@ py_library(
         ":cluster_factory",
         ":early_stop",
         ":hyperparams",
-        ":lr_schedule",
         ":optimizer",
         ":py_utils",
+        ":schedule",
         ":summary_utils",
         ":task_scheduler",
         # Implicit six dependency.
@@ -497,8 +497,8 @@ py_library(
 )
 
 py_library(
-    name = "lr_schedule",
-    srcs = ["lr_schedule.py"],
+    name = "schedule",
+    srcs = ["schedule.py"],
     deps = [
         ":base_layer",
         ":early_stop",
@@ -509,15 +509,15 @@ py_library(
 )
 
 py_test(
-    name = "lr_schedule_test",
+    name = "schedule_test",
     size = "small",
     timeout = "moderate",
-    srcs = ["lr_schedule_test.py"],
+    srcs = ["schedule_test.py"],
     python_version = "PY2",
     deps = [
         ":cluster_factory",
         ":early_stop",
-        ":lr_schedule",
+        ":schedule",
         ":test_utils",
         # Implicit six dependency.
         # Implicit tensorflow dependency.

@@ -26,10 +26,10 @@ import tensorflow as tf
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import layers
-from lingvo.core import lr_schedule
 from lingvo.core import metrics
 from lingvo.core import plot
 from lingvo.core import py_utils
+from lingvo.core import schedule
 
 
 class BaseClassifier(base_model.BaseTask):
@@ -109,9 +109,8 @@ class ModelV1(BaseClassifier):
     tp = p.train
     tp.learning_rate = 1e-4  # Adam base LR.
     tp.lr_schedule = (
-        lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule
-        .Params().Set(
-            warmup=100, decay_start=100000, decay_end=1000000, min=0.1))
+        schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params()
+        .Set(warmup=100, decay_start=100000, decay_end=1000000, min=0.1))
     return p
 
   @base_layer.initializer

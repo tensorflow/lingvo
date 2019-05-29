@@ -27,9 +27,9 @@ import tensorflow as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
-from lingvo.core import lr_schedule
 from lingvo.core import optimizer
 from lingvo.core import py_utils
+from lingvo.core import schedule
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tasks.mt import decoder
@@ -282,7 +282,7 @@ class TransformerModelTest(test_utils.TestCase):
       tp.grad_norm_to_clip_to_zero = False
       tp.optimizer = optimizer.SGD.Params()
       tp.learning_rate = 1e-2
-      tp.lr_schedule = lr_schedule.ContinuousLearningRateSchedule.Params()
+      tp.lr_schedule = schedule.ContinuousLearningRateSchedule.Params()
       for l in p.ToText().split('\n'):
         print(l)
       return p

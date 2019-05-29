@@ -77,8 +77,8 @@ py_library(
         # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
-        "//lingvo/core:lr_schedule",
         "//lingvo/core:py_utils",
+        "//lingvo/core:schedule",
     ],
 )
 

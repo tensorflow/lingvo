@@ -22,8 +22,8 @@ import os
 
 from lingvo import model_registry
 from lingvo.core import base_model_params
-from lingvo.core import lr_schedule
 from lingvo.core import py_utils
+from lingvo.core import schedule
 from lingvo.core import tokenizers
 from lingvo.tasks.asr import input_generator
 from lingvo.tasks.asr import model
@@ -158,7 +158,7 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
 
     tp = p.train
     tp.learning_rate = 2.5e-4
-    tp.lr_schedule = lr_schedule.ContinuousLearningRateSchedule.Params().Set(
+    tp.lr_schedule = schedule.ContinuousLearningRateSchedule.Params().Set(
         start_step=50000, half_life_steps=100000, min=0.01)
 
     # Setting p.eval.samples_per_summary to a large value ensures that dev,

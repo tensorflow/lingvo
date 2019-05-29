@@ -15,10 +15,10 @@ py_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:layers",
-        "//lingvo/core:lr_schedule",
         "//lingvo/core:metrics",
         "//lingvo/core:plot",
         "//lingvo/core:py_utils",
+        "//lingvo/core:schedule",
     ],
 )
 

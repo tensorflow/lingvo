@@ -23,8 +23,8 @@ import tensorflow as tf
 
 from lingvo.core import base_layer
 from lingvo.core import base_model
-from lingvo.core import lr_schedule
 from lingvo.core import py_utils
+from lingvo.core import schedule
 from lingvo.tasks.lm import layers
 
 
@@ -46,7 +46,7 @@ class LanguageModel(base_model.BaseTask):
         'Sum the logP across predicted tokens in batch when set to True; '
         'average across predicted tokens in batch o/w (default).')
 
-    tp.lr_schedule = lr_schedule.PiecewiseConstantLearningRateSchedule.Params(
+    tp.lr_schedule = schedule.PiecewiseConstantLearningRateSchedule.Params(
     ).Set(
         boundaries=[350000, 500000, 600000], values=[1.0, 0.1, 0.01, 0.001])
     tp.vn_start_step = 20000

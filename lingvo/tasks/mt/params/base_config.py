@@ -22,11 +22,11 @@ import math
 
 from lingvo.core import attention
 from lingvo.core import layers
-from lingvo.core import lr_schedule
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
+from lingvo.core import schedule
 from lingvo.tasks.mt import decoder
 from lingvo.tasks.mt import encoder
 from lingvo.tasks.mt import input_generator
@@ -208,7 +208,7 @@ def SetupTransformerParams(p,
       optimizer=optimizer.Adam.ParamsB(),
       clip_gradient_norm_to_value=0.0,
       grad_norm_to_clip_to_zero=0.0,
-      lr_schedule=lr_schedule.TransformerLearningRateSchedule.Params().Set(
+      lr_schedule=schedule.TransformerLearningRateSchedule.Params().Set(
           warmup_steps=warmup_steps, worker_replicas=1, model_dim=model_dim))
 
   p.eval.samples_per_summary = 12000
@@ -490,7 +490,7 @@ def SetupRNMTParams(p,
 
   # Optimization setup.
   learning_rate_schedule = (
-      lr_schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params()
+      schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.Params()
       .Set(
           warmup=lr_warmup_steps,
           decay_start=lr_decay_start,
