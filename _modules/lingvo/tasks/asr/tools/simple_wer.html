@@ -1,0 +1,521 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.asr.tools.simple_wer &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.tools.simple_wer</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.asr.tools.simple_wer</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Stand-alone script to evalute the word error rate (WER) for ASR tasks.</span>
+
+<span class="sd">Tensorflow and Lingvo are not required to run this script.</span>
+
+<span class="sd">Example of Usage::</span>
+
+<span class="sd">`python simple_wer.py file_hypothesis file_reference`</span>
+<span class="sd">`python simple_wer.py file_hypothesis file_reference diagnosis_html`</span>
+
+
+<span class="sd">where `file_hypothesis` is the file name for hypothesis text and</span>
+<span class="sd">`file_reference` is the file name for reference text.</span>
+<span class="sd">`diagnosis_html` (optional) is the html filename to diagnose the errors.</span>
+
+<span class="sd">Or you can use this file as a library, and call either of the following:</span>
+
+<span class="sd">  - `ComputeWER(hyp, ref)`    compute WER for one pair of hypothesis/reference</span>
+<span class="sd">  - `AverageWERs(hyps, refs)` average WER for a list of hypotheses/references</span>
+
+<span class="sd">Note to evaluate the ASR, we consider the following pre-processing:</span>
+
+<span class="sd">  - change transcripts to lower-case</span>
+<span class="sd">  - remove punctuation: `&quot; , . ! ? (  ) [ ]`</span>
+<span class="sd">  - remove extra empty spaces</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+
+<div class="viewcode-block" id="ComputeEditDistanceMatrix"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer.html#lingvo.tasks.asr.tools.simple_wer.ComputeEditDistanceMatrix">[docs]</a><span class="k">def</span> <span class="nf">ComputeEditDistanceMatrix</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">rs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute edit distance between two list of strings.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    hs: the list of words in the hypothesis sentence</span>
+<span class="sd">    rs: the list of words in the reference sentence</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Edit distance matrix (in the format of list of lists), where the first</span>
+<span class="sd">    index is the reference and the second index is the hypothesis.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">dr</span><span class="p">,</span> <span class="n">dh</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+  <span class="n">dists</span> <span class="o">=</span> <span class="p">[[]]</span> <span class="o">*</span> <span class="n">dr</span>
+
+  <span class="c1"># Initialization.</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dr</span><span class="p">):</span>
+    <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">dh</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">dh</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">dists</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">j</span>
+      <span class="k">elif</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span>
+
+  <span class="c1"># Do dynamic programming.</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dr</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dh</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">rs</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">hs</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>
+        <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="n">dists</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tmp0</span> <span class="o">=</span> <span class="n">dists</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">tmp1</span> <span class="o">=</span> <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">tmp2</span> <span class="o">=</span> <span class="n">dists</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">dists</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">j</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">tmp0</span><span class="p">,</span> <span class="n">tmp1</span><span class="p">,</span> <span class="n">tmp2</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">dists</span></div>
+
+
+<div class="viewcode-block" id="PreprocessTxtBeforeWER"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer.html#lingvo.tasks.asr.tools.simple_wer.PreprocessTxtBeforeWER">[docs]</a><span class="k">def</span> <span class="nf">PreprocessTxtBeforeWER</span><span class="p">(</span><span class="n">txt</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Preprocess text before WER caculation.&quot;&quot;&quot;</span>
+
+  <span class="c1"># Lowercase, remove \t and new line.</span>
+  <span class="n">txt</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[\t\n]&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">txt</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+
+  <span class="c1"># Remove punctuation before space.</span>
+  <span class="n">txt</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[,.\?!]+ &#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">txt</span><span class="p">)</span>
+
+  <span class="c1"># Remove punctuation before end.</span>
+  <span class="n">txt</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[,.\?!]+$&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">txt</span><span class="p">)</span>
+
+  <span class="c1"># Remove punctuation after space.</span>
+  <span class="n">txt</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39; [,.\?!]+&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">txt</span><span class="p">)</span>
+
+  <span class="c1"># Remove quotes, [, ], ( and ).</span>
+  <span class="n">txt</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;[&quot;\(\)\[\]]&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">txt</span><span class="p">)</span>
+
+  <span class="c1"># Remove extra space.</span>
+  <span class="n">txt</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39; +&#39;</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="n">txt</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+
+  <span class="k">return</span> <span class="n">txt</span></div>
+
+
+<div class="viewcode-block" id="_GenerateAlignedHtml"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer.html#lingvo.tasks.asr.tools.simple_wer._GenerateAlignedHtml">[docs]</a><span class="k">def</span> <span class="nf">_GenerateAlignedHtml</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">err_type</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generate a html element to highlight the difference between hyp and ref.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    hyp: Hypothesis string.</span>
+<span class="sd">    ref: Reference string.</span>
+<span class="sd">    err_type: one of &#39;none&#39;, &#39;sub&#39;, &#39;del&#39;, &#39;ins&#39;.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    a html string where disagreements are highlighted.</span>
+<span class="sd">      - hyp highlighted in green, and marked with &lt;del&gt; &lt;/del&gt;</span>
+<span class="sd">      - ref highlighted in yellow</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">highlighted_html</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+  <span class="k">if</span> <span class="n">err_type</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
+    <span class="n">highlighted_html</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> &#39;</span> <span class="o">%</span> <span class="n">hyp</span>
+
+  <span class="k">elif</span> <span class="n">err_type</span> <span class="o">==</span> <span class="s1">&#39;sub&#39;</span><span class="p">:</span>
+    <span class="n">highlighted_html</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;&lt;span style=&quot;background-color: greenyellow&quot;&gt;</span>
+<span class="s2">        &lt;del&gt;</span><span class="si">%s</span><span class="s2">&lt;/del&gt;&lt;/span&gt;&lt;span style=&quot;background-color: yellow&quot;&gt;</span>
+<span class="s2">        </span><span class="si">%s</span><span class="s2"> &lt;/span&gt; &quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">ref</span><span class="p">)</span>
+
+  <span class="k">elif</span> <span class="n">err_type</span> <span class="o">==</span> <span class="s1">&#39;del&#39;</span><span class="p">:</span>
+    <span class="n">highlighted_html</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;&lt;span style=&quot;background-color: yellow&quot;&gt;</span>
+<span class="s2">        </span><span class="si">%s</span><span class="s2">&lt;/span&gt; &quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">ref</span><span class="p">)</span>
+
+  <span class="k">elif</span> <span class="n">err_type</span> <span class="o">==</span> <span class="s1">&#39;ins&#39;</span><span class="p">:</span>
+    <span class="n">highlighted_html</span> <span class="o">+=</span> <span class="s2">&quot;&quot;&quot;&lt;span style=&quot;background-color: greenyellow&quot;&gt;</span>
+<span class="s2">        &lt;del&gt;</span><span class="si">%s</span><span class="s2">&lt;/del&gt; &lt;/span&gt; &quot;&quot;&quot;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">hyp</span><span class="p">)</span>
+
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;unknown err_type &#39;</span> <span class="o">+</span> <span class="n">err_type</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">highlighted_html</span></div>
+
+
+<div class="viewcode-block" id="GenerateSummaryFromErrs"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer.html#lingvo.tasks.asr.tools.simple_wer.GenerateSummaryFromErrs">[docs]</a><span class="k">def</span> <span class="nf">GenerateSummaryFromErrs</span><span class="p">(</span><span class="n">nref</span><span class="p">,</span> <span class="n">errs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generate strings to summarize word errors.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    nref: integer of total words in references</span>
+<span class="sd">    errs: dict of three types of errors. e.g. {&#39;sub&#39;:10, &#39;ins&#39;: 15, &#39;del&#39;: 3}</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    str1: string summarizing total error, total word, WER,</span>
+<span class="sd">    str2: string breaking down three errors: deleting, insertion, substitute</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">total_error</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">errs</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+  <span class="n">str_sum</span> <span class="o">=</span> <span class="s1">&#39;total error = </span><span class="si">%d</span><span class="s1">, total word = </span><span class="si">%d</span><span class="s1">, wer = </span><span class="si">%.2f%%</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+      <span class="n">total_error</span><span class="p">,</span> <span class="n">nref</span><span class="p">,</span> <span class="n">total_error</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">/</span> <span class="n">nref</span><span class="p">)</span>
+
+  <span class="n">str_details</span> <span class="o">=</span> <span class="s1">&#39;Error breakdown: del = </span><span class="si">%.2f%%</span><span class="s1">, ins=</span><span class="si">%.2f%%</span><span class="s1">, sub=</span><span class="si">%.2f%%</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+      <span class="n">errs</span><span class="p">[</span><span class="s1">&#39;del&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">/</span> <span class="n">nref</span><span class="p">,</span> <span class="n">errs</span><span class="p">[</span><span class="s1">&#39;ins&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">/</span> <span class="n">nref</span><span class="p">,</span>
+      <span class="n">errs</span><span class="p">[</span><span class="s1">&#39;sub&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mf">100.0</span> <span class="o">/</span> <span class="n">nref</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">str_sum</span><span class="p">,</span> <span class="n">str_details</span></div>
+
+
+<div class="viewcode-block" id="ComputeWER"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer.html#lingvo.tasks.asr.tools.simple_wer.ComputeWER">[docs]</a><span class="k">def</span> <span class="nf">ComputeWER</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">diagnosis</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes WER for ASR by ignoring diff of punctuation, space, captions.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    hyp: Hypothesis string.</span>
+<span class="sd">    ref: Reference string.</span>
+<span class="sd">    diagnosis (optional): whether to generate diagnosis str (in html format)</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    dict of three types of errors. e.g. {&#39;sub&#39;:0, &#39;ins&#39;: 0, &#39;del&#39;: 0}</span>
+<span class="sd">    num of reference words, integer</span>
+<span class="sd">    aligned html string for diagnois (empty if diagnosis = False)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">hyp</span> <span class="o">=</span> <span class="n">PreprocessTxtBeforeWER</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
+  <span class="n">ref</span> <span class="o">=</span> <span class="n">PreprocessTxtBeforeWER</span><span class="p">(</span><span class="n">ref</span><span class="p">)</span>
+
+  <span class="c1"># Compute edit distance.</span>
+  <span class="n">hs</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+  <span class="n">rs</span> <span class="o">=</span> <span class="n">ref</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+  <span class="n">distmat</span> <span class="o">=</span> <span class="n">ComputeEditDistanceMatrix</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">rs</span><span class="p">)</span>
+
+  <span class="c1"># Back trace, to distinguish different errors: insert, deletion, substitution.</span>
+  <span class="n">ih</span><span class="p">,</span> <span class="n">ir</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">hs</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span>
+  <span class="n">errs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sub&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;ins&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;del&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+  <span class="n">aligned_html</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+  <span class="k">while</span> <span class="n">ih</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">ir</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">err_type</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+    <span class="c1"># Distinguish error type by back tracking</span>
+    <span class="k">if</span> <span class="n">ir</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">err_type</span> <span class="o">=</span> <span class="s1">&#39;ins&#39;</span>
+    <span class="k">elif</span> <span class="n">ih</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">err_type</span> <span class="o">=</span> <span class="s1">&#39;del&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">hs</span><span class="p">[</span><span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">rs</span><span class="p">[</span><span class="n">ir</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]:</span>  <span class="c1"># correct</span>
+        <span class="n">err_type</span> <span class="o">=</span> <span class="s1">&#39;none&#39;</span>
+      <span class="k">elif</span> <span class="n">distmat</span><span class="p">[</span><span class="n">ir</span><span class="p">][</span><span class="n">ih</span><span class="p">]</span> <span class="o">==</span> <span class="n">distmat</span><span class="p">[</span><span class="n">ir</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># substitute</span>
+        <span class="n">err_type</span> <span class="o">=</span> <span class="s1">&#39;sub&#39;</span>
+      <span class="k">elif</span> <span class="n">distmat</span><span class="p">[</span><span class="n">ir</span><span class="p">][</span><span class="n">ih</span><span class="p">]</span> <span class="o">==</span> <span class="n">distmat</span><span class="p">[</span><span class="n">ir</span> <span class="o">-</span> <span class="mi">1</span><span class="p">][</span><span class="n">ih</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># deletion</span>
+        <span class="n">err_type</span> <span class="o">=</span> <span class="s1">&#39;del&#39;</span>
+      <span class="k">elif</span> <span class="n">distmat</span><span class="p">[</span><span class="n">ir</span><span class="p">][</span><span class="n">ih</span><span class="p">]</span> <span class="o">==</span> <span class="n">distmat</span><span class="p">[</span><span class="n">ir</span><span class="p">][</span><span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>  <span class="c1"># insert</span>
+        <span class="n">err_type</span> <span class="o">=</span> <span class="s1">&#39;ins&#39;</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;fail to parse edit distance matrix&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Generate aligned_html</span>
+    <span class="k">if</span> <span class="n">diagnosis</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">ih</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">hs</span><span class="p">:</span>
+        <span class="n">tmph</span> <span class="o">=</span> <span class="n">hs</span><span class="p">[</span><span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tmph</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+      <span class="k">if</span> <span class="n">ir</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">rs</span><span class="p">:</span>
+        <span class="n">tmpr</span> <span class="o">=</span> <span class="n">rs</span><span class="p">[</span><span class="n">ir</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tmpr</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+      <span class="n">aligned_html</span> <span class="o">=</span> <span class="n">_GenerateAlignedHtml</span><span class="p">(</span><span class="n">tmph</span><span class="p">,</span> <span class="n">tmpr</span><span class="p">,</span> <span class="n">err_type</span><span class="p">)</span> <span class="o">+</span> <span class="n">aligned_html</span>
+
+    <span class="c1"># If no error, go to previous ref and hyp.</span>
+    <span class="k">if</span> <span class="n">err_type</span> <span class="o">==</span> <span class="s1">&#39;none&#39;</span><span class="p">:</span>
+      <span class="n">ih</span><span class="p">,</span> <span class="n">ir</span> <span class="o">=</span> <span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ir</span> <span class="o">-</span> <span class="mi">1</span>
+      <span class="k">continue</span>
+
+    <span class="c1"># Update error.</span>
+    <span class="n">errs</span><span class="p">[</span><span class="n">err_type</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="c1"># Adjust position of ref and hyp.</span>
+    <span class="k">if</span> <span class="n">err_type</span> <span class="o">==</span> <span class="s1">&#39;del&#39;</span><span class="p">:</span>
+      <span class="n">ir</span> <span class="o">=</span> <span class="n">ir</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="n">err_type</span> <span class="o">==</span> <span class="s1">&#39;ins&#39;</span><span class="p">:</span>
+      <span class="n">ih</span> <span class="o">=</span> <span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>  <span class="c1"># err_type == &#39;sub&#39;</span>
+      <span class="n">ih</span><span class="p">,</span> <span class="n">ir</span> <span class="o">=</span> <span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ir</span> <span class="o">-</span> <span class="mi">1</span>
+
+  <span class="k">assert</span> <span class="n">distmat</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="nb">sum</span><span class="p">(</span><span class="n">errs</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+  <span class="c1"># Num of words. For empty ref we set num = 1.</span>
+  <span class="n">nref</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rs</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">errs</span><span class="p">,</span> <span class="n">nref</span><span class="p">,</span> <span class="n">aligned_html</span></div>
+
+
+<div class="viewcode-block" id="AverageWERs"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer.html#lingvo.tasks.asr.tools.simple_wer.AverageWERs">[docs]</a><span class="k">def</span> <span class="nf">AverageWERs</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">refs</span><span class="p">,</span> <span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">diagnosis</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes average WER from a list of references/hypotheses.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    hyps: list of hypothesis strings.</span>
+<span class="sd">    refs: list of reference strings.</span>
+<span class="sd">    verbose: optional (default True)</span>
+<span class="sd">    diagnosis (optional): whether to generate list of diagnosis html</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    dict of three types of errors. e.g. {&#39;sub&#39;:0, &#39;ins&#39;: 0, &#39;del&#39;: 0}</span>
+<span class="sd">    num of reference words, integer</span>
+<span class="sd">    list of aligned html string for diagnosis (empty if diagnosis = False)</span>
+
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">totalw</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">total_errs</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;sub&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;ins&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;del&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+  <span class="n">aligned_html_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+  <span class="k">for</span> <span class="n">hyp</span><span class="p">,</span> <span class="n">ref</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">refs</span><span class="p">):</span>
+    <span class="n">errs_i</span><span class="p">,</span> <span class="n">nref_i</span><span class="p">,</span> <span class="n">diag_str</span> <span class="o">=</span> <span class="n">ComputeWER</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">diagnosis</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">diagnosis</span><span class="p">:</span>
+      <span class="n">aligned_html_list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">diag_str</span><span class="p">]</span>
+
+    <span class="n">totalw</span> <span class="o">+=</span> <span class="n">nref_i</span>
+    <span class="n">total_errs</span><span class="p">[</span><span class="s1">&#39;sub&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">errs_i</span><span class="p">[</span><span class="s1">&#39;sub&#39;</span><span class="p">]</span>
+    <span class="n">total_errs</span><span class="p">[</span><span class="s1">&#39;ins&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">errs_i</span><span class="p">[</span><span class="s1">&#39;ins&#39;</span><span class="p">]</span>
+    <span class="n">total_errs</span><span class="p">[</span><span class="s1">&#39;del&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">errs_i</span><span class="p">[</span><span class="s1">&#39;del&#39;</span><span class="p">]</span>
+
+  <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+    <span class="n">str_summary</span><span class="p">,</span> <span class="n">str_details</span> <span class="o">=</span> <span class="n">GenerateSummaryFromErrs</span><span class="p">(</span><span class="n">totalw</span><span class="p">,</span> <span class="n">total_errs</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">str_summary</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">str_details</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">total_errs</span><span class="p">,</span> <span class="n">totalw</span><span class="p">,</span> <span class="n">aligned_html_list</span></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.tools.simple_wer.html#lingvo.tasks.asr.tools.simple_wer.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="n">argv</span><span class="p">):</span>
+
+  <span class="n">hyp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+  <span class="n">ref</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+    <span class="n">diagnosis</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">fn_output</span> <span class="o">=</span> <span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">diagnosis</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">fn_output</span> <span class="o">=</span> <span class="kc">None</span>
+
+  <span class="n">errs</span><span class="p">,</span> <span class="n">nref</span><span class="p">,</span> <span class="n">aligned_html</span> <span class="o">=</span> <span class="n">ComputeWER</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">ref</span><span class="p">,</span> <span class="n">diagnosis</span><span class="p">)</span>
+  <span class="n">str_summary</span><span class="p">,</span> <span class="n">str_details</span> <span class="o">=</span> <span class="n">GenerateSummaryFromErrs</span><span class="p">(</span><span class="n">nref</span><span class="p">,</span> <span class="n">errs</span><span class="p">)</span>
+  <span class="nb">print</span><span class="p">(</span><span class="n">str_summary</span><span class="p">)</span>
+  <span class="nb">print</span><span class="p">(</span><span class="n">str_details</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">fn_output</span><span class="p">:</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">fn_output</span><span class="p">,</span> <span class="s1">&#39;wt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fp</span><span class="p">:</span>
+      <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&lt;body&gt;&lt;html&gt;&#39;</span><span class="p">)</span>
+      <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&lt;div&gt;</span><span class="si">%s</span><span class="s1">&lt;/div&gt;&#39;</span> <span class="o">%</span> <span class="n">aligned_html</span><span class="p">)</span>
+      <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;&lt;/body&gt;&lt;/html&gt;&#39;</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">3</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">4</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Example of Usage:</span>
+
+<span class="s2">  python simple_wer.py file_hypothesis file_reference</span>
+<span class="s2">or</span>
+<span class="s2">  python simple_wer.py file_hypothesis file_reference diagnosis_html</span>
+
+<span class="s2">  where file_hypothesis is the file name for hypothesis text</span>
+<span class="s2">        file_reference  is the file name for reference text.</span>
+<span class="s2">        diagnosis_html (optional) is the html filename to diagnose the errors.</span>
+
+<span class="s2">Or you can use this file as a library, and call either of the following</span>
+<span class="s2">  - ComputeWER(hyp, ref)    to compute WER for one pair of hypothesis/reference</span>
+<span class="s2">  - AverageWERs(hyps, refs) to average WER for a list of hypotheses/references</span>
+<span class="s2">&quot;&quot;&quot;</span><span class="p">)</span>
+    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="n">main</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

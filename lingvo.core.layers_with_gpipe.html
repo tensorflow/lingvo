@@ -1,0 +1,753 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.layers_with_gpipe module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.lr_schedule module" href="lingvo.core.lr_schedule.html" />
+    <link rel="prev" title="lingvo.core.layers_with_attention module" href="lingvo.core.layers_with_attention.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.layers_with_gpipe module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.layers_with_gpipe.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.layers_with_gpipe">
+<span id="lingvo-core-layers-with-gpipe-module"></span><h1>lingvo.core.layers_with_gpipe module<a class="headerlink" href="#module-lingvo.core.layers_with_gpipe" title="Permalink to this headline">¶</a></h1>
+<p>Lingvo layers that depend on layers and gpipe.</p>
+<dl class="function">
+<dt id="lingvo.core.layers_with_gpipe._common_gpipe_transformer_params">
+<code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">_common_gpipe_transformer_params</code><span class="sig-paren">(</span><em>p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#_common_gpipe_transformer_params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe._common_gpipe_transformer_params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add GPipe params to layer.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.layers_with_gpipe._common_gpipe_transformer_init">
+<code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">_common_gpipe_transformer_init</code><span class="sig-paren">(</span><em>layer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#_common_gpipe_transformer_init"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe._common_gpipe_transformer_init" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize a GPipe layer.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.layers_with_gpipe._common_gpipe_transformer_encoder_fprop">
+<code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">_common_gpipe_transformer_encoder_fprop</code><span class="sig-paren">(</span><em>layer</em>, <em>layer_class</em>, <em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#_common_gpipe_transformer_encoder_fprop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe._common_gpipe_transformer_encoder_fprop" title="Permalink to this definition">¶</a></dt>
+<dd><p>GPipe encoder FProp.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.layers_with_gpipe._common_gpipe_transformer_decoder_fprop">
+<code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">_common_gpipe_transformer_decoder_fprop</code><span class="sig-paren">(</span><em>layer</em>, <em>layer_class</em>, <em>params</em>, <em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#_common_gpipe_transformer_decoder_fprop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe._common_gpipe_transformer_decoder_fprop" title="Permalink to this definition">¶</a></dt>
+<dd><p>GPipe decoder FProp.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.layers_with_gpipe._common_gpipe_transformer_fprop_meta">
+<code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">_common_gpipe_transformer_fprop_meta</code><span class="sig-paren">(</span><em>p</em>, <em>inputs</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#_common_gpipe_transformer_fprop_meta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe._common_gpipe_transformer_fprop_meta" title="Permalink to this definition">¶</a></dt>
+<dd><p>GPipe FPropMeta function.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">GPipeTransformerLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerLayer" title="lingvo.core.layers_with_attention.TransformerLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.TransformerLayer</span></code></a></p>
+<p>GPipe compatible transformer layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configs for TransformerStack.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer Layer.</p>
+<p>Transformer layer has the naming scheme as follows: <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code> and
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">source_paddings</span></code> are all assumed to be coming from the activations of the
+layer below. When <code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerLayer</span></code> is used in the Encoder (default
+behavior of this layer) <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_*</span></code> tensors correspond to the outputs of
+previous encoder layer. Further, keys, values and queries are all
+forked from <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code>. When TransformerLayer is used in the Decoder
+(has_aux_atten=True), <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_*</span></code> tensors correspond to the outputs of
+previous decoder layer and used as the queries.</p>
+<p>For the cases when <code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerLayer</span></code> is used in the decoder
+(has_aux_atten=True) <code class="xref py py-obj docutils literal notranslate"><span class="pre">aux_*</span></code> tensors have to be provided.  Auxiliary inputs,
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">aux_*</span></code> tensors, are then correspond to the top-most layer encoder outputs
+and used by the second <code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerAttentionLayer</span></code> as keys and values.</p>
+<p>Regardless of the encoder or decoder, queries are always assumed to be
+coming from the activations of layer below, in particular <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>source_vecs</strong> – [source_time, source_batch, dim].</li>
+<li><strong>source_paddings</strong> – [source_time, source_batch]</li>
+<li><strong>aux_vecs</strong> – [aux_time, aux_batch, dim]</li>
+<li><strong>aux_paddings</strong> – [aux_time, aux_batch]</li>
+<li><strong>source_segment_id</strong> – [source_time, source_batch]</li>
+<li><strong>aux_segment_id</strong> – [aux_time, aux_batch]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>The attention context vector, [source_time, source_batch, dim].</p>
+<p>The attention probability vector, [source_time, source_batch, source_time]
+if has_aux_atten is False, otherwise [source_time, source_batch,
+aux_time].</p>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>inputs</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeTransformerLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">GPipeEvolvedTransformerEncoderLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer" title="lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer</span></code></a></p>
+<p>GPipe-compatible Evolved Transformer encoder layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerEncoderLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>source_segment_id</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerEncoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>inputs</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerEncoderLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerEncoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">GPipeEvolvedTransformerDecoderLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerDecoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer" title="lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer</span></code></a></p>
+<p>GPipe-compatible Evolved Transformer decoder layer.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerDecoderLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_vecs</em>, <em>source_paddings</em>, <em>target_vecs</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>*more_source_vecs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerDecoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>inputs</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeEvolvedTransformerDecoderLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeEvolvedTransformerDecoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">GPipeTransformerEmbeddingLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>GPipe compatible embeddings for transformers.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configs of Embedding layers for TransformerStack.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEmbeddings">
+<code class="descname">GetEmbeddings</code><span class="sig-paren">(</span><em>emb_theta</em>, <em>emb</em>, <em>pos_emb_theta</em>, <em>pos_emb</em>, <em>dropout_theta</em>, <em>dropout</em>, <em>input_ids</em>, <em>input_pos_ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.GetEmbeddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEmbeddings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta">
+<code class="descname">GetEncoderEmbeddingsDefaultTheta</code><span class="sig-paren">(</span><em>input_ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetEncoderEmbeddingsDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta">
+<code class="descname">GetDecoderEmbeddingsDefaultTheta</code><span class="sig-paren">(</span><em>input_ids</em>, <em>t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.GetDecoderEmbeddingsDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_id</em>, <em>source_paddings</em>, <em>target_id</em>, <em>target_paddings</em>, <em>source_segment_id</em>, <em>target_segment_id</em>, <em>source_pos_id</em>, <em>target_pos_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward propagation.</p>
+<p>The central interface that subclasses should implement. The caller
+calls <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The implementation of <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+the theta and the inputs. E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
+<span class="c1"># The same layer applied twice.</span>
+<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">a2</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
+layer and its children layers.</li>
+<li><strong>*args</strong> – List args.</li>
+<li><strong>**kwargs</strong> – Keyward args.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FPropMeta">
+<em class="property">classmethod </em><code class="descname">FPropMeta</code><span class="sig-paren">(</span><em>p</em>, <em>inputs</em>, <em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerEmbeddingLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp" title="lingvo.core.layers_with_gpipe.GPipeTransformerEmbeddingLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>params</strong> – The param of a layer of this layer type.</li>
+<li><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+<li><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li>flops - The estimated number of floating point operations incurred by
+this fprop.</li>
+<li>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</li>
+</ul>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">GPipeTransformerStack</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.gpipe.html#lingvo.core.gpipe.PipeliningLayer" title="lingvo.core.gpipe.PipeliningLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gpipe.PipeliningLayer</span></code></a></p>
+<p>Stacked self- multi-head attention and fully connected layers.</p>
+<p>With optional layer normalization applied to the final output.</p>
+<p>See ‘Attention Is All You Need’ <a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>
+for details.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Configs for TransformerStack.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.SetupDeterministicDropout">
+<code class="descname">SetupDeterministicDropout</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.SetupDeterministicDropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.SetupDeterministicDropout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replaced dropout layers in transformer with deterministic ones.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.GetEncoders">
+<code class="descname">GetEncoders</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.GetEncoders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.GetEncoders" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.GetDecoders">
+<code class="descname">GetDecoders</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.GetDecoders"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.GetDecoders" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.EncoderEmbedFPropDefaultTheta">
+<code class="descname">EncoderEmbedFPropDefaultTheta</code><span class="sig-paren">(</span><em>source_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.EncoderEmbedFPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.EncoderEmbedFPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.DecoderEmbedFPropDefaultTheta">
+<code class="descname">DecoderEmbedFPropDefaultTheta</code><span class="sig-paren">(</span><em>tgt_id</em>, <em>t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.DecoderEmbedFPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.DecoderEmbedFPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.EncoderFPropDefaultTheta">
+<code class="descname">EncoderFPropDefaultTheta</code><span class="sig-paren">(</span><em>source_vecs</em>, <em>source_paddings</em>, <em>source_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.EncoderFPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.EncoderFPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.GPipeTransformerStack.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>source_input</em>, <em>source_paddings</em>, <em>target_input=None</em>, <em>target_paddings=None</em>, <em>source_segment_id=None</em>, <em>target_segment_id=None</em>, <em>source_pos_id=None</em>, <em>target_pos_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#GPipeTransformerStack.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.GPipeTransformerStack.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transforms source sequence of Tensors with Transformers layers.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>source_input</strong> – A sequence of input Tensors of [time, batch, dim] shape. If
+p.use_pipelined_embeddings is set, A sequence of ints indicating source
+input ids of [time, batch] shape.</li>
+<li><strong>source_paddings</strong> – A sequence of 0s and 1s indicating input paddings of
+[time, batch] shape.</li>
+<li><strong>target_input</strong> – [target_time, target_batch, dim]. If
+p.use_pipelined_embeddings is set, A sequence of ints indicating target
+input ids of [time, batch] shape.</li>
+<li><strong>target_paddings</strong> – [target_time, target_batch]</li>
+<li><strong>source_segment_id</strong> – A sequence of ints indicating source segment ids of
+[time, batch] shape.</li>
+<li><strong>target_segment_id</strong> – A sequence of ints indicating target segment ids of
+[time, batch] shape.</li>
+<li><strong>source_pos_id</strong> – A sequence of ints indicating source position ids of [time,
+batch] shape.</li>
+<li><strong>target_pos_id</strong> – A sequence of ints indicating target position ids of [time,
+batch] shape.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">transformer_output with shape [time, batch, dim]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers_with_gpipe.</code><code class="descname">DeterministicWeightedSumLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#DeterministicWeightedSumLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>WeightedSumLayer with deterministic dropout.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#DeterministicWeightedSumLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for this MergerLayer class.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_gpipe.html#DeterministicWeightedSumLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_gpipe.DeterministicWeightedSumLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combines the list of input tensors into a single tensor.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</li>
+<li><strong>inputs</strong> – A list of tensors of shape [time, batch, hidden_dim]</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">A tensor of the same shape with input tensors.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.lr_schedule.html" class="btn btn-neutral float-right" title="lingvo.core.lr_schedule module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.layers_with_attention.html" class="btn btn-neutral float-left" title="lingvo.core.layers_with_attention module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

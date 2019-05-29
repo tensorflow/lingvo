@@ -1,0 +1,390 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.asr.tools.simple_wer module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.asr.contextualizer_base module" href="lingvo.tasks.asr.contextualizer_base.html" />
+    <link rel="prev" title="lingvo.tasks.asr.tools package" href="lingvo.tasks.asr.tools.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.asr.html">lingvo.tasks.asr package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.asr.tools.html">lingvo.tasks.asr.tools package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.tools.simple_wer module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.asr.tools.simple_wer.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.asr.tools.simple_wer">
+<span id="lingvo-tasks-asr-tools-simple-wer-module"></span><h1>lingvo.tasks.asr.tools.simple_wer module<a class="headerlink" href="#module-lingvo.tasks.asr.tools.simple_wer" title="Permalink to this headline">¶</a></h1>
+<p>Stand-alone script to evalute the word error rate (WER) for ASR tasks.</p>
+<p>Tensorflow and Lingvo are not required to run this script.</p>
+<p>Example of Usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>`python simple_wer.py file_hypothesis file_reference`
+`python simple_wer.py file_hypothesis file_reference diagnosis_html`
+</pre></div>
+</div>
+<p>where <code class="xref py py-obj docutils literal notranslate"><span class="pre">file_hypothesis</span></code> is the file name for hypothesis text and
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">file_reference</span></code> is the file name for reference text.
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">diagnosis_html</span></code> (optional) is the html filename to diagnose the errors.</p>
+<p>Or you can use this file as a library, and call either of the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputeWER(hyp,</span> <span class="pre">ref)</span></code>    compute WER for one pair of hypothesis/reference</li>
+<li><code class="xref py py-obj docutils literal notranslate"><span class="pre">AverageWERs(hyps,</span> <span class="pre">refs)</span></code> average WER for a list of hypotheses/references</li>
+</ul>
+</div></blockquote>
+<p>Note to evaluate the ASR, we consider the following pre-processing:</p>
+<blockquote>
+<div><ul class="simple">
+<li>change transcripts to lower-case</li>
+<li>remove punctuation: <code class="xref py py-obj docutils literal notranslate"><span class="pre">&quot;</span> <span class="pre">,</span> <span class="pre">.</span> <span class="pre">!</span> <span class="pre">?</span> <span class="pre">(</span>&#160; <span class="pre">)</span> <span class="pre">[</span> <span class="pre">]</span></code></li>
+<li>remove extra empty spaces</li>
+</ul>
+</div></blockquote>
+<dl class="function">
+<dt id="lingvo.tasks.asr.tools.simple_wer.ComputeEditDistanceMatrix">
+<code class="descclassname">lingvo.tasks.asr.tools.simple_wer.</code><code class="descname">ComputeEditDistanceMatrix</code><span class="sig-paren">(</span><em>hs</em>, <em>rs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer.html#ComputeEditDistanceMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer.ComputeEditDistanceMatrix" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute edit distance between two list of strings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>hs</strong> – the list of words in the hypothesis sentence</li>
+<li><strong>rs</strong> – the list of words in the reference sentence</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Edit distance matrix (in the format of list of lists), where the first
+index is the reference and the second index is the hypothesis.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.asr.tools.simple_wer.PreprocessTxtBeforeWER">
+<code class="descclassname">lingvo.tasks.asr.tools.simple_wer.</code><code class="descname">PreprocessTxtBeforeWER</code><span class="sig-paren">(</span><em>txt</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer.html#PreprocessTxtBeforeWER"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer.PreprocessTxtBeforeWER" title="Permalink to this definition">¶</a></dt>
+<dd><p>Preprocess text before WER caculation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.asr.tools.simple_wer._GenerateAlignedHtml">
+<code class="descclassname">lingvo.tasks.asr.tools.simple_wer.</code><code class="descname">_GenerateAlignedHtml</code><span class="sig-paren">(</span><em>hyp</em>, <em>ref</em>, <em>err_type</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer.html#_GenerateAlignedHtml"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer._GenerateAlignedHtml" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a html element to highlight the difference between hyp and ref.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>hyp</strong> – Hypothesis string.</li>
+<li><strong>ref</strong> – Reference string.</li>
+<li><strong>err_type</strong> – one of ‘none’, ‘sub’, ‘del’, ‘ins’.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>a html string where disagreements are highlighted.</dt>
+<dd><ul class="first last simple">
+<li>hyp highlighted in green, and marked with &lt;del&gt; &lt;/del&gt;</li>
+<li>ref highlighted in yellow</li>
+</ul>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.asr.tools.simple_wer.GenerateSummaryFromErrs">
+<code class="descclassname">lingvo.tasks.asr.tools.simple_wer.</code><code class="descname">GenerateSummaryFromErrs</code><span class="sig-paren">(</span><em>nref</em>, <em>errs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer.html#GenerateSummaryFromErrs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer.GenerateSummaryFromErrs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate strings to summarize word errors.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>nref</strong> – integer of total words in references</li>
+<li><strong>errs</strong> – dict of three types of errors. e.g. {‘sub’:10, ‘ins’: 15, ‘del’: 3}</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">string summarizing total error, total word, WER,
+str2: string breaking down three errors: deleting, insertion, substitute</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">str1</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.asr.tools.simple_wer.ComputeWER">
+<code class="descclassname">lingvo.tasks.asr.tools.simple_wer.</code><code class="descname">ComputeWER</code><span class="sig-paren">(</span><em>hyp</em>, <em>ref</em>, <em>diagnosis=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer.html#ComputeWER"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer.ComputeWER" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes WER for ASR by ignoring diff of punctuation, space, captions.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>hyp</strong> – Hypothesis string.</li>
+<li><strong>ref</strong> – Reference string.</li>
+<li><strong>diagnosis</strong> (<em>optional</em>) – whether to generate diagnosis str (in html format)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">0, ‘ins’: 0, ‘del’: 0}
+num of reference words, integer
+aligned html string for diagnois (empty if diagnosis = False)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict of three types of errors. e.g. {‘sub’</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.asr.tools.simple_wer.AverageWERs">
+<code class="descclassname">lingvo.tasks.asr.tools.simple_wer.</code><code class="descname">AverageWERs</code><span class="sig-paren">(</span><em>hyps</em>, <em>refs</em>, <em>verbose=True</em>, <em>diagnosis=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer.html#AverageWERs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer.AverageWERs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes average WER from a list of references/hypotheses.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>hyps</strong> – list of hypothesis strings.</li>
+<li><strong>refs</strong> – list of reference strings.</li>
+<li><strong>verbose</strong> – optional (default True)</li>
+<li><strong>diagnosis</strong> (<em>optional</em>) – whether to generate list of diagnosis html</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">0, ‘ins’: 0, ‘del’: 0}
+num of reference words, integer
+list of aligned html string for diagnosis (empty if diagnosis = False)</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict of three types of errors. e.g. {‘sub’</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.asr.tools.simple_wer.main">
+<code class="descclassname">lingvo.tasks.asr.tools.simple_wer.</code><code class="descname">main</code><span class="sig-paren">(</span><em>argv</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.asr.contextualizer_base.html" class="btn btn-neutral float-right" title="lingvo.tasks.asr.contextualizer_base module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.asr.tools.html" class="btn btn-neutral float-left" title="lingvo.tasks.asr.tools package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

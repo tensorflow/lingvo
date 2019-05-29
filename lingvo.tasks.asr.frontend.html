@@ -1,0 +1,572 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.asr.frontend module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.tasks.asr.fusion module" href="lingvo.tasks.asr.fusion.html" />
+    <link rel="prev" title="lingvo.tasks.asr.encoder module" href="lingvo.tasks.asr.encoder.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a><ul class="current">
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.tasks.html#subpackages">Subpackages</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.html">lingvo.tasks package</a> &raquo;</li>
+        
+          <li><a href="lingvo.tasks.asr.html">lingvo.tasks.asr package</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.frontend module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.tasks.asr.frontend.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.tasks.asr.frontend">
+<span id="lingvo-tasks-asr-frontend-module"></span><h1>lingvo.tasks.asr.frontend module<a class="headerlink" href="#module-lingvo.tasks.asr.frontend" title="Permalink to this headline">¶</a></h1>
+<p>Layers to construct an ASR frontend.</p>
+<dl class="class">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.frontend.</code><code class="descname">AsrFrontendConfig</code><span class="sig-paren">(</span><em>is_null</em>, <em>src_type</em>, <em>src_pcm_scale</em>, <em>src_pcm_sample_rate</em>, <em>output_dim</em>, <em>input_frame_ratio</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig._asdict">
+<code class="descname">_asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._asdict" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new OrderedDict which maps field names to their values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig._fields">
+<code class="descname">_fields</code><em class="property"> = ('is_null', 'src_type', 'src_pcm_scale', 'src_pcm_sample_rate', 'output_dim', 'input_frame_ratio')</em><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._fields" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig._make">
+<em class="property">classmethod </em><code class="descname">_make</code><span class="sig-paren">(</span><em>iterable</em>, <em>new=&lt;built-in method __new__ of type object at 0x8f9920&gt;</em>, <em>len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._make" title="Permalink to this definition">¶</a></dt>
+<dd><p>Make a new AsrFrontendConfig object from a sequence or iterable</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig._replace">
+<code class="descname">_replace</code><span class="sig-paren">(</span><em>**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._replace" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a new AsrFrontendConfig object replacing specified fields with new values</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.input_frame_ratio">
+<code class="descname">input_frame_ratio</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.input_frame_ratio" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.is_null">
+<code class="descname">is_null</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.is_null" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 0</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.output_dim">
+<code class="descname">output_dim</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.output_dim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.src_pcm_sample_rate">
+<code class="descname">src_pcm_sample_rate</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.src_pcm_sample_rate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 3</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.src_pcm_scale">
+<code class="descname">src_pcm_scale</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.src_pcm_scale" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 2</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.src_type">
+<code class="descname">src_type</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.src_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 1</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.tasks.asr.frontend._NextPowerOfTwo">
+<code class="descclassname">lingvo.tasks.asr.frontend.</code><code class="descname">_NextPowerOfTwo</code><span class="sig-paren">(</span><em>i</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#_NextPowerOfTwo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend._NextPowerOfTwo" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.asr.frontend.BaseAsrFrontend">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.frontend.</code><code class="descname">BaseAsrFrontend</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Base class for ASR frontends.</p>
+<p>An ASR frontend is responsible for performing feature extraction from the
+input in the cases where features are not precomputed as part of the
+dataset. In such cases, it would be typical for the input to consist of
+waveform data in some form.</p>
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.BaseAsrFrontend.config">
+<code class="descname">config</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend.config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the AsrFrontendConfig namedtuple for this instance.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.tasks.asr.frontend.BaseAsrFrontend.GetConfigFromParams">
+<em class="property">static </em><code class="descname">GetConfigFromParams</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend.GetConfigFromParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend.GetConfigFromParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an AsrFrontendConfig namedtuple with vital config settings.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.BaseAsrFrontend.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates ASR features for a batch.</p>
+<p>Shapes of the input_batch and output are dependent on the implementation
+and should be paired with the model’s input format and encoder expectations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>input_batch</strong> – <p>A NestedMap with fields:</p>
+<ul>
+<li>’src_inputs’ - The inputs tensor,
+compatible with model input. Expected to be of shape
+[batch, time, …].</li>
+<li>’paddings’ - The paddings tensor. It is expected to be of shape
+[batch, time].</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>NestedMap of encoder inputs which can be passed directly to a
+compatible encoder and contains:</p>
+<blockquote>
+<div><ul class="simple">
+<li>’src_inputs’: inputs to the encoder, minimally of shape
+[batch, time, …].</li>
+<li>’paddings’: a 0/1 tensor of shape [batch, time].</li>
+</ul>
+</div></blockquote>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.asr.frontend.NullAsrFrontend">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.frontend.</code><code class="descname">NullAsrFrontend</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="lingvo.tasks.asr.frontend.BaseAsrFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.frontend.BaseAsrFrontend</span></code></a></p>
+<p>ASR frontend that just returns its input as FProp output.</p>
+<dl class="staticmethod">
+<dt id="lingvo.tasks.asr.frontend.NullAsrFrontend.GetConfigFromParams">
+<em class="property">static </em><code class="descname">GetConfigFromParams</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend.GetConfigFromParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend.GetConfigFromParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an AsrFrontendConfig namedtuple with vital config settings.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.NullAsrFrontend.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates ASR features for a batch.</p>
+<p>Shapes of the input_batch and output are dependent on the implementation
+and should be paired with the model’s input format and encoder expectations.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</li>
+<li><strong>input_batch</strong> – <p>A NestedMap with fields:</p>
+<ul>
+<li>’src_inputs’ - The inputs tensor,
+compatible with model input. Expected to be of shape
+[batch, time, …].</li>
+<li>’paddings’ - The paddings tensor. It is expected to be of shape
+[batch, time].</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>NestedMap of encoder inputs which can be passed directly to a
+compatible encoder and contains:</p>
+<blockquote>
+<div><ul class="simple">
+<li>’src_inputs’: inputs to the encoder, minimally of shape
+[batch, time, …].</li>
+<li>’paddings’: a 0/1 tensor of shape [batch, time].</li>
+</ul>
+</div></blockquote>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend">
+<em class="property">class </em><code class="descclassname">lingvo.tasks.asr.frontend.</code><code class="descname">MelAsrFrontend</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="lingvo.tasks.asr.frontend.BaseAsrFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.frontend.BaseAsrFrontend</span></code></a></p>
+<p>An AsrFrontend that implements mel feature extraction from PCM frames.</p>
+<p>This is expressed in pure TensorFlow and without reference to external
+resources.</p>
+<dl class="docutils">
+<dt>The frontend implements the following stages:</dt>
+<dd><code class="xref py py-obj docutils literal notranslate"><span class="pre">Framer</span> <span class="pre">-&gt;</span> <span class="pre">Window</span> <span class="pre">-&gt;</span> <span class="pre">FFT</span> <span class="pre">-&gt;</span> <span class="pre">FilterBank</span> <span class="pre">-&gt;</span> <span class="pre">MeanStdDev</span></code></dd>
+<dt>Also, if stack_left_context &gt; 0, this will further apply:</dt>
+<dd><code class="xref py py-obj docutils literal notranslate"><span class="pre">FrameStack</span> <span class="pre">-&gt;</span> <span class="pre">SubSample(stack_left_context</span> <span class="pre">+</span> <span class="pre">1)</span></code></dd>
+<dt>The FProp input to this layer can either have rank 3 or rank 4 shape:</dt>
+<dd>[batch_size, timestep, packet_size, channel_count]
+[batch_size, timestep * packet_size, channel_count]</dd>
+</dl>
+<p>For compatibility with existing code, 2D [batch_size, timestep] mono shapes
+are also supported.</p>
+<p>In the common case, the packet_size is 1. The 4D variant is accepted for
+glueless interface to input generators that frame their input samples in
+some way. The external framing choice does not influence the operation of
+this instance, but it is accepted.</p>
+<p>TODO(laurenzo): Refactor call sites to uniformly use the 4D variant and
+eliminate fallback logic in this class.</p>
+<p>Only 1 channel is currently supported.
+TODO(laurenzo): Refactor this class to operate on multi-channel inputs.</p>
+<dl class="classmethod">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.GetConfigFromParams">
+<em class="property">static </em><code class="descname">GetConfigFromParams</code><span class="sig-paren">(</span><em>params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend.GetConfigFromParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.GetConfigFromParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an AsrFrontendConfig namedtuple with vital config settings.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._CreateWindowFunction">
+<code class="descname">_CreateWindowFunction</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._CreateWindowFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._CreateWindowFunction" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.window_frame_size">
+<code class="descname">window_frame_size</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.window_frame_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.window_frame_step">
+<code class="descname">window_frame_step</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.window_frame_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._RemoveChannelDim">
+<code class="descname">_RemoveChannelDim</code><span class="sig-paren">(</span><em>pcm_audio_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._RemoveChannelDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._RemoveChannelDim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._ReshapeToMono2D">
+<code class="descname">_ReshapeToMono2D</code><span class="sig-paren">(</span><em>pcm_audio_data</em>, <em>paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._ReshapeToMono2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._ReshapeToMono2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reshapes a 3D or 4D input to 2D.</p>
+<p>Since the input to FProp can be 3D or 4D (see class comments), this will
+collapse it back to a 2D, mono shape for internal processing.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>pcm_audio_data</strong> – 2D, 3D or 4D audio input. See class comments. Must have a
+rank.</li>
+<li><strong>paddings</strong> – Original paddings shaped to the first two dims of
+pcm_audio_data.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Tuple of 2D [batch_size, timestep] mono audio data, new paddings.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.FProp">
+<code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform signal processing on a sequence of PCM data.</p>
+<p>NOTE: This implementation does not currently support paddings, and they
+are accepted for compatibility with the super-class.</p>
+<p>TODO(laurenzo): Rework this to support paddings.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>theta</strong> – Layer theta.</li>
+<li><strong>input_batch</strong> – <p>PCM input map:</p>
+<ul>
+<li>’src_inputs’: int16 or float32 tensor of PCM audio data, scaled to
++/-32768 (versus [-1..1)!). See class comments for supported input
+shapes.</li>
+<li>’paddings’: per frame 0/1 paddings. Shaped: [batch, frame].</li>
+</ul>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><p>NestedMap of encoder inputs which can be passed directly to a
+compatible encoder and contains:</p>
+<blockquote>
+<div><ul class="simple">
+<li>’src_inputs’: inputs to the encoder, minimally of shape
+[batch, time, …].</li>
+<li>’paddings’: a 0/1 tensor of shape [batch, time].</li>
+</ul>
+</div></blockquote>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._PadAndReshapeSpec">
+<code class="descname">_PadAndReshapeSpec</code><span class="sig-paren">(</span><em>mel_spectrogram</em>, <em>mel_spectrogram_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._PadAndReshapeSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._PadAndReshapeSpec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._ApplyPreemphasis">
+<code class="descname">_ApplyPreemphasis</code><span class="sig-paren">(</span><em>framed_signal</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._ApplyPreemphasis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._ApplyPreemphasis" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._GetMelPadding">
+<code class="descname">_GetMelPadding</code><span class="sig-paren">(</span><em>pcm_audio_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._GetMelPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._GetMelPadding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk">
+<code class="descname">_FPropChunk</code><span class="sig-paren">(</span><em>theta</em>, <em>pcm_audio_chunk</em>, <em>pcm_audio_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._FPropChunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._MelSpectrogram">
+<code class="descname">_MelSpectrogram</code><span class="sig-paren">(</span><em>signal</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._MelSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._MelSpectrogram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the mel spectrogram from a waveform signal.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>signal</strong> – f32 Tensor, shaped [batch_size, num_samples]</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">f32 Tensor, shaped [batch_size, num_frames, mel_channels]</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">features</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.tasks.asr.fusion.html" class="btn btn-neutral float-right" title="lingvo.tasks.asr.fusion module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.tasks.asr.encoder.html" class="btn btn-neutral float-left" title="lingvo.tasks.asr.encoder module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -1,0 +1,649 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.asr.frontend &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.asr.frontend</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.asr.frontend</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Layers to construct an ASR frontend.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">collections</span>
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+
+
+<span class="c1"># AsrFrontendConfig which defines characteristics of the frontend that may</span>
+<span class="c1"># be relevant to interfacing code which needs to reason about inputs and</span>
+<span class="c1"># outputs.</span>
+<span class="c1"># Fields:</span>
+<span class="c1">#   is_null: Whether this is the NullAsrFrontend.</span>
+<span class="c1">#   src_type: Interpretation of the src_inputs. Can be one of &#39;none&#39; or &#39;pcm&#39;.</span>
+<span class="c1">#   src_pcm_scale: If src_type is &#39;pcm&#39;, then this is the scale of each sample.</span>
+<span class="c1">#     If normalized, this should be 1.0. If unnormalized from int16, then it</span>
+<span class="c1">#     should be 32768.0.</span>
+<span class="c1">#   src_pcm_sample_rate: Sample rate of the expected src PCM frames.</span>
+<span class="c1">#   output_dim: Dimension of the output. Typically the number of mel bands</span>
+<span class="c1">#     or equiv. May be -1 for unknown.</span>
+<span class="c1">#   input_frame_ratio: Approximate ratio of the number of</span>
+<span class="c1">#     input_frames / output_frames. Intended to be multiplied by output frames</span>
+<span class="c1">#     (i.e. as part of bucket_bounds to arrive at input frames to the frontend).</span>
+<span class="n">AsrFrontendConfig</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;AsrFrontendConfig&#39;</span><span class="p">,</span> <span class="p">[</span>
+    <span class="s1">&#39;is_null&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;src_type&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;src_pcm_scale&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;src_pcm_sample_rate&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;output_dim&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;input_frame_ratio&#39;</span><span class="p">,</span>
+<span class="p">])</span>
+
+
+<div class="viewcode-block" id="_NextPowerOfTwo"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend._NextPowerOfTwo">[docs]</a><span class="k">def</span> <span class="nf">_NextPowerOfTwo</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="mi">2</span><span class="p">)))</span></div>
+
+
+<div class="viewcode-block" id="BaseAsrFrontend"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.BaseAsrFrontend">[docs]</a><span class="k">class</span> <span class="nc">BaseAsrFrontend</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for ASR frontends.</span>
+
+<span class="sd">  An ASR frontend is responsible for performing feature extraction from the</span>
+<span class="sd">  input in the cases where features are not precomputed as part of the</span>
+<span class="sd">  dataset. In such cases, it would be typical for the input to consist of</span>
+<span class="sd">  waveform data in some form.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the AsrFrontendConfig namedtuple for this instance.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetConfigFromParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseAsrFrontend.GetConfigFromParams"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.BaseAsrFrontend.GetConfigFromParams">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">GetConfigFromParams</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns an AsrFrontendConfig namedtuple with vital config settings.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseAsrFrontend.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.BaseAsrFrontend.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates ASR features for a batch.</span>
+
+<span class="sd">    Shapes of the input_batch and output are dependent on the implementation</span>
+<span class="sd">    and should be paired with the model&#39;s input format and encoder expectations.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      input_batch: A NestedMap with fields:</span>
+
+<span class="sd">        - &#39;src_inputs&#39; - The inputs tensor,</span>
+<span class="sd">          compatible with model input. Expected to be of shape</span>
+<span class="sd">          [batch, time, ...].</span>
+<span class="sd">        - &#39;paddings&#39; - The paddings tensor. It is expected to be of shape</span>
+<span class="sd">          [batch, time].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      NestedMap of encoder inputs which can be passed directly to a</span>
+<span class="sd">      compatible encoder and contains:</span>
+
+<span class="sd">        - &#39;src_inputs&#39;: inputs to the encoder, minimally of shape</span>
+<span class="sd">          [batch, time, ...].</span>
+<span class="sd">        - &#39;paddings&#39;: a 0/1 tensor of shape [batch, time].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="NullAsrFrontend"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.NullAsrFrontend">[docs]</a><span class="k">class</span> <span class="nc">NullAsrFrontend</span><span class="p">(</span><span class="n">BaseAsrFrontend</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;ASR frontend that just returns its input as FProp output.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="NullAsrFrontend.GetConfigFromParams"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.NullAsrFrontend.GetConfigFromParams">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">GetConfigFromParams</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns an AsrFrontendConfig namedtuple with vital config settings.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">AsrFrontendConfig</span><span class="p">(</span>
+        <span class="n">is_null</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">src_type</span><span class="o">=</span><span class="s1">&#39;none&#39;</span><span class="p">,</span>
+        <span class="n">src_pcm_sample_rate</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">src_pcm_scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">input_frame_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="NullAsrFrontend.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.NullAsrFrontend.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="MelAsrFrontend"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend">[docs]</a><span class="k">class</span> <span class="nc">MelAsrFrontend</span><span class="p">(</span><span class="n">BaseAsrFrontend</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;An AsrFrontend that implements mel feature extraction from PCM frames.</span>
+
+<span class="sd">  This is expressed in pure TensorFlow and without reference to external</span>
+<span class="sd">  resources.</span>
+
+<span class="sd">  The frontend implements the following stages:</span>
+<span class="sd">      `Framer -&gt; Window -&gt; FFT -&gt; FilterBank -&gt; MeanStdDev`</span>
+
+<span class="sd">  Also, if stack_left_context &gt; 0, this will further apply:</span>
+<span class="sd">      `FrameStack -&gt; SubSample(stack_left_context + 1)`</span>
+
+<span class="sd">  The FProp input to this layer can either have rank 3 or rank 4 shape:</span>
+<span class="sd">      [batch_size, timestep, packet_size, channel_count]</span>
+<span class="sd">      [batch_size, timestep * packet_size, channel_count]</span>
+
+<span class="sd">  For compatibility with existing code, 2D [batch_size, timestep] mono shapes</span>
+<span class="sd">  are also supported.</span>
+
+<span class="sd">  In the common case, the packet_size is 1. The 4D variant is accepted for</span>
+<span class="sd">  glueless interface to input generators that frame their input samples in</span>
+<span class="sd">  some way. The external framing choice does not influence the operation of</span>
+<span class="sd">  this instance, but it is accepted.</span>
+
+<span class="sd">  TODO(laurenzo): Refactor call sites to uniformly use the 4D variant and</span>
+<span class="sd">  eliminate fallback logic in this class.</span>
+
+<span class="sd">  Only 1 channel is currently supported.</span>
+<span class="sd">  TODO(laurenzo): Refactor this class to operate on multi-channel inputs.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MelAsrFrontend.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MelAsrFrontend</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;frontend&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sample_rate&#39;</span><span class="p">,</span> <span class="mf">16000.0</span><span class="p">,</span> <span class="s1">&#39;Sample rate in Hz&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;channel_count&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of channels.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;frame_size_ms&#39;</span><span class="p">,</span> <span class="mf">25.0</span><span class="p">,</span>
+             <span class="s1">&#39;Amount of data grabbed for each frame during analysis&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;frame_step_ms&#39;</span><span class="p">,</span> <span class="mf">10.0</span><span class="p">,</span> <span class="s1">&#39;Number of ms to jump between frames&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_bins&#39;</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="s1">&#39;Number of bins in the mel-spectrogram output&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lower_edge_hertz&#39;</span><span class="p">,</span> <span class="mf">125.0</span><span class="p">,</span>
+             <span class="s1">&#39;The lowest frequency of the mel-spectrogram analsis&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;upper_edge_hertz&#39;</span><span class="p">,</span> <span class="mf">7600.0</span><span class="p">,</span>
+             <span class="s1">&#39;The highest frequency of the mel-spectrogram analsis&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;preemph&#39;</span><span class="p">,</span> <span class="mf">0.97</span><span class="p">,</span>
+             <span class="s1">&#39;The first-order filter coefficient used for preemphasis&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;noise_scale&#39;</span><span class="p">,</span> <span class="mf">8.0</span><span class="p">,</span>
+             <span class="s1">&#39;The amount of noise (in 16-bit LSB units) to add&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;window_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;HANNING&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;Window function to apply (valid values are &quot;HANNING&quot;, &#39;</span>
+        <span class="s1">&#39;and None)&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pad_end&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to pad the end of `signals` with zeros when the provided &#39;</span>
+        <span class="s1">&#39;frame length and step produces a frame that lies partially past &#39;</span>
+        <span class="s1">&#39;its end.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;per_bin_mean&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Per-bin (num_bins) means for normalizing the spectrograms. &#39;</span>
+        <span class="s1">&#39;Defaults to zeros.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;per_bin_stddev&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Per-bin (num_bins) standard deviations. &#39;</span>
+             <span class="s1">&#39;Defaults to ones.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stack_left_context&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of left context frames to stack.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="MelAsrFrontend.GetConfigFromParams"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend.GetConfigFromParams">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">GetConfigFromParams</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns an AsrFrontendConfig namedtuple with vital config settings.&quot;&quot;&quot;</span>
+    <span class="n">subsample_factor</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">num_bins</span> <span class="o">*</span> <span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">stack_left_context</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">frame_step</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">params</span><span class="o">.</span><span class="n">frame_step_ms</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">AsrFrontendConfig</span><span class="p">(</span>
+        <span class="n">is_null</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">src_type</span><span class="o">=</span><span class="s1">&#39;pcm&#39;</span><span class="p">,</span>
+        <span class="n">src_pcm_scale</span><span class="o">=</span><span class="mf">32768.0</span><span class="p">,</span>
+        <span class="n">src_pcm_sample_rate</span><span class="o">=</span><span class="mf">16000.0</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="n">subsample_factor</span><span class="p">,</span>
+        <span class="n">input_frame_ratio</span><span class="o">=</span><span class="n">frame_step</span> <span class="o">*</span> <span class="n">subsample_factor</span><span class="p">)</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">MelAsrFrontend</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">channel_count</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Only 1 channel currently supported.&#39;</span>
+    <span class="c1"># Make sure key params are in floating point.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">frame_step_ms</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">frame_step_ms</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">frame_size_ms</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">frame_size_ms</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">lower_edge_hertz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">lower_edge_hertz</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">upper_edge_hertz</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">upper_edge_hertz</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_frame_step</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">frame_step_ms</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span> <span class="o">=</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">frame_size_ms</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+                       <span class="p">)</span>  <span class="c1"># +1 for the preemph</span>
+    <span class="c1"># Overdrive means double FFT size.</span>
+    <span class="c1"># Note: 2* because of overdrive</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fft_size</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">512</span><span class="p">,</span> <span class="n">_NextPowerOfTwo</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span><span class="p">)))</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateWindowFunction</span><span class="p">()</span>
+
+    <span class="c1"># Mean/stddev.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_bin_mean</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">per_bin_mean</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_bins</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_bin_stddev</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">per_bin_stddev</span> <span class="o">=</span> <span class="p">[</span><span class="mf">1.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_bins</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">per_bin_mean</span><span class="p">)</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_bins</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">per_bin_stddev</span><span class="p">)</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_bins</span>
+
+<div class="viewcode-block" id="MelAsrFrontend._CreateWindowFunction"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._CreateWindowFunction">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateWindowFunction</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">window_fn</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_window_fn</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">window_fn</span> <span class="o">==</span> <span class="s1">&#39;HANNING&#39;</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">_HanningWindow</span><span class="p">(</span><span class="n">frame_size</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">hann_window</span><span class="p">(</span><span class="n">frame_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">_window_fn</span> <span class="o">=</span> <span class="n">_HanningWindow</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Illegal value </span><span class="si">%r</span><span class="s1"> for window_fn param&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">window_fn</span><span class="p">,))</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">window_frame_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">window_frame_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_step</span>
+
+<div class="viewcode-block" id="MelAsrFrontend._RemoveChannelDim"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._RemoveChannelDim">[docs]</a>  <span class="k">def</span> <span class="nf">_RemoveChannelDim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pcm_audio_data</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">pcm_audio_data</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="n">pcm_audio_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">pcm_audio_data</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">pcm_audio_data</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;MelAsrFrontend only supports one channel&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pcm_audio_data</span></div>
+
+<div class="viewcode-block" id="MelAsrFrontend._ReshapeToMono2D"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._ReshapeToMono2D">[docs]</a>  <span class="k">def</span> <span class="nf">_ReshapeToMono2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pcm_audio_data</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Reshapes a 3D or 4D input to 2D.</span>
+
+<span class="sd">    Since the input to FProp can be 3D or 4D (see class comments), this will</span>
+<span class="sd">    collapse it back to a 2D, mono shape for internal processing.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      pcm_audio_data: 2D, 3D or 4D audio input. See class comments. Must have a</span>
+<span class="sd">        rank.</span>
+<span class="sd">      paddings: Original paddings shaped to the first two dims of</span>
+<span class="sd">        pcm_audio_data.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Tuple of 2D [batch_size, timestep] mono audio data, new paddings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">pcm_audio_data</span><span class="p">)</span>
+    <span class="n">rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">pcm_audio_data</span><span class="p">,</span> <span class="n">paddings</span>
+    <span class="k">elif</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="c1"># [batch, time, channel]</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="mi">1</span><span class="p">)]):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">pcm_audio_data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="n">paddings</span>
+    <span class="k">elif</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+      <span class="c1"># [batch, time, packet, channel]</span>
+      <span class="n">batch_size</span><span class="p">,</span> <span class="n">orig_time</span><span class="p">,</span> <span class="n">orig_packet_size</span><span class="p">,</span> <span class="n">channel</span> <span class="o">=</span> <span class="n">shape</span>
+      <span class="n">time</span> <span class="o">=</span> <span class="n">orig_time</span> <span class="o">*</span> <span class="n">orig_packet_size</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">channel</span><span class="p">,</span> <span class="mi">1</span><span class="p">)]):</span>
+        <span class="n">pcm_audio_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">pcm_audio_data</span><span class="p">,</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">time</span><span class="p">))</span>
+        <span class="c1"># Transform paddings into the new time base with a padding per time</span>
+        <span class="c1"># step vs per packet by duplicating each packet.</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">orig_packet_size</span><span class="p">]),</span>
+            <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">time</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">pcm_audio_data</span><span class="p">,</span> <span class="n">paddings</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Illegal pcm_audio_data shape&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MelAsrFrontend.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Perform signal processing on a sequence of PCM data.</span>
+
+<span class="sd">    NOTE: This implementation does not currently support paddings, and they</span>
+<span class="sd">    are accepted for compatibility with the super-class.</span>
+
+<span class="sd">    TODO(laurenzo): Rework this to support paddings.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Layer theta.</span>
+<span class="sd">      input_batch: PCM input map:</span>
+
+<span class="sd">        - &#39;src_inputs&#39;: int16 or float32 tensor of PCM audio data, scaled to</span>
+<span class="sd">          +/-32768 (versus [-1..1)!). See class comments for supported input</span>
+<span class="sd">          shapes.</span>
+<span class="sd">        - &#39;paddings&#39;: per frame 0/1 paddings. Shaped: [batch, frame].</span>
+<span class="sd">    Returns:</span>
+<span class="sd">      NestedMap of encoder inputs which can be passed directly to a</span>
+<span class="sd">      compatible encoder and contains:</span>
+
+<span class="sd">        - &#39;src_inputs&#39;: inputs to the encoder, minimally of shape</span>
+<span class="sd">          [batch, time, ...].</span>
+<span class="sd">        - &#39;paddings&#39;: a 0/1 tensor of shape [batch, time].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">pcm_audio_data</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeToMono2D</span><span class="p">(</span>
+        <span class="n">input_batch</span><span class="o">.</span><span class="n">src_inputs</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
+
+    <span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropChunk</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">pcm_audio_data</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span><span class="p">)</span>
+
+    <span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PadAndReshapeSpec</span><span class="p">(</span>
+        <span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">mel_spectrogram_paddings</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">src_inputs</span><span class="o">=</span><span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="n">mel_spectrogram_paddings</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MelAsrFrontend._PadAndReshapeSpec"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._PadAndReshapeSpec">[docs]</a>  <span class="k">def</span> <span class="nf">_PadAndReshapeSpec</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">mel_spectrogram_paddings</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">mel_spectrogram</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="c1"># Stack and sub-sample. Only subsampling with a stride of the stack size</span>
+    <span class="c1"># is supported.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_left_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="c1"># Since left context is leading, pad the left by duplicating the first</span>
+      <span class="c1"># frame.</span>
+      <span class="n">stack_size</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_left_context</span>
+      <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">mel_spectrogram</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_left_context</span> <span class="o">+</span>
+          <span class="p">[</span><span class="n">mel_spectrogram</span><span class="p">],</span>
+          <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">mel_spectrogram_paddings</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]]</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">stack_left_context</span> <span class="o">+</span>
+          <span class="p">[</span><span class="n">mel_spectrogram_paddings</span><span class="p">],</span>
+          <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+      <span class="c1"># Note that this is the maximum number of frames. Actual frame count</span>
+      <span class="c1"># depends on padding.</span>
+      <span class="n">stacked_frame_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">mel_spectrogram</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">stack_size</span>
+      <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">mel_spectrogram</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:(</span><span class="n">stack_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">stacked_frame_dim</span><span class="p">,</span> <span class="p">:],</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">stacked_frame_dim</span><span class="p">,</span> <span class="n">stack_size</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_bins</span><span class="p">])</span>
+      <span class="c1"># After stacking paddings, pad if any source frame was padded.</span>
+      <span class="c1"># Stacks into [batch_size, stacked_frame_dim, stack_size] like the</span>
+      <span class="c1"># spectrogram stacking above, and then reduces the stack_size dim</span>
+      <span class="c1"># to the max (effectively, making padding = 1.0 if any of the pre-stacked</span>
+      <span class="c1"># frames were 1.0). Final shape is [batch_size, stacked_frame_dim].</span>
+      <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">mel_spectrogram_paddings</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:(</span><span class="n">stack_size</span><span class="p">)</span> <span class="o">*</span> <span class="n">stacked_frame_dim</span><span class="p">],</span>
+          <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">stacked_frame_dim</span><span class="p">,</span> <span class="n">stack_size</span><span class="p">])</span>
+      <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">mel_spectrogram_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># Add feature dim. Shape = [batch, time, features, 1]</span>
+    <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">mel_spectrogram</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mel_spectrogram</span><span class="p">,</span> <span class="n">mel_spectrogram_paddings</span></div>
+
+<div class="viewcode-block" id="MelAsrFrontend._ApplyPreemphasis"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._ApplyPreemphasis">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyPreemphasis</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">framed_signal</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">preemphasized</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">framed_signal</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">preemph</span> <span class="o">*</span> <span class="n">framed_signal</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">preemphasized</span></div>
+
+<div class="viewcode-block" id="MelAsrFrontend._GetMelPadding"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._GetMelPadding">[docs]</a>  <span class="k">def</span> <span class="nf">_GetMelPadding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># shape: [batch, time, _frame_size]</span>
+    <span class="n">framed_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">frame</span><span class="p">(</span><span class="n">pcm_audio_paddings</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span><span class="p">,</span>
+                                      <span class="bp">self</span><span class="o">.</span><span class="n">_frame_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_end</span><span class="p">)</span>
+    <span class="c1"># Pad spectrograms that have any padded frames.</span>
+    <span class="n">mel_spectrogram_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">framed_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">mel_spectrogram_paddings</span></div>
+
+<div class="viewcode-block" id="MelAsrFrontend._FPropChunk"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropChunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">pcm_audio_chunk</span><span class="p">,</span> <span class="n">pcm_audio_paddings</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">pcm_audio_chunk</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">pcm_audio_chunk</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="c1"># shape: [batch, time, _frame_size]</span>
+    <span class="n">framed_signal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">frame</span><span class="p">(</span><span class="n">pcm_audio_chunk</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span><span class="p">,</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">_frame_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_end</span><span class="p">)</span>
+
+    <span class="c1"># Pre-emphasis.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">preemph</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">:</span>
+      <span class="n">preemphasized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyPreemphasis</span><span class="p">(</span><span class="n">framed_signal</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">preemphasized</span> <span class="o">=</span> <span class="n">framed_signal</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># Noise.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">noise_scale</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">noise_signal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">preemphasized</span><span class="p">),</span>
+          <span class="n">stddev</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">noise_scale</span><span class="p">,</span>
+          <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+          <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">noise_signal</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Apply window fn.</span>
+    <span class="n">windowed_signal</span> <span class="o">=</span> <span class="n">preemphasized</span> <span class="o">+</span> <span class="n">noise_signal</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_window_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">window</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_window_fn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_frame_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">framed_signal</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">windowed_signal</span> <span class="o">*=</span> <span class="n">window</span>
+
+    <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MelSpectrogram</span><span class="p">(</span><span class="n">windowed_signal</span><span class="p">)</span>
+
+    <span class="n">output_floor</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="n">mel_spectrogram_log</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">output_floor</span><span class="p">),</span> <span class="n">mel_spectrogram</span><span class="p">))</span>
+
+    <span class="c1"># Mean and stddev.</span>
+    <span class="n">mel_spectrogram_norm</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">mel_spectrogram_log</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">per_bin_mean</span><span class="p">))</span> <span class="o">/</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">per_bin_stddev</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">mel_spectrogram_norm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetMelPadding</span><span class="p">(</span><span class="n">pcm_audio_paddings</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MelAsrFrontend._MelSpectrogram"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.frontend.html#lingvo.tasks.asr.frontend.MelAsrFrontend._MelSpectrogram">[docs]</a>  <span class="k">def</span> <span class="nf">_MelSpectrogram</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the mel spectrogram from a waveform signal.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      signal: f32 Tensor, shaped [batch_size, num_samples]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      features: f32 Tensor, shaped [batch_size, num_frames, mel_channels]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># FFT.</span>
+    <span class="n">real_frequency_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">rfft</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_fft_size</span><span class="p">])</span>
+    <span class="n">magnitude_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">real_frequency_spectrogram</span><span class="p">)</span>
+
+    <span class="c1"># Shape of magnitude_spectrogram is num_frames x (fft_size/2+1)</span>
+    <span class="c1"># Mel_weight is [num_spectrogram_bins, num_mel_bins]</span>
+    <span class="n">mel_weight_matrix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">linear_to_mel_weight_matrix</span><span class="p">(</span>
+        <span class="n">num_mel_bins</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_bins</span><span class="p">,</span>
+        <span class="n">num_spectrogram_bins</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_fft_size</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">sample_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">,</span>
+        <span class="n">lower_edge_hertz</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lower_edge_hertz</span><span class="p">,</span>
+        <span class="n">upper_edge_hertz</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">upper_edge_hertz</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="c1"># Weight matrix implemented in the magnitude domain.</span>
+    <span class="n">batch_size</span><span class="p">,</span> <span class="n">num_frames</span><span class="p">,</span> <span class="n">fft_channels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span>
+        <span class="n">magnitude_spectrogram</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">magnitude_spectrogram</span><span class="p">,</span>
+                   <span class="p">[</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_frames</span><span class="p">,</span> <span class="n">fft_channels</span><span class="p">]),</span> <span class="n">mel_weight_matrix</span><span class="p">)</span>
+    <span class="n">mel_spectrogram</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mel_spectrogram</span><span class="p">,</span>
+                                 <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_frames</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_bins</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">mel_spectrogram</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

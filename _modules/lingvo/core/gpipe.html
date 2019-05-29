@@ -1,0 +1,661 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.gpipe &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.gpipe</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.gpipe</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;A recurrent model which enables pipelining model parallelism.</span>
+
+<span class="sd">Reference:</span>
+<span class="sd">&#39;GPipe: Efficient Training of Giant Neural Networks using Pipeline Parallelism&#39;</span>
+<span class="sd">https://arxiv.org/abs/1811.06965</span>
+
+<span class="sd">Example implementation of Transformer Language model:</span>
+<span class="sd">tasks/lm/layers.GPipeTransformerLm</span>
+
+<span class="sd">Sample params for the one billion words task:</span>
+<span class="sd">tasks/lm/params/one_billion_wds.OneBWdsGPipeTransformer.</span>
+
+<span class="sd">More examples in machine translation, image classifications and others</span>
+<span class="sd">will be included.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+
+<span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">recurrent</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
+
+<span class="n">_MICRO_BATCH_STATE_NAME</span> <span class="o">=</span> <span class="s1">&#39;micro_batch_state&#39;</span>
+<span class="n">_OVERWRITE_GLOBAL_STEP_COLLECTION</span> <span class="o">=</span> <span class="s1">&#39;lingvo__OVERWRITE_GLOBAL_STEP_COLLECTION&#39;</span>
+
+
+<div class="viewcode-block" id="GetOverWriteGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.GetOverWriteGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">GetOverWriteGlobalStep</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+  <span class="n">mb_tensors</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="n">_OVERWRITE_GLOBAL_STEP_COLLECTION</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mb_tensors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">mb_tensor</span> <span class="o">=</span> <span class="n">mb_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">mb_tensor</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">mb_tensor</span></div>
+
+
+<div class="viewcode-block" id="SetOverWriteGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.SetOverWriteGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">SetOverWriteGlobalStep</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span> <span class="ow">or</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+  <span class="n">mb_tensors</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="n">_OVERWRITE_GLOBAL_STEP_COLLECTION</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">mb_tensors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">mb_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">tensor</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">graph</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">_OVERWRITE_GLOBAL_STEP_COLLECTION</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GenerateStepSeedPair"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.GenerateStepSeedPair">[docs]</a><span class="k">def</span> <span class="nf">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">unused_global_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">op_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Override py_utils.GenerateStepSeedPair to use GetOverWriteGlobalStep.&quot;&quot;&quot;</span>
+  <span class="n">seed_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span> <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span>
+  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># Unlike tf.random*, stateless random ops are completely determined by the</span>
+    <span class="c1"># passed-in seeds. This means at inference time the same inputs will produce</span>
+    <span class="c1"># the same outputs, even if the model is supposed to have randomness such as</span>
+    <span class="c1"># dropout during inference. We inject additional randomness only during</span>
+    <span class="c1"># inference if the graph is exported with random_seed=None as a workaround.</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="n">maxval</span><span class="o">=</span><span class="n">seed_dtype</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">seed_dtype</span><span class="p">)</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;op_seed&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+    <span class="n">global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">GetOverWriteGlobalStep</span><span class="p">(),</span> <span class="n">seed_dtype</span><span class="p">)</span>
+    <span class="n">step_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateSeedFromName</span><span class="p">(</span><span class="n">scope</span><span class="p">),</span> <span class="n">seed_dtype</span><span class="p">)</span>
+    <span class="n">seeds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">global_step</span><span class="p">,</span> <span class="n">step_seed</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">seeds</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span>
+    <span class="k">if</span> <span class="n">op_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">seeds</span> <span class="o">+=</span> <span class="n">op_seed</span>
+    <span class="k">return</span> <span class="n">seeds</span></div>
+
+
+<div class="viewcode-block" id="CellFnFropOpReplacementWrapper"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.CellFnFropOpReplacementWrapper">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">CellFnFropOpReplacementWrapper</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Hacks to replace certain unwanted tensorflow ops.&quot;&quot;&quot;</span>
+  <span class="c1"># TODO(zhifengc/huangyp): Consider implementing assert_equal</span>
+  <span class="c1"># op replacement for lingvo. As assert_equal doesn&#39;t support String on GPUs.</span>
+  <span class="c1"># Hack to replace tf.assert_equal</span>
+  <span class="n">saved_assert_equal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span>
+  <span class="c1"># Hack to replace GenerateStepSeedPair since global_step is not available</span>
+  <span class="c1"># in temp graph created by optional.while.</span>
+  <span class="n">saved_get_op_seed</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span>
+
+  <span class="c1"># pylint: disable=unused-argument</span>
+  <span class="k">def</span> <span class="nf">NoOP</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+
+  <span class="c1"># pylint: enable=unused-argument</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span> <span class="o">=</span> <span class="n">NoOP</span>  <span class="c1"># Make assert_equal a no op.</span>
+  <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span> <span class="o">=</span> <span class="n">GenerateStepSeedPair</span>
+
+  <span class="k">yield</span>
+
+  <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span> <span class="o">=</span> <span class="n">saved_assert_equal</span>
+  <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span> <span class="o">=</span> <span class="n">saved_get_op_seed</span></div>
+
+
+<div class="viewcode-block" id="_ToTuple"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe._ToTuple">[docs]</a><span class="k">def</span> <span class="nf">_ToTuple</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">x</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="k">else</span> <span class="p">(</span><span class="n">x</span><span class="p">,)</span></div>
+
+
+<div class="viewcode-block" id="FeatureExtractionLayer"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.FeatureExtractionLayer">[docs]</a><span class="k">class</span> <span class="nc">FeatureExtractionLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer that extrac features from a sequence of layers.</span>
+
+<span class="sd">  FeatureExtractionLayer is a layer which connects a few layers in a sequence.</span>
+<span class="sd">  It is also capable of fetching and forwarding activation endpoints.</span>
+<span class="sd">  # TODO(huangyp): Allow keyworded argument dict in FProp.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    fetch_activation_layers: names of fetch layers that extra activations.</span>
+<span class="sd">    num_activation_inputs: # of activations forwarded from previous layers.</span>
+<span class="sd">    num_activation_outputs: # of activations forwarded to next layers.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="FeatureExtractionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.FeatureExtractionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FeatureExtractionLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;variable_name_prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Prefix for variable names in sub layers&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of layers</span><span class="se">\&#39;</span><span class="s1"> params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_act_inputs&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of activation inputs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_act_outputs&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of activation outputs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;act_fetch_layers&#39;</span><span class="p">,</span> <span class="p">[],</span>
+             <span class="s1">&#39;Names of fetch layers that cached extra activations&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">FeatureExtractionLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_outputs</span> <span class="o">&gt;=</span> <span class="mi">0</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">act_fetch_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">act_fetch_layers</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_outputs</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">act_fetch_layers</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span>
+      <span class="n">sub</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">variable_name_prefix</span> <span class="o">+</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="FeatureExtractionLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.FeatureExtractionLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span>
+    <span class="n">out_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span><span class="p">]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">args</span>
+    <span class="n">extra_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span><span class="p">:]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">()</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">ch</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seq</span><span class="p">:</span>
+      <span class="n">th</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+      <span class="n">out_args</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">out_args</span><span class="p">)</span>
+      <span class="n">out_args</span> <span class="o">=</span> <span class="n">ch</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">th</span><span class="p">,</span> <span class="o">*</span><span class="n">out_args</span><span class="p">)</span>
+    <span class="c1"># Append fetched activations to fprop outputs.</span>
+    <span class="k">for</span> <span class="n">fetch_layer</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">act_fetch_layers</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">fetch_layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
+      <span class="n">activation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">fetch_layer</span><span class="p">]</span><span class="o">.</span><span class="n">activation</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">activation</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+        <span class="n">activation</span> <span class="o">=</span> <span class="n">activation</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">extra_args</span> <span class="o">+=</span> <span class="p">(</span><span class="n">activation</span><span class="p">,)</span>
+    <span class="k">if</span> <span class="n">extra_args</span><span class="p">:</span>
+      <span class="n">out_args</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">out_args</span><span class="p">)</span> <span class="o">+</span> <span class="n">extra_args</span>
+    <span class="k">return</span> <span class="n">out_args</span></div>
+
+<div class="viewcode-block" id="FeatureExtractionLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.FeatureExtractionLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span>
+    <span class="n">seq_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[:</span><span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span><span class="p">]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">args</span>
+    <span class="n">extra_args</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span><span class="p">:]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_act_inputs</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="p">()</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">act_fetch_metas</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">sub</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub</span><span class="p">:</span>
+      <span class="n">meta</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="o">*</span><span class="n">seq_args</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">sub</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">act_fetch_layers</span><span class="p">:</span>
+        <span class="n">act_fetch_metas</span><span class="p">[</span><span class="n">sub</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">total</span> <span class="o">+=</span> <span class="n">meta</span><span class="o">.</span><span class="n">flops</span>
+      <span class="n">seq_args</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">out_shapes</span>
+    <span class="k">for</span> <span class="n">fetch_layer</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">act_fetch_layers</span><span class="p">:</span>
+      <span class="n">extra_args</span> <span class="o">+=</span> <span class="p">(</span><span class="n">act_fetch_metas</span><span class="p">[</span><span class="n">fetch_layer</span><span class="p">],)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">total</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">seq_args</span> <span class="o">+</span> <span class="n">extra_args</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="SeqLayer"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.SeqLayer">[docs]</a><span class="k">class</span> <span class="nc">SeqLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Round-robin every children cells in cell_tpl among worker devices.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SeqLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.SeqLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SeqLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;before_tpl&#39;</span><span class="p">,</span> <span class="p">[],</span>
+             <span class="s1">&#39;Config for the CNN layers that runs before pipelining.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cell_tpl&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of FeatureExtractionLayer layers.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SeqLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">num_cells</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">before_tpl_device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+    <span class="n">cell_devices</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_cells</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+      <span class="n">before_tpl_device</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">cell_devices</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_cells</span><span class="p">)</span>
+      <span class="p">]</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">before_tpl</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">before_tpl_device</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cell_devices</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+        <span class="k">assert</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="SeqLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.SeqLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Round-robin every children cells in cell_tpl among worker devices.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      *args: Input args</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A list contains one tensor of [batch_size, feature_height, feature_width,</span>
+<span class="sd">        channel].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">)</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span><span class="p">:</span>
+      <span class="n">l_theta</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">l_theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="n">i</span><span class="p">)):</span>
+        <span class="n">cell_name</span><span class="p">,</span> <span class="n">cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">cell_name</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">args</span></div></div>
+
+
+<div class="viewcode-block" id="PipeliningLayer"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.PipeliningLayer">[docs]</a><span class="k">class</span> <span class="nc">PipeliningLayer</span><span class="p">(</span><span class="n">SeqLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Pipelining a sequence of layers on multiple devices.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="PipeliningLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.PipeliningLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PipeliningLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_micro_batches&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of micro batches.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;batch_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The batch dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;state_dtype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Externally specify dtype for states.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="PipeliningLayer._CalculateOutputShapes"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.PipeliningLayer._CalculateOutputShapes">[docs]</a>  <span class="k">def</span> <span class="nf">_CalculateOutputShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_shapes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calcuate the output shape of intermediate layers.</span>
+
+<span class="sd">    Given the FPropMeta function in each FeatureExtractionLayer, calcuates</span>
+<span class="sd">    the shapes of outputs of that layer. This is used to recover the shape</span>
+<span class="sd">    information in StackedRecurrent.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_shapes: tuple of input TensorShapes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Return a list of K + 1 lists of shapes where K is the number of</span>
+<span class="sd">      partitions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Converts TensorShape to tshape.Shape.</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">input_shapes</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">as_list</span><span class="p">()))</span>
+    <span class="k">del</span> <span class="n">input_shapes</span>
+
+    <span class="n">state_shapes</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">def</span> <span class="nf">RecordInputShapes</span><span class="p">(</span><span class="n">tshapes</span><span class="p">):</span>
+      <span class="n">shapes</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">tshapes</span><span class="p">:</span>
+        <span class="n">shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span> <span class="k">if</span> <span class="n">s</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">s</span><span class="o">.</span><span class="n">ToTensorShape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">())</span>
+      <span class="n">state_shapes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">before_layer</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">before_layer</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">before_layer</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">)</span><span class="o">.</span><span class="n">out_shapes</span>
+    <span class="n">RecordInputShapes</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">cell</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">cell</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="o">*</span><span class="n">inputs</span><span class="p">)</span><span class="o">.</span><span class="n">out_shapes</span>
+      <span class="n">RecordInputShapes</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">state_shapes</span></div>
+
+<div class="viewcode-block" id="PipeliningLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.PipeliningLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Run multiple cells in different devices in a pipelining manner.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      *args: Non-keyworded variable length argument list of input tensors.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A list of output tensors</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO(huangyp): handle optional None inputs.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span><span class="p">:</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">*</span><span class="n">outputs</span><span class="p">)</span>
+      <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span><span class="p">:</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">*</span><span class="n">outputs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">outputs</span>
+
+    <span class="n">num_cells</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">)</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+
+    <span class="c1"># Compute shapes of input and output tenors.</span>
+    <span class="n">input_tenors</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">mini_batch_size</span> <span class="o">=</span> <span class="n">input_tenors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">state_dtype</span><span class="p">:</span>
+      <span class="n">state_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">state_dtype</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">state_dtype</span> <span class="o">=</span> <span class="n">input_tenors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">&gt;</span> <span class="n">mini_batch_size</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">=</span> <span class="n">mini_batch_size</span>
+    <span class="n">micro_batch_size</span> <span class="o">=</span> <span class="n">mini_batch_size</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span>
+
+    <span class="n">input_shapes</span> <span class="o">=</span> <span class="p">()</span>
+    <span class="k">for</span> <span class="n">input_tensor</span> <span class="ow">in</span> <span class="n">input_tenors</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">input_tensor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">input_shape</span> <span class="o">=</span> <span class="n">input_tensor</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+        <span class="n">input_shape</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span><span class="p">]</span> <span class="o">=</span> <span class="n">micro_batch_size</span>
+        <span class="n">input_shapes</span> <span class="o">+=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">input_shape</span><span class="p">),)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">input_shapes</span> <span class="o">+=</span> <span class="p">(</span><span class="kc">None</span><span class="p">,)</span>
+
+    <span class="n">state_shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CalculateOutputShapes</span><span class="p">(</span><span class="n">input_shapes</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">GetCellFn</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Get the ith feature extraction layer.&quot;&quot;&quot;</span>
+
+      <span class="k">def</span> <span class="nf">CellFn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;A cell fn is exectued inside of StackedRecurrent.&quot;&quot;&quot;</span>
+        <span class="k">del</span> <span class="n">state0</span>
+        <span class="n">frop_inputs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">input_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">state_shapes</span><span class="p">[</span><span class="n">i</span><span class="p">])):</span>
+          <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;s</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_idx</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">state_shapes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">input_idx</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">state_shapes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">input_idx</span><span class="p">])</span>
+            <span class="n">frop_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">])</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">frop_inputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">CellFnFropOpReplacementWrapper</span><span class="p">():</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;cell </span><span class="si">{}</span><span class="s1"> input </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">frop_inputs</span><span class="p">))</span>
+          <span class="n">mb_tensor</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="n">_MICRO_BATCH_STATE_NAME</span><span class="p">]</span>
+          <span class="n">SetOverWriteGlobalStep</span><span class="p">(</span><span class="n">mb_tensor</span><span class="p">)</span>
+          <span class="n">_</span><span class="p">,</span> <span class="n">cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+          <span class="n">outputs</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">frop_inputs</span><span class="p">)</span>
+
+        <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+        <span class="n">state1</span><span class="p">[</span><span class="n">_MICRO_BATCH_STATE_NAME</span><span class="p">]</span> <span class="o">=</span> <span class="n">mb_tensor</span>
+        <span class="n">outputs</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">state_shapes</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">output_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">outputs</span><span class="p">)):</span>
+          <span class="k">if</span> <span class="n">outputs</span><span class="p">[</span><span class="n">output_idx</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;s</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_idx</span><span class="p">)</span>
+            <span class="n">state1</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">outputs</span><span class="p">[</span><span class="n">output_idx</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+
+      <span class="k">return</span> <span class="n">CellFn</span>
+
+    <span class="n">cell_fns</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">accumulator_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">thetas</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">init_states</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">devices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">cell_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_cells</span><span class="p">):</span>
+      <span class="n">cell_name</span><span class="p">,</span> <span class="n">cell</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span><span class="p">[</span><span class="n">cell_idx</span><span class="p">]</span>
+      <span class="n">accumulator_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cell</span><span class="p">)</span>
+      <span class="n">cell_fns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GetCellFn</span><span class="p">(</span><span class="n">cell_idx</span><span class="p">))</span>
+      <span class="n">thetas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">cell_name</span><span class="p">])</span>
+      <span class="n">init_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">init_state</span><span class="p">[</span><span class="n">_MICRO_BATCH_STATE_NAME</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">state_dtype</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">output_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">state_shapes</span><span class="p">[</span><span class="n">cell_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;s</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_idx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">state_shapes</span><span class="p">[</span><span class="n">cell_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">][</span><span class="n">output_idx</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">init_state</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+              <span class="n">state_shapes</span><span class="p">[</span><span class="n">cell_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">][</span><span class="n">output_idx</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">state_dtype</span><span class="p">)</span>
+      <span class="n">init_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">init_state</span><span class="p">)</span>
+      <span class="n">devices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="n">cell_idx</span><span class="p">))</span>
+
+    <span class="n">cell_grads</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_cells</span>
+    <span class="n">cell_outs</span> <span class="o">=</span> <span class="p">[</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_cells</span>
+    <span class="n">cell_out_grads</span> <span class="o">=</span> <span class="p">[</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_cells</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">devices</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+      <span class="n">previous</span> <span class="o">=</span> <span class="n">input_tenors</span>
+      <span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span><span class="p">:</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">l</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">name</span><span class="p">],</span> <span class="o">*</span><span class="n">previous</span><span class="p">)</span>
+        <span class="n">previous</span> <span class="o">=</span> <span class="n">_ToTuple</span><span class="p">(</span><span class="n">previous</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="n">gs_tensor</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
+      <span class="n">inputs</span><span class="p">[</span><span class="n">_MICRO_BATCH_STATE_NAME</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">gs_tensor</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span> <span class="o">+</span> <span class="n">t</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">state_dtype</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span><span class="p">)</span>
+      <span class="p">])</span>
+
+      <span class="c1"># TODO(huangyp, dehao): apply dehao&#39;s trick to reshape the input tensor</span>
+      <span class="c1"># to [p.num_micro_batches, -1, 128].</span>
+      <span class="k">for</span> <span class="n">output_idx</span><span class="p">,</span> <span class="n">output_tenor</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">previous</span><span class="p">):</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;s</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_idx</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">output_tenor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">output_tenor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">output_tenor</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span><span class="p">))</span>
+          <span class="n">inputs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">output_tenor</span>
+
+    <span class="n">output</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">StackedRecurrent</span><span class="p">(</span>
+        <span class="n">devices</span><span class="o">=</span><span class="n">devices</span><span class="p">,</span>
+        <span class="n">cell_fns</span><span class="o">=</span><span class="n">cell_fns</span><span class="p">,</span>
+        <span class="n">cell_grads</span><span class="o">=</span><span class="n">cell_grads</span><span class="p">,</span>
+        <span class="n">cell_outs</span><span class="o">=</span><span class="n">cell_outs</span><span class="p">,</span>
+        <span class="n">cell_out_grads</span><span class="o">=</span><span class="n">cell_out_grads</span><span class="p">,</span>
+        <span class="n">thetas</span><span class="o">=</span><span class="n">thetas</span><span class="p">,</span>
+        <span class="n">init_states</span><span class="o">=</span><span class="n">init_states</span><span class="p">,</span>
+        <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+        <span class="n">accumulator_layers</span><span class="o">=</span><span class="n">accumulator_layers</span><span class="p">,</span>
+        <span class="n">unused_acc_state</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">devices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+      <span class="n">output_tensors</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">output_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">state_shapes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])):</span>
+        <span class="n">state_shape</span> <span class="o">=</span> <span class="n">state_shapes</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="n">output_idx</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">state_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">output_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+          <span class="k">continue</span>
+        <span class="n">output_name</span> <span class="o">=</span> <span class="s1">&#39;s</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_idx</span><span class="p">)</span>
+        <span class="n">output_tensor</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="n">output_name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">perm</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+          <span class="n">perm</span> <span class="o">+=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">state_shape</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+          <span class="n">output_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">output_tensor</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="n">perm</span><span class="p">)</span>
+        <span class="n">state_shape</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">batch_dim</span><span class="p">]</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_micro_batches</span>
+        <span class="n">output_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output_tensor</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)</span>
+        <span class="n">output_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output_tensor</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;pipeline output = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">output_tensors</span><span class="p">))</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">output_tensors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">output_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">output_tensors</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
