@@ -99,10 +99,12 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       target_segment_ids: A matrix of params.dtype. [time, batch].
 
     Returns:
-      A tuple (metrics, per_example_tensors)
-        metrics: A dictionary containing metrics for the xent loss and
-            prediction accuracy
-        per_example_tensors: A dictionary of per-example tensors.
+      A tuple (metrics, per_example_tensors).
+        metrics:
+          A dictionary containing metrics for the xent loss and prediction
+          accuracy.
+        per_example_tensors:
+          A dictionary of per-example tensors.
     """
     p = self.params
     softmax_input = tf.reshape(softmax_input, [-1, p.softmax.input_dim])
@@ -194,11 +196,12 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       targets: NestedMap describing the target sequences.
 
     Returns:
-      Two dicts:
-      A map from metric name (a python string) to a tuple (value, weight).
-      Both value and weight are scalar Tensors.
-      A map from name to arbitrary tensors, where the first dimension must be
-      the batch index.
+      Two dicts.
+
+        - A map from metric name (a python string) to a tuple (value, weight).
+          Both value and weight are scalar Tensors.
+        - A map from name to arbitrary tensors, where the first dimension must
+          be the batch index.
     """
     segment_id = None
     if self.params.packed_input:

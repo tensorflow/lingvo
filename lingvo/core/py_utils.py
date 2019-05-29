@@ -2776,15 +2776,15 @@ def SequencesToDebugStrings(ids, lens, summarize=5):
 def RematerializeFn(fn, *xs):
   """Calls fn and rematerializes fn in the backward pass.
 
-  fn(*xs) -> ys, where xs and ys can be a single tensor or a tuple of tensors.
+  `fn(*xs) -> ys`, where xs and ys can be a single tensor or a tuple of tensors.
 
   Args:
     fn: A python function to be rematerialized in the backprop pass.
-    *xs: A single tensor or a list/tuple of tensors. 'xs' are input args to the
+    *xs: A single tensor or a list/tuple of tensors. `xs` are input args to the
       fn function.
 
   Returns:
-    fn(*xs)
+    `fn(*xs)`
   """
   initial_step_seed = GetStepSeed()
   final_step_seed = zlib.adler32(tf.no_op(name='new_step_seed').name.encode())

@@ -66,7 +66,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     In this function:
       1) Sample random lengths less than max_length with shape (batch_size,).
       2) Truncate lengths to a max of range * max_ratio, so that each mask is
-      fully contained within the corresponding sequence.
+         fully contained within the corresponding sequence.
       3) Random sample start points with in (choose_range - lengths).
       4) Return a mask where (lengths - start points) * mask_size are all zeros.
 

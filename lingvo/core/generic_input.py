@@ -28,7 +28,7 @@ from lingvo.core.ops import py_x_ops
 def GenericInput(processor, *args, **kwargs):
   """Builds a generic input pipeline.
 
-  Example usage:
+  Example usage::
 
     def ParseRecord(record):
       # Given a tf.string record, return a (NestedMap, bucketing key) pair.
@@ -56,8 +56,7 @@ def GenericInput(processor, *args, **kwargs):
     **kwargs: additional keyword args for x_ops.generic_input.
 
   Returns:
-    A list of tensors or NestedMaps, similar to a list returned by 'processor',
-    except:
+    A list of tensors or NestedMaps, similar `processor`'s return, except:
       * The bucket key is not included in the output.
       * Every tensor will have an additional dimension 0 that represents the
         batch dimension.
