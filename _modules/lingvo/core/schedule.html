@@ -202,12 +202,23 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="ConstantOne"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ConstantOne">[docs]</a><span class="k">class</span> <span class="nc">ConstantOne</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A lr schedule remains constant 1.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="Constant"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.Constant">[docs]</a><span class="k">class</span> <span class="nc">Constant</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A schedule that always returns a constant value.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="ConstantOne.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ConstantOne.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="Constant.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.Constant.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Constant</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;The constant value.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="Constant.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.Constant.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ConstantOne"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ConstantOne">[docs]</a><span class="k">class</span> <span class="nc">ConstantOne</span><span class="p">(</span><span class="n">Constant</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A lr schedule remains constant 1.&quot;&quot;&quot;</span>
+  <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="PiecewiseConstantLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseConstantLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">PiecewiseConstantLearningRateSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
