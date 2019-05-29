@@ -57,12 +57,23 @@ class BaseLearningRateSchedule(base_layer.BaseLayer):
     return self.FProp(self.theta, current_step)
 
 
-class ConstantOne(BaseLearningRateSchedule):
-  """A lr schedule remains constant 1."""
+class Constant(BaseLearningRateSchedule):
+  """A schedule that always returns a constant value."""
+
+  @classmethod
+  def Params(cls):
+    p = super(Constant, cls).Params()
+    p.Define('value', 1., 'The constant value.')
+    return p
 
   def FProp(self, theta, current_step):
     del theta, current_step
-    return tf.constant(1.0, self.params.dtype)
+    return tf.constant(self.params.value, self.params.dtype)
+
+
+class ConstantOne(Constant):
+  """A lr schedule remains constant 1."""
+  pass
 
 
 class PiecewiseConstantLearningRateSchedule(BaseLearningRateSchedule):

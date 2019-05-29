@@ -32,6 +32,13 @@ from lingvo.core import test_utils
 
 class LearningRateScheduleTest(test_utils.TestCase):
 
+  def testConstant(self):
+    with self.session(use_gpu=False):
+      p = schedule.Constant.Params().Set(value=5)
+      lrs = p.Instantiate()
+      for x in [0, 10, 100, 1000000]:
+        self.assertAllClose(lrs.Value(x).eval(), 5.0)
+
   def testConstantOne(self):
     with self.session(use_gpu=False):
       p = schedule.ConstantOne.Params()
