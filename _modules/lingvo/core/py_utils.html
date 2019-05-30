@@ -1778,13 +1778,12 @@
   <span class="k">return</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">v_g</span><span class="p">:</span> <span class="n">v_g</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">MaskGradients</span><span class="p">(</span><span class="n">var_grad</span><span class="p">,</span> <span class="n">grad_mask</span><span class="p">,</span> <span class="n">grad_onehot</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">MaskGradients</span><span class="p">(</span><span class="n">var_grad</span><span class="p">,</span> <span class="n">grad_mask</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients of non-masked variables in vmap w.r.t loss.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    var_grad: A `.NestedMap` of (variable, gradient)</span>
-<span class="sd">    grad_mask: A `.NestedMap` of (variable, mask).</span>
-<span class="sd">    grad_onehot: A 1-hot vector of the current data source selected.</span>
+<span class="sd">    grad_mask: A dict of (variable name, mask).</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    var_grad - a `.NestedMap` of (variable, mask * gradient).</span>
@@ -1792,13 +1791,11 @@
 
   <span class="k">def</span> <span class="nf">ApplyMask</span><span class="p">(</span><span class="n">entry</span><span class="p">):</span>
     <span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">=</span> <span class="n">entry</span>
-    <span class="n">grad_mask_dotproduct</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">grad_onehot</span><span class="p">,</span> <span class="n">grad_mask</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">grad_mask</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">):</span>
-      <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">grad_mask_dotproduct</span><span class="p">,</span>
-                               <span class="n">grad</span><span class="o">.</span><span class="n">indices</span><span class="p">))</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">mask</span><span class="p">,</span> <span class="n">grad</span><span class="o">.</span><span class="n">indices</span><span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">*</span> <span class="n">grad_mask_dotproduct</span><span class="p">)</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span> <span class="o">*</span> <span class="n">mask</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ApplyMask</span><span class="p">)</span>
 
@@ -1841,6 +1838,27 @@
     <span class="k">return</span> <span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">vs_gs_scale</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Scale</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">HasNanOrInfGradient</span><span class="p">(</span><span class="n">var_grads</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a bool tensor to indicate if `var_grads` contains NaNs or Infs.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    var_grads: A `.NestedMap` with (var, grad) tuple as the map value.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A bool scalar tensor to indicate if the `var_grads` contains NaNs or Infs.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">HasNanOrInf</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">IndexedSlices</span><span class="p">):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">values</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_complex</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">([</span><span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">x</span><span class="p">))])</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_inf</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">([</span><span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
 
 
 <span class="k">def</span> <span class="nf">ApplyGradNormCliping</span><span class="p">(</span><span class="n">vs_gs</span><span class="p">,</span> <span class="n">norm</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
@@ -2389,7 +2407,7 @@
   <span class="sd">&quot;&quot;&quot;Finds and returns a list of relevant batch-normalization updates.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    loss: The loss that is being optimized for.</span>
+<span class="sd">    loss: The loss that is being optimized for. A tensor or a list of tensors.</span>
 <span class="sd">    batch_norm_updates: A list of batch normalization updates.</span>
 
 <span class="sd">  Returns:</span>
@@ -2397,7 +2415,7 @@
 <span class="sd">    that are relevant to the loss being optimized, and the second list contains</span>
 <span class="sd">    all in batch_norm_updates but not in the first list.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">dependent_ops_and_tensors</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">FindNeeded</span><span class="p">([</span><span class="n">loss</span><span class="p">]))</span>
+  <span class="n">dependent_ops_and_tensors</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">FindNeeded</span><span class="p">(</span><span class="n">loss</span><span class="p">))</span>
   <span class="n">relevant_updates</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="n">irrelevant_updates</span> <span class="o">=</span> <span class="p">[]</span>
 

@@ -168,10 +168,8 @@
 
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_model</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">metrics</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">summary_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">decoder</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.mt</span> <span class="k">import</span> <span class="n">encoder</span>
 
@@ -325,26 +323,7 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">TransformerModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">source_dim</span>
-
-<div class="viewcode-block" id="TransformerModel.BProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.TransformerModel.BProp">[docs]</a>  <span class="k">def</span> <span class="nf">BProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
-    <span class="c1"># Computes gradients&#39; norm and adds their summaries.</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">vg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span>
-    <span class="n">emb_vg</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="n">emb_vg</span><span class="o">.</span><span class="n">child</span> <span class="o">=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">token_emb</span><span class="p">,</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">token_emb</span><span class="p">]</span>
-
-    <span class="c1"># Note that positional embedding layer has no trainable variable</span>
-    <span class="c1"># if its trainable_scaling is false.</span>
-    <span class="k">if</span> <span class="s1">&#39;position_emb&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="p">:</span>
-      <span class="n">emb_vg</span><span class="o">.</span><span class="n">child</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">position_emb</span><span class="p">]</span>
-    <span class="k">if</span> <span class="s1">&#39;position_emb&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="p">:</span>
-      <span class="n">emb_vg</span><span class="o">.</span><span class="n">child</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">position_emb</span><span class="p">]</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">emb_vg</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span>
-                                 <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">trans</span><span class="p">,</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">trans</span><span class="p">])</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span></div></div>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">source_dim</span></div>
 
 
 <div class="viewcode-block" id="RNMTModel"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.RNMTModel">[docs]</a><span class="k">class</span> <span class="nc">RNMTModel</span><span class="p">(</span><span class="n">MTBaseModel</span><span class="p">):</span>
@@ -359,39 +338,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RNMTModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">MTEncoderBiRNN</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">MTDecoderV1</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-<div class="viewcode-block" id="RNMTModel.BProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.model.html#lingvo.tasks.mt.model.RNMTModel.BProp">[docs]</a>  <span class="k">def</span> <span class="nf">BProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RNMTModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
-      <span class="n">vg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span>
-      <span class="c1"># Computes gradients&#39; norm and adds their summaries.</span>
-      <span class="n">emb_grads</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="n">rnn_grads</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="n">atten_grads</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="n">softmax_grads</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">if</span> <span class="s1">&#39;enc&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="p">:</span>
-        <span class="n">emb_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">emb</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;emb&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">enc</span> <span class="k">else</span> <span class="p">[]</span>
-        <span class="n">rnn_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">enc</span><span class="o">.</span><span class="n">rnn</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;rnn&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">enc</span> <span class="k">else</span> <span class="p">[]</span>
-      <span class="k">if</span> <span class="s1">&#39;dec&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="p">:</span>
-        <span class="n">emb_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">emb</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;emb&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span> <span class="k">else</span> <span class="p">[]</span>
-        <span class="n">rnn_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;frnn&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span> <span class="k">else</span> <span class="p">[]</span>
-        <span class="n">softmax_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">softmax</span><span class="p">]</span> <span class="k">if</span> <span class="s1">&#39;softmax&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span> <span class="k">else</span> <span class="p">[]</span>
-        <span class="k">if</span> <span class="s1">&#39;frnn_with_atten&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="p">:</span>
-          <span class="k">if</span> <span class="s1">&#39;cell&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="p">:</span>
-            <span class="n">rnn_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="p">]</span>
-          <span class="k">if</span> <span class="s1">&#39;atten&#39;</span> <span class="ow">in</span> <span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="p">:</span>
-            <span class="n">atten_grads</span> <span class="o">+=</span> <span class="p">[</span><span class="n">vg</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">]</span>
-
-      <span class="k">if</span> <span class="n">emb_grads</span><span class="p">:</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">emb_grads</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">rnn_grads</span><span class="p">:</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;lstm&#39;</span><span class="p">,</span> <span class="n">rnn_grads</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">atten_grads</span><span class="p">:</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">atten_grads</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">softmax_grads</span><span class="p">:</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">AddNormSummary</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">softmax_grads</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">p</span></div></div>
 </pre></div>
 
            </div>

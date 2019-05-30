@@ -1056,7 +1056,7 @@ for var. grad is guaranteed to be not None.</p>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.MaskGradients">
-<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">MaskGradients</code><span class="sig-paren">(</span><em>var_grad</em>, <em>grad_mask</em>, <em>grad_onehot</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#MaskGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.MaskGradients" title="Permalink to this definition">¶</a></dt>
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">MaskGradients</code><span class="sig-paren">(</span><em>var_grad</em>, <em>grad_mask</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#MaskGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.MaskGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients of non-masked variables in vmap w.r.t loss.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -1064,8 +1064,7 @@ for var. grad is guaranteed to be not None.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
 <li><strong>var_grad</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, gradient)</li>
-<li><strong>grad_mask</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (variable, mask).</li>
-<li><strong>grad_onehot</strong> – A 1-hot vector of the current data source selected.</li>
+<li><strong>grad_mask</strong> – A dict of (variable name, mask).</li>
 </ul>
 </td>
 </tr>
@@ -1095,6 +1094,22 @@ applies to every entry.</li>
 grad_scale is 0, the result gradient is always 0, even if the input
 gradient is inf or nan.</p>
 </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.py_utils.HasNanOrInfGradient">
+<code class="descclassname">lingvo.core.py_utils.</code><code class="descname">HasNanOrInfGradient</code><span class="sig-paren">(</span><em>var_grads</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#HasNanOrInfGradient"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.HasNanOrInfGradient" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a bool tensor to indicate if <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_grads</span></code> contains NaNs or Infs.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>var_grads</strong> – A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with (var, grad) tuple as the map value.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A bool scalar tensor to indicate if the <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_grads</span></code> contains NaNs or Infs.</td>
 </tr>
 </tbody>
 </table>
@@ -1427,7 +1442,7 @@ randomly generated keep/drop flags.</li>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>loss</strong> – The loss that is being optimized for.</li>
+<li><strong>loss</strong> – The loss that is being optimized for. A tensor or a list of tensors.</li>
 <li><strong>batch_norm_updates</strong> – A list of batch normalization updates.</li>
 </ul>
 </td>
