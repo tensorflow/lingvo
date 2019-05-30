@@ -54,7 +54,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       x_ins = [tf.constant(x) for x in [299999, 399999, 499999, 599999]]
       outs = []
       for x in x_ins:
-        lrs = cls(cls.Params().Set(boundaries=bs, values=vs))
+        lrs = cls.Params().Set(boundaries=bs, values=vs).Instantiate()
         outs.append(lrs.Value(x).eval())
       self.assertAllClose([1.0, 0.1, 0.01, 0.001], outs)
 

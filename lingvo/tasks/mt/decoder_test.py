@@ -97,10 +97,10 @@ class DecoderTestCaseBase(test_utils.TestCase):
                           feed_att_context_to_softmax):
     with self.session(use_gpu=True):
       tf.set_random_seed(_TF_RANDOM_SEED)
-      p = self._DecoderParams(dtype=dtype)
+      p = self._DecoderParams(dtype=dtype, decoder_cls=decoder_cls)
 
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
-      dec = decoder_cls(p)
+      dec = p.Instantiate()
       encoder_outputs, targets = self._Inputs(dtype=dtype)
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
 
@@ -117,9 +117,9 @@ class DecoderTestCaseBase(test_utils.TestCase):
                                     feed_att_context_to_softmax=False):
     with self.session(use_gpu=True, graph=tf.Graph()) as sess:
       tf.set_random_seed(_TF_RANDOM_SEED)
-      p = self._DecoderParams(dtype=tf.float64)
+      p = self._DecoderParams(dtype=tf.float64, decoder_cls=decoder_cls)
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
-      dec = decoder_cls(p)
+      dec = p.Instantiate()
       encoder_outputs, targets = self._Inputs(dtype=tf.float64)
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
       all_vars = tf.trainable_variables()
@@ -157,9 +157,9 @@ class DecoderTestCaseBase(test_utils.TestCase):
                                         feed_att_context_to_softmax=False):
     with self.session(use_gpu=True):
       tf.set_random_seed(_TF_RANDOM_SEED)
-      p = self._DecoderParams(True)
+      p = self._DecoderParams(True, decoder_cls=decoder_cls)
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
-      dec = decoder_cls(p)
+      dec = p.Instantiate()
       encoder_outputs, targets = self._Inputs()
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets)['loss']
       tf.global_variables_initializer().run()

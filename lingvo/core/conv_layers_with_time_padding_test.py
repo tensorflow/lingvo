@@ -195,7 +195,7 @@ class ConvLayerTest(test_utils.TestCase):
         filter_shape=[3, 1, 2, 1],
         dropconnect_prob=dropconnect_prob,
         deterministic_dropout=True)
-    conv_layer = conv_cls(params)
+    conv_layer = params.Instantiate()
     in_padding = tf.zeros([2, 4], dtype=tf.float32)
     inputs = tf.constant(
         np.random.normal(0.1, 0.5, [2, 4, 1, 4]), dtype=tf.float32)
