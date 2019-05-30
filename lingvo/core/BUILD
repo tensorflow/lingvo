@@ -201,8 +201,8 @@ py_library(
         ":build_data",
         ":cluster_factory",
         ":early_stop",
+        ":enhancer",
         ":hyperparams",
-        ":optimization_program",
         ":optimizer",
         ":py_utils",
         ":schedule",
@@ -224,9 +224,9 @@ py_test(
         ":base_layer",
         ":base_model",
         ":base_model_params",
+        ":enhancer",
         ":hyperparams",
         ":layers",
-        ":optimization_program",
         ":py_utils",
         ":task_scheduler",
         ":test_utils",
@@ -329,6 +329,19 @@ py_library(
         ":hyperparams",
         # Implicit tensorflow dependency.
         "//lingvo/core/ops:py_x_ops",
+    ],
+)
+
+py_library(
+    name = "enhancer",
+    srcs = ["enhancer.py"],
+    deps = [
+        ":base_layer",
+        ":optimizer",
+        ":py_utils",
+        ":schedule",
+        ":summary_utils",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -575,26 +588,6 @@ py_test(
         ":multitask_model",
         ":py_utils",
         ":test_utils",
-        # Implicit tensorflow dependency.
-    ],
-)
-
-py_library(
-    name = "optimization_program",
-    srcs = ["optimization_program.py"],
-    deps = [
-        ":base_input_generator",
-        ":base_layer",
-        ":build_data",
-        ":cluster_factory",
-        ":early_stop",
-        ":hyperparams",
-        ":optimizer",
-        ":py_utils",
-        ":schedule",
-        ":summary_utils",
-        ":task_scheduler",
-        # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
 )

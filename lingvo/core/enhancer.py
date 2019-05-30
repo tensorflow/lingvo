@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""An optimization program optimizes a subset of variables according to a loss.
+"""An enhancer optimizes a subset of variables according to a loss.
 
 It consists of a learning rate schedule, an optimizer, and gradient clipping
-mechanisms. A BaseTask can have multiple optimization programs, each optimizing
-a (usually disjoint) subset of variables.
+mechanisms. A BaseTask can have multiple enhancers, each optimizing a (usually
+disjoint) subset of variables.
 """
 
 from __future__ import absolute_import
@@ -25,7 +25,6 @@ from __future__ import print_function
 
 import re
 import tensorflow as tf
-
 from lingvo.core import base_layer
 from lingvo.core import optimizer
 from lingvo.core import py_utils
@@ -33,7 +32,7 @@ from lingvo.core import schedule
 from lingvo.core import summary_utils
 
 
-class OptimizationProgram(base_layer.BaseLayer):
+class Enhancer(base_layer.BaseLayer):
   """A training program layer.
 
   The layer takes a loss tensor as input and outputs a trainer op.
@@ -41,7 +40,7 @@ class OptimizationProgram(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(OptimizationProgram, cls).Params()
+    p = super(Enhancer, cls).Params()
     p.Define(
         'l2_regularizer_weight', None,
         'If not None, L2 regularization to apply to the weights. '
@@ -86,7 +85,7 @@ class OptimizationProgram(base_layer.BaseLayer):
 
   @base_layer.initializer
   def __init__(self, params):
-    super(OptimizationProgram, self).__init__(params)
+    super(Enhancer, self).__init__(params)
     p = self.params
 
     self._var_grads = None

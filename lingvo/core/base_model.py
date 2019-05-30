@@ -28,8 +28,8 @@ from lingvo.core import base_layer
 from lingvo.core import build_data
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
+from lingvo.core import enhancer
 from lingvo.core import hyperparams
-from lingvo.core import optimization_program
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import schedule
@@ -77,7 +77,7 @@ class StatsCounter(object):
       return tf.identity(tf.assign_add(self._var, delta))
 
 
-_LEGACY_OPTIMIZATION_PROGRAM_PARAMS = [
+_LEGACY_ENHANCER_PARAMS = [
     'bprop_variable_filter',
     'clip_gradient_norm_to_value',
     'clip_gradient_single_norm_to_value',
@@ -165,13 +165,13 @@ class BaseTask(base_layer.BaseLayer):
               'Generates a checkpoint roughly once every this many seconds.')
     tp.Define('summary_interval_steps', 100,
               'Generates a checkpoint roughly once every this many steps.')
-    # The following params must mirror those in OptimizationProgram.Params().
-    # TODO(rpang): migrate existing params to use optimization_program and
+    # The following params must mirror those in Enhancer.Params().
+    # TODO(rpang): migrate existing params to use enhancer and
     # delete legacy params.
     # LINT.IfChange
     tp.Define(
-        'optimization_program', None, 'One or a list of optimization programs. '
-        'If None, uses a OptimizationProgram created from the legacy params '
+        'enhancer', None, 'One or a list of optimization programs. '
+        'If None, uses a Enhancer created from the legacy params '
         'defined below: learning_rate, lr_schedule, optimizer, etc.')
     tp.Define(
         'l2_regularizer_weight', None,
@@ -213,7 +213,7 @@ class BaseTask(base_layer.BaseLayer):
         'operations. This avoids some race conditions.')
     tp.Define('colocate_gradients_with_ops', True,
               'If True, try colocating gradients with the corresponding op.')
-    # LINT.ThenChange(optimization_program.py)
+    # LINT.ThenChange(enhancer.py)
     p.Define('eval', hyperparams.Params(),
              'Params to control how this task should be evaled.')
     ep = p.eval
@@ -298,31 +298,30 @@ class BaseTask(base_layer.BaseLayer):
     # DistillationTask.
     if tp and self.cluster.job in ('worker', 'trainer', 'trainer_client',
                                    'controller'):
-      self._SetOptimizationProgramFromLegacyParams(tp)
-      if tp.optimization_program is not None:
-        if isinstance(tp.optimization_program, (list, tuple)):
-          self.CreateChildren('optimization_programs', tp.optimization_program)
+      self._SetEnhancerFromLegacyParams(tp)
+      if tp.enhancer is not None:
+        if isinstance(tp.enhancer, (list, tuple)):
+          self.CreateChildren('enhancers', tp.enhancer)
         else:
-          self.CreateChildren('optimization_programs',
-                              [tp.optimization_program])
+          self.CreateChildren('enhancers', [tp.enhancer])
     self._UpdateVnConfig()
 
-  def _SetOptimizationProgramFromLegacyParams(self, tp):
-    """Sets tp.optimization_program based on legacy params."""
-    if tp.optimization_program is not None:
+  def _SetEnhancerFromLegacyParams(self, tp):
+    """Sets tp.enhancer based on legacy params."""
+    if tp.enhancer is not None:
       return
-    op = optimization_program.OptimizationProgram.Params()
-    tp.optimization_program = op
+    op = enhancer.Enhancer.Params()
+    tp.enhancer = op
     op.name = 'loss'
     for k, v in tp.IterParams():
-      if k not in _LEGACY_OPTIMIZATION_PROGRAM_PARAMS:
+      if k not in _LEGACY_ENHANCER_PARAMS:
         tf.logging.info('Ignoring legacy param %s=%s for optimization program',
                         k, v)
         continue
       setattr(op, k, v)
       setattr(tp, k, None)
     for line in op.ToText().split('\n'):
-      tf.logging.info('OptimizationProgram params: %s', line)
+      tf.logging.info('Enhancer params: %s', line)
 
   def ComputePredictions(self, theta, input_batch):
     """Computes predictions for `input_batch`.
@@ -549,7 +548,7 @@ class BaseTask(base_layer.BaseLayer):
           for k, v in six.iteritems(self._per_input_gradient_mask)
       }
     all_losses = []
-    for optimization in self.optimization_programs:
+    for optimization in self.enhancers:
       loss_name = optimization.params.name
       metric = self._metrics.get(loss_name, None)
       if metric is None:
