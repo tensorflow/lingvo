@@ -345,7 +345,7 @@ class InferenceGraphExporter(object):
     graph = tf.Graph()
     with graph.as_default():
       tf.set_random_seed(random_seed)
-      cluster = model_cfg.cluster.cls(model_cfg.cluster)
+      cluster = model_cfg.cluster.Instantiate()
       device = cluster.GetPlacer()
       tpu_const_scope = _DummyScope()
       if (IsTpu(device_options) and
@@ -372,7 +372,7 @@ class InferenceGraphExporter(object):
           FLAGS.xla_device = 'tpu'
 
         try:
-          mdl = model_cfg.cls(model_cfg)
+          mdl = model_cfg.Instantiate()
           variables_to_restore = (
               _MakeVariableDictionary(tf.global_variables())
               if not mdl.ema else mdl.ema.variables_to_restore())

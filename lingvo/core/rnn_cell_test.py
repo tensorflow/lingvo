@@ -546,7 +546,7 @@ class RNNCellTest(test_utils.TestCase):
       child_p.vn.global_vn = False
       child_p.vn.per_step_vn = False
 
-      lstm = params.cls(params)
+      lstm = params.Instantiate()
 
       print('lstm vars = ', lstm.vars)
       for child_lstm in lstm.groups:
@@ -642,7 +642,7 @@ class RNNCellTest(test_utils.TestCase):
       child_p.vn.global_vn = False
       child_p.vn.per_step_vn = False
 
-      lstm = params.cls(params)
+      lstm = params.Instantiate()
 
       print('lstm vars = ', lstm.vars)
       for child_lstm in lstm.groups:
@@ -1400,7 +1400,7 @@ class RNNCellTest(test_utils.TestCase):
       params.zo_prob = 0.0
       params.random_seed = _RANDOM_SEED
 
-      lstm = params.cls(params)
+      lstm = params.Instantiate()
 
       np.random.seed(_NUMPY_RANDOM_SEED)
       inputs = py_utils.NestedMap(
@@ -1436,7 +1436,7 @@ class RNNCellTest(test_utils.TestCase):
       params.num_hidden_nodes = 2
       params.num_input_hidden_nodes = 2
 
-      lstm = params.cls(params)
+      lstm = params.Instantiate()
       print('lstm vars = ', lstm.vars)
 
       # Input projection.

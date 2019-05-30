@@ -924,7 +924,7 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
       tf.set_random_seed(8372749040)
       cfg = model_registry.GetParams('image.mnist.LeNet5', 'Train')
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
-        cfg.cls(cfg)
+        cfg.Instantiate()
       tf.global_variables_initializer().run()
       self.assertAllClose(
           # These are initialized values before overriding with checkpoint.
@@ -949,7 +949,7 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
       tf.set_random_seed(8372749040)
       cfg = model_registry.GetParams('image.mnist.LeNet5', 'Train')
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
-        cfg.cls(cfg)
+        cfg.Instantiate()
       tf.global_variables_initializer().run()
       self.assertAllClose(
           # These are initialized values before overriding with checkpoint.

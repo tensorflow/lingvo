@@ -285,7 +285,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.is_eval = False
-      params.cls(params)
+      params.Instantiate()
       # Vars for the outer conv layer.
       conv_vars = tf.get_collection('SeparableConv2DLayer_vars')
       conv_var_names = [x.name for x in conv_vars]
@@ -408,7 +408,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.is_eval = False
-      conv_layer = params.cls(params)
+      conv_layer = params.Instantiate()
       in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
       self.assertEqual(out_shape, [None, None, 5, 32])
@@ -467,7 +467,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.dilation_rate = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.is_eval = False
-      conv_layer = params.cls(params)
+      conv_layer = params.Instantiate()
       # dilation_rate does not change output shape.
       in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
@@ -522,7 +522,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.is_eval = False
       if depth_multiplier is not None:
         params.depth_multiplier = depth_multiplier
-      conv_layer = params.cls(params)
+      conv_layer = params.Instantiate()
 
       inp = tf.random_uniform(input_shape)
       inp_pad = tf.floor(0.5 + tf.random_uniform(input_shape[:2]))
@@ -634,7 +634,7 @@ class ConvLayerTest(test_utils.TestCase):
       if quantized:
         params.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
 
-      conv_layer = params.cls(params)
+      conv_layer = params.Instantiate()
       in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
       inputs1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
@@ -2554,7 +2554,7 @@ class SoftmaxLayerLogitsTest(test_utils.TestCase):
       if not params.num_classes:
         params.num_classes = 4
       params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
-      softmax = params.cls(params)
+      softmax = params.Instantiate()
 
       input_dim = params.input_dim
       if seq_length:
@@ -2657,7 +2657,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           activation='RELU',
           batch_norm=False)
       p1.params_init = params_init
-      p1_l = p1.cls(p1)
+      p1_l = p1.Instantiate()
 
       p2 = layers.ProjectionLayer.Params().Set(
           name='p2',
@@ -2666,7 +2666,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           activation='NONE',
           batch_norm=False)
       p2.params_init = params_init
-      p2_l = p2.cls(p2)
+      p2_l = p2.Instantiate()
 
       a = tf.constant(np.random.rand(5, 10), dtype=tf.float32)
       out1 = feedforward_net.FPropDefaultTheta(a)
@@ -2710,7 +2710,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           batch_norm=False)
       p1.qdomain.default = proj_qdomain.Copy()
       p1.params_init = params_init
-      p1_l = p1.cls(p1)
+      p1_l = p1.Instantiate()
 
       p2 = layers.ProjectionLayer.Params().Set(
           name='p2',
@@ -2720,7 +2720,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           batch_norm=False)
       p2.params_init = params_init
       p2.qdomain.default = proj_qdomain.Copy()
-      p2_l = p2.cls(p2)
+      p2_l = p2.Instantiate()
 
       a = tf.constant(np.random.rand(5, 10), dtype=tf.float32)
       out1 = feedforward_net.FPropDefaultTheta(a)
@@ -2755,7 +2755,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           batch_norm=True,
           bn_fold_weights=True)
       p1.params_init = params_init
-      p1_l = p1.cls(p1)
+      p1_l = p1.Instantiate()
 
       p2 = layers.ProjectionLayer.Params().Set(
           name='p2',
@@ -2765,7 +2765,7 @@ class FeedForwardNetTest(test_utils.TestCase):
           batch_norm=True,
           bn_fold_weights=True)
       p2.params_init = params_init
-      p2_l = p2.cls(p2)
+      p2_l = p2.Instantiate()
 
       a = tf.constant(np.random.rand(5, 10), dtype=tf.float32)
       out1 = feedforward_net.FPropDefaultTheta(a)
@@ -2841,7 +2841,7 @@ class AddingAccumulatorTest(test_utils.TestCase):
     with self.session():
       layer_p = layers.IdentityLayer.Params()
       layer_p.name = 'test'
-      layer = layer_p.cls(layer_p)
+      layer = layer_p.Instantiate()
 
       layer.RegisterAccumulator('acc1', layers.AddingAccumulator([],
                                                                  tf.float32))
@@ -2993,7 +2993,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
           num_micro_batches=num_micro_batches,
           cell_tpl=cell_tpl,
           before_tpl=[])
-    layer = endpoint.cls(endpoint)
+    layer = endpoint.Instantiate()
     return layer
 
   @parameterized.named_parameters({

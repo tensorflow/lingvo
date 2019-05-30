@@ -610,7 +610,7 @@ class AttentionTest(test_utils.TestCase):
           inner_atten_params=iap,
           num_attention_heads=2,
           use_source_vec_as_attention_value=False)
-      atten = params.cls(params)
+      atten = params.Instantiate()
       packed_src = atten.InitForSourcePacked(atten.theta, source_vecs,
                                              source_contexts, source_padding)
       tf.global_variables_initializer().run()
@@ -651,7 +651,7 @@ class AttentionTest(test_utils.TestCase):
           num_attention_heads=2,
           use_source_vec_as_attention_value=False,
           packed_input=True)
-      atten = params.cls(params)
+      atten = params.Instantiate()
       theta = atten.theta
       packed_src1 = atten.InitForSourcePacked(
           theta, source_vecs, source_contexts, source_padding, source_seg_id)
@@ -730,7 +730,7 @@ class AttentionTest(test_utils.TestCase):
           inner_atten_params=iap,
           num_attention_heads=2,
           use_source_vec_as_attention_value=False)
-      atten = params.cls(params)
+      atten = params.Instantiate()
       packed_src1 = atten.InitForSourcePacked(atten.theta, source_vecs,
                                               source_contexts, source_padding)
       cached_src = py_utils.NestedMap(
@@ -783,7 +783,7 @@ class AttentionTest(test_utils.TestCase):
           inner_atten_params=iap,
           num_attention_heads=2,
           use_source_vec_as_attention_value=False)
-      atten = params.cls(params)
+      atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
       tf.global_variables_initializer().run()
@@ -839,7 +839,7 @@ class AttentionTest(test_utils.TestCase):
           num_attention_heads=2,
           use_source_vec_as_attention_value=False,
           packed_input=True)
-      atten = params.cls(params)
+      atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding, source_seg_id)
       tf.global_variables_initializer().run()
@@ -890,7 +890,7 @@ class AttentionTest(test_utils.TestCase):
           atten_dropout_deterministic=True,
           random_seed=7249528,
           use_source_vec_as_attention_value=False)
-      atten = params.cls(params)
+      atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
       atten_state = atten.ZeroAttentionState(2, 6)
@@ -962,7 +962,7 @@ class AttentionTest(test_utils.TestCase):
           inner_atten_params=iap,
           num_attention_heads=2,
           use_source_vec_as_attention_value=False)
-      atten = params.cls(params)
+      atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
       # [batch * 2 heads, time]
@@ -1018,7 +1018,7 @@ class AttentionTest(test_utils.TestCase):
           enable_ctx_post_proj=True,
           ctx_post_proj_dim=5,
           context_dim=6)
-      atten = params.cls(params)
+      atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
       tf.global_variables_initializer().run()
@@ -1081,7 +1081,7 @@ class AttentionTest(test_utils.TestCase):
           use_source_vec_as_attention_value=False,
           vn=py_utils.VariationalNoiseParams(0.0, False, False),
           packed_input=packed_input)
-      atten = params.cls(params)
+      atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding, source_seg_id)
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
@@ -1624,7 +1624,7 @@ class AttentionTest(test_utils.TestCase):
     params.hidden_dim = depth
     params.vn.global_vn = False
     params.vn.per_step_vn = False
-    atten = params.cls(params)
+    atten = params.Instantiate()
     prob_out, vec_out = self._testPerStepSourcePaddingHelper(atten, depth)
     print('vec_out', np.array_repr(np.sum(vec_out, 1)))
     self.assertAllClose([2.00084352, 3.2933836, 2.30622029, 3.2933836],
@@ -1640,7 +1640,7 @@ class AttentionTest(test_utils.TestCase):
     params.hidden_dim = depth
     params.vn.global_vn = False
     params.vn.per_step_vn = False
-    atten = params.cls(params)
+    atten = params.Instantiate()
     prob_out, vec_out = self._testPerStepSourcePaddingHelper(atten, depth)
     print('vec_out', np.array_repr(np.sum(vec_out, 1)))
     self.assertAllClose([2.02671742, 3.38590097, 2.34964013, 3.38590097],
@@ -1657,7 +1657,7 @@ class AttentionTest(test_utils.TestCase):
     params.hidden_dim = depth
     params.vn.global_vn = False
     params.vn.per_step_vn = False
-    atten = params.cls(params)
+    atten = params.Instantiate()
     prob_out, vec_out = self._testPerStepSourcePaddingHelper(atten, depth)
     print('vec_out', np.array_repr(np.sum(vec_out, 1)))
     self.assertAllClose([-0.006338, -0.025153, 0.041647, -0.025153],
@@ -1680,7 +1680,7 @@ class AttentionTest(test_utils.TestCase):
         [tf.ones([4, 1], tf.float32),
          tf.zeros([4, 5], tf.float32)], 1)
     atten_state = tf.expand_dims(atten_state, 1)
-    atten = params.cls(params)
+    atten = params.Instantiate()
     prob_out, vec_out = self._testPerStepSourcePaddingHelper(
         atten, depth, atten_state=atten_state)
     print('vec_out', np.array_repr(np.sum(vec_out, 1)))
@@ -1698,7 +1698,7 @@ class AttentionTest(test_utils.TestCase):
     params.hidden_dim = depth
     params.vn.global_vn = False
     params.vn.per_step_vn = False
-    atten = params.cls(params)
+    atten = params.Instantiate()
     atten_state = atten.ZeroAttentionState(6, 4)
     atten_state.emit_probs = tf.concat(
         [tf.ones([4, 1], tf.float32),

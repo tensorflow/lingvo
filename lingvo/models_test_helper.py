@@ -80,7 +80,7 @@ class BaseModelsTest(test_utils.TestCase):
     p.cluster.mode = 'sync'
     p.cluster.job = 'decoder'
     p.cluster.decoder.replicas = 1
-    with p.cluster.cls(p.cluster), tf.Graph().as_default():
+    with p.cluster.Instantiate(), tf.Graph().as_default():
       # Instantiate the params class, to help catch errors in layer constructors
       # due to misconfigurations.
       p = p.Instantiate().params

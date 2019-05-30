@@ -98,7 +98,7 @@ class BaseLayerTest(test_utils.TestCase):
   def testCreateChildren(self):
     layer_p = base_layer.BaseLayer.Params()
     layer_p.name = 'test'
-    layer = layer_p.cls(layer_p)
+    layer = layer_p.Instantiate()
     layer.CreateChildren('a', [layer_p, [layer_p, layer_p], layer_p])
     self.assertEqual(len(layer.a), 3)
     self.assertEqual(len(layer.a[1]), 2)
@@ -109,7 +109,7 @@ class BaseLayerTest(test_utils.TestCase):
 
   def testCreateVariable(self):
     layer_p = TestLayer.Params().Set(name='test')
-    layer = layer_p.cls(layer_p)
+    layer = layer_p.Instantiate()
     self.assertEqual('test/w/var:0', layer.vars.w.name)
     self.assertEqual('test/b/var:0', layer.vars.b.name)
     self.assertNotIn(layer.vars.w,
@@ -120,7 +120,7 @@ class BaseLayerTest(test_utils.TestCase):
 
   def testCreateVariableSkipLpRegularization(self):
     layer_p = TestLayer.Params().Set(name='test', skip_lp_regularization=True)
-    layer = layer_p.cls(layer_p)
+    layer = layer_p.Instantiate()
     self.assertIn(layer.vars.w,
                   tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
     self.assertIn(layer.vars.b,
@@ -129,7 +129,7 @@ class BaseLayerTest(test_utils.TestCase):
   def testGetDescendant(self):
     q = base_layer.BaseLayer.Params()
     q.name = 'test'
-    l = q.cls(q)
+    l = q.Instantiate()
     p = base_layer.BaseLayer.Params()
     l.CreateChild('a', p)
     l.CreateChild('b', p)
@@ -146,7 +146,7 @@ class BaseLayerTest(test_utils.TestCase):
   def testCreateAccumulator(self):
     layer_p = base_layer.BaseLayer.Params()
     layer_p.name = 'test'
-    layer = layer_p.cls(layer_p)
+    layer = layer_p.Instantiate()
     layer.CreateChild('child', layer_p)
 
     # First accumulator should succeed.
@@ -175,7 +175,7 @@ class BaseLayerTest(test_utils.TestCase):
     with self.session():
       layer_p = base_layer.BaseLayer.Params()
       layer_p.name = 'test'
-      layer = layer_p.cls(layer_p)
+      layer = layer_p.Instantiate()
 
       layer.RegisterAccumulator('acc1', AddingAccumulator())
 
@@ -195,7 +195,7 @@ class BaseLayerTest(test_utils.TestCase):
     with self.session():
       layer_p = base_layer.BaseLayer.Params()
       layer_p.name = 'test'
-      layer = layer_p.cls(layer_p)
+      layer = layer_p.Instantiate()
 
       layer.RegisterAccumulator('acc1', AddingAccumulator())
       layer.accumulators.acc1.Update(1.0)
@@ -214,7 +214,7 @@ class BaseLayerTest(test_utils.TestCase):
     with self.session():
       layer_p = base_layer.BaseLayer.Params()
       layer_p.name = 'test'
-      layer1 = layer_p.cls(layer_p)
+      layer1 = layer_p.Instantiate()
       layer1.CreateChild('layer1a', layer_p)
       layer1.CreateChild('layer1b', layer_p)
       layer1.layer1b.CreateChild('layer1b1', layer_p)
@@ -264,7 +264,7 @@ class BaseLayerTest(test_utils.TestCase):
   def testAddFunction(self):
     layer_p = base_layer.BaseLayer.Params()
     layer_p.name = 'test'
-    layer = layer_p.cls(layer_p)
+    layer = layer_p.Instantiate()
 
     layer.AddFunction('test1', lambda: 1)
     with self.assertRaises(AttributeError):
@@ -289,7 +289,7 @@ class BaseLayerTest(test_utils.TestCase):
 
     layer_p = BadLayer.Params()
     layer_p.name = 'test'
-    layer = layer_p.cls(layer_p)
+    layer = layer_p.Instantiate()
 
     with self.assertRaisesRegexp(AttributeError, 'bad_sub_layer'):
       _ = layer.bad_sub_layer

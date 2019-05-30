@@ -932,7 +932,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.name = 'merger_layer'
       p.merger_op = 'concat'
       p.source_dim = depth
-      merger = p.cls(p)
+      merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs)
       tf.global_variables_initializer().run()
@@ -970,7 +970,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.source_dim = depth
       with self.assertRaisesRegexp(
           ValueError, 'Output dims should be the same length as input dims.*'):
-        _ = p.cls(p)
+        _ = p.Instantiate()
 
   def testMergerLayerWeightedSum(self):
     with self.session(use_gpu=True) as sess:

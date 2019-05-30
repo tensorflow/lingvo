@@ -172,11 +172,11 @@ class LearningRateScheduleTest(test_utils.TestCase):
   def testTransformerLearningRateScheduleNoWarmUp(self):
     params = schedule.TransformerLearningRateScheduleNoWarmUp.Params().Set(
         decay_start=4000, model_dim=512)
-    lrs = params.cls(params)
+    lrs = params.Instantiate()
 
     base_params = schedule.TransformerLearningRateSchedule.Params().Set(
         warmup_steps=4000, model_dim=512)
-    base_lrs = base_params.cls(base_params)
+    base_lrs = base_params.Instantiate()
 
     with self.session():
 

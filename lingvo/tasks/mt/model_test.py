@@ -556,7 +556,7 @@ class RNMTModelTest(test_utils.TestCase):
       cluster_params.input.name = '/job:localhost'
       cluster_params.input.replicas = 1
       cluster_params.input.gpus_per_replica = 0
-      with cluster_params.cls(cluster_params):
+      with cluster_params.Instantiate():
         mdl = p.Instantiate()
         mdl.FPropDefaultTheta()
       loss = mdl.loss

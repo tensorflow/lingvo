@@ -216,7 +216,7 @@ class Controller(base_runner.BaseRunner):
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
-        self._model = self.params.cls(self.params)
+        self._model = self.params.Instantiate()
         self._params = self._model.params
         self._model.ConstructFPropBPropGraph()
         self._saver = self._GetSaver()
@@ -406,7 +406,7 @@ class Trainer(base_runner.BaseRunner):
     super(Trainer, self).__init__(*args, **kwargs)
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
-        self._model = self.params.cls(self.params)
+        self._model = self.params.Instantiate()
         self._params = self._model.params
         self._model.ConstructFPropBPropGraph()
       self.initialize_tables = tf.tables_initializer()
@@ -615,7 +615,7 @@ class TrainerTpu(base_runner.BaseRunner):
           Returns:
             New summed metrics values and a train_op.
           """
-          self._model = self.params.cls(self.params)
+          self._model = self.params.Instantiate()
           self._load_ops = tf.get_collection(py_utils.TPU_EMBEDDING_LOAD_OPS)
           self._retrieve_ops = tf.get_collection(
               py_utils.TPU_EMBEDDING_RETRIEVE_OPS)
@@ -887,7 +887,7 @@ class Evaler(base_runner.BaseRunner):
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
-        self._model = self.params.cls(self.params)
+        self._model = self.params.Instantiate()
         self._params = self._model.params
         # Always create the same graph to make sure node names are always
         # exactly the same.
@@ -1048,7 +1048,7 @@ class Decoder(base_runner.BaseRunner):
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
-        self._model = self.params.cls(self.params)
+        self._model = self.params.Instantiate()
         self._params = self._model.params
         self._model_task = self._model.GetTask(self._model_task_name)
         # Note, different graphs are being constructed for different model

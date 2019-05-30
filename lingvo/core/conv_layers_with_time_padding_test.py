@@ -44,7 +44,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.is_eval = False
-      _ = params.cls(params)
+      _ = params.Instantiate()
       conv_vars = tf.get_collection('Conv2DLayerWithPadding_vars')
       conv_var_names = [x.name for x in conv_vars]
       expected_var_names = ['conv/w/var:0']
@@ -60,7 +60,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_stride = [2, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.is_eval = False
-      conv_layer = params.cls(params)
+      conv_layer = params.Instantiate()
       in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
       self.assertEqual(out_shape, [None, None, 5, 32])
@@ -79,7 +79,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.name = 'conv'
       params.filter_shape = [3, 3, 3, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      conv_layer = params.cls(params)
+      conv_layer = params.Instantiate()
       in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
       inputs1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
@@ -103,7 +103,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.name = 'conv'
       params.filter_shape = [2, 1, 3, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      conv_layer = params.cls(params)
+      conv_layer = params.Instantiate()
       in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
       inputs1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
@@ -127,7 +127,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.name = 'conv'
       params.filter_shape = [3, 3, 3, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      conv_layer = params.cls(params)
+      conv_layer = params.Instantiate()
       in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
       inputs1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
@@ -152,7 +152,7 @@ class ConvLayerTest(test_utils.TestCase):
       params.filter_shape = [2, 1, 3, 2]
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
 
-      conv_layer = params.cls(params)
+      conv_layer = params.Instantiate()
       in_padding1 = tf.zeros([2, 4], dtype=tf.float32)
       inputs1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)

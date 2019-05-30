@@ -45,7 +45,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       p.name = 'specAug_layers'
       p.freq_mask_max_bins = 0
       p.time_mask_max_frames = 10
-      specaug_layer = p.cls(p)
+      specaug_layer = p.Instantiate()
       expected_output = np.array([[[[1., 1.], [1., 1.]], [[0., 0.], [0., 0.]],
                                    [[0., 0.], [0., 0.]], [[1., 1.], [1., 1.]],
                                    [[1., 1.], [1., 1.]], [[1., 1.], [1., 1.]],
@@ -85,7 +85,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       p.name = 'specAug_layers'
       p.freq_mask_max_bins = 6
       p.time_mask_max_frames = 0
-      specaug_layer = p.cls(p)
+      specaug_layer = p.Instantiate()
       expected_output = np.array([[[[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
                                    [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],
                                    [[1., 1.], [1., 1.], [1., 1.], [1., 1.]],

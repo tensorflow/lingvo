@@ -61,7 +61,7 @@ class OptimizerTest(test_utils.TestCase):
       var_grads1 = py_utils.ComputeGradients(loss1, proj_layer.vars)
       var_grads2 = py_utils.ComputeGradients(loss2, proj_layer.vars)
       op = optimizer.SGD.Params()
-      opt = op.cls(op)
+      opt = op.Instantiate()
       lr = 1e-1
       with tf.control_dependencies([loss1, loss2]):
         var_update_op1 = opt.Apply(
@@ -103,7 +103,7 @@ class OptimizerTest(test_utils.TestCase):
       var_grads = py_utils.ComputeGradients(loss, proj_layer.vars)
       op = optimizer.Accumulator.Params().Set(
           accum_steps=2, dtype=tf.float64, optimizer_tpl=optimizer.SGD.Params())
-      opt = op.cls(op)
+      opt = op.Instantiate()
       lr = 1e-1
       var_update_op = opt.Apply(lr, var_grads)
       increment_global_step_op = tf.assign_add(

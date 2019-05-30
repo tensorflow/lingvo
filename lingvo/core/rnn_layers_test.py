@@ -101,7 +101,7 @@ class LayersTestBase(test_utils.TestCase):
         sfrnn_params.num_input_nodes = input_dim
         sfrnn_params.num_output_nodes = output_dim
         with tf.name_scope('sfrnn'):
-          sfrnn = sfrnn_params.cls(sfrnn_params)
+          sfrnn = sfrnn_params.Instantiate()
 
         np.random.seed(12345)
         input_dim = input_dim if input_dim > 0 else dims
@@ -153,7 +153,7 @@ class LayersTestBase(test_utils.TestCase):
       sfrnn_params.num_layers = num_layers
       sfrnn_params.skip_start = 2
       with tf.name_scope('sfrnn'):
-        sfrnn = sfrnn_params.cls(sfrnn_params)
+        sfrnn = sfrnn_params.Instantiate()
 
       np.random.seed(12345)
       inputs = tf.constant(np.random.uniform(size=(slen, batch, dims)), dtype)
@@ -197,7 +197,7 @@ class LayersTest(LayersTestBase):
     with self.session(use_gpu=False) as sess:
       rnn_params = rnn_layers.IdentitySeqLayer.Params()
       rnn_params.name = 'no_op'
-      rnn = rnn_params.cls(rnn_params)
+      rnn = rnn_params.Instantiate()
 
       np.random.seed(12345)
       inputs_sequence = []
@@ -627,7 +627,7 @@ class LayersTest(LayersTestBase):
       frnn_params.vn = rnn_params.vn
 
       with tf.variable_scope('frnn'):
-        frnn = frnn_params.cls(frnn_params)
+        frnn = frnn_params.Instantiate()
 
       frnn_outputs, frnn_final = frnn.FPropDefaultTheta(
           tf.stack(inputs_sequence), tf.stack(paddings_sequence))

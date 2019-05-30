@@ -395,7 +395,7 @@ class LinearRampupExponentialDecayScaledByNumSplitSchedule(
       cluster_params.task = 0
       assert cluster_params.mode == 'sync'
       cluster_params.job = 'trainer_client'
-      my_cluster = cluster_params.cls(cluster_params)
+      my_cluster = cluster_params.Instantiate()
       splits = my_cluster.num_splits_per_client
 
     warmup_end = p.warmup * splits
@@ -464,7 +464,7 @@ class LinearRampupPiecewiseConstantSchedule(BaseLearningRateSchedule):
       cluster_params.task = 0
       assert cluster_params.mode == 'sync'
       cluster_params.job = 'trainer_client'
-      my_cluster = cluster_params.cls(cluster_params)
+      my_cluster = cluster_params.Instantiate()
       splits = my_cluster.num_splits_per_client
 
     assert splits >= 1
