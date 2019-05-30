@@ -72,6 +72,12 @@ def GenericInput(processor, *args, **kwargs):
     output_tmpl.values = list(outputs)
     flat_outputs = output_tmpl.Flatten()
     tf.logging.debug('Processor flat outputs=%s', flat_outputs)
+    tf.logging.debug('extra_inputs=%s extra_args=%s extra_vars=%s',
+                     function.get_extra_inputs(), function.get_extra_args(),
+                     function.get_extra_vars())
+    assert not function.get_extra_args(), (
+        'fns {} is not pure: extra_args={}'.format(processor,
+                                                   function.get_extra_args()))
     return flat_outputs
 
   proc_fn = function.Defun(tf.string)(_FlatOutputProcessor)
