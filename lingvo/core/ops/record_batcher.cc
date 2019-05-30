@@ -280,9 +280,17 @@ void RecordBatcher::ProcessorLoop() {
     TensorVec sample;
     s = processor_->Process(record, &bucket, &sample);
     if (!s.ok()) {
-      // Print error message except for CANCELLED error. NmtExampleProcessor
-      // uses CANCELLED for data that are filtered out.
-      if (!errors::IsCancelled(s)) {
+      // Print error message. Some example processors use CANCELLED for data
+      // that are filtered out. Print only first 10 such errors.
+      if (errors::IsCancelled(s)) {
+        // The counter incrementing is not thread-safe. But we don't really
+        // care.
+        static int log_counter = 0;
+        if (log_counter < 10) {
+          log_counter++;
+          LOG(WARNING) << s;
+        }
+      } else {
         LOG(WARNING) << s;
       }
       continue;
