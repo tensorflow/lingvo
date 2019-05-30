@@ -20,8 +20,8 @@ from __future__ import print_function
 
 import copy
 import itertools
-
 import numpy as np
+import six
 from six.moves import range
 from six.moves import zip
 import tensorflow as tf
@@ -503,8 +503,12 @@ class PyUtilsTest(test_utils.TestCase):
       grad_mask['c:0'] = select
       grad_mask['d:0'] = select
       grad_onehot = tf.one_hot(1, 3, dtype=tf.float32)
+      grad_mask = {
+          k: tf.tensordot(v, grad_onehot, 1)
+          for k, v in six.iteritems(grad_mask)
+      }
       var_grads = py_utils.ComputeGradients(l, vmap)
-      var_grads_mask = py_utils.MaskGradients(var_grads, grad_mask, grad_onehot)
+      var_grads_mask = py_utils.MaskGradients(var_grads, grad_mask)
       sess.run(tf.global_variables_initializer())
       _, var_grads_mask_vals = sess.run([var_grads, var_grads_mask])
       # 'a' and 'b' are masked, while 'c' and 'd' are not.

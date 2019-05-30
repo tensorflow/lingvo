@@ -202,6 +202,7 @@ py_library(
         ":cluster_factory",
         ":early_stop",
         ":hyperparams",
+        ":optimization_program",
         ":optimizer",
         ":py_utils",
         ":schedule",
@@ -225,6 +226,7 @@ py_test(
         ":base_model_params",
         ":hyperparams",
         ":layers",
+        ":optimization_program",
         ":py_utils",
         ":task_scheduler",
         ":test_utils",
@@ -573,6 +575,26 @@ py_test(
         ":multitask_model",
         ":py_utils",
         ":test_utils",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_library(
+    name = "optimization_program",
+    srcs = ["optimization_program.py"],
+    deps = [
+        ":base_input_generator",
+        ":base_layer",
+        ":build_data",
+        ":cluster_factory",
+        ":early_stop",
+        ":hyperparams",
+        ":optimizer",
+        ":py_utils",
+        ":schedule",
+        ":summary_utils",
+        ":task_scheduler",
+        # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
 )

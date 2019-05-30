@@ -1633,13 +1633,12 @@ def ComputeGradients(
   return var_grad.Filter(lambda v_g: v_g[1] is not None)
 
 
-def MaskGradients(var_grad, grad_mask, grad_onehot):
+def MaskGradients(var_grad, grad_mask):
   """Computes gradients of non-masked variables in vmap w.r.t loss.
 
   Args:
     var_grad: A `.NestedMap` of (variable, gradient)
-    grad_mask: A `.NestedMap` of (variable, mask).
-    grad_onehot: A 1-hot vector of the current data source selected.
+    grad_mask: A dict of (variable name, mask).
 
   Returns:
     var_grad - a `.NestedMap` of (variable, mask * gradient).
@@ -1647,13 +1646,11 @@ def MaskGradients(var_grad, grad_mask, grad_onehot):
 
   def ApplyMask(entry):
     var, grad = entry
-    grad_mask_dotproduct = tf.tensordot(grad_onehot, grad_mask[var.name], 1)
+    mask = grad_mask[var.name]
     if isinstance(grad, tf.IndexedSlices):
-      return (var,
-              tf.IndexedSlices(grad.values * grad_mask_dotproduct,
-                               grad.indices))
+      return (var, tf.IndexedSlices(grad.values * mask, grad.indices))
     else:
-      return (var, grad * grad_mask_dotproduct)
+      return (var, grad * mask)
 
   return var_grad.Transform(ApplyMask)
 
@@ -1696,6 +1693,27 @@ def ApplyGradMultiplier(vs_gs_scale, grad_scale=None):
     return (var, grad)
 
   return vs_gs_scale.Transform(Scale)
+
+
+def HasNanOrInfGradient(var_grads):
+  """Returns a bool tensor to indicate if `var_grads` contains NaNs or Infs.
+
+  Args:
+    var_grads: A `.NestedMap` with (var, grad) tuple as the map value.
+
+  Returns:
+    A bool scalar tensor to indicate if the `var_grads` contains NaNs or Infs.
+  """
+
+  def HasNanOrInf(x):
+    if isinstance(x, tf.IndexedSlices):
+      x = x.values
+    with tf.device(x.device):
+      if x.dtype.is_complex:
+        return tf.reduce_any([HasNanOrInf(tf.real(x)), HasNanOrInf(tf.imag(x))])
+      return tf.reduce_any(tf.logical_or(tf.is_nan(x), tf.is_inf(x)))
+
+  return tf.reduce_any([HasNanOrInf(g) for (_, g) in var_grads.Flatten()])
 
 
 def ApplyGradNormCliping(vs_gs, norm=1.0):
@@ -2244,7 +2262,7 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
   """Finds and returns a list of relevant batch-normalization updates.
 
   Args:
-    loss: The loss that is being optimized for.
+    loss: The loss that is being optimized for. A tensor or a list of tensors.
     batch_norm_updates: A list of batch normalization updates.
 
   Returns:
@@ -2252,7 +2270,7 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
     that are relevant to the loss being optimized, and the second list contains
     all in batch_norm_updates but not in the first list.
   """
-  dependent_ops_and_tensors = set(FindNeeded([loss]))
+  dependent_ops_and_tensors = set(FindNeeded(loss))
   relevant_updates = []
   irrelevant_updates = []
 

@@ -23,10 +23,8 @@ import tensorflow as tf
 
 from lingvo.core import base_layer
 from lingvo.core import base_model
-from lingvo.core import cluster_factory
 from lingvo.core import metrics
 from lingvo.core import py_utils
-from lingvo.core import summary_utils
 from lingvo.tasks.mt import decoder
 from lingvo.tasks.mt import encoder
 
@@ -182,25 +180,6 @@ class TransformerModel(MTBaseModel):
     p = self.params
     assert p.encoder.model_dim == p.decoder.source_dim
 
-  def BProp(self):
-    super(TransformerModel, self).BProp()
-    # Computes gradients' norm and adds their summaries.
-    p = self.params
-    vg = self._var_grads
-    emb_vg = py_utils.NestedMap()
-    emb_vg.child = [vg.enc.token_emb, vg.dec.token_emb]
-
-    # Note that positional embedding layer has no trainable variable
-    # if its trainable_scaling is false.
-    if 'position_emb' in vg.enc:
-      emb_vg.child += [vg.enc.position_emb]
-    if 'position_emb' in vg.dec:
-      emb_vg.child += [vg.dec.position_emb]
-    summary_utils.AddNormSummary('emb', emb_vg)
-    summary_utils.AddNormSummary('atten',
-                                 [vg.enc.transformer_stack.trans, vg.dec.trans])
-    summary_utils.AddNormSummary('softmax', vg.dec.softmax)
-
 
 class RNMTModel(MTBaseModel):
   """RNMT+ Model.
@@ -215,35 +194,3 @@ class RNMTModel(MTBaseModel):
     p.encoder = encoder.MTEncoderBiRNN.Params()
     p.decoder = decoder.MTDecoderV1.Params()
     return p
-
-  def BProp(self):
-    super(RNMTModel, self).BProp()
-
-    if self.cluster.add_summary:
-      vg = self._var_grads
-      # Computes gradients' norm and adds their summaries.
-      emb_grads = []
-      rnn_grads = []
-      atten_grads = []
-      softmax_grads = []
-      if 'enc' in vg:
-        emb_grads += [vg.enc.emb] if 'emb' in vg.enc else []
-        rnn_grads += [vg.enc.rnn] if 'rnn' in vg.enc else []
-      if 'dec' in vg:
-        emb_grads += [vg.dec.emb] if 'emb' in vg.dec else []
-        rnn_grads += [vg.dec.frnn] if 'frnn' in vg.dec else []
-        softmax_grads += [vg.dec.softmax] if 'softmax' in vg.dec else []
-        if 'frnn_with_atten' in vg.dec:
-          if 'cell' in vg.dec.frnn_with_atten:
-            rnn_grads += [vg.dec.frnn_with_atten.cell]
-          if 'atten' in vg.dec.frnn_with_atten:
-            atten_grads += [vg.dec.frnn_with_atten.atten]
-
-      if emb_grads:
-        summary_utils.AddNormSummary('emb', emb_grads)
-      if rnn_grads:
-        summary_utils.AddNormSummary('lstm', rnn_grads)
-      if atten_grads:
-        summary_utils.AddNormSummary('atten', atten_grads)
-      if softmax_grads:
-        summary_utils.AddNormSummary('softmax', softmax_grads)

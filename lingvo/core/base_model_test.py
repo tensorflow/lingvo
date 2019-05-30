@@ -31,6 +31,7 @@ from lingvo.core import base_model
 from lingvo.core import base_model_params
 from lingvo.core import hyperparams
 from lingvo.core import layers
+from lingvo.core import optimization_program
 from lingvo.core import py_utils
 from lingvo.core import task_scheduler
 from lingvo.core import test_utils
@@ -80,7 +81,7 @@ class BaseTaskTest(test_utils.TestCase):
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     var_grads = py_utils.NestedMap(a=(var_a, tf.ones_like(var_a)))
-    scaled_grads_map = task.ScaleGradients(var_grads)
+    scaled_grads_map = task.optimization_programs[0].ScaleGradients(var_grads)
 
     FLAGS.enable_check_numerics = False
     with self.session():
@@ -103,7 +104,7 @@ class BaseTaskTest(test_utils.TestCase):
     var_a = task.theta.a
     # Infinite gradient.
     var_grads = py_utils.NestedMap(a=(var_a, tf.log(0.)))
-    scaled_grads_map = task.ScaleGradients(var_grads)
+    scaled_grads_map = task.optimization_programs[0].ScaleGradients(var_grads)
 
     with self.session():
       tf.global_variables_initializer().run()
@@ -125,7 +126,7 @@ class BaseTaskTest(test_utils.TestCase):
     var_a = task.theta.a
     # Make a NaN gradient.
     var_grads = py_utils.NestedMap(a=(var_a, 0. * tf.log(0.)))
-    scaled_grads_map = task.ScaleGradients(var_grads)
+    scaled_grads_map = task.optimization_programs[0].ScaleGradients(var_grads)
 
     with self.session():
       tf.global_variables_initializer().run()
@@ -148,7 +149,7 @@ class BaseTaskTest(test_utils.TestCase):
     var_a = task.theta.a
     # Make a NaN gradient.
     var_grads = py_utils.NestedMap(a=(var_a, 0. * tf.log(0.)))
-    scaled_grads_map = task.ScaleGradients(var_grads)
+    scaled_grads_map = task.optimization_programs[0].ScaleGradients(var_grads)
 
     with self.session():
       tf.global_variables_initializer().run()
@@ -173,7 +174,8 @@ class BaseTaskTest(test_utils.TestCase):
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     var_grads = py_utils.NestedMap(a=(var_a, tf.ones_like(var_a)))
-    self.assertRaises(ValueError, task.ScaleGradients, var_grads)
+    self.assertRaises(ValueError, task.optimization_programs[0].ScaleGradients,
+                      var_grads)
 
   def testScaleGradientsSingleTensorNorm(self):
     p = self.TestParams()
@@ -193,7 +195,7 @@ class BaseTaskTest(test_utils.TestCase):
     var_grads = py_utils.NestedMap(
         a=(var_a, tf.ones_like(var_a) * 10.0),
         b=(var_b, tf.ones_like(var_b) * 0.5))
-    scaled_grads_map = task.ScaleGradients(var_grads)
+    scaled_grads_map = task.optimization_programs[0].ScaleGradients(var_grads)
 
     FLAGS.enable_check_numerics = False
     with self.session():
@@ -320,6 +322,8 @@ class SingleTaskModelTest(test_utils.TestCase):
   def testInit(self):
     p = base_model.SingleTaskModel.Params()
     p.task = BaseTaskTest.TestParams()
+    p.task.train.optimization_program = (
+        optimization_program.OptimizationProgram.Params().Set(name='loss'))
     p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
     model = p.Instantiate()
     self.assertEqual(model.params.name, model.GetTask().params.name)
@@ -351,7 +355,11 @@ class MultiTaskModelTest(test_utils.TestCase):
     p = base_model.MultiTaskModel.Params()
     p.name = 'MultiTaskModel'
     p0 = BaseTaskTest.TestParams()
+    p0.train.optimization_program = (
+        optimization_program.OptimizationProgram.Params().Set(name='loss'))
     p1 = BaseTaskTest.TestParams()
+    p1.train.optimization_program = (
+        optimization_program.OptimizationProgram.Params().Set(name='loss'))
 
     p.input = base_model_params.MultiTaskModelParams().Train()
     p.input.Define('a',

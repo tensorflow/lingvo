@@ -29,6 +29,7 @@ from lingvo.core import build_data
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import hyperparams
+from lingvo.core import optimization_program
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import schedule
@@ -76,6 +77,23 @@ class StatsCounter(object):
       return tf.identity(tf.assign_add(self._var, delta))
 
 
+_LEGACY_OPTIMIZATION_PROGRAM_PARAMS = [
+    'bprop_variable_filter',
+    'clip_gradient_norm_to_value',
+    'clip_gradient_single_norm_to_value',
+    'colocate_gradients_with_ops',
+    'gate_gradients',
+    'grad_aggregation_method',
+    'grad_norm_to_clip_to_zero',
+    'grad_norm_tracker',
+    'l1_regularizer_weight',
+    'l2_regularizer_weight',
+    'learning_rate',
+    'lr_schedule',
+    'optimizer',
+]
+
+
 class BaseTask(base_layer.BaseLayer):
   """A single encoder/decoder task.
 
@@ -105,32 +123,6 @@ class BaseTask(base_layer.BaseLayer):
         'Step starting from which variational noise is added to '
         'params values during training.')
     tp.Define('vn_std', 0.0, 'Std of the variational noise.')
-    tp.Define(
-        'l2_regularizer_weight', None,
-        'If not None, L2 regularization to apply to the weights. '
-        'Otherwise, disable L2 regularization.')
-    tp.Define(
-        'l1_regularizer_weight', None,
-        'If not None, L1 regularization to apply to the weights. '
-        'Otherwise, disable L1 regularization.')
-    tp.Define('learning_rate', 0.0, 'learning rate to use.')
-    tp.Define(
-        'clip_gradient_norm_to_value', 0.0,
-        'Clip gradient by global norm to this value. This is similar to '
-        'the bahaviour of tf.clip_by_global_norm, if you are looking for '
-        'tf.clip_by_norm refer to clip_gradient_single_norm_to_value. Note '
-        'these are mutually exclusive.')
-    tp.Define(
-        'clip_gradient_single_norm_to_value', 0.0,
-        'Clip gradient by single tensor norm to this value. This is '
-        'similar to the bahaviour of tf.clip_by_norm. Note this is mutually '
-        'exlusive to using clip_gradient_norm_to_value.')
-    tp.Define('grad_norm_to_clip_to_zero', 0.0,
-              'Clip gradient to 0 if its norm exceeds this value.')
-    tp.Define('grad_norm_tracker', None, 'Params for GradNormTracker.')
-    tp.Define('optimizer', optimizer.Adam.Params(), 'Params for the optimizer.')
-    tp.Define('lr_schedule', schedule.ContinuousLearningRateSchedule.Params(),
-              'Learning rate decay schedule.')
     tp.Define('early_stop', early_stop.EarlyStop.Params(),
               'Early stopping based on dev-set performance.')
     tp.Define(
@@ -138,10 +130,6 @@ class BaseTask(base_layer.BaseLayer):
         'If > 0, enable ExponentialMovingAverage during training '
         'with the give decay. '
         'Must be < 1. Disabled if <= 0.')
-    tp.Define(
-        'bprop_variable_filter', None,
-        'If set, only backprop variables whose names partially match '
-        'this regexp (re.search).')
     tp.Define(
         'init_from_checkpoint_rules', {},
         'If not None, a dictionary with keys corresponding to a checkpoint '
@@ -177,6 +165,44 @@ class BaseTask(base_layer.BaseLayer):
               'Generates a checkpoint roughly once every this many seconds.')
     tp.Define('summary_interval_steps', 100,
               'Generates a checkpoint roughly once every this many steps.')
+    # The following params must mirror those in OptimizationProgram.Params().
+    # TODO(rpang): migrate existing params to use optimization_program and
+    # delete legacy params.
+    # LINT.IfChange
+    tp.Define(
+        'optimization_program', None, 'One or a list of optimization programs. '
+        'If None, uses a OptimizationProgram created from the legacy params '
+        'defined below: learning_rate, lr_schedule, optimizer, etc.')
+    tp.Define(
+        'l2_regularizer_weight', None,
+        'If not None, L2 regularization to apply to the weights. '
+        'Otherwise, disable L2 regularization.')
+    tp.Define(
+        'l1_regularizer_weight', None,
+        'If not None, L1 regularization to apply to the weights. '
+        'Otherwise, disable L1 regularization.')
+    tp.Define('learning_rate', 0.0, 'learning rate to use.')
+    tp.Define(
+        'clip_gradient_norm_to_value', 0.0,
+        'Clip gradient by global norm to this value. This is similar to '
+        'the bahaviour of tf.clip_by_global_norm, if you are looking for '
+        'tf.clip_by_norm refer to clip_gradient_single_norm_to_value. Note '
+        'these are mutually exclusive.')
+    tp.Define(
+        'clip_gradient_single_norm_to_value', 0.0,
+        'Clip gradient by single tensor norm to this value. This is '
+        'similar to the bahaviour of tf.clip_by_norm. Note this is mutually '
+        'exlusive to using clip_gradient_norm_to_value.')
+    tp.Define('grad_norm_to_clip_to_zero', 0.0,
+              'Clip gradient to 0 if its norm exceeds this value.')
+    tp.Define('grad_norm_tracker', None, 'Params for GradNormTracker.')
+    tp.Define('optimizer', optimizer.Adam.Params(), 'Params for the optimizer.')
+    tp.Define('lr_schedule', schedule.ContinuousLearningRateSchedule.Params(),
+              'Learning rate decay schedule.')
+    tp.Define(
+        'bprop_variable_filter', None,
+        'If set, only backprop variables whose names partially match '
+        'this regexp (re.search).')
     tp.Define(
         'grad_aggregation_method', tf.AggregationMethod.EXPERIMENTAL_TREE,
         'Specifies the method used to combine gradient terms. Accepted '
@@ -187,6 +213,7 @@ class BaseTask(base_layer.BaseLayer):
         'operations. This avoids some race conditions.')
     tp.Define('colocate_gradients_with_ops', True,
               'If True, try colocating gradients with the corresponding op.')
+    # LINT.ThenChange(optimization_program.py)
     p.Define('eval', hyperparams.Params(),
              'Params to control how this task should be evaled.')
     ep = p.eval
@@ -242,7 +269,6 @@ class BaseTask(base_layer.BaseLayer):
           self.cluster.input_device), py_utils.outside_all_rewrites():
         self.CreateChild('input', p.input)
 
-    self._var_grads = None
     self._encoder = None
     self._online_encoder = None
     self._decoder = None
@@ -272,13 +298,31 @@ class BaseTask(base_layer.BaseLayer):
     # DistillationTask.
     if tp and self.cluster.job in ('worker', 'trainer', 'trainer_client',
                                    'controller'):
-      if tp.grad_norm_tracker:
-        with tf.variable_scope(p.name):
-          self.CreateChild('grad_norm_tracker', tp.grad_norm_tracker)
-
-      self.CreateChild('lr_schedule', tp.lr_schedule)
-      self.CreateChild('optimizer', tp.optimizer)
+      self._SetOptimizationProgramFromLegacyParams(tp)
+      if tp.optimization_program is not None:
+        if isinstance(tp.optimization_program, (list, tuple)):
+          self.CreateChildren('optimization_programs', tp.optimization_program)
+        else:
+          self.CreateChildren('optimization_programs',
+                              [tp.optimization_program])
     self._UpdateVnConfig()
+
+  def _SetOptimizationProgramFromLegacyParams(self, tp):
+    """Sets tp.optimization_program based on legacy params."""
+    if tp.optimization_program is not None:
+      return
+    op = optimization_program.OptimizationProgram.Params()
+    tp.optimization_program = op
+    op.name = 'loss'
+    for k, v in tp.IterParams():
+      if k not in _LEGACY_OPTIMIZATION_PROGRAM_PARAMS:
+        tf.logging.info('Ignoring legacy param %s=%s for optimization program',
+                        k, v)
+        continue
+      setattr(op, k, v)
+      setattr(tp, k, None)
+    for line in op.ToText().split('\n'):
+      tf.logging.info('OptimizationProgram params: %s', line)
 
   def ComputePredictions(self, theta, input_batch):
     """Computes predictions for `input_batch`.
@@ -480,32 +524,87 @@ class BaseTask(base_layer.BaseLayer):
       input_batch = self.GetInputBatch()
     return self.FProp(self.theta, input_batch)
 
-  def GetVarGrads(self):
-    return self._var_grads
-
   def AdjustGradients(self, vars_gradients):
     """Allow for custom gradient manipulation prior to clipping."""
+    tf.logging.info('BaseTask.AdjustGradients')
     return vars_gradients
 
   def BProp(self):
+    self._BPropForVariables(self.vars)
+
+  def _BPropForVariables(self, vmap):
     """Constructs the backward graph."""
-    p = self.params
-    vs = self.vars
     bprop_variable_filters = self.input_generator.GetBpropVariableFilters()
     # Only compute the mask if the variable filters are not empty.
     if bprop_variable_filters != [''] * len(bprop_variable_filters):
       self._ComputeGradientMask(bprop_variable_filters)
-    if p.train.bprop_variable_filter:
+    train_ops = {}  # mapping from op name to op.
+    train_ops['total_samples'] = self.IncrementTotalSamples()
+    gradient_mask = None
+    if self._per_input_gradient_mask:
+      # TODO(neerajgaur): Change this to use source_selected from input_batch.
+      onehot = self.input_generator.GetInputSourceOneHot()
+      gradient_mask = {
+          k: tf.tensordot(v, onehot, 1)
+          for k, v in six.iteritems(self._per_input_gradient_mask)
+      }
+    all_losses = []
+    for optimization in self.optimization_programs:
+      loss_name = optimization.params.name
+      metric = self._metrics.get(loss_name, None)
+      if metric is None:
+        raise ValueError('Loss %s not found in metrics %s' %
+                         (loss_name, self._metrics.keys()))
+      loss = metric[0]
+      all_losses.append(loss)
+      train_ops['train/%s' % loss_name], stats = optimization.Apply(
+          loss,
+          vmap,
+          gradient_mask=gradient_mask,
+          gradient_adjuster=self.AdjustGradients)
+      train_ops['stats/%s' % loss_name] = self.IncrementTotalNans(
+          tf.to_int32(stats.has_nan_or_inf))
+      for key, (value, weight) in six.iteritems(stats.eval_metrics):
+        self.AddEvalMetric(key + '/' + loss_name, value, weight)
 
-      def VariableFilter(v):
-        if re.search(p.train.bprop_variable_filter, v.name):
-          return True
-        tf.logging.info('bprop disabled by bprop_variable_filter: %s', v.name)
-        return False
+    relevant_bn_updates, _ = py_utils.FindRelevantBatchNormUpdates(
+        all_losses, tf.get_collection(py_utils.BATCH_NORM_UPDATES))
+    train_ops['bn_updates'] = relevant_bn_updates
 
-      vs = vs.Filter(VariableFilter)
-      tf.logging.info('Filtered bprop variables: %s', vs)
-    self._BPropForVariables(vs)
+    # Get the op to update the weight masks and thresholds
+    train_ops['mask_updates'] = self._GetMaskUpdateOp()
+
+    # Post training step update.
+    train_ops['post_step'] = self.PostTrainingStepUpdate(self.global_step)
+
+    with tf.control_dependencies(tf.nest.flatten(train_ops)):
+      true_global_step = py_utils.GetOrCreateGlobalStepVar()
+      with tf.colocate_with(true_global_step):
+        increment_global_steps = tf.assign_add(true_global_step, 1)
+      if self._global_step_var != true_global_step:
+        with tf.colocate_with(self._global_step_var):
+          increment_global_steps = tf.group(
+              increment_global_steps, tf.assign_add(self._global_step_var, 1))
+      train_ops['global_step'] = increment_global_steps
+
+    # If we are using Tpu Embeddings, generate the monolithic send
+    # gradient op.
+    tpu_embedding_activations = tf.get_collection(
+        py_utils.TPU_EMBEDDING_ACTIVATIONS)
+    if tpu_embedding_activations:
+      tpu_embedding_activations_dict = tpu_embedding_activations[0]
+      tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
+      tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
+          self.loss, tpu_embedding_activations_dict, tpu_embedding)
+      train_ops['tpu_embedding'] = tpu_embedding_send_gradient_op
+
+    for op_name, op in six.iteritems(train_ops):
+      assert op is not None, op_name
+
+    # TODO(rpang): try to structure _train_op as:
+    #   tf.cond(skip_step, <only update skip stats>, <all updates>)
+    # so that we skip all other updates when a step is skipped.
+    self._train_op = tf.group(*tf.nest.flatten(train_ops), name='bprop')
 
   def _ComputeGradientMask(self, bprop_variable_filters):
     """Compute gradient mask for each variable and bprop_variable_filters.
@@ -526,225 +625,6 @@ class BaseTask(base_layer.BaseLayer):
         if re.search(bprop_variable_filters[i], var.name):
           self._per_input_gradient_mask[var.name] += (
               tf.one_hot(i, len(bprop_variable_filters), dtype=tf.float32))
-
-  def _HasNanOrInf(self, var_grads):
-    """Returns a bool tensor to indicate if `var_grads` contains NaNs or Infs.
-
-    Args:
-      var_grads: A `.NestedMap` with (var, grad) tuple as the map value.
-
-    Returns:
-      A bool scalar tensor to indicate if the `var_grads` contains NaNs or Infs.
-    """
-
-    def HasNanOrInf(x):
-      with tf.device(x.device):
-        if x.dtype.is_complex:
-          return tf.reduce_any(
-              [HasNanOrInf(tf.real(x)),
-               HasNanOrInf(tf.imag(x))])
-        return tf.reduce_any(tf.logical_or(tf.is_nan(x), tf.is_inf(x)))
-
-    return tf.reduce_any([(HasNanOrInf(g.values) if isinstance(
-        g, tf.IndexedSlices) else HasNanOrInf(g))
-                          for (_, g) in var_grads.Flatten()])
-
-  def _GetGlobalGradScale(self, all_grad_norm, has_nan_or_inf):
-    """Returns a scaling factor for all gradients according to their norm.
-
-    In case there are NaN or Inf values the function will return 0.0.
-
-    Args:
-      all_grad_norm: A scalar represeting the total norm of all vars.
-      has_nan_or_inf: A scalar of 0 or 1, indicating whether there is any NaN or
-        Inf in input gradients.
-
-    Returns:
-      grad_scale: the gradient scale. 0 if gradient updates should be skipped
-        for the step.
-    """
-    p = self.params
-    tp = p.train
-    # Computes gradient's scale.
-    grad_scale = tf.constant(1.0)
-    if tp.clip_gradient_norm_to_value:
-      # If all_grad_norm > tp.clip_gradient_norm_to_value, scales
-      # all_grads so that the norm is 1.0.
-      grad_scale = tf.minimum(1.0,
-                              tp.clip_gradient_norm_to_value / all_grad_norm)
-
-    if tp.grad_norm_to_clip_to_zero:
-      # If all_grad_norm > tp.grad_norm_to_clip_to_zero, treats
-      # grad_scale as 0. This way, we ignore this step.
-      grad_scale *= tf.cast(all_grad_norm < tp.grad_norm_to_clip_to_zero,
-                            p.dtype)
-
-    if tp.grad_norm_tracker:
-      grad_scale *= self.grad_norm_tracker.FPropDefaultTheta(
-          all_grad_norm, has_nan_or_inf)
-
-    # Force grad_scale to be 0 if there is any NaN or Inf in gradients.
-    grad_scale = tf.where(has_nan_or_inf, 0.0, grad_scale)
-
-    return grad_scale
-
-  def ScaleGradients(self, var_grads):
-    """Scales gradients according to training params.
-
-    Args:
-      var_grads: a `.NestedMap` whose values are (var, grad) pairs.
-
-    Returns:
-      A `.NestedMap` containing:
-      - has_nan_or_inf: a scalar of 0 or 1, indicating whether there is any NaN
-        or Inf in input gradients.
-      - final_var_grads: a `.NestedMap` whose values are (var, grad) pairs,
-        where gradients have already been scaled.
-      - grad_scale: the gradient scale. 0 if gradient updates should be skipped
-        for the step. (Optional, only returned in case global norm clipping is
-        used.)
-    """
-    p = self.params
-    tp = p.train
-
-    # Computes gradients' norm and adds their summaries. Note that all_grad_norm
-    # may be nan, which may cause grad_scale to be nan.
-    for name, vg in var_grads.FlattenItems():
-      summary_utils.AddNormSummary(name, py_utils.NestedMap(s=vg))
-    all_grad_norm = tf.sqrt(
-        py_utils.SumSquared(
-            [g for (_, g) in py_utils.NestedMap(child=var_grads).Flatten()]))
-    all_var_norm = tf.sqrt(
-        py_utils.SumSquared(
-            [v for (v, _) in py_utils.NestedMap(child=var_grads).Flatten()]))
-    grad_norm_is_nan_or_inf = tf.logical_or(
-        tf.is_nan(all_grad_norm), tf.is_inf(all_grad_norm))
-
-    # Optional gradient adjustment. Note that this happens after computing
-    # all_grad_norm.
-    var_grads = self.AdjustGradients(var_grads)
-
-    # Handles NaN/Inf gradients.
-    has_nan_or_inf = self._HasNanOrInf(var_grads)
-    # Grad norm can still be inf even if none of the individual grad is inf.
-    has_nan_or_inf = tf.logical_or(has_nan_or_inf, grad_norm_is_nan_or_inf)
-
-    return_values = py_utils.NestedMap()
-    if tp.clip_gradient_single_norm_to_value:
-      # Currently using both types of clipping simultaneously is unsupported.
-      if tp.clip_gradient_norm_to_value:
-        raise ValueError('Cannot use clip_gradient_single_norm_to_value=%f and '
-                         'clip_gradient_norm_to_value=%f.' %
-                         (tp.clip_gradient_single_norm_to_value,
-                          tp.clip_gradient_norm_to_value))
-      final_var_grads = py_utils.ApplyGradNormCliping(
-          var_grads, tp.clip_gradient_single_norm_to_value)
-
-    else:
-      grad_scale = self._GetGlobalGradScale(all_grad_norm, has_nan_or_inf)
-      self.AddEvalMetric('grad_norm/all', all_grad_norm, tf.constant(1.0))
-      self.AddEvalMetric('var_norm/all', all_var_norm, tf.constant(1.0))
-      self.AddEvalMetric('grad_scale_all', grad_scale, tf.constant(1.0))
-      final_var_grads = py_utils.ApplyGradMultiplier(var_grads, grad_scale)
-      return_values.grad_scale = grad_scale
-
-    return_values.has_nan_or_inf = has_nan_or_inf
-    return_values.final_var_grads = final_var_grads
-    return return_values
-
-  def _BPropForVariables(self, vmap):
-    """Constructs the backward graph for the given variables.
-
-    Args:
-      vmap: a `.NestedMap` of variables.
-    """
-    p = self.params
-    tp = p.train
-
-    train_ops = []
-
-    # If we are using Tpu Embeddings, generate the monolithic send
-    # gradient op.
-    tpu_embedding_activations = tf.get_collection(
-        py_utils.TPU_EMBEDDING_ACTIVATIONS)
-    if tpu_embedding_activations:
-      tpu_embedding_activations_dict = tpu_embedding_activations[0]
-      tpu_embedding = tf.get_collection(py_utils.TPU_EMBEDDING)[0]
-      tpu_embedding_send_gradient_op = py_utils.ComputeTpuEmbeddingGradients(
-          self.loss, tpu_embedding_activations_dict, tpu_embedding)
-      train_ops.append(tpu_embedding_send_gradient_op)
-
-    # Compute gradients.
-    self._var_grads = py_utils.ComputeGradients(
-        self.loss, vmap, tp.grad_aggregation_method,
-        tp.colocate_gradients_with_ops, tp.gate_gradients)
-
-    # L2 regularizer.
-    if tp.l2_regularizer_weight is not None:
-      l2_loss, self._var_grads = py_utils.AdjustGradientsWithLpLoss(
-          self._var_grads, tp.l2_regularizer_weight, p=2.0)
-      summary_utils.scalar('l2_loss', l2_loss)
-
-    # L1 regularizer.
-    if tp.l1_regularizer_weight is not None:
-      l1_loss, self._var_grads = py_utils.AdjustGradientsWithLpLoss(
-          self._var_grads, tp.l1_regularizer_weight, p=1.0)
-      summary_utils.scalar('l1_loss', l1_loss)
-
-    # Mask gradients only if the mask is set.
-    if self._per_input_gradient_mask:
-      # TODO(neerajgaur): Change this to use source_selected from input_batch.
-      bprop_onehot = self.input_generator.GetInputSourceOneHot()
-      self._var_grads = py_utils.MaskGradients(
-          self._var_grads, self._per_input_gradient_mask, bprop_onehot)
-
-    # Apply gradient clipping.
-    scaled_vars = self.ScaleGradients(self._var_grads)
-    has_nan_or_inf = scaled_vars.has_nan_or_inf
-    self._var_grads = scaled_vars.final_var_grads
-
-    # Histogram summary.
-    summary_utils.CollectVarHistogram(self._var_grads)
-
-    lrs = self.lr_schedule.Value(self.global_step)
-    summary_utils.scalar('lr_schedule', lrs)
-    lr = tp.learning_rate * lrs
-
-    var_update_op = self.optimizer.Apply(lr, self._var_grads)
-
-    relevant_bn_updates, _ = py_utils.FindRelevantBatchNormUpdates(
-        self.loss, tf.get_collection(py_utils.BATCH_NORM_UPDATES))
-    batch_norm_updates = tf.group(*relevant_bn_updates)
-
-    # Update stats.
-    stats_updates = tf.group(
-        self.IncrementTotalSamples(),
-        self.IncrementTotalNans(tf.to_int32(has_nan_or_inf)))
-
-    # Post training step update.
-    post_training_step_updates = self.PostTrainingStepUpdate(self.global_step)
-
-    # Get the op to update the weight masks and thresholds
-    mask_update_op = self._GetMaskUpdateOp()
-
-    # TODO(rpang): try to structure _train_op as:
-    #   tf.cond(skip_step, <only update skip stats>, <all updates>)
-    # so that we skip all other updates when a step is skipped.
-    train_ops += [
-        var_update_op, batch_norm_updates, stats_updates,
-        post_training_step_updates, mask_update_op
-    ]
-    with tf.control_dependencies(train_ops):
-      true_global_step = py_utils.GetOrCreateGlobalStepVar()
-      with tf.colocate_with(true_global_step):
-        increment_global_steps = tf.assign_add(true_global_step, 1)
-      if self._global_step_var != true_global_step:
-        with tf.colocate_with(self._global_step_var):
-          increment_global_steps = tf.group(
-              increment_global_steps, tf.assign_add(self._global_step_var, 1))
-
-    train_ops.append(increment_global_steps)
-    self._train_op = tf.group(*train_ops, name='train')
 
   def ApplyExponentialMovingAverage(self, ema):
     """Wraps `self.train_op` with an op updating exponential moving average."""
