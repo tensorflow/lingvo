@@ -343,23 +343,25 @@ class BaseRunner(object):
       text_filename: If not None, writes the summary to the text file.
     """
     status_metrics = []
-    for name, summary in sorted(summaries.items()):
+    for _, summary in sorted(summaries.items()):
       if not isinstance(summary, summary_pb2.Summary):
         tf.logging.warning(
             'Non tf.Summary args passed to _WriteSummaries, skipping: %s @%s',
             job_name, global_step)
         continue
       summary_writer.add_summary(summary, global_step)
-      if summary.value and summary.value[0].HasField('simple_value'):
-        value = summary.value[0].simple_value
-        tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
-                        global_step, name, value)
-        status_metrics.append('%s: %.8g' % (name, value))
-        early_stop.MetricHistory.ConditionalAppend(job_name, name, global_step,
-                                                   value)
-      else:
-        tf.logging.info('%s summary on checkpoint@%d %s', job_name, global_step,
-                        name)
+      if summary.value:
+        for value in summary.value:
+          if value.HasField('simple_value'):
+            tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
+                            global_step, value.tag, value.simple_value)
+            status_metrics.append('%s: %.8g' % (value.tag, value.simple_value))
+            early_stop.MetricHistory.ConditionalAppend(job_name, value.tag,
+                                                       global_step,
+                                                       value.simple_value)
+          else:
+            tf.logging.info('%s summary on checkpoint@%d %s', job_name,
+                            global_step, value.tag)
     summary_writer.flush()
     self._SetStatusMessage(
         '%s: step:%6d, %s' % (job_name, global_step, ', '.join(status_metrics)))
