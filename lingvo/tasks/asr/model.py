@@ -173,6 +173,8 @@ class AsrModel(base_model.BaseTask):
       decoded = tf.identity(decoded, name='top_k_decoded%s' % tag)
       decoded = tf.reshape(decoded, tf.shape(hyps))
     if scores is not None and hyps is not None:
+      scores = tf.identity(
+          tf.reshape(scores, tf.shape(lens)), name='top_k_scores%s' % tag)
       scores = tf.reshape(scores, tf.shape(hyps))
     return DecoderTopK(hyps, ids, lens, scores, decoded)
 
@@ -189,8 +191,9 @@ class AsrModel(base_model.BaseTask):
 
     return norm_wer_errors, norm_wer_words
 
-  def AddAdditionalDecoderMetricsToGraph(
-      self, topk_hyps, filtered_hyps, filtered_refs, input_batch, decoder_outs):
+  def AddAdditionalDecoderMetricsToGraph(self, topk_hyps, filtered_hyps,
+                                         filtered_refs, input_batch,
+                                         decoder_outs):
     """Returns a dict of metrics which should be computed from decoded hyps."""
     # The base class implementation returns an empty dictionary. Sub-classes can
     # provide their own implementation.
@@ -237,8 +240,8 @@ class AsrModel(base_model.BaseTask):
     utt_ids = input_batch.sample_ids
     tgt = self._GetTargetForDecoderMetrics(input_batch)
     transcripts = self.input_generator.IdsToStrings(
-        tgt.labels, tf.cast(
-            tf.reduce_sum(1.0 - tgt.paddings, 1) - 1.0, tf.int32))
+        tgt.labels,
+        tf.cast(tf.reduce_sum(1.0 - tgt.paddings, 1) - 1.0, tf.int32))
 
     # Filter out all isolated '<noise>' tokens.
     noise_pattern = ' <noise> |^<noise> | <noise>$|^<noise>$'
@@ -269,8 +272,9 @@ class AsrModel(base_model.BaseTask):
     }
 
     ret_dict.update(
-        self.AddAdditionalDecoderMetricsToGraph(
-            topk, filtered_hyps, filtered_refs, input_batch, decoder_outs))
+        self.AddAdditionalDecoderMetricsToGraph(topk, filtered_hyps,
+                                                filtered_refs, input_batch,
+                                                decoder_outs))
     return ret_dict
 
   def CreateAdditionalDecoderMetrics(self):
@@ -434,7 +438,7 @@ class AsrModel(base_model.BaseTask):
       if not frontend:
         # No custom frontend. Instantiate the default.
         frontend_p = asr_frontend.MelAsrFrontend.Params()
-        frontend = frontend_p.cls(frontend_p)
+        frontend = frontend_p.Instantiate()
 
       # Decode the wave bytes and use the explicit frontend.
       unused_sample_rate, audio = audio_lib.DecodeWav(wav_bytes)
