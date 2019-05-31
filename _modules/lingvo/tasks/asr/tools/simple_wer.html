@@ -364,13 +364,13 @@
     <span class="c1"># Generate aligned_html</span>
     <span class="k">if</span> <span class="n">diagnosis</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">ih</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">hs</span><span class="p">:</span>
-        <span class="n">tmph</span> <span class="o">=</span> <span class="n">hs</span><span class="p">[</span><span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
-      <span class="k">else</span><span class="p">:</span>
         <span class="n">tmph</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
-      <span class="k">if</span> <span class="n">ir</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">rs</span><span class="p">:</span>
-        <span class="n">tmpr</span> <span class="o">=</span> <span class="n">rs</span><span class="p">[</span><span class="n">ir</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
       <span class="k">else</span><span class="p">:</span>
+        <span class="n">tmph</span> <span class="o">=</span> <span class="n">hs</span><span class="p">[</span><span class="n">ih</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">ir</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">rs</span><span class="p">:</span>
         <span class="n">tmpr</span> <span class="o">=</span> <span class="s1">&#39; &#39;</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tmpr</span> <span class="o">=</span> <span class="n">rs</span><span class="p">[</span><span class="n">ir</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
       <span class="n">aligned_html</span> <span class="o">=</span> <span class="n">_GenerateAlignedHtml</span><span class="p">(</span><span class="n">tmph</span><span class="p">,</span> <span class="n">tmpr</span><span class="p">,</span> <span class="n">err_type</span><span class="p">)</span> <span class="o">+</span> <span class="n">aligned_html</span>
 
     <span class="c1"># If no error, go to previous ref and hyp.</span>
