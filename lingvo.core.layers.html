@@ -786,14 +786,71 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.layers.TPUEmbeddingTable">
+<em class="property">class </em><code class="descclassname">lingvo.core.layers.</code><code class="descname">TPUEmbeddingTable</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingTable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>An embedding table controlled by TPUEmbeddingLayer.</p>
+<p>Note that all input_keys needs to be declared upfront.</p>
+<dl class="classmethod">
+<dt id="lingvo.core.layers.TPUEmbeddingTable.Params">
+<em class="property">classmethod </em><code class="descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingTable.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.layers.TPUEmbeddingTable.table_config">
+<code class="descname">table_config</code><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable.table_config" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.layers.TPUEmbeddingTable.table_name">
+<code class="descname">table_name</code><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable.table_name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.layers.TPUEmbeddingTable.retrieve_op_list">
+<code class="descname">retrieve_op_list</code><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable.retrieve_op_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.layers.TPUEmbeddingTable.load_op_list">
+<code class="descname">load_op_list</code><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable.load_op_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="lingvo.core.layers.TPUEmbeddingTable.input_keys">
+<code class="descname">input_keys</code><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable.input_keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.TPUEmbeddingTable.CpuEmbLookup">
+<code class="descname">CpuEmbLookup</code><span class="sig-paren">(</span><em>ids_map</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingTable.CpuEmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable.CpuEmbLookup" title="Permalink to this definition">¶</a></dt>
+<dd><p>CPU evaluation embedding lookup.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.
+-1 is used as a padding id.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">An activations dict of string -&gt;  [batch, 1, embedding_dim] float32
+Tensor.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.layers.TPUEmbeddingLayer">
 <em class="property">class </em><code class="descclassname">lingvo.core.layers.</code><code class="descname">TPUEmbeddingLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>Embedding layer using TPU embedding.</p>
+<p>Monolithic interface to TPU embedding.</p>
 <p>This layer has some important caveats, due to the interface of the
 TPU embedding hardware. Its behavior most closely mimics that of
 tf.nn.embedding_lookup_sparse.</p>
-<p>Only support 1 table and multiple features.
+<p>Supports multiple tables and multiple input_keys per table.
 Only supports Adagrad.</p>
 <dl class="classmethod">
 <dt id="lingvo.core.layers.TPUEmbeddingLayer.Params">
@@ -803,7 +860,7 @@ Only supports Adagrad.</p>
 
 <dl class="method">
 <dt id="lingvo.core.layers.TPUEmbeddingLayer.EmbLookup">
-<code class="descname">EmbLookup</code><span class="sig-paren">(</span><em>theta</em>, <em>ids_map</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
+<code class="descname">EmbLookup</code><span class="sig-paren">(</span><em>ids_map</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Looks up embedding vectors for each entry in ids_map.</p>
 <p>Since the TPUEmbedding is monolothic, and consulted once per
 FProp/BPRop, we must centralize the lookup. Thus, for multiple
@@ -816,15 +873,10 @@ sqrtn.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – Named tuple with the weight matrix for the embedding.</li>
-<li><strong>ids_map</strong> – A dict of string -&gt; [batch, sequence] int32 Tensor.
--1 is used as a padding id.</li>
-</ul>
-</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ids_map</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_key</span></code> string -&gt; [batch, sequence] int32 Tensor.
+-1 is used as a padding id.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">An activations dict of string -&gt;  [batch, 1, embedding_dim] float32 Tensor</p>
-</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Activations dict of string -&gt; [batch, 1, embedding_dim] float32 Tensor.</td>
 </tr>
 </tbody>
 </table>

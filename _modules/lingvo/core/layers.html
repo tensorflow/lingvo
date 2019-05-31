@@ -1311,41 +1311,30 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">out_shape</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="TPUEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">TPUEmbeddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Embedding layer using TPU embedding.</span>
+<div class="viewcode-block" id="TPUEmbeddingTable"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingTable">[docs]</a><span class="k">class</span> <span class="nc">TPUEmbeddingTable</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;An embedding table controlled by TPUEmbeddingLayer.</span>
 
-<span class="sd">  This layer has some important caveats, due to the interface of the</span>
-<span class="sd">  TPU embedding hardware. Its behavior most closely mimics that of</span>
-<span class="sd">  tf.nn.embedding_lookup_sparse.</span>
-
-<span class="sd">  Only support 1 table and multiple features.</span>
-<span class="sd">  Only supports Adagrad.</span>
+<span class="sd">  Note that all input_keys needs to be declared upfront.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="TPUEmbeddingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="TPUEmbeddingTable.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingTable.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingTable</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Per-core batch size.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_keys&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Name of inputs in InputBatch.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Learning rate.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_accumulator&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Initial value of accumulator.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pipeline_execution_with_tensor_core&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-             <span class="s1">&#39;Set to True to be faster. See tpu_embedding.py for details.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_tpu_hosts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of TPU hosts.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;combiner&#39;</span><span class="p">,</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;Must be &quot;sum&quot;, &quot;sqrtn&quot; or &quot;mean&quot;&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_accumulator&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Initial value of accumulator.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_tpu_hosts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of TPU hosts.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingTable</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_keys</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span>
@@ -1356,37 +1345,12 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_hosts</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_padded_vocab_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span> <span class="o">*</span> <span class="n">num_hosts</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_keys</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_keys</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_keys</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_table&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-      <span class="n">num_cores</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span>
-      <span class="n">global_batch_size</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
-      <span class="n">table_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TableConfig</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_padded_vocab_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
-      <span class="n">table_to_config_dict</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">:</span> <span class="n">table_config</span><span class="p">}</span>
-      <span class="n">feature_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">FeatureConfig</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">)</span>
-      <span class="n">feature_to_config_dict</span> <span class="o">=</span> <span class="p">{}</span>
-      <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_feature_names</span><span class="p">:</span>
-        <span class="n">feature_to_config_dict</span><span class="p">[</span><span class="n">f</span><span class="p">]</span> <span class="o">=</span> <span class="n">feature_config</span>
-      <span class="n">mode</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TRAINING</span>
-      <span class="n">optimization_parameters</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">AdagradParameters</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">)</span>
-      <span class="n">device_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">DeviceConfig</span><span class="p">(</span>
-          <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">,</span>
-          <span class="n">num_hosts</span><span class="o">=</span><span class="n">num_hosts</span><span class="p">,</span>
-          <span class="n">job_name</span><span class="o">=</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TPUEmbedding</span><span class="p">(</span>
-          <span class="n">table_to_config_dict</span><span class="p">,</span>
-          <span class="n">feature_to_config_dict</span><span class="p">,</span>
-          <span class="n">global_batch_size</span><span class="p">,</span>
-          <span class="n">mode</span><span class="p">,</span>
-          <span class="n">master</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-          <span class="n">optimization_parameters</span><span class="o">=</span><span class="n">optimization_parameters</span><span class="p">,</span>
-          <span class="n">pipeline_execution_with_tensor_core</span><span class="o">=</span><span class="n">p</span>
-          <span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">,</span>
-          <span class="n">device_config</span><span class="o">=</span><span class="n">device_config</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_table_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TableConfig</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_padded_vocab_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
+
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
@@ -1399,8 +1363,8 @@
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_table_var</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_hosts</span><span class="p">):</span>
@@ -1430,7 +1394,7 @@
                     <span class="n">table_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">,</span>
                     <span class="n">num_shards</span><span class="o">=</span><span class="n">num_hosts</span><span class="p">,</span>
                     <span class="n">shard_id</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
-            <span class="n">load_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">load_parameters_op</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">load_parameters_op</span><span class="p">)</span>
 
             <span class="n">retrieved_table</span><span class="p">,</span> <span class="n">retrieved_accumulator</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">tpu_ops</span>
@@ -1441,12 +1405,141 @@
             <span class="n">retrieve_parameters_op</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">control_flow_ops</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
                 <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">vi_var</span><span class="p">,</span> <span class="n">retrieved_table</span><span class="p">),</span>
                 <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">accumulator_var</span><span class="p">,</span> <span class="n">retrieved_accumulator</span><span class="p">))</span>
-            <span class="n">retrieve_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">retrieve_parameters_op</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">retrieve_parameters_op</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_table_var</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_embedding_table_var</span>
     <span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">table_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_config</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">table_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">retrieve_op_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">load_op_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">input_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_keys</span>
+
+<div class="viewcode-block" id="TPUEmbeddingTable.CpuEmbLookup"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingTable.CpuEmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">CpuEmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;CPU evaluation embedding lookup.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      ids_map: A dict of `input_key` string -&gt; [batch, sequence] int32 Tensor.</span>
+<span class="sd">        -1 is used as a padding id.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An activations dict of string -&gt;  [batch, 1, embedding_dim] float32</span>
+<span class="sd">      Tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">rets</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">ids_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="c1"># Dense to sparse.</span>
+      <span class="n">dense_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">out_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+      <span class="n">sample_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+      <span class="n">embedding_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">sample_indices</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+      <span class="n">sparse_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">(</span>
+          <span class="n">indices</span><span class="o">=</span><span class="n">sample_indices</span><span class="p">,</span>
+          <span class="n">values</span><span class="o">=</span><span class="n">embedding_indices</span><span class="p">,</span>
+          <span class="n">dense_shape</span><span class="o">=</span><span class="n">dense_shape</span><span class="p">)</span>
+      <span class="c1"># [batch, embedding_dim]</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup_sparse</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span>
+          <span class="n">sparse_ids</span><span class="p">,</span>
+          <span class="kc">None</span><span class="p">,</span>  <span class="c1"># sp_weights</span>
+          <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
+      <span class="c1"># [batch, 1, embedding_dim]</span>
+      <span class="n">rets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rets</span></div></div>
+
+
+<div class="viewcode-block" id="TPUEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">TPUEmbeddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Monolithic interface to TPU embedding.</span>
+
+<span class="sd">  This layer has some important caveats, due to the interface of the</span>
+<span class="sd">  TPU embedding hardware. Its behavior most closely mimics that of</span>
+<span class="sd">  tf.nn.embedding_lookup_sparse.</span>
+
+<span class="sd">  Supports multiple tables and multiple input_keys per table.</span>
+<span class="sd">  Only supports Adagrad.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TPUEmbeddingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;TPUEmbeddingTables&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pipeline_execution_with_tensor_core&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Set to True to be faster. See tpu_embedding.py for details.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;batch_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Per-core batch size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_accumulator&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Initial value of accumulator.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Learning rate.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_tpu_hosts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of TPU hosts.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+    <span class="n">num_hosts</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
+
+    <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">num_cores</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">tpus_per_replica</span>
+      <span class="n">global_batch_size</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
+      <span class="n">table_to_config_dict</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="n">feature_to_config_dict</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">:</span>
+        <span class="n">table_to_config_dict</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">table_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">table_config</span>
+        <span class="n">load_op_list</span> <span class="o">+=</span> <span class="n">table</span><span class="o">.</span><span class="n">load_op_list</span>
+        <span class="n">retrieve_op_list</span> <span class="o">+=</span> <span class="n">table</span><span class="o">.</span><span class="n">retrieve_op_list</span>
+        <span class="k">for</span> <span class="n">feature</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">input_keys</span><span class="p">:</span>
+          <span class="n">feature_to_config_dict</span><span class="p">[</span><span class="n">feature</span><span class="p">]</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">FeatureConfig</span><span class="p">(</span>
+              <span class="n">table</span><span class="o">.</span><span class="n">table_name</span><span class="p">)</span>
+      <span class="n">mode</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TRAINING</span>
+      <span class="n">optimization_parameters</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">AdagradParameters</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">)</span>
+      <span class="n">device_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">DeviceConfig</span><span class="p">(</span>
+          <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">,</span>
+          <span class="n">num_hosts</span><span class="o">=</span><span class="n">num_hosts</span><span class="p">,</span>
+          <span class="n">job_name</span><span class="o">=</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TPUEmbedding</span><span class="p">(</span>
+          <span class="n">table_to_config_dict</span><span class="p">,</span>
+          <span class="n">feature_to_config_dict</span><span class="p">,</span>
+          <span class="n">global_batch_size</span><span class="p">,</span>
+          <span class="n">mode</span><span class="p">,</span>
+          <span class="n">master</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+          <span class="n">optimization_parameters</span><span class="o">=</span><span class="n">optimization_parameters</span><span class="p">,</span>
+          <span class="n">pipeline_execution_with_tensor_core</span><span class="o">=</span><span class="n">p</span>
+          <span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">,</span>
+          <span class="n">device_config</span><span class="o">=</span><span class="n">device_config</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;adding load and retrieve ops to collection.&#39;</span><span class="p">)</span>
@@ -1454,7 +1547,7 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_RETRIEVE_OPS</span><span class="p">,</span>
                            <span class="n">retrieve_op_list</span><span class="p">)</span>
 
-<div class="viewcode-block" id="TPUEmbeddingLayer.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">):</span>
+<div class="viewcode-block" id="TPUEmbeddingLayer.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Looks up embedding vectors for each entry in ids_map.</span>
 
 <span class="sd">    Since the TPUEmbedding is monolothic, and consulted once per</span>
@@ -1467,12 +1560,10 @@
 <span class="sd">    sqrtn.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      theta: Named tuple with the weight matrix for the embedding.</span>
-<span class="sd">      ids_map: A dict of string -&gt; [batch, sequence] int32 Tensor.</span>
+<span class="sd">      ids_map: A dict of `input_key` string -&gt; [batch, sequence] int32 Tensor.</span>
 <span class="sd">               -1 is used as a padding id.</span>
-
 <span class="sd">    Returns:</span>
-<span class="sd">      An activations dict of string -&gt;  [batch, 1, embedding_dim] float32 Tensor</span>
+<span class="sd">      Activations dict of string -&gt; [batch, 1, embedding_dim] float32 Tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -1486,33 +1577,24 @@
         <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">ret</span>
 
-    <span class="k">def</span> <span class="nf">CpuEmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">CpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;CPU evaluation embedding lookup.&quot;&quot;&quot;</span>
       <span class="n">rets</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">()</span>
-      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">ids</span> <span class="ow">in</span> <span class="n">ids_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="c1"># Dense to sparse.</span>
-        <span class="n">dense_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">out_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">sample_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">embedding_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">sample_indices</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-        <span class="n">sparse_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">SparseTensor</span><span class="p">(</span>
-            <span class="n">indices</span><span class="o">=</span><span class="n">sample_indices</span><span class="p">,</span>
-            <span class="n">values</span><span class="o">=</span><span class="n">embedding_indices</span><span class="p">,</span>
-            <span class="n">dense_shape</span><span class="o">=</span><span class="n">dense_shape</span><span class="p">)</span>
-        <span class="c1"># [batch, embedding_dim]</span>
-        <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup_sparse</span><span class="p">(</span>
-            <span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span>
-            <span class="n">sparse_ids</span><span class="p">,</span>
-            <span class="kc">None</span><span class="p">,</span>  <span class="c1"># sp_weights</span>
-            <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
-        <span class="c1"># [batch, 1, embedding_dim]</span>
-        <span class="n">rets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">:</span>
+        <span class="n">table_id_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">input_keys</span><span class="p">:</span>
+          <span class="n">table_id_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">ids_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+        <span class="n">table_rets</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">CpuEmbLookup</span><span class="p">(</span><span class="n">table_id_map</span><span class="p">)</span>
+        <span class="c1"># Merge table_rets with rets</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">table_rets</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+          <span class="n">rets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
       <span class="k">return</span> <span class="n">rets</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
     <span class="k">elif</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="c1"># Contoller</span>
-      <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">CpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># TPU Trainer</span>
       <span class="k">return</span> <span class="n">TpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span></div></div>
