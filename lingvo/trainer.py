@@ -821,7 +821,8 @@ class TrainerTpu(base_runner.BaseRunner):
           return
 
         if self._retrieve_ops:
-          infeed_loop_thread = threading.Thread(target=self._InfeedLoop(sess))
+          infeed_loop_thread = threading.Thread(
+              target=self._InfeedLoop, args=(sess,))
           infeed_loop_thread.start()
 
         values, outfeeds = sess.run(self._tpu_train_ops)
