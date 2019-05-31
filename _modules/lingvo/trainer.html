@@ -966,7 +966,8 @@
           <span class="k">return</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">:</span>
-          <span class="n">infeed_loop_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">(</span><span class="n">sess</span><span class="p">))</span>
+          <span class="n">infeed_loop_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
+              <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
           <span class="n">infeed_loop_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
         <span class="n">values</span><span class="p">,</span> <span class="n">outfeeds</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span><span class="p">)</span>
