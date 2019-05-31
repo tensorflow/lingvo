@@ -219,13 +219,13 @@ def ComputeWER(hyp, ref, diagnosis=False):
     # Generate aligned_html
     if diagnosis:
       if ih == 0 or not hs:
-        tmph = hs[ih - 1]
-      else:
         tmph = ' '
-      if ir == 0 or not rs:
-        tmpr = rs[ir - 1]
       else:
+        tmph = hs[ih - 1]
+      if ir == 0 or not rs:
         tmpr = ' '
+      else:
+        tmpr = rs[ir - 1]
       aligned_html = _GenerateAlignedHtml(tmph, tmpr, err_type) + aligned_html
 
     # If no error, go to previous ref and hyp.
