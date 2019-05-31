@@ -299,8 +299,8 @@ class InferenceGraphExporter(object):
       freeze_defaults: Default initializes the graph and freeze. Useful for
         early testing of downstream tools without having a checkpoint.
       export_path: If not None, write the inference graph in ASCII to this path.
-      subgraph_filter: If not None or empty, export only this list of inference
-        subgraphs.
+      subgraph_filter: A list of subgraph names. If not None or empty, export
+        only this list of inference subgraphs.
       random_seed: Fixes the random seed in the exported inference graph.
 
     Returns:
