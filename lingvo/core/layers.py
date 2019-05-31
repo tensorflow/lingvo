@@ -1166,41 +1166,30 @@ class EmbeddingLayer(base_layer.BaseLayer):
     return tf.reshape(embs, out_shape)
 
 
-class TPUEmbeddingLayer(base_layer.BaseLayer):
-  """Embedding layer using TPU embedding.
+class TPUEmbeddingTable(base_layer.BaseLayer):
+  """An embedding table controlled by TPUEmbeddingLayer.
 
-  This layer has some important caveats, due to the interface of the
-  TPU embedding hardware. Its behavior most closely mimics that of
-  tf.nn.embedding_lookup_sparse.
-
-  Only support 1 table and multiple features.
-  Only supports Adagrad.
+  Note that all input_keys needs to be declared upfront.
   """
 
   @classmethod
   def Params(cls):
-    p = super(TPUEmbeddingLayer, cls).Params()
+    p = super(TPUEmbeddingTable, cls).Params()
     p.Define('vocab_size', 0, 'Depth of the input.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
-    p.Define('batch_size', 0, 'Per-core batch size.')
     p.Define('input_keys', None, 'Name of inputs in InputBatch.')
-    p.Define('learning_rate', None, 'Learning rate.')
-    p.Define('initial_accumulator', None, 'Initial value of accumulator.')
-    p.Define('pipeline_execution_with_tensor_core', False,
-             'Set to True to be faster. See tpu_embedding.py for details.')
-    p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
     p.Define('combiner', 'mean', 'Must be "sum", "sqrtn" or "mean"')
+    p.Define('initial_accumulator', None, 'Initial value of accumulator.')
+    p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
     return p
 
   @base_layer.initializer
   def __init__(self, params):
-    super(TPUEmbeddingLayer, self).__init__(params)
+    super(TPUEmbeddingTable, self).__init__(params)
     p = self.params
     assert p.vocab_size > 0
     assert p.embedding_dim > 0
-    assert p.batch_size > 0
     assert p.input_keys
-    assert p.learning_rate > 0
     assert p.initial_accumulator > 0
     assert p.name
     assert p.num_tpu_hosts > 0
@@ -1211,37 +1200,12 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
 
     self._ids_per_shard = int(math.ceil(float(p.vocab_size) / num_hosts))
     self._padded_vocab_size = self._ids_per_shard * num_hosts
-    self._feature_names = p.input_keys
+    self._input_keys = p.input_keys
+
     self._table_name = '{}_table'.format(p.name)
-    if py_utils.use_tpu():
-      num_cores = cluster.params.worker.tpus_per_replica
-      global_batch_size = (
-          self.params.batch_size * self.cluster.num_splits_per_client)
-      table_config = tpu_embedding_lib.TableConfig(
-          self._padded_vocab_size, p.embedding_dim, combiner=p.combiner)
-      table_to_config_dict = {self._table_name: table_config}
-      feature_config = tpu_embedding_lib.FeatureConfig(self._table_name)
-      feature_to_config_dict = {}
-      for f in self._feature_names:
-        feature_to_config_dict[f] = feature_config
-      mode = tpu_embedding_lib.TRAINING
-      optimization_parameters = tpu_embedding_lib.AdagradParameters(
-          p.learning_rate, p.initial_accumulator)
-      device_config = tpu_embedding_lib.DeviceConfig(
-          num_cores=num_cores,
-          num_hosts=num_hosts,
-          job_name=cluster.params.worker.name)
-      self._tpu_embedding = tpu_embedding_lib.TPUEmbedding(
-          table_to_config_dict,
-          feature_to_config_dict,
-          global_batch_size,
-          mode,
-          master=None,
-          optimization_parameters=optimization_parameters,
-          pipeline_execution_with_tensor_core=p
-          .pipeline_execution_with_tensor_core,
-          device_config=device_config)
-      tf.add_to_collection(py_utils.TPU_EMBEDDING, self._tpu_embedding)
+    self._table_config = tpu_embedding_lib.TableConfig(
+        self._padded_vocab_size, p.embedding_dim, combiner=p.combiner)
+
     w_pc = py_utils.WeightParams(
         shape=[self._ids_per_shard, p.embedding_dim],
         init=p.params_init,
@@ -1254,8 +1218,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         collections=[self.__class__.__name__ + '_vars'])
 
     self._embedding_table_var = []
-    load_op_list = []
-    retrieve_op_list = []
+    self._load_op_list = []
+    self._retrieve_op_list = []
 
     with tf.variable_scope(p.name):
       for i in range(num_hosts):
@@ -1285,7 +1249,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
                     table_name=self._table_name,
                     num_shards=num_hosts,
                     shard_id=i))
-            load_op_list.append(load_parameters_op)
+            self._load_op_list.append(load_parameters_op)
 
             retrieved_table, retrieved_accumulator = (
                 tpu_embedding_lib.tpu_ops
@@ -1296,12 +1260,141 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
                 tf.assign(vi_var, retrieved_table),
                 tf.assign(accumulator_var, retrieved_accumulator))
-            retrieve_op_list.append(retrieve_parameters_op)
+            self._retrieve_op_list.append(retrieve_parameters_op)
 
     self._private_vars['wm'] = self._embedding_table_var
     self._private_theta['wm'] = [
         tf.identity(v) for v in self._embedding_table_var
     ]
+
+  @property
+  def table_config(self):
+    return self._table_config
+
+  @property
+  def table_name(self):
+    return self._table_name
+
+  @property
+  def retrieve_op_list(self):
+    return self._retrieve_op_list
+
+  @property
+  def load_op_list(self):
+    return self._load_op_list
+
+  @property
+  def input_keys(self):
+    return self._input_keys
+
+  def CpuEmbLookup(self, ids_map):
+    """CPU evaluation embedding lookup.
+
+    Args:
+      ids_map: A dict of `input_key` string -> [batch, sequence] int32 Tensor.
+        -1 is used as a padding id.
+
+    Returns:
+      An activations dict of string ->  [batch, 1, embedding_dim] float32
+      Tensor.
+    """
+    p = self.params
+    rets = collections.OrderedDict()
+    for k, ids in ids_map.items():
+      # Dense to sparse.
+      dense_shape = tf.shape(ids, out_type=tf.int64)
+      sample_indices = tf.cast(tf.where(tf.not_equal(ids, -1)), tf.int64)
+      embedding_indices = tf.cast(tf.gather_nd(ids, sample_indices), tf.int64)
+      sparse_ids = tf.SparseTensor(
+          indices=sample_indices,
+          values=embedding_indices,
+          dense_shape=dense_shape)
+      # [batch, embedding_dim]
+      embs = tf.nn.embedding_lookup_sparse(
+          self.theta.wm,
+          sparse_ids,
+          None,  # sp_weights
+          combiner=p.combiner)
+      # [batch, 1, embedding_dim]
+      rets[k] = tf.expand_dims(embs, 1)
+    return rets
+
+
+class TPUEmbeddingLayer(base_layer.BaseLayer):
+  """Monolithic interface to TPU embedding.
+
+  This layer has some important caveats, due to the interface of the
+  TPU embedding hardware. Its behavior most closely mimics that of
+  tf.nn.embedding_lookup_sparse.
+
+  Supports multiple tables and multiple input_keys per table.
+  Only supports Adagrad.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(TPUEmbeddingLayer, cls).Params()
+    p.Define('tables', None, 'TPUEmbeddingTables')
+    p.Define('vocab_size', 0, 'Depth of the input.')
+    p.Define('pipeline_execution_with_tensor_core', False,
+             'Set to True to be faster. See tpu_embedding.py for details.')
+    p.Define('batch_size', 0, 'Per-core batch size.')
+    p.Define('initial_accumulator', None, 'Initial value of accumulator.')
+    p.Define('learning_rate', None, 'Learning rate.')
+    p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TPUEmbeddingLayer, self).__init__(params)
+    p = self.params
+
+    assert p.tables
+    assert p.batch_size > 0
+    assert p.learning_rate > 0
+    assert p.initial_accumulator > 0
+    assert p.name
+    assert p.num_tpu_hosts > 0
+
+    cluster = self.cluster
+    num_hosts = p.num_tpu_hosts
+
+    self.CreateChildren('tables', p.tables)
+
+    load_op_list = []
+    retrieve_op_list = []
+
+    if py_utils.use_tpu():
+      num_cores = cluster.params.worker.tpus_per_replica
+      global_batch_size = (
+          self.params.batch_size * self.cluster.num_splits_per_client)
+      table_to_config_dict = {}
+      feature_to_config_dict = {}
+      for table in self.tables:
+        table_to_config_dict[table.table_name] = table.table_config
+        load_op_list += table.load_op_list
+        retrieve_op_list += table.retrieve_op_list
+        for feature in table.input_keys:
+          feature_to_config_dict[feature] = tpu_embedding_lib.FeatureConfig(
+              table.table_name)
+      mode = tpu_embedding_lib.TRAINING
+      optimization_parameters = tpu_embedding_lib.AdagradParameters(
+          p.learning_rate, p.initial_accumulator)
+      device_config = tpu_embedding_lib.DeviceConfig(
+          num_cores=num_cores,
+          num_hosts=num_hosts,
+          job_name=cluster.params.worker.name)
+      self._tpu_embedding = tpu_embedding_lib.TPUEmbedding(
+          table_to_config_dict,
+          feature_to_config_dict,
+          global_batch_size,
+          mode,
+          master=None,
+          optimization_parameters=optimization_parameters,
+          pipeline_execution_with_tensor_core=p
+          .pipeline_execution_with_tensor_core,
+          device_config=device_config)
+      tf.add_to_collection(py_utils.TPU_EMBEDDING, self._tpu_embedding)
 
     if py_utils.use_tpu():
       tf.logging.info('adding load and retrieve ops to collection.')
@@ -1309,7 +1402,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       tf.add_to_collection(py_utils.TPU_EMBEDDING_RETRIEVE_OPS,
                            retrieve_op_list)
 
-  def EmbLookup(self, theta, ids_map):
+  def EmbLookup(self, ids_map):
     """Looks up embedding vectors for each entry in ids_map.
 
     Since the TPUEmbedding is monolothic, and consulted once per
@@ -1322,12 +1415,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     sqrtn.
 
     Args:
-      theta: Named tuple with the weight matrix for the embedding.
-      ids_map: A dict of string -> [batch, sequence] int32 Tensor.
+      ids_map: A dict of `input_key` string -> [batch, sequence] int32 Tensor.
                -1 is used as a padding id.
-
     Returns:
-      An activations dict of string ->  [batch, 1, embedding_dim] float32 Tensor
+      Activations dict of string -> [batch, 1, embedding_dim] float32 Tensor.
     """
     p = self.params
 
@@ -1341,33 +1432,24 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         ret[k] = tf.expand_dims(v, axis=[1])
       return ret
 
-    def CpuEmbLookup(theta, ids_map):
+    def CpuEmbLookup(ids_map):
       """CPU evaluation embedding lookup."""
       rets = collections.OrderedDict()
-      for k, ids in ids_map.items():
-        # Dense to sparse.
-        dense_shape = tf.shape(ids, out_type=tf.int64)
-        sample_indices = tf.cast(tf.where(tf.not_equal(ids, -1)), tf.int64)
-        embedding_indices = tf.cast(tf.gather_nd(ids, sample_indices), tf.int64)
-        sparse_ids = tf.SparseTensor(
-            indices=sample_indices,
-            values=embedding_indices,
-            dense_shape=dense_shape)
-        # [batch, embedding_dim]
-        embs = tf.nn.embedding_lookup_sparse(
-            theta.wm,
-            sparse_ids,
-            None,  # sp_weights
-            combiner=p.combiner)
-        # [batch, 1, embedding_dim]
-        rets[k] = tf.expand_dims(embs, 1)
+      for table in self.tables:
+        table_id_map = {}
+        for key in table.input_keys:
+          table_id_map[key] = ids_map[key]
+        table_rets = table.CpuEmbLookup(table_id_map)
+        # Merge table_rets with rets
+        for k, v in table_rets.items():
+          rets[k] = v
       return rets
 
-    if self._params.is_eval:
-      return CpuEmbLookup(self.theta, ids_map)
+    if p.is_eval:
+      return CpuEmbLookup(ids_map)
     elif not py_utils.use_tpu():
       # Contoller
-      return CpuEmbLookup(self.theta, ids_map)
+      return CpuEmbLookup(ids_map)
     else:
       # TPU Trainer
       return TpuEmbLookup(ids_map)
