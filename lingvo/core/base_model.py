@@ -265,9 +265,9 @@ class BaseTask(base_layer.BaseLayer):
                              'The input generator may not iterate over exactly '
                              'one epoch per run')
 
-      with tf.device(
-          self.cluster.input_device), py_utils.outside_all_rewrites():
-        self.CreateChild('input', p.input)
+      input_params = self.cluster.PlaceInput(p.input)
+      with py_utils.outside_all_rewrites():
+        self.CreateChild('input', input_params)
 
     self._encoder = None
     self._online_encoder = None
@@ -512,10 +512,8 @@ class BaseTask(base_layer.BaseLayer):
     if py_utils.use_tpu():
       return self.input_generator.CreateTpuFeeds()
     else:
-      cluster = self.cluster
-      num_splits = cluster.num_splits_per_client
-      with tf.device(cluster.input_device):
-        return self.input_generator.SplitInputBatch(num_splits)
+      return self.input_generator.SplitInputBatch(
+          self.cluster.num_splits_per_client)
 
   def FPropDefaultTheta(self, input_batch=None):
     """Calls `FProp` with this layer's parameters."""

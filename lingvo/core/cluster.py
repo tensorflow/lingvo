@@ -325,10 +325,39 @@ class _Cluster(object):
     else:
       return ''
 
+  def PlaceInput(self, input_params):
+    """Applies a placement policy on the given input generator params.
+
+    By default, the policy is to place the input generator onto the input
+    device. Subclass can override PlaceInput method to implement more advanced
+    placement policy.
+
+    Args:
+      input_params: An input generator params.
+
+    Returns:
+      An input params which places the input generator on the input device.
+    """
+
+    class _UseInputDevice(input_params.cls):
+      """Places the input generator on the input device."""
+
+      def __init__(self, params):
+        with tf.device(self.cluster.input_device):
+          super(_UseInputDevice, self).__init__(params)
+
+      def SplitInputBatch(self, num_splits):
+        with tf.device(self.cluster.input_device):
+          return super(_UseInputDevice, self).SplitInputBatch(num_splits)
+
+    return input_params.Copy().Set(cls=_UseInputDevice)
+
   @property
   def input_targets(self):
     """Returns a list of network addresses of the input job."""
     p = self.params.input
+    if not p.targets:
+      return []
     targets = p.targets.split(',')
     assert p.replicas == len(targets), '{} vs. {}'.format(p.replicas, targets)
     return targets
