@@ -175,20 +175,19 @@ class WordLevelOneBwdsSimpleSampledSoftmaxTiny(
   RNN_STATE_DIM = 32
 
 
-# Word-level log-pplx on eval_test: 0.02@13.4k
 # Try the following params and deploy 8 accelerators to train a bigger model
-# LAYERS = 94  #4.9B params
-# MAX_SEQLEN = 1024
-# SPLITS = [10, 22, 34, 46, 58, 70, 82, 94]  # On 8 accelerator, 16G mem each.
+# EMBEDDING_DIM = 2048
+# GPUS = 8  # For example, on 8 accelerator, each of which has 16G mem.
+# SPLITS = [10 + 12 * i for i in range(GPUS - 1)]
+# LAYERS = SPLITS[-1]  #4.9B params
 # BATCH_SIZE = 32
 # NUM_MICRO_BATCHES = 32
 @model_registry.RegisterSingleTaskModel
 class OneBWdsGPipeTransformer(WordLevelOneBwdsBase):
   """LM using gpipe transformer."""
-  VOCAB_SIZE = 32000
-  EMBEDDING_DIM = 2048
+  EMBEDDING_DIM = 1024
   BATCH_SIZE = 8
-  MAX_SEQLEN = 100
+  MAX_TOKENS = 128  # The max sequence length in one example.
   LAYERS = 6
   # GPIPE related params.
   SPLITS = 1
@@ -197,7 +196,7 @@ class OneBWdsGPipeTransformer(WordLevelOneBwdsBase):
   @classmethod
   def Train(cls):
     p = super(OneBWdsGPipeTransformer, cls).Train()
-    p.bucket_upper_bound = [cls.MAX_SEQLEN]
+    p.bucket_upper_bound = [cls.MAX_TOKENS]
     p.bucket_batch_limit = [cls.BATCH_SIZE]
     p.fixed_input_shape = True
     return p
