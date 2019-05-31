@@ -470,10 +470,39 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="s1">&#39;&#39;</span>
 
+<div class="viewcode-block" id="_Cluster.PlaceInput"><a class="viewcode-back" href="../../../lingvo.core.cluster.html#lingvo.core.cluster._Cluster.PlaceInput">[docs]</a>  <span class="k">def</span> <span class="nf">PlaceInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies a placement policy on the given input generator params.</span>
+
+<span class="sd">    By default, the policy is to place the input generator onto the input</span>
+<span class="sd">    device. Subclass can override PlaceInput method to implement more advanced</span>
+<span class="sd">    placement policy.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_params: An input generator params.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An input params which places the input generator on the input device.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">class</span> <span class="nc">_UseInputDevice</span><span class="p">(</span><span class="n">input_params</span><span class="o">.</span><span class="n">cls</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Places the input generator on the input device.&quot;&quot;&quot;</span>
+
+      <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">input_device</span><span class="p">):</span>
+          <span class="nb">super</span><span class="p">(</span><span class="n">_UseInputDevice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">SplitInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">input_device</span><span class="p">):</span>
+          <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">_UseInputDevice</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">SplitInputBatch</span><span class="p">(</span><span class="n">num_splits</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">input_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="bp">cls</span><span class="o">=</span><span class="n">_UseInputDevice</span><span class="p">)</span></div>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">input_targets</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a list of network addresses of the input job.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">targets</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">[]</span>
     <span class="n">targets</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">replicas</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">targets</span><span class="p">),</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">replicas</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">targets</span>
