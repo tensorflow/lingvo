@@ -330,15 +330,6 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     self.RegisterAccumulator('mean_ss', AddingAccumulator([dim], p.dtype))
     self.RegisterAccumulator('variance_ss', AddingAccumulator([dim], p.dtype))
 
-  @classmethod
-  def GetVariableShapes(cls, params):
-    return {
-        'beta': [params.dim],
-        'gamma': [params.dim],
-        'moving_mean': [params.dim],
-        'moving_variance': [params.dim],
-    }
-
   def PostTrainingStepUpdate(self, global_step):
     """Updates moving_mean, moving_variance after each training step."""
     p = self.params

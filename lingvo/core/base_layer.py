@@ -321,19 +321,6 @@ class BaseLayer(object):
     raise NotImplementedError('Abstract method of %s' % self)
 
   @classmethod
-  def GetVariableShapes(cls, params):
-    """Returns a dict of the layer's variable names to shapes.
-
-    Args:
-      params: The param of a layer of this layer type.
-
-    Returns:
-      A dict mapping variable names to shapes inferred from params. The dict
-      does not include variables of child layers.
-    """
-    raise NotImplementedError('GetVariableShapes of %s' % cls)
-
-  @classmethod
   def FPropMeta(cls, params, *args, **kwargs):
     """Returns metadata about the `FProp` computation for this layer.
 
