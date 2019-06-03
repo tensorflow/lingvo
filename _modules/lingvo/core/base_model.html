@@ -173,8 +173,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">build_data</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">early_stop</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">enhancer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">learner</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">optimizer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">schedule</span>
@@ -222,7 +222,7 @@
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var</span><span class="p">,</span> <span class="n">delta</span><span class="p">))</span></div></div>
 
 
-<span class="n">_LEGACY_ENHANCER_PARAMS</span> <span class="o">=</span> <span class="p">[</span>
+<span class="n">_LEGACY_LEARNER_PARAMS</span> <span class="o">=</span> <span class="p">[</span>
     <span class="s1">&#39;bprop_variable_filter&#39;</span><span class="p">,</span>
     <span class="s1">&#39;clip_gradient_norm_to_value&#39;</span><span class="p">,</span>
     <span class="s1">&#39;clip_gradient_single_norm_to_value&#39;</span><span class="p">,</span>
@@ -310,13 +310,13 @@
               <span class="s1">&#39;Generates a checkpoint roughly once every this many seconds.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;summary_interval_steps&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
               <span class="s1">&#39;Generates a checkpoint roughly once every this many steps.&#39;</span><span class="p">)</span>
-    <span class="c1"># The following params must mirror those in Enhancer.Params().</span>
-    <span class="c1"># TODO(rpang): migrate existing params to use enhancer and</span>
+    <span class="c1"># The following params must mirror those in Learner.Params().</span>
+    <span class="c1"># TODO(rpang): migrate existing params to use learner and</span>
     <span class="c1"># delete legacy params.</span>
     <span class="c1"># LINT.IfChange</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;enhancer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;One or a list of optimization programs. &#39;</span>
-        <span class="s1">&#39;If None, uses a Enhancer created from the legacy params &#39;</span>
+        <span class="s1">&#39;learner&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;One or a list of optimization programs. &#39;</span>
+        <span class="s1">&#39;If None, uses a Learner created from the legacy params &#39;</span>
         <span class="s1">&#39;defined below: learning_rate, lr_schedule, optimizer, etc.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;l2_regularizer_weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -358,7 +358,7 @@
         <span class="s1">&#39;operations. This avoids some race conditions.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;colocate_gradients_with_ops&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
               <span class="s1">&#39;If True, try colocating gradients with the corresponding op.&#39;</span><span class="p">)</span>
-    <span class="c1"># LINT.ThenChange(enhancer.py)</span>
+    <span class="c1"># LINT.ThenChange(learner.py)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;eval&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Params to control how this task should be evaled.&#39;</span><span class="p">)</span>
     <span class="n">ep</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span>
@@ -443,30 +443,30 @@
     <span class="c1"># DistillationTask.</span>
     <span class="k">if</span> <span class="n">tp</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;worker&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">,</span>
                                    <span class="s1">&#39;controller&#39;</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_SetEnhancerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">enhancer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">enhancer</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;enhancers&#39;</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">enhancer</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;enhancers&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">tp</span><span class="o">.</span><span class="n">enhancer</span><span class="p">])</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateVnConfig</span><span class="p">()</span>
 
-<div class="viewcode-block" id="BaseTask._SetEnhancerFromLegacyParams"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._SetEnhancerFromLegacyParams">[docs]</a>  <span class="k">def</span> <span class="nf">_SetEnhancerFromLegacyParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tp</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Sets tp.enhancer based on legacy params.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">enhancer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<div class="viewcode-block" id="BaseTask._SetLearnerFromLegacyParams"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._SetLearnerFromLegacyParams">[docs]</a>  <span class="k">def</span> <span class="nf">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tp</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sets tp.learner based on legacy params.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span>
-    <span class="n">op</span> <span class="o">=</span> <span class="n">enhancer</span><span class="o">.</span><span class="n">Enhancer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">tp</span><span class="o">.</span><span class="n">enhancer</span> <span class="o">=</span> <span class="n">op</span>
+    <span class="n">op</span> <span class="o">=</span> <span class="n">learner</span><span class="o">.</span><span class="n">Learner</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">learner</span> <span class="o">=</span> <span class="n">op</span>
     <span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;loss&#39;</span>
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tp</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-      <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LEGACY_ENHANCER_PARAMS</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LEGACY_LEARNER_PARAMS</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Ignoring legacy param </span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1"> for optimization program&#39;</span><span class="p">,</span>
                         <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
         <span class="k">continue</span>
       <span class="nb">setattr</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
       <span class="nb">setattr</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">op</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Enhancer params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span></div>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Learner params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes predictions for `input_batch`.</span>
@@ -691,7 +691,7 @@
           <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_per_input_gradient_mask</span><span class="p">)</span>
       <span class="p">}</span>
     <span class="n">all_losses</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">optimization</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">enhancers</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">optimization</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">learners</span><span class="p">:</span>
       <span class="n">loss_name</span> <span class="o">=</span> <span class="n">optimization</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span>
       <span class="n">metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">loss_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">metric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
