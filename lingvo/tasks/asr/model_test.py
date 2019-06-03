@@ -303,7 +303,7 @@ class AsrModelTest(test_utils.TestCase):
           'NullContextualizer',
           'NullFusion',
           'NullLm',
-          'Enhancer',
+          'Learner',
           'PiecewiseConstantLearningRateSchedule',
           'ProjectionLayer',
           'SimpleFullSoftmax',
