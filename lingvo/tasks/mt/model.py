@@ -61,7 +61,14 @@ class MTBaseModel(base_model.BaseTask):
     with self._EncoderDevice():
       encoder_outputs = self.enc.FProp(theta.enc, batch.src)
     with self._DecoderDevice():
-      return self.dec.ComputePredictions(theta.dec, encoder_outputs, batch.tgt)
+      predictions = self.dec.ComputePredictions(theta.dec, encoder_outputs,
+                                                batch.tgt)
+      if isinstance(predictions, py_utils.NestedMap):
+        # Pass through encoder output as well for possible use as a FProp output
+        # for various meta-MT modeling approaches, such as MT quality estimation
+        # classification.
+        predictions['encoder_outputs'] = encoder_outputs
+      return predictions
 
   def ComputeLoss(self, theta, batch, predictions):
     with self._DecoderDevice():
