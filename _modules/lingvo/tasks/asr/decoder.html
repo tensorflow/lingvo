@@ -350,7 +350,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_context_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
              <span class="s1">&#39;Depth of the attention context vector output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;attention_plot_font_properties&#39;</span><span class="p">,</span> <span class="n">font_manager</span><span class="o">.</span><span class="n">FontProperties</span><span class="p">(),</span>
+        <span class="s1">&#39;attention_plot_font_properties&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
         <span class="s1">&#39;Adds font properties for the given file if set. Required &#39;</span>
         <span class="s1">&#39;for displaying east-Asian character sets on plot axes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_layers&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of rnn layers.&#39;</span><span class="p">)</span>
@@ -439,8 +439,11 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;min_prob_step (</span><span class="si">%d</span><span class="s1">) &lt;= prob_decay_start_step (</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span>
                        <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">min_prob_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">prob_decay_start_step</span><span class="p">))</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_font_properties</span> <span class="o">=</span> <span class="n">font_manager</span><span class="o">.</span><span class="n">FontProperties</span><span class="p">(</span>
-        <span class="n">fname</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_plot_font_properties</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_plot_font_properties</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_font_properties</span> <span class="o">=</span> <span class="n">font_manager</span><span class="o">.</span><span class="n">FontProperties</span><span class="p">(</span>
+          <span class="n">fname</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_plot_font_properties</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_font_properties</span> <span class="o">=</span> <span class="n">font_manager</span><span class="o">.</span><span class="n">FontProperties</span><span class="p">()</span>
 
     <span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
