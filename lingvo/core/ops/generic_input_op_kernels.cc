@@ -232,6 +232,8 @@ class GenericInputProcessor : public RecordProcessor {
         case DT_INT64:
         case DT_STRING:
         case DT_BFLOAT16:
+        case DT_COMPLEX64:
+        case DT_COMPLEX128:
           break;
         default:
           LOG(FATAL) << DataTypeString(dtype) << " is not supported.";
@@ -260,6 +262,8 @@ class GenericInputProcessor : public RecordProcessor {
                         CASE(string);
                         CASE(uint8);
                         CASE(bfloat16);
+                        CASE(complex64);
+                        CASE(complex128);
 #undef CASE
                         default:
                           LOG(FATAL) << "Unexpected " << DataTypeString(dtype);
