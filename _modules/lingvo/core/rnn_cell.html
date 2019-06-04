@@ -643,6 +643,9 @@
           <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_forget_gate&#39;</span><span class="p">)</span>
 
       <span class="n">new_c</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span><span class="n">forget_gate</span><span class="p">,</span> <span class="n">input_gate</span><span class="p">,</span> <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;c_output_gate&#39;</span><span class="p">)</span>
+
+    <span class="n">new_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessNewC</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">new_c</span><span class="p">)</span>
+
     <span class="c1"># Clip the cell states to reasonable value.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">new_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">new_c</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">)</span>
@@ -662,6 +665,9 @@
 
     <span class="c1"># Apply Zoneout.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LSTMCellSimple._ProcessNewC"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimple._ProcessNewC">[docs]</a>  <span class="k">def</span> <span class="nf">_ProcessNewC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">new_c</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">new_c</span></div>
 
 <div class="viewcode-block" id="LSTMCellSimple._ApplyZoneOut"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimple._ApplyZoneOut">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyZoneOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply Zoneout and returns the updated states.&quot;&quot;&quot;</span>
