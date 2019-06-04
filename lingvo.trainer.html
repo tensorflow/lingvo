@@ -323,9 +323,24 @@ $ bazel-bin/lingvo/trainer --logtostderr       --model<span class="o">=</span>im
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.trainer._TrainDirForEvals">
-<code class="descclassname">lingvo.trainer.</code><code class="descname">_TrainDirForEvals</code><span class="sig-paren">(</span><em>train_dir</em>, <em>load_checkpoint_from</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_TrainDirForEvals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._TrainDirForEvals" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the training directory for eval jobs.</p>
+<dt id="lingvo.trainer._GetSpecificCheckpoint">
+<code class="descclassname">lingvo.trainer.</code><code class="descname">_GetSpecificCheckpoint</code><span class="sig-paren">(</span><em>load_checkpoint_from</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/trainer.html#_GetSpecificCheckpoint"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.trainer._GetSpecificCheckpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a specific checkpoint given <code class="xref py py-obj docutils literal notranslate"><span class="pre">load_checkpoint_from</span></code>.</p>
+<p>When load_checkpoint_from is a directory, we find the latest
+checkpoint in the directory and use that as the checkpoint
+to evaluate.</p>
+<p>When load_checkpoint_from is a specific checkpoint, we
+validate the path and return it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>load_checkpoint_from</strong> – If not None, specifies the directory or specific
+checkpoint to load.  If a directory, the latest checkpoint in the
+directory will be used.</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="class">

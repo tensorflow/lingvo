@@ -488,11 +488,11 @@
 <span class="sd">      text_filename: If not None, writes the summary to the text file.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">status_metrics</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">summary</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">summaries</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">summary</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">summaries</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">summary_pb2</span><span class="o">.</span><span class="n">Summary</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s1">&#39;Non tf.Summary args passed to _WriteSummaries, skipping: </span><span class="si">%s</span><span class="s1"> @</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-            <span class="n">job_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+            <span class="s1">&#39;Non tf.Summary args passed to _WriteSummaries, skipping: &#39;</span>
+            <span class="s1">&#39;job:</span><span class="si">%s</span><span class="s1"> name:</span><span class="si">%s</span><span class="s1"> @</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
         <span class="k">continue</span>
       <span class="n">summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
