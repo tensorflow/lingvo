@@ -130,7 +130,7 @@ class DummyPipelineCnnTest(test_utils.TestCase):
     batch_size = 16
     with self.session(graph=tf.Graph()) as sess:
       tf.set_random_seed(1245)
-      inputs = tf.random_uniform([batch_size, 8, 8, 1])
+      inputs = tf.random_uniform([batch_size, 8, 8, 1], seed=12345)
       net = _BuildDummyPipelineCnn(
           num_splits=num_splits, num_micro_batches=num_micro_batches)
       endpoints = net.FPropDefaultTheta(inputs)
@@ -146,7 +146,7 @@ class DummyPipelineCnnTest(test_utils.TestCase):
 
       sess.run(tf.global_variables_initializer())
       grad_norm_val, ts_vals = sess.run([grad_norm, ts])
-      self.assertNear(grad_norm_val, 0.269997, err=1.0e-6)
+      test_utils.CompareToGoldenSingleFloat(self, 0.268087, grad_norm_val)
       # Accumulator values should be equal to number of time steps in pipeline.
       for ts_val in list(ts_vals):
         expected_ts = num_micro_batches if num_splits > 1 else 1
