@@ -876,7 +876,7 @@ def _GetSpecificCheckpoint(load_checkpoint_from):
   # If load_checkpoint_from is a directory, return the latest
   # checkpoint in the directory.
   if tf.io.gfile.isdir(load_checkpoint_from):
-    return tf.train.latest.checkpoint(load_checkpoint_from)
+    return tf.train.latest_checkpoint(load_checkpoint_from)
 
   # We assume that load_checkpoint_from is a specific checkpoint to
   # evaluate since it is not a directory.
