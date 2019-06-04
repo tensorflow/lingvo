@@ -854,17 +854,41 @@ class TrainerTpu(base_runner.BaseRunner):
                                         outfeeds)
 
 
-def _TrainDirForEvals(train_dir, load_checkpoint_from):
-  """Returns the training directory for eval jobs."""
+def _GetSpecificCheckpoint(load_checkpoint_from):
+  """Returns a specific checkpoint given `load_checkpoint_from`.
+
+  When load_checkpoint_from is a directory, we find the latest
+  checkpoint in the directory and use that as the checkpoint
+  to evaluate.
+
+  When load_checkpoint_from is a specific checkpoint, we
+  validate the path and return it.
+
+  Args:
+    load_checkpoint_from: If not None, specifies the directory or specific
+      checkpoint to load.  If a directory, the latest checkpoint in the
+      directory will be used.
+  """
   if not load_checkpoint_from:
     # No location specified, use existing train_dir.
-    return train_dir
+    return None
 
-  # If load_checkpoint_from is a directory, use it.
+  # If load_checkpoint_from is a directory, return the latest
+  # checkpoint in the directory.
   if tf.io.gfile.isdir(load_checkpoint_from):
+    return tf.train.latest.checkpoint(load_checkpoint_from)
+
+  # We assume that load_checkpoint_from is a specific checkpoint to
+  # evaluate since it is not a directory.
+  #
+  # Check validity of eval path by looking for the index file.
+  if tf.io.gfile.exists(load_checkpoint_from + '.index'):
     return load_checkpoint_from
 
   # Fail if we see an unexpected load_checkpoint_from.
+  #
+  # This might happen if load_checkpoint_from refers to a checkpoint
+  # but the index file cannot be found.
   raise ValueError('Invalid load_checkpoint_from: %s' % load_checkpoint_from)
 
 
@@ -880,8 +904,8 @@ class Evaler(base_runner.BaseRunner):
     if self._model_task_name:
       self._eval_dir += '_' + str(self._model_task_name)
     tf.gfile.MakeDirs(self._eval_dir)
-    self._train_dir = _TrainDirForEvals(
-        self._train_dir, self.params.task.eval.load_checkpoint_from)
+    self._eval_path = _GetSpecificCheckpoint(
+        self.params.task.eval.load_checkpoint_from)
     self._summary_writer = self._CreateSummaryWriter(self._eval_dir)
     self._should_report_metrics = self._job_name.startswith(
         FLAGS.vizier_reporting_job)
@@ -917,13 +941,21 @@ class Evaler(base_runner.BaseRunner):
       sess.run(self.initialize_tables)
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
-      path = None
-      while True:
-        path = self._FindNewCheckpoint(path, sess)
-        if not path or self._EvalOnce(path, sess):
-          break
 
-    self.EvalLatestCheckpoint(path)
+      if self._eval_path:
+        self._EvalOnce(self._eval_path, sess)
+      else:
+        path = None
+        while True:
+          path = self._FindNewCheckpoint(path, sess)
+          if not path or self._EvalOnce(path, sess):
+            break
+
+    # Maybe evaluate the last checkpoint if we are not given a specific
+    # checkpoint to evaluate.
+    if self._eval_path is None:
+      self.EvalLatestCheckpoint(path)
+
     if self._should_report_metrics:
       self._trial.ReportDone()
     tf.logging.info('Evaluation finished.')
@@ -1041,8 +1073,8 @@ class Decoder(base_runner.BaseRunner):
     self._decoder_dir = GetDecoderDir(self._logdir, self._job_name,
                                       self._model_task_name)
     tf.gfile.MakeDirs(self._decoder_dir)
-    self._train_dir = _TrainDirForEvals(
-        self._train_dir, self.params.task.eval.load_checkpoint_from)
+    self._decode_path = _GetSpecificCheckpoint(
+        self.params.task.eval.load_checkpoint_from)
     self._summary_writer = self._CreateSummaryWriter(self._decoder_dir)
     self._should_report_metrics = self._job_name.startswith(
         FLAGS.vizier_reporting_job)
@@ -1087,13 +1119,19 @@ class Decoder(base_runner.BaseRunner):
       # This initializes local variables.
       sess.run(self._initialize_local_vars)
 
-      path = None
-      while True:
-        path = self._FindNewCheckpoint(path, sess)
-        if not path or self.DecodeCheckpoint(sess, path):
-          break
+      if self._decode_path:
+        self.DecodeCheckpoint(sess, self._decode_path)
+      else:
+        path = None
+        while True:
+          path = self._FindNewCheckpoint(path, sess)
+          if not path or self.DecodeCheckpoint(sess, path):
+            break
 
-    self.DecodeLatestCheckpoint(path)
+    # Maybe decode the last checkpoint if we are not given a specific
+    # checkpoint to decode.
+    if self._decode_path is None:
+      self.DecodeLatestCheckpoint(path)
 
     if self._should_report_metrics:
       self._trial.ReportDone()

@@ -166,10 +166,35 @@ class TrainerTest(BaseTrainerTest):
     self.assertTrue(self._HasFile(dec_files, 'params.txt'))
     self.assertTrue(self._HasFile(dec_files, 'decoder_dev.pbtxt'))
     self.assertTrue(self._HasFile(dec_files, 'tfevents'))
-    self.assertTrue(self._HasFile(dec_files, 'score'))
+    # Only the score for the 2-step checkpoint should be present.
+    self.assertTrue(
+        tf.io.gfile.exists(
+            os.path.join(logdir, 'decoder_dev/score-00000002.txt')))
+    self.assertFalse(
+        tf.io.gfile.exists(
+            os.path.join(logdir, 'decoder_dev/score-00000000.txt')))
     self.assertTrue(
         self._HasLine(
             self._GetMatchedFileName(dec_files, 'score'), 'examples/sec'))
+
+    # Test customization of an eval checkpoint.  Create a new logdir / decoder
+    # but point the eval checkpoint to the 0th checkpoint of the most
+    # recent experiment.
+    new_logdir = os.path.join(tf.test.get_temp_dir(),
+                              'decoder_test' + str(random.random()))
+    FLAGS.logdir = new_logdir
+    cfg = self._GetTestConfig()
+    cfg.task.eval.load_checkpoint_from = os.path.join(logdir,
+                                                      'train/ckpt-00000000')
+
+    runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
+    # Only the score for the 0th checkpoint should be present.
+    self.assertTrue(
+        tf.io.gfile.exists(
+            os.path.join(new_logdir, 'decoder_dev/score-00000000.txt')))
+    self.assertFalse(
+        tf.io.gfile.exists(
+            os.path.join(new_logdir, 'decoder_dev/score-00000002.txt')))
 
   def testWriteInferenceGraph(self):
     random.seed()

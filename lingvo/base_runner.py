@@ -343,11 +343,11 @@ class BaseRunner(object):
       text_filename: If not None, writes the summary to the text file.
     """
     status_metrics = []
-    for _, summary in sorted(summaries.items()):
+    for name, summary in sorted(summaries.items()):
       if not isinstance(summary, summary_pb2.Summary):
         tf.logging.warning(
-            'Non tf.Summary args passed to _WriteSummaries, skipping: %s @%s',
-            job_name, global_step)
+            'Non tf.Summary args passed to _WriteSummaries, skipping: '
+            'job:%s name:%s @%s', job_name, name, global_step)
         continue
       summary_writer.add_summary(summary, global_step)
       if summary.value:
