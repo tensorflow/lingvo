@@ -498,6 +498,9 @@ class LSTMCellSimple(RNNCell):
           qt='c_forget_gate')
 
       new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
+
+    new_c = self._ProcessNewC(theta, new_c)
+
     # Clip the cell states to reasonable value.
     if p.cell_value_cap is not None:
       new_c = py_utils.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
@@ -517,6 +520,9 @@ class LSTMCellSimple(RNNCell):
 
     # Apply Zoneout.
     return self._ApplyZoneOut(state0, inputs, new_c, new_m)
+
+  def _ProcessNewC(self, theta, new_c):
+    return new_c
 
   def _ApplyZoneOut(self, state0, inputs, new_c, new_m):
     """Apply Zoneout and returns the updated states."""
