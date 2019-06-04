@@ -205,7 +205,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p.Define('atten_context_dim', 0,
              'Depth of the attention context vector output.')
     p.Define(
-        'attention_plot_font_properties', font_manager.FontProperties(),
+        'attention_plot_font_properties', '',
         'Adds font properties for the given file if set. Required '
         'for displaying east-Asian character sets on plot axes.')
     p.Define('rnn_layers', 1, 'Number of rnn layers.')
@@ -294,8 +294,11 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       raise ValueError('min_prob_step (%d) <= prob_decay_start_step (%d)' %
                        (p.min_prob_step, p.prob_decay_start_step))
 
-    self._font_properties = font_manager.FontProperties(
-        fname=p.attention_plot_font_properties)
+    if p.attention_plot_font_properties:
+      self._font_properties = font_manager.FontProperties(
+          fname=p.attention_plot_font_properties)
+    else:
+      self._font_properties = font_manager.FontProperties()
 
     name = p.name
     with tf.variable_scope(name):
