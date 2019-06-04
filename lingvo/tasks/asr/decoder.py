@@ -21,6 +21,7 @@ import collections
 import math
 
 from matplotlib import font_manager
+import six
 from six.moves import range
 import tensorflow as tf
 
@@ -686,26 +687,35 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       predictions = self.ComputePredictions(theta, encoder_outputs, targets)
       return self.ComputeLoss(theta, predictions, targets)[0]
 
+  def FPropWithPredictionsAndPerExampleTensors(self,
+                                               theta,
+                                               encoder_outputs,
+                                               targets,
+                                               targets_per_batch_element=1):
+    predictions = self.ComputePredictions(self.theta, encoder_outputs, targets,
+                                          targets_per_batch_element)
+    metrics, per_sequence_loss = self.ComputeMetricsAndPerSequenceLoss(
+        self.theta, predictions, targets, targets_per_batch_element)
+    return metrics, predictions, {'loss': per_sequence_loss}
+
   def FPropWithPerExampleLoss(self,
                               encoder_outputs,
                               targets,
                               targets_per_batch_element=1):
-    predictions = self.ComputePredictions(self.theta, encoder_outputs, targets,
-                                          targets_per_batch_element)
-    return self.ComputeMetricsAndPerSequenceLoss(
-        self.theta, predictions, targets, targets_per_batch_element)
+    metrics, _, per_example = self.FPropWithPredictionsAndPerExampleTensors(
+        self.theta, encoder_outputs, targets, targets_per_batch_element)
+    return metrics, per_example['loss']
 
   def FPropWithPredictions(self, encoder_outputs, targets):
     """Returns FProp() results together with predictions."""
-    predictions = self.ComputePredictions(self.theta, encoder_outputs, targets)
-    metrics, _ = self.ComputeMetricsAndPerSequenceLoss(self.theta, predictions,
-                                                       targets)
+    metrics, predictions, _ = self.FPropWithPredictionsAndPerExampleTensors(
+        self.theta, encoder_outputs, targets)
     return metrics, predictions
 
   def ComputeLoss(self, theta, predictions, targets):
-    metrics, _ = self.ComputeMetricsAndPerSequenceLoss(theta, predictions,
-                                                       targets)
-    return metrics, {}
+    metrics, per_sequence_loss = self.ComputeMetricsAndPerSequenceLoss(
+        theta, predictions, targets)
+    return metrics, {'loss': per_sequence_loss}
 
   def ComputeMetricsAndPerSequenceLoss(self,
                                        theta,
@@ -744,11 +754,11 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         return (acc[0] + scale * tf.cast(metric[0], py_utils.FPropDtype(p)),
                 acc[1] + scale * tf.cast(metric[1], py_utils.FPropDtype(p)))
 
-      for logit_name, loss_weight in p.logit_types.iteritems():
+      for logit_name, loss_weight in six.iteritems(p.logit_types):
         metrics, per_sequence_loss = self._ComputeMetrics(
             getattr(predictions, logit_name), targets.labels, targets.weights,
             target_probs)
-        for k, v in metrics.iteritems():
+        for k, v in six.iteritems(metrics):
           tf.logging.info('Merging metric %s: %s', k, v)
           merged_metrics[k + '/' + logit_name] = v
           if k not in merged_metrics:
