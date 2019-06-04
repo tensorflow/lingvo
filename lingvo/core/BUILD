@@ -1222,3 +1222,21 @@ py_test(
         "//lingvo/core:test_utils",
     ],
 )
+
+py_library(
+    name = "insertion",
+    srcs = ["insertion.py"],
+    deps = [
+        ":base_layer",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+lingvo_cuda_py_test(
+    name = "insertion_test",
+    srcs = ["insertion_test.py"],
+    deps = [
+        ":insertion",
+        ":test_utils",
+    ],
+)
