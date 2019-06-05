@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,9 +70,9 @@ def _LookupNested(nm, nested_key):
 class InputTest(test_utils.TestCase):
 
   def _GenerateExamples(self, output_filepath):
-    example_def = [('utt1', (1234, 'HELLO WORLD')),
-                   ('utt2', (568, 'TIRED WITH ALL THESE')),
-                   ('utt3', (778, 'WOULD THAT IT WERE SO EASY'))]
+    example_def = [(b'utt1', (1234, b'HELLO WORLD')),
+                   (b'utt2', (568, b'TIRED WITH ALL THESE')),
+                   (b'utt3', (778, b'WOULD THAT IT WERE SO EASY'))]
     self._example_def = dict(example_def)
     tf_examples = []
     for xdef in example_def:

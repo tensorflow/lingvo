@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import threading
+from six.moves import zip
 import sympy
 
 
@@ -104,7 +106,7 @@ def EvalExpr(x):
     # In theory the below should be equivalent to:
     #   y = x.subs(symbol_to_value_map).
     # In practice subs() doesn't work for when values are Tensors.
-    k, v = zip(*(SymbolToValueMap.Get().items()))
+    k, v = list(zip(*(list(SymbolToValueMap.Get().items()))))
     y = sympy.lambdify(k, x)(*v)
     return y
   else:

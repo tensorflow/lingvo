@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -915,12 +916,13 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
 
   def zero_state(self, batch_size):
     p = self.params
-    return py_utils.NestedMap({
-        'layer_%d' % layer: py_utils.NestedMap({
-            'key': tf.zeros([0, batch_size, p.model_dim]),
-            'value': tf.zeros([0, batch_size, p.model_dim]),
-        }) for layer in range(p.num_trans_layers)
-    })
+    state0 = py_utils.NestedMap()
+    for layer in range(p.num_trans_layers):
+      state0['layer_%d' % layer] = py_utils.NestedMap({
+          'key': tf.zeros([0, batch_size, p.model_dim]),
+          'value': tf.zeros([0, batch_size, p.model_dim]),
+      })
+    return state0
 
   @classmethod
   def StepOutputDimension(cls, params):

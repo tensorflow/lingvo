@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -60,9 +61,9 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
 
     def Normalize(line):
       # Lowercase and remove punctuation.
-      line = line.lower().translate(None, string.punctuation)
+      line = line.lower().translate(None, string.punctuation.encode('utf-8'))
       # Convert multiple consecutive spaces to a single one.
-      line = ' '.join(line.split())
+      line = b' '.join(line.split())
       return line
 
     normalized_line = tf.py_func(Normalize, [line], tf.string, stateful=False)

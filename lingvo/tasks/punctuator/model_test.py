@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
+from six.moves import range
 import tensorflow as tf
 from lingvo.core import test_helper
 from lingvo.core import test_utils

@@ -1,3 +1,5 @@
+load("//lingvo:lingvo.bzl", "py2and3_test")
+
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -10,8 +12,8 @@ load(
     "gen_op_cclib",
     "gen_op_pylib",
     "lingvo_cc_library",
-    "lingvo_cc_test_library",
     "lingvo_cc_test",
+    "lingvo_cc_test_library",
     "lingvo_proto_cc",
     "lingvo_proto_py",
 )
@@ -79,10 +81,9 @@ lingvo_cc_library(
     hdrs = ["simple_vocab.h"],
 )
 
-py_test(
+py2and3_test(
     name = "simple_vocab_test",
     srcs = ["simple_vocab_test.py"],
-    python_version = "PY2",
     deps = [
         ":py_x_ops",
         # Implicit tensorflow dependency.
@@ -182,10 +183,9 @@ custom_kernel_library(
     op_def_lib = [":x_ops"],
 )
 
-py_test(
+py2and3_test(
     name = "assert_ops_test",
     srcs = ["assert_ops_test.py"],
-    python_version = "PY2",
     deps = [
         ":py_x_ops",
         # Implicit tensorflow dependency.
@@ -204,10 +204,9 @@ custom_kernel_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "beam_search_step_op_test",
     srcs = ["beam_search_step_op_test.py"],
-    python_version = "PY2",
     deps = [
         ":hyps_py_pb2",
         ":py_x_ops",
@@ -236,13 +235,12 @@ custom_kernel_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "best_step_op_test",
     srcs = ["best_step_op_test.py"],
     data = [
         "//lingvo/core/ops/testdata:best_step_testdata",
     ],
-    python_version = "PY2",
     deps = [
         ":py_x_ops",
         # Implicit tensorflow dependency.
@@ -260,10 +258,9 @@ custom_kernel_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "functional_ops_test",
     srcs = ["functional_ops_test.py"],
-    python_version = "PY2",
     deps = [
         ":py_x_ops",
         # Implicit numpy dependency.
@@ -281,10 +278,9 @@ custom_kernel_library(
     deps = [":input_common"],
 )
 
-py_test(
+py2and3_test(
     name = "generic_input_op_test",
     srcs = ["generic_input_op_test.py"],
-    python_version = "PY2",
     deps = [
         # Implicit numpy dependency.
         # Implicit six dependency.
@@ -304,10 +300,9 @@ custom_kernel_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "random_ops_test",
     srcs = ["random_ops_test.py"],
-    python_version = "PY2",
     deps = [
         ":py_x_ops",
         # Implicit six dependency.
@@ -332,7 +327,7 @@ custom_kernel_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "tokenizer_ops_test",
     srcs = ["tokenizer_ops_test.py"],
     data = [
@@ -341,7 +336,6 @@ py_test(
         "//lingvo/core/ops/testdata:test_ngrams",
         "//lingvo/core/ops/testdata:test_vocab",
     ],
-    python_version = "PY2",
     deps = [
         ":py_x_ops",
         # Implicit tensorflow dependency.

@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +25,7 @@ import re
 import shutil
 
 import numpy as np
+from six.moves import range
 import tensorflow as tf
 
 from lingvo import base_trial

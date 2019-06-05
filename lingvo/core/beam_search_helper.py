@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +24,7 @@ from __future__ import print_function
 
 import collections
 
+import six
 import tensorflow as tf
 
 from lingvo.core import base_layer
@@ -500,7 +502,7 @@ def MergeBeamSearchOutputs(max_hyps_per_beam, beam_search_outputs):
                               tf.shape(output.topk_hyps)[0]),
     ],
                                                tf.shape(output.topk_hyps)[1])
-    for k, v in output._asdict().iteritems():
+    for k, v in six.iteritems(output._asdict()):
       if v is None:
         continue
       if k == 'done_hyps':
@@ -511,7 +513,7 @@ def MergeBeamSearchOutputs(max_hyps_per_beam, beam_search_outputs):
 
   # Concatenate the tensors along the 'num_hyps_per_beam' dimension.
   concatenated = {}
-  for k, values in value_dict.iteritems():
+  for k, values in six.iteritems(value_dict):
     if len(values) != len(beam_search_outputs):
       raise ValueError(
           'Incomplete values for %s: %s' % (k, beam_search_outputs))
@@ -533,7 +535,7 @@ def MergeBeamSearchOutputs(max_hyps_per_beam, beam_search_outputs):
   # Gather the merged top hyps according to 'gather_indices'.
   top = beam_search_outputs[0]._asdict()
   total_hyps = source_batch * max_hyps_per_beam
-  for k, v in concatenated.iteritems():
+  for k, v in six.iteritems(concatenated):
     v = tf.gather_nd(v, gather_indices)
     if k == 'done_hyps':
       v = tf.transpose(tf.reshape(v, [total_hyps, -1]))

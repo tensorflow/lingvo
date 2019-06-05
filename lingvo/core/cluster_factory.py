@@ -32,7 +32,7 @@ def Current():
       model = p.Instantiate()
       model.FProp()  # FProp can access foo through cluster_factory.Current().
   """
-  stack = Cluster._cluster_stack().stack
+  stack = Cluster._ClusterStack().stack  # pylint: disable=protected-access
   if not stack:
     return Cluster(Cluster.Params())
   else:

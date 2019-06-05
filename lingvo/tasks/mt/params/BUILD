@@ -18,6 +18,7 @@ py_library(
     srcs = [
         ":param_files",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:model_registry",
         "//lingvo/core:attention",

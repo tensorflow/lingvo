@@ -1,3 +1,5 @@
+load("//lingvo:lingvo.bzl", "py2and3_test")
+
 # Language modelling related tasks.
 package(
     default_visibility = ["//visibility:public"],
@@ -13,6 +15,7 @@ load(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
@@ -22,13 +25,12 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
     ],
-    python_version = "PY2",
     deps = [
         ":input_generator",
         # Implicit tensorflow dependency.
@@ -40,6 +42,7 @@ py_test(
 py_library(
     name = "layers",
     srcs = ["layers.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -71,6 +74,7 @@ lingvo_cuda_py_test(
 py_library(
     name = "model",
     srcs = ["model.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":layers",
         # Implicit six dependency.
@@ -82,14 +86,13 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "model_test",
     srcs = ["model_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/lm/testdata:small_word_vocab",
     ],
-    python_version = "PY2",
     deps = [
         ":input_generator",
         ":model",

@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,7 +28,6 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import six
-from six.moves import cStringIO
 from six.moves import range
 import tensorflow as tf
 
@@ -306,7 +306,7 @@ def _FigureToSummary(name, fig):
   canvas = backend_agg.FigureCanvasAgg(fig)
   fig.canvas.draw()
   ncols, nrows = fig.canvas.get_width_height()
-  png_file = cStringIO()
+  png_file = six.BytesIO()
   canvas.print_figure(png_file)
   png_str = png_file.getvalue()
   return tf.Summary(value=[

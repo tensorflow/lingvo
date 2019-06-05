@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # -*- coding: utf-8 -*-
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
@@ -38,11 +39,11 @@ class AudioLibTest(test_utils.TestCase):
   def testDecodeFlacToWav(self):
     with open(
         test_helper.test_src_dir_path('tools/testdata/gan_or_vae.wav'),
-        'r') as f:
+        'rb') as f:
       wav = f.read()
     with open(
         test_helper.test_src_dir_path('tools/testdata/gan_or_vae.flac'),
-        'r') as f:
+        'rb') as f:
       flac = f.read()
     tf.logging.info('flac: %d bytes', len(flac))
     try:
@@ -57,7 +58,7 @@ class AudioLibTest(test_utils.TestCase):
   def testDecodeWav(self):
     with open(
         test_helper.test_src_dir_path('tools/testdata/gan_or_vae.wav'),
-        'r') as f:
+        'rb') as f:
       wav = f.read()
     with self.session() as sess:
       sample_rate, audio = sess.run(audio_lib.DecodeWav(wav))
@@ -67,7 +68,7 @@ class AudioLibTest(test_utils.TestCase):
   def testAudioToMfcc(self):
     with open(
         test_helper.test_src_dir_path('tools/testdata/gan_or_vae.wav'),
-        'r') as f:
+        'rb') as f:
       wav = f.read()
     sample_rate, audio = audio_lib.DecodeWav(wav)
     static_sample_rate = 24000
@@ -80,7 +81,7 @@ class AudioLibTest(test_utils.TestCase):
   def testExtractLogMelFeatures(self):
     with open(
         test_helper.test_src_dir_path('tools/testdata/gan_or_vae.16k.wav'),
-        'r') as f:
+        'rb') as f:
       wav = f.read()
 
     wav_bytes_t = tf.constant(wav, dtype=tf.string)

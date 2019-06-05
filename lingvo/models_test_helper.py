@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -112,7 +113,7 @@ class BaseModelsTest(test_utils.TestCase):
                                               task_prefix_filter='',
                                               exclude_prefix=''):
     """Programmatically defines test methods for each registered model."""
-    model_names = registry.GetAllRegisteredClasses().keys()
+    model_names = list(registry.GetAllRegisteredClasses().keys())
     for model_name in sorted(model_names):
       if task_prefix_filter and not model_name.startswith(task_prefix_filter):
         tf.logging.info('Skipping tests for registered model: %s', model_name)

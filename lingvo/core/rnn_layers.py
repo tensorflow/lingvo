@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import math
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import range
 from six.moves import zip
 import tensorflow as tf
 
@@ -169,9 +170,9 @@ class RNN(base_layer.BaseLayer):
         state = rcell.zero_state(rcell.batch_size(inputs0))
       outputs = [None] * sequence_length
       if p.reverse:
-        sequence = xrange(sequence_length - 1, -1, -1)
+        sequence = range(sequence_length - 1, -1, -1)
       else:
-        sequence = xrange(0, sequence_length, 1)
+        sequence = range(0, sequence_length, 1)
       for idx in sequence:
         cur_input = py_utils.NestedMap(act=[inputs[idx]], padding=paddings[idx])
         state, _ = rcell.FProp(theta.cell, state, cur_input)

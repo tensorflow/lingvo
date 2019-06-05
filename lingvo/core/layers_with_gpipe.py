@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import range
+from six.moves import zip
 import tensorflow as tf
 
 from lingvo.core import base_layer
@@ -525,7 +527,7 @@ class GPipeTransformerStack(PipeliningLayer):
     p = self.params
     cell_start = 0
     for split, cell_end in enumerate(p.splits):
-      for encoder_id in xrange(cell_start, cell_end):
+      for encoder_id in range(cell_start, cell_end):
         if encoder_id >= p.num_encoder_layers:
           break
         encoder_l = self.children['cell_{}'.format(split)].children[
@@ -539,7 +541,7 @@ class GPipeTransformerStack(PipeliningLayer):
     p = self.params
     cell_start = 0
     for split, cell_end in enumerate(p.splits):
-      for layer_id in xrange(cell_start, cell_end):
+      for layer_id in range(cell_start, cell_end):
         decoder_id = layer_id - p.num_encoder_layers
         if decoder_id < 0:
           continue

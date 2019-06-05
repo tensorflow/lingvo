@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # -*- coding: utf-8 -*-
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
@@ -137,8 +138,8 @@ class TokenizerOpsTest(test_utils.TestCase):
       tokens = sess.run(py_x_ops.id_to_ascii(token_ids, seq_lens))
 
     self.assertEqual(tokens.tolist(), [
-        'hello', 'sir<epsilon>', 'what a <unk> ', "america's", '<noise> early',
-        '1:00 am', '%'
+        b'hello', b'sir<epsilon>', b'what a <unk> ', b"america's",
+        b'<noise> early', b'1:00 am', b'%'
     ])
 
   def testStrToVocabToken(self):
@@ -264,7 +265,7 @@ class TokenizerOpsTest(test_utils.TestCase):
       lengths = [8, 6]
       scripts = py_x_ops.ngram_id_to_token(
           ngram_ids, lengths, ngram_vocab_filepath=vocab)
-      scripts_expected = ['pn?o"{twe', 'gh{rtlcr']
+      scripts_expected = [b'pn?o"{twe', b'gh{rtlcr']
       self.assertEqual(scripts_expected, scripts.eval().tolist())
 
   def testNgramIdToTokenSeparator(self):
@@ -275,7 +276,7 @@ class TokenizerOpsTest(test_utils.TestCase):
       lengths = [8, 6]
       scripts = py_x_ops.ngram_id_to_token(
           ngram_ids, lengths, ngram_vocab_filepath=vocab, ngram_separator='.')
-      scripts_expected = ['p.n.?.o.".{.t.we', 'gh.{.rt.l.c.r']
+      scripts_expected = [b'p.n.?.o.".{.t.we', b'gh.{.rt.l.c.r']
       self.assertEqual(scripts_expected, scripts.eval().tolist())
 
   def testBpeTokenization(self):
@@ -287,9 +288,9 @@ class TokenizerOpsTest(test_utils.TestCase):
         'GIVE ME A PENNY', 'THEY LIVED ALONE', 'THEY GIVE ME A PENNY ALONE'
     ]
     expected_sentences = [
-        'GIVE ME A PENNY </s> ',
-        'THEY LIVED ALONE </s> ',
-        'THEY GIVE ME A PENNY ',
+        b'GIVE ME A PENNY </s> ',
+        b'THEY LIVED ALONE </s> ',
+        b'THEY GIVE ME A PENNY ',
     ]
     expected_token_ids = [
         [27, 9, 30, 14, 28, 14, 52, 11, 4, 6, 6, 10, 2, 2, 2],

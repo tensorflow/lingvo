@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,10 +21,11 @@ from __future__ import print_function
 
 import functools
 import itertools
-import time
-import traceback
 import random
 import sys
+import time
+import traceback
+
 import tensorflow as tf
 
 
@@ -43,7 +45,8 @@ def Retry(retry_value=Exception,
   def _Retry(func):
 
     @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+    def Wrapper(*args, **kwargs):
+      """Decorator wrapper."""
       delay = initial_delay_sec
       for retries in itertools.count(0):
         try:
@@ -67,6 +70,6 @@ def Retry(retry_value=Exception,
               "Waiting for %.2f seconds before retrying.", func.__name__,
               e_desc_str, stack_traceback_str, e_traceback_str, delay)
 
-    return wrapper
+    return Wrapper
 
   return _Retry

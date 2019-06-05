@@ -13,6 +13,7 @@ py_library(
     name = "codelab",
     srcs = ["codelab.py"],
     data = [":brown_corpus_wpm_data"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit tensorflow dependency.
         "//lingvo:model_registry",
@@ -26,6 +27,7 @@ py_library(
 py_library(
     name = "params",
     srcs = ["__init__.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":codelab",
     ],

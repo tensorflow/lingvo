@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # -*- coding: utf-8 -*-
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
@@ -98,16 +99,17 @@ class VocabOpsTest(test_utils.TestCase):
           '愤青',
           '←',
       ]
-      self.assertEqual('<S>', py_x_ops.vocab_id_to_token(0, vocab=vocab).eval())
-      self.assertEqual('a', py_x_ops.vocab_id_to_token(4, vocab=vocab).eval())
-      self.assertAllEqual(['b c d e', '♣'],
+      self.assertEqual(b'<S>',
+                       py_x_ops.vocab_id_to_token(0, vocab=vocab).eval())
+      self.assertEqual(b'a', py_x_ops.vocab_id_to_token(4, vocab=vocab).eval())
+      self.assertAllEqual([b'b c d e', u'♣'.encode('utf-8')],
                           py_x_ops.vocab_id_to_token([5, 8],
                                                      vocab=vocab).eval())
-      self.assertEqual('<UNK>',
+      self.assertEqual(b'<UNK>',
                        py_x_ops.vocab_id_to_token(2, vocab=vocab).eval())
-      self.assertEqual('<UNK>',
+      self.assertEqual(b'<UNK>',
                        py_x_ops.vocab_id_to_token(-1, vocab=vocab).eval())
-      self.assertEqual('<UNK>',
+      self.assertEqual(b'<UNK>',
                        py_x_ops.vocab_id_to_token(11, vocab=vocab).eval())
 
   def testVocabIdToTokenLoadId(self):
@@ -126,24 +128,24 @@ class VocabOpsTest(test_utils.TestCase):
           '←	-5',
       ]
       self.assertEqual(
-          '<S>',
+          b'<S>',
           py_x_ops.vocab_id_to_token(
               3, vocab=vocab, load_token_ids_from_vocab=True).eval())
       self.assertEqual(
-          'a',
+          b'a',
           py_x_ops.vocab_id_to_token(
               2, vocab=vocab, load_token_ids_from_vocab=True).eval())
-      self.assertAllEqual(['b c d e', '♣'],
+      self.assertAllEqual([b'b c d e', u'♣'.encode('utf-8')],
                           py_x_ops.vocab_id_to_token(
                               [4, -1],
                               vocab=vocab,
                               load_token_ids_from_vocab=True).eval())
       self.assertEqual(
-          '<UNK>',
+          b'<UNK>',
           py_x_ops.vocab_id_to_token(
               7, vocab=vocab, load_token_ids_from_vocab=True).eval())
       self.assertEqual(
-          '<UNK>',
+          b'<UNK>',
           py_x_ops.vocab_id_to_token(
               0, vocab=vocab, load_token_ids_from_vocab=True).eval())
 

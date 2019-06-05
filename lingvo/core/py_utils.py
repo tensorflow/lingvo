@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -185,7 +186,7 @@ def CheckNumerics(inp, message=None, *args, **kwargs):
   return _CheckNumerics(inp, message, *args, **kwargs)
 
 
-def with_dependencies(dependencies, output_tensor):
+def with_dependencies(dependencies, output_tensor):  # pylint: disable=invalid-name
   with tf.control_dependencies(dependencies):
     return tf.identity(output_tensor)
 
@@ -356,7 +357,7 @@ def use_resource_variables():  # pylint: disable=invalid-name
 
 
 @contextlib.contextmanager
-def outside_all_rewrites():
+def outside_all_rewrites():  # pylint: disable=invalid-name
   with tf.control_dependencies(None):
     yield
 
@@ -451,7 +452,7 @@ class NestedMap(dict):
       return super(NestedMap, self).__getattribute__(key)
     except AttributeError as e:
       raise AttributeError('%s; available attributes: %s' %
-                           (e, self.__dict__.keys()))
+                           (e, list(self.__dict__.keys())))
 
   def copy(self):  # Don't delegate w/ super: dict.copy() -> dict.
     return NestedMap(self)
@@ -1466,9 +1467,9 @@ def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding):
   shards = tpu_function.get_tpu_context().number_of_shards
   loss *= tf.constant(1.0 / shards, dtype=loss.dtype)
 
-  grads = tf.gradients(loss, activation_dict.values())
+  grads = tf.gradients(loss, list(activation_dict.values()))
   feature_to_gradient_dict = py_collections.OrderedDict(
-      zip(activation_dict.keys(), grads))
+      zip(list(activation_dict.keys()), grads))
   send_gradient_op = tpu_embedding.generate_send_gradients_op(
       feature_to_gradient_dict)
   return send_gradient_op
@@ -2402,7 +2403,7 @@ def Matmul(x, y, *args, **kwargs):
   return tf.matmul(x, y, *args, **kwargs)
 
 
-def clip_by_value(t, clip_value_min, clip_value_max, name=None):
+def clip_by_value(t, clip_value_min, clip_value_max, name=None):  # pylint: disable=invalid-name
   if t.dtype.is_complex:
     return tf.complex(
         tf.clip_by_value(

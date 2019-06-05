@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +22,7 @@ from __future__ import print_function
 import threading
 
 import six
+from six.moves import zip
 import tensorflow as tf
 
 from lingvo.core import cluster_factory
@@ -410,7 +412,7 @@ class BaseLayer(object):
     if path:
       for k in path.split('.'):
         if k not in sub.children:
-          raise KeyError('%s not found in %s' % (k, sub.children.keys()))
+          raise KeyError('%s not found in %s' % (k, list(sub.children.keys())))
         sub = sub.children[k]
     return sub
 
@@ -498,7 +500,7 @@ class BaseLayer(object):
         name, list(self._private_children.keys())))
     assert name not in self._private_accumulators, (
         '%s exists in global_accumulator: %s' %
-        (name, self._private_accumulators.keys()))
+        (name, list(self._private_accumulators.keys())))
 
   def _VariableCollections(self):
     return [LAYER_WT, '%s_vars' % (self.__class__.__name__)]

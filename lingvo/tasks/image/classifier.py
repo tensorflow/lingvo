@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -123,7 +124,7 @@ class ModelV1(BaseClassifier):
       assert len(p.filter_shapes) == len(p.window_shapes)
 
       # A few conv + max pooling layers.
-      shape = tf.TensorShape([None] + list(p.input.data_shape))
+      shape = [None] + list(p.input.data_shape)
       conv_params = []
       pooling_params = []
       for i, (kernel, window) in enumerate(

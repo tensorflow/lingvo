@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -161,7 +162,8 @@ class ModelTest(test_utils.TestCase):
       self.assertEqual(vals['log_pplx_per_token'].shape, (3, 5))
       self.assertEqual(vals['paddings'].shape, (3, 5))
       expected_tokens_from_labels = [
-          '<UNK> for more <UNK> </S>', '<UNK> about </S>', 'one <UNK> will </S>'
+          b'<UNK> for more <UNK> </S>', b'<UNK> about </S>',
+          b'one <UNK> will </S>'
       ]
       self.assertListEqual(vals['tokens_from_labels'].tolist(),
                            expected_tokens_from_labels)

@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -413,7 +414,7 @@ class AsrModelTest(test_utils.TestCase):
 
       with open(
           test_helper.test_src_dir_path('tools/testdata/gan_or_vae.16k.wav'),
-          'r') as f:
+          'rb') as f:
         wav = f.read()
       sess.run(tf.global_variables_initializer())
       fetches = sess.run(fetches, {feeds['wav']: wav})

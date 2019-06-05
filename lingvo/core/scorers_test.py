@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -92,7 +93,7 @@ class BleuScorerTest(test_utils.TestCase):
     scorer = scorers.BleuScorer()
     with open(filename, 'rb') as fp:
       for line in fp:
-        hyp, ref = line[:-1].split('\t')
+        hyp, ref = line[:-1].split(b'\t')
         scorer.AddSentence(ref, hyp)
     self.assertAlmostEqual(0.313776, scorer.ComputeOverallScore(), places=5)
 

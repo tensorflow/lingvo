@@ -165,3 +165,6 @@ def lingvo_proto_py(name, src, deps = []):
         name = name,
         srcs = [basename + "_pb2.py"],
     )
+
+# TODO(jonathanasdf): remove when bazel supports py2and3_test.
+py2and3_test = native.py_test

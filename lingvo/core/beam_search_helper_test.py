@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -128,8 +129,8 @@ class MergeBeamSearchOutputsTest(test_utils.TestCase):
       self.assertAllEqual([[50, 51, 52], [40, 41, 42], [30, 31, 32],
                            [10, 11, 12], [20, 21, 22], [30, 31, 33]],
                           topk.topk_ids.eval())
-      self.assertAllEqual([['five', 'four', 'three'],
-                           ['minus one', 'minus two', 'minus three']],
+      self.assertAllEqual([[b'five', b'four', b'three'],
+                           [b'minus one', b'minus two', b'minus three']],
                           topk.topk_hyps.eval())
 
 

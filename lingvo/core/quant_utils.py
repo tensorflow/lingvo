@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -244,7 +245,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     """
     assert t_name in self._tracked_tensors, (
         ('Call to QTensor without first calling TrackQTensor: %s '
-         '(all known = %r)') % (t_name, self._tracked_tensors.keys()))
+         '(all known = %r)') % (t_name, list(self._tracked_tensors.keys())))
     eval_only = kwargs['eval_only'] if 'eval_only' in kwargs else False
     qd = self._tracked_tensors[t_name]
     if not qd:

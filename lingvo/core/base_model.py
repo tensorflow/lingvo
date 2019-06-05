@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -551,7 +552,7 @@ class BaseTask(base_layer.BaseLayer):
       metric = self._metrics.get(loss_name, None)
       if metric is None:
         raise ValueError('Loss %s not found in metrics %s' %
-                         (loss_name, self._metrics.keys()))
+                         (loss_name, list(self._metrics.keys())))
       loss = metric[0]
       all_losses.append(loss)
       train_ops['train/%s' % loss_name], stats = optimization.Apply(

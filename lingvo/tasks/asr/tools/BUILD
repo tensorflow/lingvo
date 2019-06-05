@@ -1,5 +1,7 @@
 # tools for ASR task, including WER computation and breakdown analytics
 
+load("//lingvo:lingvo.bzl", "py2and3_test")
+
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -9,12 +11,15 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "simple_wer",
     srcs = ["simple_wer.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # Implicit six dependency.
+    ],
 )
 
-py_test(
+py2and3_test(
     name = "simple_wer_test",
     srcs = ["simple_wer_test.py"],
-    python_version = "PY2",
     deps = [
         ":simple_wer",
         # Implicit tensorflow dependency.

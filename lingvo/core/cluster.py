@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -115,7 +116,8 @@ class _Cluster(object):
     return p
 
   @classmethod
-  def _MakeDeviceString(_, job_name, task_id, device_name, device_id):
+  def _MakeDeviceString(cls, job_name, task_id, device_name, device_id):
+    del cls
     return '%s/replica:0/task:%d/device:%s:%d' % (job_name, task_id,
                                                   device_name, device_id)
 
@@ -144,7 +146,7 @@ class _Cluster(object):
     return ret
 
   @staticmethod
-  def _cluster_stack():
+  def _ClusterStack():
     return _CLUSTER_STACK
 
   def __enter__(self):

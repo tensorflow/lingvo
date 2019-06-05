@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # -*- coding: utf-8 -*-
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #

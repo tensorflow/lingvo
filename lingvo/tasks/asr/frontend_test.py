@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +40,7 @@ class AsrFrontendTest(test_utils.TestCase):
     """
     with open(
         test_helper.test_src_dir_path('tools/testdata/gan_or_vae.wav'),
-        'r') as f:
+        'rb') as f:
       wavdata = f.read()
       result = contrib_audio.decode_wav(wavdata)
       # Remove the last dimension: channel is 1.

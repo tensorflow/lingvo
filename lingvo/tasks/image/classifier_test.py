@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -104,10 +105,11 @@ class ClassifierTest(test_utils.TestCase):
       p.task.params_init = py_utils.WeightInit.Uniform(0.1, seed=73234288)
       model = p.Instantiate()
       subgraphs = model.GetTask().Inference()
-      self.assertCountEqual(['default'], subgraphs.keys())
+      self.assertCountEqual(['default'], list(subgraphs.keys()))
       fetches, feeds = subgraphs['default']
-      self.assertCountEqual(['normalized_image'], feeds.keys())
-      self.assertCountEqual(['logits', 'probs', 'prediction'], fetches.keys())
+      self.assertCountEqual(['normalized_image'], list(feeds.keys()))
+      self.assertCountEqual(['logits', 'probs', 'prediction'],
+                            list(fetches.keys()))
       tf.global_variables_initializer().run()
       fetch_results = sess.run(
           fetches, {feeds['normalized_image']: np.zeros(p.input.data_shape)})

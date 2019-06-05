@@ -1,3 +1,5 @@
+load("//lingvo:lingvo.bzl", "py2and3_test")
+
 # Image related tasks.
 package(
     default_visibility = ["//visibility:public"],
@@ -8,6 +10,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "classifier",
     srcs = ["classifier.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit numpy dependency.
         # Implicit six dependency.
@@ -22,10 +25,9 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "classifier_test",
     srcs = ["classifier_test.py"],
-    python_version = "PY2",
     deps = [
         ":classifier",
         ":input_generator",
@@ -43,6 +45,7 @@ py_test(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
@@ -51,10 +54,9 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
-    python_version = "PY2",
     deps = [
         ":input_generator",
         # Implicit numpy dependency.

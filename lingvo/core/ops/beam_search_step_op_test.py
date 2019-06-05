@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -306,7 +307,7 @@ class BeamSearchOpTest(test_utils.TestCase):
         prev_hyps_expected=[[0, 0], [1, 0], [0, 0]],
         atten_probs_expected=np.zeros([seq_len, b_size, 0]))
 
-    np.testing.assert_array_equal([['0', '0'], ['0', '0'], ['0', '0']],
+    np.testing.assert_array_equal([[b'0', b'0'], [b'0', b'0'], [b'0', b'0']],
                                   done_hyps)
 
   def test_three_steps_eos(self):
@@ -414,7 +415,7 @@ class BeamSearchOpTest(test_utils.TestCase):
         prev_hyps_expected=prev_hyps_expected,
         atten_probs_expected=np.zeros([seq_len, b_size, 0]),
         force_eos_in_last_step=False)
-    np.testing.assert_array_equal([['0', '0'], ['0', '0'], ['0', '0']],
+    np.testing.assert_array_equal([[b'0', b'0'], [b'0', b'0'], [b'0', b'0']],
                                   done_hyps)
 
     # If force eos is true, we get valid results as in test_three_step_eos,

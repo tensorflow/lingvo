@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -20,6 +21,7 @@ from __future__ import print_function
 
 import numpy as np
 
+from six.moves import range
 import tensorflow as tf
 
 tf.flags.DEFINE_string('input_filepattern', '',
@@ -72,7 +74,7 @@ class StatsCollector(object):
     sorted_lengths = sorted(self._lengths)
     num_buckets = FLAGS.num_buckets
     n = len(sorted_lengths)
-    idx = (n * (np.array(range(num_buckets - 1)) + 1)) // num_buckets
+    idx = (n * (np.array(list(range(num_buckets - 1))) + 1)) // num_buckets
     buckets = [sorted_lengths[i] for i in idx] + [sorted_lengths[-1]]
     tf.logging.info('== Buckets.')
     tf.logging.info('bucket upper limits: %s', buckets)

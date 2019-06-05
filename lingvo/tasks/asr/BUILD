@@ -1,3 +1,5 @@
+load("//lingvo:lingvo.bzl", "py2and3_test")
+
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -7,6 +9,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "frontend",
     srcs = ["frontend.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
@@ -14,13 +17,12 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "frontend_test",
     srcs = ["frontend_test.py"],
     data = [
         "//lingvo/tools/testdata:audio_data",
     ],
-    python_version = "PY2",
     deps = [
         ":frontend",
         # Additional FFT kernels dependency.
@@ -35,6 +37,7 @@ py_test(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -42,14 +45,12 @@ py_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
-        "//lingvo/core:tokenizers",
     ],
 )
 
-py_test(
+py2and3_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
-    python_version = "PY2",
     deps = [
         ":input_generator",
         # Implicit numpy dependency.
@@ -62,6 +63,7 @@ py_test(
 py_library(
     name = "encoder",
     srcs = ["encoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -72,15 +74,15 @@ py_library(
         "//lingvo/core:plot",
         "//lingvo/core:py_utils",
         "//lingvo/core:rnn_cell",
+        "//lingvo/core:rnn_layers",
         "//lingvo/core:spectrum_augmenter",
         "//lingvo/core:summary_utils",
     ],
 )
 
-py_test(
+py2and3_test(
     name = "encoder_test",
     srcs = ["encoder_test.py"],
-    python_version = "PY2",
     deps = [
         ":encoder",
         # Implicit numpy dependency.
@@ -93,7 +95,9 @@ py_test(
 py_library(
     name = "fusion",
     srcs = ["fusion.py"],
+    srcs_version = "PY2AND3",
     deps = [
+        # Implicit tensorflow dependency.
         "//lingvo/core:base_layer",
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
@@ -104,6 +108,7 @@ py_library(
 py_library(
     name = "decoder_utils",
     srcs = ["decoder_utils.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -111,10 +116,9 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "decoder_utils_test",
     srcs = ["decoder_utils_test.py"],
-    python_version = "PY2",
     deps = [
         ":decoder_utils",
         # Implicit tensorflow dependency.
@@ -125,6 +129,7 @@ py_test(
 py_library(
     name = "contextualizer_base",
     srcs = ["contextualizer_base.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo/core:base_layer",
     ],
@@ -133,6 +138,7 @@ py_library(
 py_library(
     name = "decoder",
     srcs = ["decoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":contextualizer_base",
         ":decoder_utils",
@@ -153,11 +159,10 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "decoder_test",
     size = "large",
     srcs = ["decoder_test.py"],
-    python_version = "PY2",
     shard_count = 10,
     deps = [
         ":decoder",
@@ -176,6 +181,7 @@ py_test(
 py_library(
     name = "model_test_input_generator",
     srcs = ["model_test_input_generator.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
@@ -186,6 +192,7 @@ py_library(
 py_library(
     name = "model",
     srcs = ["model.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":decoder",
         ":decoder_utils",
@@ -202,11 +209,10 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "model_test",
     srcs = ["model_test.py"],
     data = ["//lingvo/tools/testdata:audio_data"],
-    python_version = "PY2",
     shard_count = 15,
     deps = [
         ":decoder",

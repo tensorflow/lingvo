@@ -1,3 +1,5 @@
+load("//lingvo:lingvo.bzl", "py2and3_test")
+
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -7,6 +9,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "layers",
     srcs = ["layers.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -16,18 +19,21 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
-    python_version = "PY2",
     shard_count = 2,
-    deps = [":layers_test_lib"],
+    deps = [
+        ":layers_test_lib",
+        # Implicit six dependency.
+    ],
 )
 
 py_library(
     name = "layers_test_lib",
     testonly = True,
     srcs = ["layers_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":layers",
         # Implicit numpy dependency.
@@ -42,6 +48,7 @@ py_library(
 py_library(
     name = "encoder",
     srcs = ["encoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":layers",
         # Implicit six dependency.
@@ -56,10 +63,9 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "encoder_test",
     srcs = ["encoder_test.py"],
-    python_version = "PY2",
     shard_count = 12,
     deps = [
         ":encoder",
@@ -73,6 +79,7 @@ py_test(
 py_library(
     name = "decoder",
     srcs = ["decoder.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -92,18 +99,21 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "decoder_test",
     srcs = ["decoder_test.py"],
-    python_version = "PY2",
     shard_count = 20,
-    deps = [":decoder_test_lib"],
+    deps = [
+        ":decoder_test_lib",
+        # Implicit six dependency.
+    ],
 )
 
 py_library(
     name = "decoder_test_lib",
     testonly = True,
     srcs = ["decoder_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":decoder",
         # Implicit numpy dependency.
@@ -121,6 +131,7 @@ py_library(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit six dependency.
         # Implicit tensorflow dependency.
@@ -132,13 +143,12 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     data = [
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
-    python_version = "PY2",
     deps = [
         ":input_generator",
         # Implicit numpy dependency.
@@ -153,6 +163,7 @@ py_test(
 py_library(
     name = "model",
     srcs = ["model.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":decoder",
         ":encoder",
@@ -162,17 +173,18 @@ py_library(
         "//lingvo/core:base_model",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
-        "//lingvo/core:summary_utils",
     ],
 )
 
-py_test(
+py2and3_test(
     name = "model_test",
     size = "large",
     srcs = ["model_test.py"],
-    python_version = "PY2",
     shard_count = 20,
-    deps = [":model_test_lib"],
+    deps = [
+        ":model_test_lib",
+        # Implicit six dependency.
+    ],
 )
 
 py_library(
@@ -182,6 +194,7 @@ py_library(
     data = [
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
+    srcs_version = "PY2AND3",
     deps = [
         ":decoder",
         ":encoder",

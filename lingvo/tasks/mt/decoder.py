@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -1265,16 +1266,16 @@ class TransformerDecoder(MTBaseDecoder):
     else:
       seq_len = 0
 
-    prefix_states = py_utils.NestedMap({
-        'layer_%d' % layer: py_utils.NestedMap({  # pylint:disable=g-complex-comprehension
-            'key':
-                tf.zeros([seq_len, batch_size, atten_hidden_dim],
-                         dtype=py_utils.FPropDtype(p)),
-            'value':
-                tf.zeros([seq_len, batch_size, atten_hidden_dim],
-                         dtype=py_utils.FPropDtype(p)),
-        }) for layer in range(p.num_trans_layers)
-    })
+    prefix_states = py_utils.NestedMap()
+    for layer in range(p.num_trans_layers):
+      prefix_states['layer_%d' % layer] = py_utils.NestedMap({
+          'key':
+              tf.zeros([seq_len, batch_size, atten_hidden_dim],
+                       dtype=py_utils.FPropDtype(p)),
+          'value':
+              tf.zeros([seq_len, batch_size, atten_hidden_dim],
+                       dtype=py_utils.FPropDtype(p)),
+      })
 
     return initial_results, py_utils.NestedMap({
         'prefix_states': prefix_states,

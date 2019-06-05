@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # -*- coding: utf-8 -*-
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
@@ -31,6 +32,7 @@ from __future__ import print_function
 
 import sys
 
+import six
 import tensorflow as tf
 
 from lingvo.core.ops import py_x_ops
@@ -58,7 +60,8 @@ class WpmEncoder(object):
     self._pieces = []
     with tf.gfile.Open(wpm_filepath, 'r') as f:
       for line in f.readlines():
-        line = line.decode('utf-8')
+        if isinstance(line, six.binary_type):
+          line = line.decode('utf-8')
         piece = line.strip().split('\t')[0]
         self._pieces.append(piece)
     self._merge_prob = merge_prob

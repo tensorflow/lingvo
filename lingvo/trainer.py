@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,7 +40,7 @@ import time
 
 import numpy as np
 import six
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import range
 from six.moves import zip
 import tensorflow as tf
 
@@ -712,8 +713,8 @@ class TrainerTpu(base_runner.BaseRunner):
       outfeed_devices = []
       device_assignment = py_utils.GetTpuDeviceAssignment()
       assert device_assignment
-      for replica in xrange(device_assignment.num_replicas):
-        for core in xrange(device_assignment.num_cores_per_replica):
+      for replica in range(device_assignment.num_replicas):
+        for core in range(device_assignment.num_cores_per_replica):
           with tf.device(device_assignment.host_device(replica, core)):
             outfeed_devices.append(
                 tf.contrib.tpu.outfeed_dequeue_tuple(
@@ -1233,6 +1234,7 @@ class RunnerManager(object):
 
   # This is a hack so these classes can be overridded with internal
   # non-public implementations.
+  # pylint: disable=invalid-name
   inference_graph_exporter = inference_graph_exporter
   model_registry = model_registry
   Controller = Controller
@@ -1240,6 +1242,7 @@ class RunnerManager(object):
   TrainerTpu = TrainerTpu
   Evaler = Evaler
   Decoder = Decoder
+  # pylint: enable=invalid-name
 
   def __init__(self, model):
     self._model_name = model

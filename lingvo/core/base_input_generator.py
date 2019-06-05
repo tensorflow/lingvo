@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +20,9 @@ from __future__ import division
 from __future__ import print_function
 
 import six
+from six.moves import map
 from six.moves import range
+from six.moves import zip
 import tensorflow as tf
 
 from tensorflow.contrib.tpu.python.tpu import tpu_function
@@ -149,7 +152,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
                        if tpu_embedding_collection else None)
 
       tpu_emb_input_keys = (
-          tpu_embedding.feature_to_config_dict.keys()
+          list(tpu_embedding.feature_to_config_dict.keys())
           if tpu_embedding is not None else [])
       tf.logging.info('tpu_emb_input_keys: %r', tpu_emb_input_keys)
 
@@ -199,7 +202,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
           if p.use_per_host_infeed:
 
             # TODO(ylc/zhifengc): Add this to a policy module and test it.
-            def _tpu_ordinal_function(shard_index_in_host):
+            def TPUOrdinalFunction(shard_index_in_host):
               device_assignment = py_utils.GetTpuDeviceAssignment()
               if device_assignment:
                 # We put both enqueue/dequeue ops at core 0 in each replica.
@@ -212,7 +215,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
             input_ops = q.split_inputs_and_generate_enqueue_ops(
                 batch.Flatten(),
                 placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
-                tpu_ordinal_function=_tpu_ordinal_function)
+                tpu_ordinal_function=TPUOrdinalFunction)
           else:
             input_ops = q.split_inputs_and_generate_enqueue_ops(
                 batch.Flatten(),
@@ -369,13 +372,13 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     p = self.params
     if not isinstance(p.file_pattern, list):
       raise ValueError('Expected a list, got %s' % (p.file_pattern,))
-    if max(map(len, p.file_pattern)) >= 3:
+    if max(list(map(len, p.file_pattern))) >= 3:
       # Within batch mixing doesn't work with backprop filters, i.e. when
       # file_pattern param contains a list of
       # <file_pattern, weight, [bprop_variable_filter]> tuples.
       raise ValueError('Expected a list of pairs, got %s' % (p.file_pattern,))
 
-    file_patterns, weights = zip(*p.file_pattern)
+    file_patterns, weights = list(zip(*p.file_pattern))
     self._bprop_variable_filters = [''] * len(file_patterns)
     for file_pattern in file_patterns:
       if ',' in file_pattern:

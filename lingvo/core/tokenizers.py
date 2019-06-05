@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,13 +20,12 @@ from __future__ import division
 from __future__ import print_function
 
 import numpy as np
-
 import tensorflow as tf
 
 from lingvo.core import base_layer
 from lingvo.core import py_utils
-from lingvo.core.ops import py_x_ops
 from lingvo.core import wpm_encoder
+from lingvo.core.ops import py_x_ops
 
 
 class BaseTokenizer(base_layer.BaseLayer):

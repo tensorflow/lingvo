@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,6 +24,7 @@ import os
 import pickle
 
 import numpy as np
+import six
 from six.moves import range
 
 import tensorflow as tf
@@ -53,7 +55,7 @@ class GenericInputOpTest(test_utils.TestCase):
     tmp = os.path.join(tf.test.get_temp_dir(), 'basic')
     with tf.python_io.TFRecordWriter(tmp) as w:
       for i in range(100):
-        w.write('%08d' % i)
+        w.write(('%08d' % i).encode('utf-8'))
 
     g = tf.Graph()
     with g.as_default():
@@ -92,7 +94,7 @@ class GenericInputOpTest(test_utils.TestCase):
         self.assertEqual(ans_vals.shape, (8, 2))
         self.assertAllEqual(np.square(ans_vals[:, 0]), ans_vals[:, 1])
       for i in range(100):
-        self.assertTrue('%08d' % i in record_seen)
+        self.assertIn(('%08d' % i).encode('utf-8'), record_seen)
 
   def testPadding(self):
     # Generate a test file w/ 50 records of different lengths.
@@ -154,7 +156,7 @@ class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
       tmp = os.path.join(tf.test.get_temp_dir(), tag)
       with tf.python_io.TFRecordWriter(tmp) as w:
         for i in range(cnt):
-          w.write('%s:%08d' % (tag, i))
+          w.write(('%s:%08d' % (tag, i)).encode('utf-8'))
       return tmp
 
     path1 = generate_test_data('input1', 100)
@@ -186,16 +188,16 @@ class GenericInputOpWithinBatchMixingTest(GenericInputOpTest):
       for _ in range(total_count):
         ans_strs, ans_vals = sess.run([strs, vals])
         for s in ans_strs:
-          tags_count[s.split(':')[0]] += 1
+          tags_count[s.split(b':')[0]] += 1
         self.assertEqual(ans_strs.shape, (8,))
         self.assertEqual(ans_vals.shape, (8,))
       self.assertEqual(sum(tags_count.values()), total_count * 8)
       mix_ratios = {}
-      for k, v in tags_count.iteritems():
+      for k, v in six.iteritems(tags_count):
         mix_ratios[k] = float(v) / total_count / 8
-      self.assertAlmostEqual(mix_ratios['input1'], 0.2, delta=0.01)
-      self.assertAlmostEqual(mix_ratios['input2'], 0.3, delta=0.01)
-      self.assertAlmostEqual(mix_ratios['input3'], 0.5, delta=0.01)
+      self.assertAlmostEqual(mix_ratios[b'input1'], 0.2, delta=0.01)
+      self.assertAlmostEqual(mix_ratios[b'input2'], 0.3, delta=0.01)
+      self.assertAlmostEqual(mix_ratios[b'input3'], 0.5, delta=0.01)
 
 
 if __name__ == '__main__':

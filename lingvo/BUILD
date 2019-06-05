@@ -1,3 +1,5 @@
+load("//lingvo:lingvo.bzl", "py2and3_test")
+
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -24,6 +26,7 @@ load(
 py_library(
     name = "base_runner",
     srcs = ["base_runner.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":base_trial",
         # Implicit tensorflow dependency.
@@ -37,6 +40,7 @@ py_library(
 py_library(
     name = "base_trial",
     srcs = ["base_trial.py"],
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo/core:hyperparams",
     ],
@@ -45,6 +49,7 @@ py_library(
 py_library(
     name = "model_imports_no_params",
     srcs = ["model_imports.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":model_registry",
         # Implicit six dependency.
@@ -56,16 +61,16 @@ py_library(
 # transitive deps.  Only py_binary should depend on this target.
 py_library(
     name = "model_imports",
+    srcs_version = "PY2AND3",
     deps = [
         ":model_imports_no_params",
         "//lingvo/tasks:all_params",
     ],
 )
 
-py_test(
+py2and3_test(
     name = "model_import_test",
     srcs = ["model_import_test.py"],
-    python_version = "PY2",
     deps = [
         ":model_imports_no_params",
         # Implicit tensorflow dependency.
@@ -76,6 +81,7 @@ py_library(
     name = "models_test_helper",
     testonly = 1,
     srcs = ["models_test_helper.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
@@ -85,10 +91,9 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "models_test",
     srcs = ["models_test.py"],
-    python_version = "PY2",
     deps = [
         ":model_imports",
         ":model_registry",
@@ -102,16 +107,16 @@ py_test(
 py_library(
     name = "model_registry",
     srcs = ["model_registry.py"],
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit tensorflow dependency.
         "//lingvo/core:base_model_params",
     ],
 )
 
-py_test(
+py2and3_test(
     name = "model_registry_test",
     srcs = ["model_registry_test.py"],
-    python_version = "PY2",
     deps = [":model_registry_test_lib"],
 )
 
@@ -119,6 +124,7 @@ py_library(
     name = "model_registry_test_lib",
     testonly = True,
     srcs = ["model_registry_test.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":model_registry",
         # Implicit tensorflow dependency.
@@ -132,6 +138,7 @@ py_library(
 py_library(
     name = "trainer_lib",
     srcs = ["trainer.py"],
+    srcs_version = "PY2AND3",
     deps = [
         ":base_trial",
         ":model_imports_no_params",
@@ -162,25 +169,11 @@ lingvo_py_binary(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "trainer_test",
     size = "large",
     srcs = ["trainer_test.py"],
-    python_version = "PY2",
     shard_count = 5,
-    tags = [
-        "noasan",
-        "nomsan",
-        "notsan",
-        "optonly",
-    ],
-    deps = [":trainer_test_lib"],
-)
-
-py_library(
-    name = "trainer_test_lib",
-    testonly = True,
-    srcs = ["trainer_test.py"],
     tags = [
         "noasan",
         "nomsan",
@@ -192,6 +185,7 @@ py_library(
         ":model_registry",
         ":trainer_lib",
         # Implicit numpy dependency.
+        # Implicit six dependency.
         # Implicit tensorflow dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_layer",
@@ -201,7 +195,37 @@ py_library(
         "//lingvo/core:trainer_test_utils",
         "//lingvo/tasks/image:input_generator",
         "//lingvo/tasks/image/params:mnist",
-        "//lingvo/tasks/punctuator/params",
+        "//lingvo/tasks/punctuator/params:codelab",
+    ],
+)
+
+py_library(
+    name = "trainer_test_lib",
+    testonly = True,
+    srcs = ["trainer_test.py"],
+    srcs_version = "PY2AND3",
+    tags = [
+        "noasan",
+        "nomsan",
+        "notsan",
+        "optonly",
+    ],
+    deps = [
+        ":base_trial",
+        ":model_registry",
+        ":trainer_lib",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+        "//lingvo/core:base_input_generator",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:base_model",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:test_utils",
+        "//lingvo/core:trainer_test_utils",
+        "//lingvo/tasks/image:input_generator",
+        "//lingvo/tasks/image/params:mnist",
+        "//lingvo/tasks/punctuator/params:codelab",
     ],
 )
 
