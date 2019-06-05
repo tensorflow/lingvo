@@ -42,6 +42,7 @@ from tensorflow.python.framework import function
 from tensorflow.python.util import deprecation
 from lingvo.core import hyperparams
 from lingvo.core import retry
+from lingvo.core import symbolic
 from lingvo.core import tshape
 from lingvo.core.ops import py_x_ops
 
@@ -742,7 +743,7 @@ def InitRNNCellState(shape, init=None, dtype=None, name=None):
   """Initial state definitions for RNN cell implementations.
 
   Args:
-    shape: A array of ints for specifying the shape of the state.
+    shape: A array of ints/symbols for specifying the shape of the state.
     init: Hyperparameters as returned by one of the static implemetaitons in
       RNNCellStateInit.
     dtype: The dype of the states. Defaults to tf.float32.
@@ -752,6 +753,10 @@ def InitRNNCellState(shape, init=None, dtype=None, name=None):
     A Tensor of the specified shape, and sampled from the distribution as
     defined by the init parameters.
   """
+  if (isinstance(shape, (list, tuple)) and
+      any(symbolic.IsExpr(dim) for dim in shape)):
+    shape = symbolic.EvalExpr(shape)
+
   if init is None:
     init = DefaultRNNCellStateInit()
   if dtype is None:
