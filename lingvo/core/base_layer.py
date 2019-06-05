@@ -184,8 +184,10 @@ class BaseLayer(object):
         'random_seed', None, 'Random seed for deterministic unittests. This '
         'is inherited by child layers if they do not set a random_seed.')
     p.Define('vn', DefaultVN(), 'How variational noise should be applied.')
-    p.Define('params_init', py_utils.DefaultParamInit(),
-             'How params should be initialized.')
+    p.Define(
+        'params_init', py_utils.DefaultParamInit(),
+        'How model weights should be initialized. Not to be confused with '
+        'hyperparams.')
     # is_eval is used to generate graph for eval purpose, typically
     # the eval graph is forward pass of training graph without
     # regularization, e.g. dropout.
