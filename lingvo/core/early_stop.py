@@ -147,6 +147,7 @@ class EarlyStop(object):
         'useful if progress is asymptotic.')
     p.Define('window', 0, 'Maximum number of steps between best and current.')
     p.Define('verbose', True, 'Log early-stop checks.')
+    p.Define('min_steps', 0, 'Minimum number of steps before stopping.')
     return p
 
   def __init__(self, params):
@@ -198,7 +199,9 @@ class EarlyStop(object):
     """Returns true if stop criterion is met."""
     if self.params.window and self._node is not None:
       self._best_step, self._last_step = session.run(self._node)
-      s = self._last_step - self._best_step > self.params.window
+      s = (
+          self._last_step - self._best_step > self.params.window and
+          self._last_step >= self.params.min_steps)
       if self.params.verbose:
         tf.logging.info('early stop check: best_step=%d, last_step=%d, stop=%d',
                         self._best_step, self._last_step, s)
