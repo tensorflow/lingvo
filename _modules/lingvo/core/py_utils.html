@@ -187,6 +187,7 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="k">import</span> <span class="n">deprecation</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">retry</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">tshape</span>
 <span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="k">import</span> <span class="n">py_x_ops</span>
 
@@ -887,7 +888,7 @@
   <span class="sd">&quot;&quot;&quot;Initial state definitions for RNN cell implementations.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    shape: A array of ints for specifying the shape of the state.</span>
+<span class="sd">    shape: A array of ints/symbols for specifying the shape of the state.</span>
 <span class="sd">    init: Hyperparameters as returned by one of the static implemetaitons in</span>
 <span class="sd">      RNNCellStateInit.</span>
 <span class="sd">    dtype: The dype of the states. Defaults to tf.float32.</span>
@@ -897,6 +898,10 @@
 <span class="sd">    A Tensor of the specified shape, and sampled from the distribution as</span>
 <span class="sd">    defined by the init parameters.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span>
+      <span class="nb">any</span><span class="p">(</span><span class="n">symbolic</span><span class="o">.</span><span class="n">IsExpr</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">)):</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">EvalExpr</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+
   <span class="k">if</span> <span class="n">init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">init</span> <span class="o">=</span> <span class="n">DefaultRNNCellStateInit</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
