@@ -144,58 +144,54 @@ class BaseInputGenerator(base_layer.BaseLayer):
       ).number_of_shards // num_infeed_hosts
       input_ops_list = []
       queues = []
-      first_batch = None
       tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
       tpu_embedding = (tpu_embedding_collection[0]
                        if tpu_embedding_collection else None)
 
-      tpu_embedding_input_keys = (
+      tpu_emb_input_keys = (
           tpu_embedding.feature_to_config_dict.keys()
           if tpu_embedding is not None else [])
+      tf.logging.info('tpu_emb_input_keys: %r', tpu_emb_input_keys)
 
+      batch = None
       for task_id in range(num_infeed_hosts):
         host_device = '/task:{}/device:CPU:0'.format(task_id)
         with tf.device(host_device):
           batch = self.GetPreprocessedInputBatch()
-          tpu_embedding_features = []
-          for tpu_embedding_input_key in tpu_embedding_input_keys:
-            tpu_embedding_feature = batch.pop(tpu_embedding_input_key)
-            tpu_embedding_features.append(
-                (tpu_embedding_input_key, tpu_embedding_feature))
-
-          if first_batch is None:
-            first_batch = batch
-          flat_batch = batch.FlattenItems()
+          tf.logging.info('host_device: %s, batch: %r', host_device, batch)
 
           if tpu_embedding is not None:
             enqueue_dict_per_core = [
                 {} for _ in range(tpu_embedding.num_cores_per_host)
             ]
             num_cores_per_host = tpu_embedding.num_cores_per_host
-            for tpu_embedding_input_key, tpu_embedding_feature in tpu_embedding_features:
-              tpu_embedding_feature_splitted = tf.split(tpu_embedding_feature,
-                                                        num_cores_per_host)
-              for core, split in enumerate(tpu_embedding_feature_splitted):
+            for key in tpu_emb_input_keys:
+              feat = batch[key]
+              tpu_emb_feat_splitted = tf.split(feat, num_cores_per_host)
+              for core, split in enumerate(tpu_emb_feat_splitted):
                 # Dense to sparse. Note the assumption of a padding id.
                 sample_indices = tf.where(tf.not_equal(split, -1))
                 embedding_indices = tf.gather_nd(split, sample_indices)
                 enqueue_data = tpu_embedding_lib.EnqueueData(
                     embedding_indices, sample_indices)
-                enqueue_dict_per_core[core][
-                    tpu_embedding_input_key] = enqueue_data
+                enqueue_dict_per_core[core][key] = enqueue_data
             input_ops_list += tpu_embedding.generate_enqueue_ops(
                 enqueue_dict_per_core)
 
-          shapes, types = [], []
-          for k, x in flat_batch:
+          for k, x in batch.FlattenItems():
             assert x.shape.is_fully_defined(), (
                 'Shape must be fully defined: %s: %s' % (k, x))
             # TODO(cwhipkey): if it's a string (or other type not supported on
             # TPU), drop it from feeding and on the other end add in an op that
             # fails if used.
-            shapes.append(x.shape)
-            types.append(x.dtype)
-          q = tf.contrib.tpu.InfeedQueue(tuple_types=types, tuple_shapes=shapes)
+          shapes = batch.Transform(lambda x: x.shape).Flatten()
+          dtypes = batch.Transform(lambda x: x.dtype).Flatten()
+          tf.logging.info('host_device: %s infeed shapes: %r', host_device,
+                          shapes)
+          tf.logging.info('host_device: %s infeed dtypes: %r', host_device,
+                          dtypes)
+          q = tf.contrib.tpu.InfeedQueue(
+              tuple_types=dtypes, tuple_shapes=shapes)
           queues.append(q)
           assert shards is not None
           q.set_number_of_shards(shards)
@@ -214,12 +210,12 @@ class BaseInputGenerator(base_layer.BaseLayer):
                 return shard_index_in_host
 
             input_ops = q.split_inputs_and_generate_enqueue_ops(
-                [v for _, v in flat_batch],
+                batch.Flatten(),
                 placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
                 tpu_ordinal_function=_tpu_ordinal_function)
           else:
             input_ops = q.split_inputs_and_generate_enqueue_ops(
-                [v for _, v in flat_batch],
+                batch.Flatten(),
                 device_assignment=py_utils.GetTpuDeviceAssignment())
 
           input_ops_list += input_ops
@@ -232,7 +228,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     with tf.device(tf.compat.v1.tpu.core(0)):
       tensors = queues[0].generate_dequeue_op()
-    return first_batch.Pack(tensors)
+    return batch.Pack(tensors)
 
   def SplitInputBatch(self, num_splits):
     """Splits the current InputBatch into num_splits ways.
