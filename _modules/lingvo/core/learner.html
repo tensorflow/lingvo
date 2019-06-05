@@ -217,6 +217,10 @@
         <span class="s1">&#39;If set, only backprop variables whose names partially match &#39;</span>
         <span class="s1">&#39;this regexp (re.search).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bprop_variable_exclusion&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If set, do not backprop variables whose names partially match &#39;</span>
+        <span class="s1">&#39;this regexp (re.search).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;grad_aggregation_method&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">AggregationMethod</span><span class="o">.</span><span class="n">EXPERIMENTAL_TREE</span><span class="p">,</span>
         <span class="s1">&#39;Specifies the method used to combine gradient terms. Accepted &#39;</span>
         <span class="s1">&#39;values are constants defined in the class AggregationMethod.&#39;</span><span class="p">)</span>
@@ -264,18 +268,26 @@
     <span class="c1"># compatibility on variables created by self.optimizer.Apply().</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filter</span><span class="p">:</span>
+    <span class="n">pos</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filter</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filter</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="n">neg</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_exclusion</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_exclusion</span> <span class="k">else</span> <span class="kc">None</span>
 
-      <span class="k">def</span> <span class="nf">VariableFilter</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bprop_variable_filter</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-          <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">def</span> <span class="nf">VariableFilter</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns True if variable v should be optimized by this learner.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="n">pos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pos</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_filter: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                         <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">False</span>
+      <span class="k">if</span> <span class="n">neg</span> <span class="ow">and</span> <span class="n">neg</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_exclusion: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">False</span>
+      <span class="k">return</span> <span class="kc">True</span>
 
-      <span class="n">vmap</span> <span class="o">=</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">VariableFilter</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: bprop variable: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">vmap</span> <span class="o">=</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">VariableFilter</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: bprop variable: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
     <span class="c1"># Compute gradients.</span>
     <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
@@ -307,6 +319,7 @@
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">CollectVarHistogram</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span> <span class="o">=</span> <span class="n">var_grads</span>
 
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span>
     <span class="n">lrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_AddScalarSummary</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">lrs</span><span class="p">)</span>
     <span class="n">lr</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="n">lrs</span>
