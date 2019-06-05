@@ -329,8 +329,10 @@
         <span class="s1">&#39;random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Random seed for deterministic unittests. This &#39;</span>
         <span class="s1">&#39;is inherited by child layers if they do not set a random_seed.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vn&#39;</span><span class="p">,</span> <span class="n">DefaultVN</span><span class="p">(),</span> <span class="s1">&#39;How variational noise should be applied.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;params_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultParamInit</span><span class="p">(),</span>
-             <span class="s1">&#39;How params should be initialized.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;params_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultParamInit</span><span class="p">(),</span>
+        <span class="s1">&#39;How model weights should be initialized. Not to be confused with &#39;</span>
+        <span class="s1">&#39;hyperparams.&#39;</span><span class="p">)</span>
     <span class="c1"># is_eval is used to generate graph for eval purpose, typically</span>
     <span class="c1"># the eval graph is forward pass of training graph without</span>
     <span class="c1"># regularization, e.g. dropout.</span>
