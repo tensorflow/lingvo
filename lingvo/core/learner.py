@@ -72,6 +72,10 @@ class Learner(base_layer.BaseLayer):
         'If set, only backprop variables whose names partially match '
         'this regexp (re.search).')
     p.Define(
+        'bprop_variable_exclusion', None,
+        'If set, do not backprop variables whose names partially match '
+        'this regexp (re.search).')
+    p.Define(
         'grad_aggregation_method', tf.AggregationMethod.EXPERIMENTAL_TREE,
         'Specifies the method used to combine gradient terms. Accepted '
         'values are constants defined in the class AggregationMethod.')
@@ -119,18 +123,26 @@ class Learner(base_layer.BaseLayer):
     # compatibility on variables created by self.optimizer.Apply().
     p = self.params
 
-    if p.bprop_variable_filter:
+    pos = re.compile(
+        p.bprop_variable_filter) if p.bprop_variable_filter else None
+    neg = re.compile(
+        p.bprop_variable_exclusion) if p.bprop_variable_exclusion else None
 
-      def VariableFilter(v):
-        if re.search(p.bprop_variable_filter, v.name):
-          return True
+    def VariableFilter(v):
+      """Returns True if variable v should be optimized by this learner."""
+      if pos and not pos.search(v.name):
         tf.logging.info('%s: disabled by bprop_variable_filter: %s', p.name,
                         v.name)
         return False
+      if neg and neg.search(v.name):
+        tf.logging.info('%s: disabled by bprop_variable_exclusion: %s', p.name,
+                        v.name)
+        return False
+      return True
 
-      vmap = vmap.Filter(VariableFilter)
-      for v in vmap.Flatten():
-        tf.logging.info('%s: bprop variable: %s', p.name, v.name)
+    vmap = vmap.Filter(VariableFilter)
+    for v in vmap.Flatten():
+      tf.logging.info('%s: bprop variable: %s', p.name, v.name)
 
     # Compute gradients.
     var_grads = py_utils.ComputeGradients(loss, vmap, p.grad_aggregation_method,
@@ -162,6 +174,7 @@ class Learner(base_layer.BaseLayer):
     summary_utils.CollectVarHistogram(var_grads)
     self._var_grads = var_grads
 
+    assert self.theta.global_step is not None, self.theta
     lrs = self.lr_schedule.Value(self.theta.global_step)
     self._AddScalarSummary('lr_schedule', lrs)
     lr = p.learning_rate * lrs

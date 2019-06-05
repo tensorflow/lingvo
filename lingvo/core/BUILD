@@ -465,6 +465,17 @@ py_library(
     ],
 )
 
+py_test(
+    name = "learner_test",
+    srcs = ["learner_test.py"],
+    deps = [
+        ":base_layer",
+        ":learner",
+        ":py_utils",
+        # Implicit tensorflow dependency.
+    ],
+)
+
 py_library(
     name = "conv_layers_with_time_padding",
     srcs = ["conv_layers_with_time_padding.py"],
@@ -685,6 +696,7 @@ py_library(
     deps = [
         ":hyperparams",
         ":retry",
+        ":symbolic",
         ":tshape",
         # Implicit numpy dependency.
         # Implicit six dependency.
