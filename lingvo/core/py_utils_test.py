@@ -284,6 +284,16 @@ class PyUtilsTest(test_utils.TestCase):
       v1_v = all_vars[0].eval()
       self.assertAllClose(v1_v_expted, v1_v.tolist())
 
+  def testVariableShapePrefix(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      shape = [3, 2]
+      pc = py_utils.WeightParams(
+          shape=shape, init=py_utils.WeightInit.Constant(0.0), dtype=tf.float32)
+      with py_utils.VariableShapePrefixContext(5):
+        with py_utils.VariableShapePrefixContext(4):
+          var = py_utils.CreateVariable('var', pc)[0]
+      self.assertEqual([5, 4, 3, 2], var.shape.as_list())
+
   def testGeoMeanXavier(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
       tf.set_random_seed(1618)

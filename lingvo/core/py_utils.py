@@ -25,6 +25,7 @@ import hashlib
 import math
 import numbers
 import re
+import threading
 import traceback
 import zlib
 
@@ -1027,6 +1028,37 @@ _ALL_VARS_KEY = ('__lingvo_all_vars',)
 _get_all_vars = _CollectionGetter(_ALL_VARS_KEY, lambda: {})
 
 
+class _ThreadLocalStack(threading.local):
+
+  def __init__(self):
+    super(_ThreadLocalStack, self).__init__()
+    self.stack = []
+
+
+_VARIABLE_SHAPE_PREFIXES = _ThreadLocalStack().stack
+
+
+@contextlib.contextmanager
+def VariableShapePrefixContext(shape_prefix):
+  """Add a shape prefix to variable created by CreateVariable().
+
+  Args:
+    shape_prefix: a positive integer of shape prefix.
+
+  Yields:
+    None.
+  """
+  assert shape_prefix > 0, ('%s' % shape_prefix)
+  _VARIABLE_SHAPE_PREFIXES.append(shape_prefix)
+  yield
+  _VARIABLE_SHAPE_PREFIXES.pop()
+
+
+def GetVariableShapePrefixes():
+  """Return the list of shape prefixes for CreateVariable()."""
+  return _VARIABLE_SHAPE_PREFIXES
+
+
 def GetFanInFanOut(shape):
   """Returns (fan_in, fan_out) of a weight variable of the give shape."""
   if not shape:
@@ -1199,6 +1231,7 @@ def CreateVariable(name,
   # variable sharing mechanism.
   def GetVar(reuse=reuse):
     """reuse: Whether to reuse the variables."""
+    var_shape = GetVariableShapePrefixes() + list(shape)
     with tf.variable_scope(name) as scope:
       var_name = GetVariableName(scope.name)
       var_scope = tf.VariableScope(
@@ -1212,21 +1245,21 @@ def CreateVariable(name,
         with tf.device('/cpu:0'):
           return tf.get_variable(
               'var',
-              shape,
+              var_shape,
               dtype,
               v_init,
               collections=collections,
               trainable=trainable,
-              validate_shape=True if shape is not None else False)
+              validate_shape=True if var_shape is not None else False)
       else:
         return tf.get_variable(
             'var',
-            shape,
+            var_shape,
             dtype,
             v_init,
             collections=collections,
             trainable=trainable,
-            validate_shape=True if shape is not None else False)
+            validate_shape=True if var_shape is not None else False)
 
   if _get_opportunistic_variable_reuse()[0]:
     try:
