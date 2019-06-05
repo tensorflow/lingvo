@@ -143,7 +143,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.rnn_layers</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="c1"># you may not use this file except in compliance with the License.</span>
@@ -163,7 +164,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="n">xrange</span>  <span class="c1"># pylint: disable=redefined-builtin</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
@@ -314,9 +315,9 @@
         <span class="n">state</span> <span class="o">=</span> <span class="n">rcell</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">rcell</span><span class="o">.</span><span class="n">batch_size</span><span class="p">(</span><span class="n">inputs0</span><span class="p">))</span>
       <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="n">sequence_length</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
-        <span class="n">sequence</span> <span class="o">=</span> <span class="n">xrange</span><span class="p">(</span><span class="n">sequence_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">sequence_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">sequence</span> <span class="o">=</span> <span class="n">xrange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sequence_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">sequence</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">sequence_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">sequence</span><span class="p">:</span>
         <span class="n">cur_input</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">act</span><span class="o">=</span><span class="p">[</span><span class="n">inputs</span><span class="p">[</span><span class="n">idx</span><span class="p">]],</span> <span class="n">padding</span><span class="o">=</span><span class="n">paddings</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
         <span class="n">state</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">rcell</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">cell</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">cur_input</span><span class="p">)</span>

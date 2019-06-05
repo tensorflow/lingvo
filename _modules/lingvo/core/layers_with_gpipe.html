@@ -143,7 +143,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.layers_with_gpipe</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="c1"># you may not use this file except in compliance with the License.</span>
@@ -163,7 +164,8 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="k">import</span> <span class="n">print_function</span>
 
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="n">xrange</span>  <span class="c1"># pylint: disable=redefined-builtin</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="k">import</span> <span class="nb">zip</span>
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
@@ -670,7 +672,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">cell_start</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">split</span><span class="p">,</span> <span class="n">cell_end</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">encoder_id</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">cell_start</span><span class="p">,</span> <span class="n">cell_end</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">encoder_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cell_start</span><span class="p">,</span> <span class="n">cell_end</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">encoder_id</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span><span class="p">:</span>
           <span class="k">break</span>
         <span class="n">encoder_l</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;cell_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">split</span><span class="p">)]</span><span class="o">.</span><span class="n">children</span><span class="p">[</span>
@@ -684,7 +686,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">cell_start</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">split</span><span class="p">,</span> <span class="n">cell_end</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">splits</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">layer_id</span> <span class="ow">in</span> <span class="n">xrange</span><span class="p">(</span><span class="n">cell_start</span><span class="p">,</span> <span class="n">cell_end</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">layer_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">cell_start</span><span class="p">,</span> <span class="n">cell_end</span><span class="p">):</span>
         <span class="n">decoder_id</span> <span class="o">=</span> <span class="n">layer_id</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">num_encoder_layers</span>
         <span class="k">if</span> <span class="n">decoder_id</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
           <span class="k">continue</span>

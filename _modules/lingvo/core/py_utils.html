@@ -143,7 +143,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.py_utils</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="c1"># you may not use this file except in compliance with the License.</span>
@@ -330,7 +331,7 @@
   <span class="k">return</span> <span class="n">_CheckNumerics</span><span class="p">(</span><span class="n">inp</span><span class="p">,</span> <span class="n">message</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="with_dependencies"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.with_dependencies">[docs]</a><span class="k">def</span> <span class="nf">with_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">,</span> <span class="n">output_tensor</span><span class="p">):</span>
+<div class="viewcode-block" id="with_dependencies"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.with_dependencies">[docs]</a><span class="k">def</span> <span class="nf">with_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">,</span> <span class="n">output_tensor</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">output_tensor</span><span class="p">)</span></div>
 
@@ -501,7 +502,7 @@
 
 
 <div class="viewcode-block" id="outside_all_rewrites"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.outside_all_rewrites">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">outside_all_rewrites</span><span class="p">():</span>
+<span class="k">def</span> <span class="nf">outside_all_rewrites</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">yield</span></div>
 
@@ -596,7 +597,7 @@
       <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">NestedMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">; available attributes: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                           <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+                           <span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
 
 <div class="viewcode-block" id="NestedMap.copy"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.copy">[docs]</a>  <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>  <span class="c1"># Don&#39;t delegate w/ super: dict.copy() -&gt; dict.</span>
     <span class="k">return</span> <span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
@@ -1611,9 +1612,9 @@
   <span class="n">shards</span> <span class="o">=</span> <span class="n">tpu_function</span><span class="o">.</span><span class="n">get_tpu_context</span><span class="p">()</span><span class="o">.</span><span class="n">number_of_shards</span>
   <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">shards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
-  <span class="n">grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">activation_dict</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+  <span class="n">grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
   <span class="n">feature_to_gradient_dict</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">OrderedDict</span><span class="p">(</span>
-      <span class="nb">zip</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">grads</span><span class="p">))</span>
+      <span class="nb">zip</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">activation_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="n">grads</span><span class="p">))</span>
   <span class="n">send_gradient_op</span> <span class="o">=</span> <span class="n">tpu_embedding</span><span class="o">.</span><span class="n">generate_send_gradients_op</span><span class="p">(</span>
       <span class="n">feature_to_gradient_dict</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">send_gradient_op</span></div>
@@ -2547,7 +2548,7 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="clip_by_value"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.clip_by_value">[docs]</a><span class="k">def</span> <span class="nf">clip_by_value</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">clip_value_min</span><span class="p">,</span> <span class="n">clip_value_max</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="clip_by_value"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.clip_by_value">[docs]</a><span class="k">def</span> <span class="nf">clip_by_value</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">clip_value_min</span><span class="p">,</span> <span class="n">clip_value_max</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_complex</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span>
