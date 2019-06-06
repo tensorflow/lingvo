@@ -272,7 +272,8 @@ class Controller(base_runner.BaseRunner):
 
       while True:
         now = time.time()
-        next_iteration_seconds = now + 10  # 10 seconds
+        next_iteration_seconds = now + min(
+            10, save_interval_seconds)  # 10 seconds or less
 
         # Init/restore variable if needed.
         self._RestoreIfNeeded(sess)

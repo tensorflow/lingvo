@@ -1311,12 +1311,21 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
           indices=sample_indices,
           values=embedding_indices,
           dense_shape=dense_shape)
-      # [batch, embedding_dim]
+      # [?, embedding_dim]
+      # For tf.nn.embedding_lookup_sparse, output.dim0 might be different from
+      # sparse_ids.dense_shape.dim0.
+      # In fact, the '?' is the smallest span starting from the index=0 that
+      # covers all the results.
       embs = tf.nn.embedding_lookup_sparse(
           self.theta.wm,
           sparse_ids,
           None,  # sp_weights
           combiner=p.combiner)
+      batch_size = dense_shape[0]
+      # Explicitly pad results to maintain dim0=batch.
+      dim0_padlen = tf.cast(batch_size, tf.int32) - tf.shape(embs)[0]
+      embs = tf.pad(embs, [[0, dim0_padlen], [0, 0]])
+      embs = py_utils.HasShape(embs, [batch_size], ndims=1)
       # [batch, 1, embedding_dim]
       rets[k] = tf.expand_dims(embs, 1)
     return rets
