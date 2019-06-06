@@ -55,7 +55,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # TPU related infeed tuning.
     p.Define('use_per_host_infeed', False,
              'Whether run infeed op on each host.')
-    p.Define('tpu_infeed_parallism', 1,
+    p.Define('tpu_infeed_parallelism', 1,
              'Uses these many python threads to drive infeed concurrently.')
     return p
 
@@ -226,7 +226,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
       tpu_infeed_op = tf.group(*input_ops_list)
     self._made_tpu_infeed = True
     # Let trainer.py use multiple threads to drive the infeed op.
-    for _ in range(p.tpu_infeed_parallism):
+    for _ in range(p.tpu_infeed_parallelism):
       tf.add_to_collection(py_utils.ENQUEUE_OPS, tpu_infeed_op)
 
     with tf.device(tf.compat.v1.tpu.core(0)):

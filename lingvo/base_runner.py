@@ -305,9 +305,9 @@ class BaseRunner(object):
           return
         local_enqueue_steps += 1
 
-        # There are tpu_infeed_parallism parallel threads enqueuing.
+        # There are tpu_infeed_parallelism parallel threads enqueuing.
         # We account for all of them when updating global_enqueue_steps.
-        global_enqueue_steps += self.params.input.tpu_infeed_parallism
+        global_enqueue_steps += self.params.input.tpu_infeed_parallelism
 
         sess.run([op])
 
