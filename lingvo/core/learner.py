@@ -295,3 +295,44 @@ class Learner(base_layer.BaseLayer):
 
   def _AddScalarSummary(self, key, value):
     summary_utils.scalar('%s/%s' % (key, self.params.name), value)
+
+
+_LEGACY_LEARNER_PARAMS = [
+    'bprop_variable_filter',
+    'clip_gradient_norm_to_value',
+    'clip_gradient_single_norm_to_value',
+    'colocate_gradients_with_ops',
+    'gate_gradients',
+    'grad_aggregation_method',
+    'grad_norm_to_clip_to_zero',
+    'grad_norm_tracker',
+    'l1_regularizer_weight',
+    'l2_regularizer_weight',
+    'learning_rate',
+    'lr_schedule',
+    'optimizer',
+]
+
+
+def ExtractLearnerFromLegacyParams(tp):
+  """Extracts legacy learner params from 'tp' to a Learner params.
+
+  Args:
+    tp: BaseTask training params (p.train). Its legacy params will be cleared to
+      be None after the conversion.
+
+  Returns:
+    A params for Learner.
+  """
+  lp = Learner.Params()
+  lp.name = 'loss'
+  for k, v in tp.IterParams():
+    if k not in _LEGACY_LEARNER_PARAMS:
+      tf.logging.info('Ignoring legacy param %s=%s for optimization program', k,
+                      v)
+      continue
+    setattr(lp, k, v)
+    setattr(tp, k, None)
+  for line in lp.ToText().split('\n'):
+    tf.logging.info('Learner params: %s', line)
+  return lp

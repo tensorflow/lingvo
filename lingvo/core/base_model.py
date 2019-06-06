@@ -78,23 +78,6 @@ class StatsCounter(object):
       return tf.identity(tf.assign_add(self._var, delta))
 
 
-_LEGACY_LEARNER_PARAMS = [
-    'bprop_variable_filter',
-    'clip_gradient_norm_to_value',
-    'clip_gradient_single_norm_to_value',
-    'colocate_gradients_with_ops',
-    'gate_gradients',
-    'grad_aggregation_method',
-    'grad_norm_to_clip_to_zero',
-    'grad_norm_tracker',
-    'l1_regularizer_weight',
-    'l2_regularizer_weight',
-    'learning_rate',
-    'lr_schedule',
-    'optimizer',
-]
-
-
 class BaseTask(base_layer.BaseLayer):
   """A single encoder/decoder task.
 
@@ -311,18 +294,7 @@ class BaseTask(base_layer.BaseLayer):
     """Sets tp.learner based on legacy params."""
     if tp.learner is not None:
       return
-    op = learner.Learner.Params()
-    tp.learner = op
-    op.name = 'loss'
-    for k, v in tp.IterParams():
-      if k not in _LEGACY_LEARNER_PARAMS:
-        tf.logging.info('Ignoring legacy param %s=%s for optimization program',
-                        k, v)
-        continue
-      setattr(op, k, v)
-      setattr(tp, k, None)
-    for line in op.ToText().split('\n'):
-      tf.logging.info('Learner params: %s', line)
+    tp.learner = learner.ExtractLearnerFromLegacyParams(tp)
 
   def ComputePredictions(self, theta, input_batch):
     """Computes predictions for `input_batch`.
