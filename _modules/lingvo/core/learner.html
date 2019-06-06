@@ -440,6 +440,47 @@
 
 <div class="viewcode-block" id="Learner._AddScalarSummary"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._AddScalarSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_AddScalarSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">value</span><span class="p">)</span></div></div>
+
+
+<span class="n">_LEGACY_LEARNER_PARAMS</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="s1">&#39;bprop_variable_filter&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;clip_gradient_norm_to_value&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;clip_gradient_single_norm_to_value&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;colocate_gradients_with_ops&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;gate_gradients&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;grad_aggregation_method&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;grad_norm_to_clip_to_zero&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;l1_regularizer_weight&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;l2_regularizer_weight&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;learning_rate&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;optimizer&#39;</span><span class="p">,</span>
+<span class="p">]</span>
+
+
+<div class="viewcode-block" id="ExtractLearnerFromLegacyParams"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.ExtractLearnerFromLegacyParams">[docs]</a><span class="k">def</span> <span class="nf">ExtractLearnerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts legacy learner params from &#39;tp&#39; to a Learner params.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tp: BaseTask training params (p.train). Its legacy params will be cleared to</span>
+<span class="sd">      be None after the conversion.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A params for Learner.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">lp</span> <span class="o">=</span> <span class="n">Learner</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">lp</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;loss&#39;</span>
+  <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tp</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_LEGACY_LEARNER_PARAMS</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Ignoring legacy param </span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1"> for optimization program&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span>
+                      <span class="n">v</span><span class="p">)</span>
+      <span class="k">continue</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">tp</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">lp</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Learner params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">line</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">lp</span></div>
 </pre></div>
 
            </div>
