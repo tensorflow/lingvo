@@ -24,7 +24,6 @@ import math
 from six.moves import range
 import tensorflow as tf
 
-from lingvo.core import base_encoder
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import model_helper
@@ -37,7 +36,7 @@ tf.flags.DEFINE_bool('transformer_encoder_truncates_inputs', False,
                      'Whether TransformerEncoder truncates inputs to max len.')
 
 
-class MTEncoderV1(base_encoder.BaseEncoder):
+class MTEncoderV1(base_layer.BaseLayer):
   """Machine translation encoder version 1."""
 
   @classmethod
@@ -62,6 +61,9 @@ class MTEncoderV1(base_encoder.BaseEncoder):
         'func: BidirectionalFRNN, '
         ' native_cudnn: BidirectionalNativeCuDNNLSTM.')
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
+    p.Define(
+        'packed_input', False, 'If True, encoder and all layers support '
+        'multiple examples in a single sequence.')
 
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
     default_params_init = py_utils.WeightInit.Uniform(0.04)
@@ -205,7 +207,7 @@ class MTEncoderV1(base_encoder.BaseEncoder):
           encoded=xs, padding=tf.squeeze(ps, [2]), segment_id=src_segment_id)
 
 
-class MTEncoderUniRNN(base_encoder.BaseEncoder):
+class MTEncoderUniRNN(base_layer.BaseLayer):
   """MT encoder that consists of a stack of uni-directional RNN layers."""
 
   @classmethod
@@ -231,6 +233,9 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
         'transparent_merger_tpl',
         layers.WeightedSumLayer.Params().Set(add_weight_summaries=True),
         'Merger op for layer outputs.')
+    p.Define(
+        'packed_input', False, 'If True, encoder and all layers support '
+        'multiple examples in a single sequence.')
 
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
     default_params_init = py_utils.WeightInit.Uniform(0.04)
@@ -345,7 +350,7 @@ class MTEncoderUniRNN(base_encoder.BaseEncoder):
           state=state1)
 
 
-class MTEncoderBiRNN(base_encoder.BaseEncoder):
+class MTEncoderBiRNN(base_layer.BaseLayer):
   """MT encoder that consists of a stack of bi-directional RNN layers."""
 
   @classmethod
@@ -376,6 +381,9 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
         'transparent_merger_tpl',
         layers.WeightedSumLayer.Params().Set(add_weight_summaries=True),
         'Merger op for layer outputs.')
+    p.Define(
+        'packed_input', False, 'If True, encoder and all layers support '
+        'multiple examples in a single sequence.')
 
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
     default_params_init = py_utils.WeightInit.Uniform(0.04)
@@ -512,7 +520,7 @@ class MTEncoderBiRNN(base_encoder.BaseEncoder):
           encoded=xs, padding=tf.squeeze(ps, [2]), segment_id=src_segment_id)
 
 
-class TransformerEncoder(base_encoder.BaseEncoder):
+class TransformerEncoder(base_layer.BaseLayer):
   """Transformer stack with sinusoidal positional embeddings and attention.
 
   Implements the encoder of 'Attention is All You Need':
@@ -545,6 +553,9 @@ class TransformerEncoder(base_encoder.BaseEncoder):
 
     p.Define('transformer_stack', mt_layers.TransformerStack.Params(),
              'TransformerStack layer params.')
+    p.Define(
+        'packed_input', False, 'If True, encoder and all layers support '
+        'multiple examples in a single sequence.')
 
     p.transformer_stack.num_transformer_layers = 6
     p.transformer_stack.transformer_tpl.tr_atten_tpl.num_attention_heads = 8

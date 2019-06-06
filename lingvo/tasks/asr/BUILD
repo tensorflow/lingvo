@@ -67,7 +67,6 @@ py_library(
     deps = [
         # Implicit six dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:base_encoder",
         "//lingvo/core:base_layer",
         "//lingvo/core:layers",
         "//lingvo/core:model_helper",

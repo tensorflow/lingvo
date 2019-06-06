@@ -24,7 +24,6 @@ from six.moves import zip
 import tensorflow as tf
 
 from tensorflow.python.ops import inplace_ops
-from lingvo.core import base_encoder
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import model_helper
@@ -38,7 +37,7 @@ from lingvo.core import summary_utils
 ConvLSTMBlock = collections.namedtuple('ConvLSTMBlock', ('rnn', 'cnn'))
 
 
-class AsrEncoder(base_encoder.BaseEncoder):
+class AsrEncoder(base_layer.BaseLayer):
   """Speech encoder version 1."""
 
   @classmethod
@@ -143,8 +142,6 @@ class AsrEncoder(base_encoder.BaseEncoder):
   def __init__(self, params):
     super(AsrEncoder, self).__init__(params)
     p = self.params
-    assert not p.packed_input, ('Packed inputs are not yet supported for '
-                                'AsrEncoder.')
     name = p.name
 
     with tf.variable_scope(name):

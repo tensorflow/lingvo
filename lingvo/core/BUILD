@@ -44,13 +44,6 @@ lingvo_cuda_py_test(
 )
 
 py_library(
-    name = "base_encoder",
-    srcs = ["base_encoder.py"],
-    srcs_version = "PY2AND3",
-    deps = [":base_layer"],
-)
-
-py_library(
     name = "base_decoder",
     srcs = ["base_decoder.py"],
     srcs_version = "PY2AND3",
@@ -227,7 +220,6 @@ py2and3_test(
     srcs = ["base_model_test.py"],
     deps = [
         ":base_decoder",
-        ":base_encoder",
         ":base_input_generator",
         ":base_layer",
         ":base_model",

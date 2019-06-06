@@ -25,7 +25,6 @@ from six.moves import range
 
 import tensorflow as tf
 from lingvo.core import base_decoder
-from lingvo.core import base_encoder
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import base_model
@@ -62,7 +61,7 @@ class BaseTaskTest(test_utils.TestCase):
   def TestParams(cls):
     p = base_model.BaseTask.Params()
     p.name = 'base_mdl'
-    p.encoder = base_encoder.BaseEncoder.Params()
+    p.encoder = base_layer.BaseLayer.Params()
     p.encoder.name = 'encoder'
     p.decoder = base_decoder.BaseDecoder.Params()
     p.decoder.name = 'decoder'
