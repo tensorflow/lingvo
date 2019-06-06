@@ -402,10 +402,12 @@ class LSTMCellSimple(RNNCell):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     zero_c = py_utils.InitRNNCellState((batch_size, self.hidden_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     if p.is_inference:
       zero_m = self.QTensor('zero_m', zero_m)
       zero_c = self.QTensor('zero_c', zero_c)
@@ -896,10 +898,12 @@ class QuantizedLSTMCell(RNNCell):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, p.num_output_nodes),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     zero_c = py_utils.InitRNNCellState((batch_size, p.num_output_nodes),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def GetOutput(self, state):
@@ -996,10 +1000,12 @@ class LSTMCellCuDNNCompliant(RNNCell):
     return py_utils.NestedMap(
         m=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
                                     init=p.zero_state_init_params,
-                                    dtype=p.dtype),
+                                    dtype=p.dtype,
+                                    is_eval=p.is_eval),
         c=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
                                     init=p.zero_state_init_params,
-                                    dtype=p.dtype))
+                                    dtype=p.dtype,
+                                    is_eval=p.is_eval))
 
   def GetOutput(self, state):
     return state.m
@@ -1146,10 +1152,12 @@ class LayerNormalizedLSTMCell(RNNCell):
     return py_utils.NestedMap(
         m=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
                                     init=p.zero_state_init_params,
-                                    dtype=p.dtype),
+                                    dtype=p.dtype,
+                                    is_eval=p.is_eval),
         c=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
                                     init=p.zero_state_init_params,
-                                    dtype=p.dtype))
+                                    dtype=p.dtype,
+                                    is_eval=p.is_eval))
 
   def GetOutput(self, state):
     return state.m
@@ -1413,10 +1421,12 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     zero_c = py_utils.InitRNNCellState((batch_size, self.hidden_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def _ResetState(self, state, inputs):
@@ -1576,10 +1586,12 @@ class DoubleProjectionLSTMCell(RNNCell):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     zero_c = py_utils.InitRNNCellState((batch_size, self.hidden_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def _ResetState(self, state, inputs):
@@ -1730,11 +1742,13 @@ class ConvLSTMCell(RNNCell):
         m=py_utils.InitRNNCellState(
             tf.stack([batch_size, height, width, out_channels]),
             init=p.zero_state_init_params,
-            dtype=p.dtype),
+            dtype=p.dtype,
+            is_eval=p.is_eval),
         c=py_utils.InitRNNCellState(
             tf.stack([batch_size, height, width, out_channels]),
             init=p.zero_state_init_params,
-            dtype=p.dtype))
+            dtype=p.dtype,
+            is_eval=p.is_eval))
 
   def GetOutput(self, state):
     return state.m
@@ -1954,10 +1968,12 @@ class SRUCell(RNNCell):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     zero_c = py_utils.InitRNNCellState((batch_size, self.hidden_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def GetOutput(self, state):
@@ -2116,10 +2132,12 @@ class QRNNPoolingCell(RNNCell):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, p.num_output_nodes),
                                        init=p.zero_state_init_params,
-                                       dtype=p.dtype)
+                                       dtype=p.dtype,
+                                       is_eval=p.is_eval)
     zero_c = py_utils.InitRNNCellState((batch_size, p.num_output_nodes),
                                        init=p.zero_state_init_params,
-                                       dtype=p.dtype)
+                                       dtype=p.dtype,
+                                       is_eval=p.is_eval)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def GetOutput(self, state):
@@ -2311,10 +2329,12 @@ class GRUCell(RNNCell):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     zero_c = py_utils.InitRNNCellState((batch_size, self.hidden_size),
                                        init=p.zero_state_init_params,
-                                       dtype=py_utils.FPropDtype(p))
+                                       dtype=py_utils.FPropDtype(p),
+                                       is_eval=p.is_eval)
     return py_utils.NestedMap(m=zero_m, c=zero_c)
 
   def _ResetState(self, state, inputs):

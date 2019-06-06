@@ -1703,6 +1703,19 @@ class RNNCellStateInitTest(test_utils.TestCase):
                              [-1.048426, 2.73048, 0.091445]]
       self.assertAllClose(zero_state_v, expected_zero_state)
 
+  def testRandomNormalInEval(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.set_random_seed(12345678)
+      zero_state = py_utils.InitRNNCellState(
+          [2, 3],
+          init=py_utils.RNNCellStateInit.RandomNormal(seed=12345),
+          dtype=tf.float32,
+          is_eval=True)
+      tf.global_variables_initializer().run()
+      zero_state_v = zero_state.eval()
+      expected_zero_state = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
+      self.assertAllClose(zero_state_v, expected_zero_state)
+
 
 class RematerializeFnTest(tf.test.TestCase):
 

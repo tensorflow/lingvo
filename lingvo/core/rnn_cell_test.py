@@ -2119,8 +2119,10 @@ class RNNCellTest(test_utils.TestCase):
       self.assertAllClose(m_expected, m_v)
       self.assertAllClose(c_expected, c_v)
 
-  def _testLSTMZeroStateHelper(self, zero_state_init,
-                               expected_init_states=None):
+  def _testLSTMZeroStateHelper(self,
+                               zero_state_init,
+                               expected_init_states=None,
+                               is_eval=False):
     with self.session(use_gpu=False) as sess:
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
@@ -2131,6 +2133,7 @@ class RNNCellTest(test_utils.TestCase):
       params.bias_init = py_utils.WeightInit.Constant(0.1)
       params.dtype = tf.float64
       params.zero_state_init_params = zero_state_init
+      params.is_eval = is_eval
 
       lstm = rnn_cell.LSTMCellSimple(params)
 
@@ -2161,6 +2164,16 @@ class RNNCellTest(test_utils.TestCase):
             'm': m,
             'c': c
         })
+
+  def testLSTMSimpleZeroStateFnRandomNormalInEval(self):
+    m = [[0.0, 0.0, 0.0]]
+    c = [[0.0, 0.0, 0.0]]
+    self._testLSTMZeroStateHelper(
+        py_utils.RNNCellStateInit.RandomNormal(seed=12345), {
+            'm': m,
+            'c': c
+        },
+        is_eval=True)
 
 
 if __name__ == '__main__':

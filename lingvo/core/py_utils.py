@@ -741,7 +741,7 @@ def DefaultRNNCellStateInit():
   return RNNCellStateInit.Zeros()
 
 
-def InitRNNCellState(shape, init=None, dtype=None, name=None):
+def InitRNNCellState(shape, init=None, dtype=None, name=None, is_eval=False):
   """Initial state definitions for RNN cell implementations.
 
   Args:
@@ -750,6 +750,7 @@ def InitRNNCellState(shape, init=None, dtype=None, name=None):
       RNNCellStateInit.
     dtype: The dype of the states. Defaults to tf.float32.
     name: An optional name for the operation.
+    is_eval: Bool, set to True if we need special behavior in eval mode.
 
   Returns:
     A Tensor of the specified shape, and sampled from the distribution as
@@ -765,13 +766,13 @@ def InitRNNCellState(shape, init=None, dtype=None, name=None):
     dtype = tf.float32
 
   method = init.method
-  if method in ['zeros']:
+  if ((method in ['zeros']) or (method in ['random_normal'] and is_eval)):
     init_state = tf.zeros(shape=shape, dtype=dtype, name=name)
   elif method in ['random_normal']:
     init_state = tf.random.normal(
         shape=shape, dtype=dtype, name=name, seed=init.seed)
   else:
-    raise ValueError('zero_state method (%s) not supported.' % method)
+    raise ValueError('Initialization method (%s) not supported.' % method)
 
   return init_state
 
