@@ -2725,6 +2725,24 @@
       <span class="k">return</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding</span><span class="p">)</span> <span class="o">+</span> <span class="n">padded</span> <span class="o">*</span> <span class="n">padding</span></div>
 
 
+<div class="viewcode-block" id="LengthsFromPaddings"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.LengthsFromPaddings">[docs]</a><span class="k">def</span> <span class="nf">LengthsFromPaddings</span><span class="p">(</span><span class="n">paddings</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes lengths of each sequence in a batch, ignoring trailing padding.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    paddings: a tensor with shape [batch, length].</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    lengths tensor shaped [batch] containing the unpadded length of each</span>
+<span class="sd">    sequence in the batch.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">paddings</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="c1"># Find the last unpadded value. Argmax returns the first index when tied.</span>
+  <span class="c1"># Cannot just use tf.reduce_sum because there might be leading paddings.</span>
+  <span class="n">cumsum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">cumsum</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+  <span class="k">return</span> <span class="n">length</span></div>
+
+
 <div class="viewcode-block" id="TrimTrailingPaddings"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.TrimTrailingPaddings">[docs]</a><span class="k">def</span> <span class="nf">TrimTrailingPaddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Trims trailing paddings from inputs.</span>
 
@@ -2739,10 +2757,7 @@
 <span class="sd">    will always have length at least 1.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">paddings</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-  <span class="c1"># Find the last unpadded value. Argmax returns the first index when tied.</span>
-  <span class="c1"># Cannot just use tf.reduce_sum because there might be leading paddings.</span>
-  <span class="n">cumsum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-  <span class="n">length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">cumsum</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+  <span class="n">length</span> <span class="o">=</span> <span class="n">LengthsFromPaddings</span><span class="p">(</span><span class="n">paddings</span><span class="p">)</span>
   <span class="n">max_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">length</span><span class="p">)</span>
   <span class="n">output_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
   <span class="n">output_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([[</span><span class="n">output_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">max_length</span><span class="p">],</span> <span class="n">output_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]],</span>
