@@ -169,7 +169,6 @@
 <span class="kn">import</span> <span class="nn">tensorflow</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="k">import</span> <span class="n">inplace_ops</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_encoder</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="k">import</span> <span class="n">model_helper</span>
@@ -183,7 +182,7 @@
 <span class="n">ConvLSTMBlock</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;ConvLSTMBlock&#39;</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="s1">&#39;cnn&#39;</span><span class="p">))</span>
 
 
-<div class="viewcode-block" id="AsrEncoder"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.encoder.html#lingvo.tasks.asr.encoder.AsrEncoder">[docs]</a><span class="k">class</span> <span class="nc">AsrEncoder</span><span class="p">(</span><span class="n">base_encoder</span><span class="o">.</span><span class="n">BaseEncoder</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrEncoder"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.encoder.html#lingvo.tasks.asr.encoder.AsrEncoder">[docs]</a><span class="k">class</span> <span class="nc">AsrEncoder</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Speech encoder version 1.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="AsrEncoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.encoder.html#lingvo.tasks.asr.encoder.AsrEncoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -288,8 +287,6 @@
   <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">AsrEncoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed inputs are not yet supported for &#39;</span>
-                                <span class="s1">&#39;AsrEncoder.&#39;</span><span class="p">)</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
