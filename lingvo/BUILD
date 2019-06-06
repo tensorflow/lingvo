@@ -68,7 +68,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "model_import_test",
     srcs = ["model_import_test.py"],
     deps = [
@@ -91,7 +91,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "models_test",
     srcs = ["models_test.py"],
     deps = [
@@ -114,7 +114,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "model_registry_test",
     srcs = ["model_registry_test.py"],
     deps = [":model_registry_test_lib"],
@@ -163,13 +163,15 @@ py_library(
 lingvo_py_binary(
     name = "trainer",
     srcs = [":trainer_lib"],
+    python_version = "PY2",
+    srcs_version = "PY2AND3",
     deps = [
         ":model_imports",
         ":trainer_lib",
     ],
 )
 
-py2and3_test(
+py_test(
     name = "trainer_test",
     size = "large",
     srcs = ["trainer_test.py"],
@@ -235,6 +237,8 @@ lingvo_py_binary(
     data = [
         "//lingvo/tasks/punctuator/tools:download_brown_corpus",
     ],
+    python_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":model_imports",  # build_cleaner: keep
         ":trainer_lib",  # build_cleaner: keep

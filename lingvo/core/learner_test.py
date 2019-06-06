@@ -1,3 +1,4 @@
+# Lint as: python2, python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,7 +54,8 @@ class LearnerTest(tf.test.TestCase):
     var_grads, updated_vars, stats = self._testLearner(learner_p)
     self.assertAllClose(var_grads, {'hello': (0., 1.), 'world': (0., -2.)})
     self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0.2})
-    self.assertCountEqual(stats.keys(), ['eval_metrics', 'has_nan_or_inf'])
+    self.assertCountEqual(
+        list(stats.keys()), ['eval_metrics', 'has_nan_or_inf'])
 
   def testBPropVariableFilter(self):
     learner_p = learner.Learner.Params().Set(

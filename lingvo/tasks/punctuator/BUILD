@@ -21,7 +21,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     data = [
@@ -49,7 +49,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "model_test",
     size = "large",
     srcs = ["model_test.py"],

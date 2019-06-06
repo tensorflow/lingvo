@@ -81,7 +81,7 @@ lingvo_cc_library(
     hdrs = ["simple_vocab.h"],
 )
 
-py2and3_test(
+py_test(
     name = "simple_vocab_test",
     srcs = ["simple_vocab_test.py"],
     deps = [
@@ -183,7 +183,7 @@ custom_kernel_library(
     op_def_lib = [":x_ops"],
 )
 
-py2and3_test(
+py_test(
     name = "assert_ops_test",
     srcs = ["assert_ops_test.py"],
     deps = [
@@ -204,7 +204,7 @@ custom_kernel_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "beam_search_step_op_test",
     srcs = ["beam_search_step_op_test.py"],
     deps = [
@@ -235,7 +235,7 @@ custom_kernel_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "best_step_op_test",
     srcs = ["best_step_op_test.py"],
     data = [
@@ -258,7 +258,7 @@ custom_kernel_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "functional_ops_test",
     srcs = ["functional_ops_test.py"],
     deps = [
@@ -278,7 +278,7 @@ custom_kernel_library(
     deps = [":input_common"],
 )
 
-py2and3_test(
+py_test(
     name = "generic_input_op_test",
     srcs = ["generic_input_op_test.py"],
     deps = [
@@ -300,7 +300,7 @@ custom_kernel_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "random_ops_test",
     srcs = ["random_ops_test.py"],
     deps = [
@@ -327,7 +327,7 @@ custom_kernel_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "tokenizer_ops_test",
     srcs = ["tokenizer_ops_test.py"],
     data = [

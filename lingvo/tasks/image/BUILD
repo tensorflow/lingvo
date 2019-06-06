@@ -25,7 +25,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "classifier_test",
     srcs = ["classifier_test.py"],
     deps = [
@@ -54,7 +54,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     deps = [

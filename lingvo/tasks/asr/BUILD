@@ -17,7 +17,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "frontend_test",
     srcs = ["frontend_test.py"],
     data = [
@@ -48,7 +48,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     deps = [
@@ -79,7 +79,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "encoder_test",
     srcs = ["encoder_test.py"],
     deps = [
@@ -115,7 +115,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "decoder_utils_test",
     srcs = ["decoder_utils_test.py"],
     deps = [
@@ -158,7 +158,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "decoder_test",
     size = "large",
     srcs = ["decoder_test.py"],
@@ -208,7 +208,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "model_test",
     srcs = ["model_test.py"],
     data = ["//lingvo/tools/testdata:audio_data"],

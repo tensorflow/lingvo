@@ -17,7 +17,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "simple_wer_test",
     srcs = ["simple_wer_test.py"],
     deps = [

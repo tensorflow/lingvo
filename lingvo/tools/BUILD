@@ -100,7 +100,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "audio_lib_test",
     srcs = ["audio_lib_test.py"],
     data = [

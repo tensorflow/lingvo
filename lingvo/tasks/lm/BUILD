@@ -9,6 +9,7 @@ licenses(["notice"])  # Apache 2.0
 
 load(
     "//lingvo:lingvo.bzl",
+    "lingvo_cuda_py2and3_test",
     "lingvo_cuda_py_test",
 )
 
@@ -25,7 +26,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     data = [
@@ -56,7 +57,7 @@ py_library(
     ],
 )
 
-lingvo_cuda_py_test(
+lingvo_cuda_py2and3_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
     shard_count = 10,
@@ -86,7 +87,7 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "model_test",
     srcs = ["model_test.py"],
     data = [
