@@ -200,7 +200,7 @@
     <span class="c1"># TPU related infeed tuning.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_per_host_infeed&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether run infeed op on each host.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpu_infeed_parallism&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpu_infeed_parallelism&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
              <span class="s1">&#39;Uses these many python threads to drive infeed concurrently.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -371,7 +371,7 @@
       <span class="n">tpu_infeed_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">input_ops_list</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_made_tpu_infeed</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="c1"># Let trainer.py use multiple threads to drive the infeed op.</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallism</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">,</span> <span class="n">tpu_infeed_op</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">core</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>

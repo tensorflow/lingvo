@@ -417,7 +417,8 @@
 
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-        <span class="n">next_iteration_seconds</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="mi">10</span>  <span class="c1"># 10 seconds</span>
+        <span class="n">next_iteration_seconds</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="nb">min</span><span class="p">(</span>
+            <span class="mi">10</span><span class="p">,</span> <span class="n">save_interval_seconds</span><span class="p">)</span>  <span class="c1"># 10 seconds or less</span>
 
         <span class="c1"># Init/restore variable if needed.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>

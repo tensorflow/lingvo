@@ -1456,12 +1456,21 @@
           <span class="n">indices</span><span class="o">=</span><span class="n">sample_indices</span><span class="p">,</span>
           <span class="n">values</span><span class="o">=</span><span class="n">embedding_indices</span><span class="p">,</span>
           <span class="n">dense_shape</span><span class="o">=</span><span class="n">dense_shape</span><span class="p">)</span>
-      <span class="c1"># [batch, embedding_dim]</span>
+      <span class="c1"># [?, embedding_dim]</span>
+      <span class="c1"># For tf.nn.embedding_lookup_sparse, output.dim0 might be different from</span>
+      <span class="c1"># sparse_ids.dense_shape.dim0.</span>
+      <span class="c1"># In fact, the &#39;?&#39; is the smallest span starting from the index=0 that</span>
+      <span class="c1"># covers all the results.</span>
       <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup_sparse</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span>
           <span class="n">sparse_ids</span><span class="p">,</span>
           <span class="kc">None</span><span class="p">,</span>  <span class="c1"># sp_weights</span>
           <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
+      <span class="n">batch_size</span> <span class="o">=</span> <span class="n">dense_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="c1"># Explicitly pad results to maintain dim0=batch.</span>
+      <span class="n">dim0_padlen</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">embs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="n">dim0_padlen</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">],</span> <span class="n">ndims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
       <span class="c1"># [batch, 1, embedding_dim]</span>
       <span class="n">rets</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">rets</span></div></div>

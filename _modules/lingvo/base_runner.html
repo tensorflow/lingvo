@@ -450,9 +450,9 @@
           <span class="k">return</span>
         <span class="n">local_enqueue_steps</span> <span class="o">+=</span> <span class="mi">1</span>
 
-        <span class="c1"># There are tpu_infeed_parallism parallel threads enqueuing.</span>
+        <span class="c1"># There are tpu_infeed_parallelism parallel threads enqueuing.</span>
         <span class="c1"># We account for all of them when updating global_enqueue_steps.</span>
-        <span class="n">global_enqueue_steps</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_parallism</span>
+        <span class="n">global_enqueue_steps</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span>
 
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">op</span><span class="p">])</span></div>
 
