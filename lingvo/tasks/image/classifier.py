@@ -216,6 +216,8 @@ class ModelV2(BaseClassifier):
     p = super(ModelV2, cls).Params()
     p.Define('extract', None, 'Param for the layer to extract image features.')
     p.Define('label_smoothing', 0., 'Smooth the labels towards 1/num_classes.')
+    p.Define('compute_accuracy_for_training', False,
+             'Whether to compute accuracy for training.')
     return p
 
   @base_layer.initializer
@@ -263,14 +265,11 @@ class ModelV2(BaseClassifier):
         'log_pplx': (xent.avg_xent, batch),
         'num_preds': (batch, 1),
     }
-    if self._compute_accuracy():
+    if p.is_eval or p.compute_accuracy_for_training:
       acc1 = self._Accuracy(1, xent.logits, labels, input_batch.weight)
       acc5 = self._Accuracy(5, xent.logits, labels, input_batch.weight)
       rets.update(accuracy=(acc1, batch), acc5=(acc5, batch))
     return rets, {}
-
-  def _compute_accuracy(self):
-    return self.params.is_eval
 
   def Inference(self):
     """Constructs inference subgraphs.
