@@ -1279,9 +1279,9 @@ py2and3_test(
     srcs = ["symbolic_test.py"],
     deps = [
         ":symbolic",
+        ":test_utils",
         # Implicit sympy dependency.
         # Implicit tensorflow dependency.
-        "//lingvo/core:test_utils",
     ],
 )
 

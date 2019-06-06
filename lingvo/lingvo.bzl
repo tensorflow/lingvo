@@ -166,5 +166,6 @@ def lingvo_proto_py(name, src, deps = []):
         srcs = [basename + "_pb2.py"],
     )
 
-# TODO(jonathanasdf): remove when bazel supports py2and3_test.
+# TODO(jonathanasdf): update when bazel supports py2and3_test.
 py2and3_test = native.py_test
+lingvo_cuda_py2and3_test = lingvo_cuda_py_test
