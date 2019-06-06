@@ -1344,6 +1344,20 @@ class ApplyPaddingTest(test_utils.TestCase):
       self.assertAllClose(y, [[1.0, 2.0], [0.0, 4.0], [5.0, 0.0]])
 
 
+class LengthsFromPaddingsTest(test_utils.TestCase):
+
+  def testBasic(self):
+    with self.session():
+      paddings = np.array([
+          [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+          [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
+          [1.0, 1.0, 0.0, 0.0, 0.0, 1.0],
+      ])
+      lengths = py_utils.LengthsFromPaddings(
+          tf.convert_to_tensor(paddings)).eval()
+      self.assertAllEqual([6, 3, 5], lengths)
+
+
 class TrimTrailingPaddingsTest(test_utils.TestCase):
 
   def test2D(self):

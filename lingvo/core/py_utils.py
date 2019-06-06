@@ -2580,6 +2580,24 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
       return x * (1.0 - padding) + padded * padding
 
 
+def LengthsFromPaddings(paddings):
+  """Computes lengths of each sequence in a batch, ignoring trailing padding.
+
+  Args:
+    paddings: a tensor with shape [batch, length].
+
+  Returns:
+    lengths tensor shaped [batch] containing the unpadded length of each
+    sequence in the batch.
+  """
+  paddings = HasRank(paddings, 2)
+  # Find the last unpadded value. Argmax returns the first index when tied.
+  # Cannot just use tf.reduce_sum because there might be leading paddings.
+  cumsum = tf.cumsum(1.0 - paddings, axis=1)
+  length = tf.argmax(cumsum, axis=1, output_type=tf.int32) + 1
+  return length
+
+
 def TrimTrailingPaddings(inputs, paddings):
   """Trims trailing paddings from inputs.
 
@@ -2594,10 +2612,7 @@ def TrimTrailingPaddings(inputs, paddings):
     will always have length at least 1.
   """
   paddings = HasRank(paddings, 2)
-  # Find the last unpadded value. Argmax returns the first index when tied.
-  # Cannot just use tf.reduce_sum because there might be leading paddings.
-  cumsum = tf.cumsum(1.0 - paddings, axis=1)
-  length = tf.argmax(cumsum, axis=1, output_type=tf.int32) + 1
+  length = LengthsFromPaddings(paddings)
   max_length = tf.reduce_max(length)
   output_shape = tf.shape(inputs)
   output_shape = tf.concat([[output_shape[0], max_length], output_shape[2:]],
