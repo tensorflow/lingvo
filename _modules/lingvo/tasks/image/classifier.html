@@ -361,6 +361,8 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;extract&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Param for the layer to extract image features.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;label_smoothing&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;Smooth the labels towards 1/num_classes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;compute_accuracy_for_training&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to compute accuracy for training.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -408,14 +410,11 @@
         <span class="s1">&#39;log_pplx&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">xent</span><span class="o">.</span><span class="n">avg_xent</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span>
         <span class="s1">&#39;num_preds&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
     <span class="p">}</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_accuracy</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">compute_accuracy_for_training</span><span class="p">:</span>
       <span class="n">acc1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
       <span class="n">acc5</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Accuracy</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">xent</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">weight</span><span class="p">)</span>
       <span class="n">rets</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">accuracy</span><span class="o">=</span><span class="p">(</span><span class="n">acc1</span><span class="p">,</span> <span class="n">batch</span><span class="p">),</span> <span class="n">acc5</span><span class="o">=</span><span class="p">(</span><span class="n">acc5</span><span class="p">,</span> <span class="n">batch</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">rets</span><span class="p">,</span> <span class="p">{}</span></div>
-
-<div class="viewcode-block" id="ModelV2._compute_accuracy"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2._compute_accuracy">[docs]</a>  <span class="k">def</span> <span class="nf">_compute_accuracy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_eval</span></div>
 
 <div class="viewcode-block" id="ModelV2.Inference"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV2.Inference">[docs]</a>  <span class="k">def</span> <span class="nf">Inference</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs inference subgraphs.</span>
