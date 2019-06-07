@@ -168,6 +168,103 @@
 <p>Insertion-based Framework.</p>
 <p class="rubric">References</p>
 <p>Insertion Transformer: <a class="reference external" href="https://arxiv.org/pdf/1902.03249.pdf">https://arxiv.org/pdf/1902.03249.pdf</a></p>
+<dl class="function">
+<dt id="lingvo.core.insertion.SequenceTrimLastToken">
+<code class="descclassname">lingvo.core.insertion.</code><code class="descname">SequenceTrimLastToken</code><span class="sig-paren">(</span><em>x</em>, <em>x_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/insertion.html#SequenceTrimLastToken"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.insertion.SequenceTrimLastToken" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trims the last token off of sequence <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>, and set trimmed elements to 0.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – A sequence of tokens of shape [batch_size, x_len_max].</li>
+<li><strong>x_paddings</strong> – The paddings of <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>A tuple.</dt>
+<dd><ul class="first last simple">
+<li>The new sequence, Tensor of shape [batch_size, x_len_max].</li>
+<li>The new paddings, Tensor of shape [batch_size, x_len_max].</li>
+</ul>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.insertion.SequenceAppendToken">
+<code class="descclassname">lingvo.core.insertion.</code><code class="descname">SequenceAppendToken</code><span class="sig-paren">(</span><em>x</em>, <em>x_paddings</em>, <em>token</em>, <em>extend=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/insertion.html#SequenceAppendToken"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.insertion.SequenceAppendToken" title="Permalink to this definition">¶</a></dt>
+<dd><p>Appends &lt;token&gt; to sequence <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – A sequence of tokens of shape [batch_size, x_len_max].</li>
+<li><strong>x_paddings</strong> – The paddings of <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>.</li>
+<li><strong>token</strong> – The token to append (of type integer).</li>
+<li><strong>extend</strong> – Whether to extend <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> along the length dimension, this must be true
+for any sequence length in <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> that is <code class="xref py py-obj docutils literal notranslate"><span class="pre">x_len_max</span></code> or else an invalid
+sequence will be emitted.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>A tuple.</dt>
+<dd><ul class="first last simple">
+<li>The new sequence, Tensor of shape [batch_size, x_len_max].</li>
+<li>The new paddings, Tensor of shape [batch_size, x_len_max].</li>
+</ul>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.insertion.SequenceConcat">
+<code class="descclassname">lingvo.core.insertion.</code><code class="descname">SequenceConcat</code><span class="sig-paren">(</span><em>x</em>, <em>x_paddings</em>, <em>y</em>, <em>y_paddings</em>, <em>pad=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/insertion.html#SequenceConcat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.insertion.SequenceConcat" title="Permalink to this definition">¶</a></dt>
+<dd><p>Concats sequence <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> with sequence <code class="xref py py-obj docutils literal notranslate"><span class="pre">y</span></code>.</p>
+<p>This function is length aware (based off the paddings).</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>x</strong> – A sequence of tokens of shape [batch_size, x_len_max].</li>
+<li><strong>x_paddings</strong> – The paddings of <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>.</li>
+<li><strong>y</strong> – A sequence of tokens of shape [batch_size, y_len_max].</li>
+<li><strong>y_paddings</strong> – The paddings of <code class="xref py py-obj docutils literal notranslate"><span class="pre">y</span></code>.</li>
+<li><strong>pad</strong> – The &lt;pad&gt; token to fill the concatenated sequence (of type integer).</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>A tuple.</dt>
+<dd><ul class="first last simple">
+<li>Concatenation of <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">y</span></code> of shape
+[batch_size, x_len_max + y_len_max].</li>
+<li>Paddings of the concatenation of shape
+[batch_size, x_len_max + y_len_max].</li>
+</ul>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 <dl class="class">
 <dt id="lingvo.core.insertion.SymbolInsertionLayer">
 <em class="property">class </em><code class="descclassname">lingvo.core.insertion.</code><code class="descname">SymbolInsertionLayer</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/insertion.html#SymbolInsertionLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.insertion.SymbolInsertionLayer" title="Permalink to this definition">¶</a></dt>
@@ -184,7 +281,7 @@ for an insertion-based model.</p>
 <dl class="method">
 <dt id="lingvo.core.insertion.SymbolInsertionLayer.FProp">
 <code class="descname">FProp</code><span class="sig-paren">(</span><em>theta</em>, <em>x</em>, <em>x_paddings=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/insertion.html#SymbolInsertionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.insertion.SymbolInsertionLayer.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply SymbolInsertionLayer.</p>
+<dd><p>Applies SymbolInsertionLayer.</p>
 <p>We take in a <code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>, which represents the groundtruth sequence (i.e., English
 sequence). We return a sampled rollin (observed) canvas (i.e., random subset
 of the English sequence), as well as the target (indices) for an
@@ -194,7 +291,7 @@ insertion-based model (i.e., the targets given the random observed subset).</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>theta</strong> – This should be None.</li>
+<li><strong>theta</strong> – Ignored, this can be None.</li>
 <li><strong>x</strong> – The symbol ids of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch_size,</span> <span class="pre">time_dim]</span></code>.</li>
 <li><strong>x_paddings</strong> – The paddings (1 or 0) of shape <code class="xref py py-obj docutils literal notranslate"><span class="pre">[batch_size,</span> <span class="pre">time_dim]</span></code> where
 0 is valid and 1 is invalid.</li>
