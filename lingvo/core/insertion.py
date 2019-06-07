@@ -29,6 +29,109 @@ from lingvo.core import base_layer
 from lingvo.core import py_utils
 
 
+def SequenceTrimLastToken(x, x_paddings):
+  """Trims the last token off of sequence `x`, and set trimmed elements to 0.
+
+  Args:
+    x: A sequence of tokens of shape [batch_size, x_len_max].
+    x_paddings: The paddings of `x`.
+
+  Returns:
+    A tuple.
+      - The new sequence, Tensor of shape [batch_size, x_len_max].
+      - The new paddings, Tensor of shape [batch_size, x_len_max].
+  """
+  x_len = tf.reduce_sum(1 - x_paddings, 1)
+  x_len_max = py_utils.GetShape(x)[1]
+  x_trimmed_len = tf.maximum(x_len - 1, 0)
+  x_trimmed_paddings = tf.sequence_mask(x_trimmed_len, x_len_max,
+                                        x_paddings.dtype)
+  x_trimmed = x * tf.cast(x_trimmed_paddings, x.dtype)
+  return x_trimmed, 1 - x_trimmed_paddings
+
+
+def SequenceAppendToken(x, x_paddings, token, extend=False):
+  """Appends <token> to sequence `x`.
+
+  Args:
+    x: A sequence of tokens of shape [batch_size, x_len_max].
+    x_paddings: The paddings of `x`.
+    token: The token to append (of type integer).
+    extend: Whether to extend `x` along the length dimension, this must be true
+      for any sequence length in `x` that is `x_len_max` or else an invalid
+      sequence will be emitted.
+
+  Returns:
+    A tuple.
+      - The new sequence, Tensor of shape [batch_size, x_len_max].
+      - The new paddings, Tensor of shape [batch_size, x_len_max].
+  """
+  batch_size = py_utils.GetShape(x)[0]
+  x_len = tf.cast(tf.reduce_sum(1 - x_paddings, 1), tf.int32)
+  if extend:
+    x = tf.pad(x, [[0, 0], [0, 1]])
+  # Mask all invalid entries of `x` to 0.
+  x *= tf.sequence_mask(x_len, py_utils.GetShape(x)[1], x.dtype)
+  # Append the <token> based on `x_len`.
+  x += tf.scatter_nd(
+      tf.stack([tf.range(batch_size), x_len], axis=1),
+      tf.cast(tf.fill([batch_size], token), x.dtype), py_utils.GetShape(x))
+  x_paddings = 1 - tf.sequence_mask(x_len + 1,
+                                    py_utils.GetShape(x)[1], x_paddings.dtype)
+  return x, x_paddings
+
+
+def SequenceConcat(x, x_paddings, y, y_paddings, pad=0):
+  """Concats sequence `x` with sequence `y`.
+
+  This function is length aware (based off the paddings).
+
+  Args:
+    x: A sequence of tokens of shape [batch_size, x_len_max].
+    x_paddings: The paddings of `x`.
+    y: A sequence of tokens of shape [batch_size, y_len_max].
+    y_paddings: The paddings of `y`.
+    pad: The <pad> token to fill the concatenated sequence (of type integer).
+
+  Returns:
+    A tuple.
+      - Concatenation of `x` and `y` of shape
+        [batch_size, x_len_max + y_len_max].
+      - Paddings of the concatenation of shape
+        [batch_size, x_len_max + y_len_max].
+  """
+  # Get the length (w/ eos).
+  x_len = tf.cast(tf.reduce_sum(1 - x_paddings, 1), tf.int32)
+  y_len = tf.cast(tf.reduce_sum(1 - y_paddings, 1), tf.int32)
+
+  batch_size = py_utils.GetShape(x)[0]
+  y_len_max = py_utils.GetShape(y)[1]
+
+  # Pad `x` with necessary <pad>.
+  x = tf.concat([x, tf.fill(py_utils.GetShape(y), pad)], 1)
+  # Replace all <pad> with 0.
+  x = tf.where(tf.not_equal(x, pad), x, tf.fill(py_utils.GetShape(x), 0))
+
+  # Compute the write indices of `y` in `xy`.
+  indices = tf.stack([
+      tf.tile(tf.expand_dims(tf.range(batch_size), 1), [1, y_len_max]),
+      (tf.tile(tf.expand_dims(tf.range(y_len_max), 0), [batch_size, 1]) +
+       tf.expand_dims(x_len, 1)),
+  ], 2)
+
+  xy = x + tf.scatter_nd(indices, y, py_utils.GetShape(x))
+
+  # We need to remap all <pad> to `pad`.
+  xy = tf.where(
+      tf.less(
+          tf.expand_dims(tf.range(py_utils.GetShape(xy)[1]), 0),
+          tf.expand_dims(x_len + y_len, 1)), xy,
+      tf.fill(py_utils.GetShape(xy), pad))
+  xy_paddings = 1 - tf.sequence_mask(x_len + y_len,
+                                     py_utils.GetShape(xy)[1], x_paddings.dtype)
+  return xy, xy_paddings
+
+
 class SymbolInsertionLayer(base_layer.BaseLayer):
   """Insertion-based framework for symbols.
 
@@ -56,7 +159,7 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
     super(SymbolInsertionLayer, self).__init__(params)
 
   def FProp(self, theta, x, x_paddings=None):
-    """Apply SymbolInsertionLayer.
+    """Applies SymbolInsertionLayer.
 
     We take in a `x`, which represents the groundtruth sequence (i.e., English
     sequence). We return a sampled rollin (observed) canvas (i.e., random subset
@@ -64,7 +167,7 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
     insertion-based model (i.e., the targets given the random observed subset).
 
     Args:
-      theta: This should be None.
+      theta: Ignored, this can be None.
       x: The symbol ids of shape `[batch_size, time_dim]`.
       x_paddings: The paddings (1 or 0) of shape `[batch_size, time_dim]` where
         0 is valid and 1 is invalid.
@@ -89,10 +192,11 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
     """
     p = self.params
 
-    batch_size, time_dim = py_utils.GetShape(x)
+    batch_size = py_utils.GetShape(x)[0]
+    time_dim = py_utils.GetShape(x)[1]
 
     if x_paddings is None:
-      x_paddings = tf.zeros([batch_size, time_dim], x.dtype)
+      x_paddings = tf.zeros([batch_size, time_dim], tf.float32)
 
     oracle_policy = p.oracle_policy
     rollin_policy = (
@@ -105,11 +209,12 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
       raise ValueError('Unknown or unsupported oracle policy: %s' %
                        oracle_policy)
 
-    x_len = tf.reduce_sum(1 - x_paddings, 1)
+    x_len = tf.cast(tf.reduce_sum(1 - x_paddings, 1), tf.int32)
 
     # Compute the desired length per example in the batch.
     ratio = tf.random.uniform([batch_size], 0.0, 1.0)
-    c_len = tf.minimum(tf.cast(ratio * tf.to_float(x_len + 1), tf.int32), x_len)
+    c_len = tf.minimum(
+        tf.cast(ratio * tf.cast(x_len + 1, tf.float32), tf.int32), x_len)
     # Compute the maximum length across the batch.
     c_len_max = tf.reduce_max(c_len)
 
@@ -137,7 +242,7 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
         [batch_size, c_len_max])
 
     # Compute the paddings.
-    c_paddings = 1 - tf.sequence_mask(c_len, c_len_max, dtype=c.dtype)
+    c_paddings = 1 - tf.sequence_mask(c_len, c_len_max, dtype=x_paddings.dtype)
 
     indices = tf.concat([
         tf.reshape(
@@ -158,7 +263,7 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
             tf.tile(tf.expand_dims(tf.range(batch_size), 1), [1, time_dim]),
             [batch_size * time_dim, 1]),
         tf.reshape(x_segments, [-1, 1]),
-        tf.reshape(x, [-1, 1])
+        tf.cast(tf.reshape(x, [-1, 1]), tf.int32)
     ], 1)
     # TODO(williamchan): We give uniform 1.0 weight, however, math suggests
     # we may want to weigh this term by the original sequence length.

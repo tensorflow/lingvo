@@ -27,6 +27,118 @@ from lingvo.core import insertion
 from lingvo.core import test_utils
 
 
+class SequenceTest(test_utils.TestCase):
+
+  def testSequenceTrimLastToken(self):
+    x = np.asarray([[1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4], [1, 2, 3, 4]],
+                   np.int32)
+    x_paddings = np.asarray(
+        [[0, 0, 0, 0], [0, 0, 0, 1], [1, 1, 1, 1], [0, 1, 1, 1]], np.float32)
+
+    with self.session() as sess:
+      x_trimmed, x_trimmed_paddings = insertion.SequenceTrimLastToken(
+          tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings))
+
+      x_trimmed, x_trimmed_paddings = sess.run([x_trimmed, x_trimmed_paddings])
+
+      # `x_trimmed_gold` is the same as `x` w/ last token removed.
+      # `x_trimmed_paddings_gold` is the corresponding paddings.
+      x_trimmed_gold = np.asarray(
+          [[1, 2, 3, 0], [1, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]], np.int32)
+      x_trimmed_paddings_gold = np.asarray(
+          [[0, 0, 0, 1], [0, 0, 1, 1], [1, 1, 1, 1], [1, 1, 1, 1]], np.float32)
+
+      self.assertAllEqual(x_trimmed, x_trimmed_gold)
+      self.assertAllEqual(x_trimmed_paddings, x_trimmed_paddings_gold)
+
+  def testSequenceAppendToken(self):
+    x = np.asarray([[1, 2, 3, 0], [1, 2, 3, 4], [0, 0, 0, 0], [1, 0, 0, 0]],
+                   np.int32)
+    x_paddings = np.asarray(
+        [[0, 0, 0, 1], [0, 0, 0, 1], [1, 1, 1, 1], [0, 1, 1, 1]], np.float32)
+
+    with self.session() as sess:
+      x_appended, x_appended_paddings = insertion.SequenceAppendToken(
+          tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings), 10)
+
+      x_appended, x_appended_paddings = sess.run([
+          tf.convert_to_tensor(x_appended),
+          tf.convert_to_tensor(x_appended_paddings)
+      ])
+
+      # `x_appended_gold` is the same as `x` w/ token `10` appended.
+      # `x_appended_paddings_gold` is the corresponding paddings.
+      x_appended_gold = np.asarray(
+          [[1, 2, 3, 10], [1, 2, 3, 10], [10, 0, 0, 0], [1, 10, 0, 0]],
+          np.int32)
+      x_appended_paddings_gold = np.asarray(
+          [[0, 0, 0, 0], [0, 0, 0, 0], [0, 1, 1, 1], [0, 0, 1, 1]], np.float32)
+
+      self.assertAllEqual(x_appended, x_appended_gold)
+      self.assertAllEqual(x_appended_paddings, x_appended_paddings_gold)
+
+  def testSequenceAppendTokenExtend(self):
+    x = np.asarray([[1, 2, 3, 0], [1, 2, 3, 4], [0, 0, 0, 0], [1, 0, 0, 0]],
+                   np.int32)
+    x_paddings = np.asarray(
+        [[0, 0, 0, 1], [0, 0, 0, 0], [1, 1, 1, 1], [0, 1, 1, 1]], np.int32)
+
+    with self.session() as sess:
+      x_appended, x_appended_paddings = insertion.SequenceAppendToken(
+          tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings), 10, True)
+
+      x_appended, x_appended_paddings = sess.run(
+          [x_appended, x_appended_paddings])
+
+      # `x_appended_gold` is the same as `x` w/ token `10` appended, we also
+      # test for the condition of extend=True which requires +1 dim in the
+      # time dimension.
+      # `x_appended_paddings_gold` is the corresponding paddings.
+      x_appended_gold = np.asarray([[1, 2, 3, 10, 0], [1, 2, 3, 4, 10],
+                                    [10, 0, 0, 0, 0], [1, 10, 0, 0, 0]],
+                                   np.int32)
+      x_appended_paddings_gold = np.asarray(
+          [[0, 0, 0, 0, 1], [0, 0, 0, 0, 0], [0, 1, 1, 1, 1], [0, 0, 1, 1, 1]],
+          np.int32)
+
+      self.assertAllEqual(x_appended, x_appended_gold)
+      self.assertAllEqual(x_appended_paddings, x_appended_paddings_gold)
+
+  def testSequenceConcat(self):
+    x = np.asarray([[1, 2, 3, 0], [1, 2, 3, 4], [0, 0, 0, 0], [1, 0, 0, 0]],
+                   np.int32)
+    x_paddings = np.asarray(
+        [[0, 0, 0, 1], [0, 0, 0, 0], [1, 1, 1, 1], [0, 1, 1, 1]], np.float32)
+
+    y = np.asarray(
+        [[10, 20, 30, 0], [10, 20, 30, 40], [0, 0, 0, 0], [10, 0, 0, 0]],
+        np.int32)
+    y_paddings = np.asarray(
+        [[0, 0, 0, 1], [0, 0, 0, 0], [1, 1, 1, 1], [0, 1, 1, 1]], np.float32)
+
+    with self.session() as sess:
+      xy, xy_paddings = insertion.SequenceConcat(
+          tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings),
+          tf.convert_to_tensor(y), tf.convert_to_tensor(y_paddings), 999)
+
+      xy, xy_paddings = sess.run(
+          [tf.convert_to_tensor(xy),
+           tf.convert_to_tensor(xy_paddings)])
+
+      # `xy_gold` is `x` and `y` concatenated.
+      # `xy_paddings_gold` is the corresponding paddings.
+      xy_gold = np.asarray(
+          [[1, 2, 3, 10, 20, 30, 999, 999], [1, 2, 3, 4, 10, 20, 30, 40],
+           [999, 999, 999, 999, 999, 999, 999, 999],
+           [1, 10, 999, 999, 999, 999, 999, 999]], np.int32)
+      xy_paddings_gold = np.asarray(
+          [[0, 0, 0, 0, 0, 0, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0],
+           [1, 1, 1, 1, 1, 1, 1, 1], [0, 0, 1, 1, 1, 1, 1, 1]], np.float32)
+
+      self.assertAllEqual(xy, xy_gold)
+      self.assertAllEqual(xy_paddings, xy_paddings_gold)
+
+
 class SymbolInsertionLayerTest(test_utils.TestCase):
 
   def testGetValidCanvasUnderUniformRollinPolicy(self):
@@ -48,7 +160,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
           [spec.canvas, spec.canvas_indices, spec.canvas_paddings])
 
       for b in range(batch_size):
-        length = np.sum(1 - canvas_paddings[b, :])
+        length = np.sum(1 - canvas_paddings[b, :]).astype(np.int32)
         self.assertAllEqual(canvas[b, :length], canvas_indices[b, :length])
         self.assertAllEqual(canvas[b, length:],
                             [time_dim - 1] * (canvas.shape[1] - length))
@@ -83,7 +195,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
 
       target_index = 0
       for b in range(batch_size):
-        canvas_length = np.sum(1 - canvas_paddings[b, :])
+        canvas_length = np.sum(1 - canvas_paddings[b, :]).astype(np.int32)
 
         canvas_index = 0
 
