@@ -178,7 +178,7 @@
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
 <p>RNN cells.</p>
 <p>RNNCell represents recurrent state in a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
-<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">zero_state(batch_size)</span></code> returns the initial state, which is defined
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">zero_state(theta,</span> <span class="pre">batch_size)</span></code> returns the initial state, which is defined
 by each subclass. From the state, each subclass defines <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell.GetOutput" title="lingvo.core.rnn_cell.RNNCell.GetOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GetOutput()</span></code></a>
 to extract the output tensor.</p>
 <p><a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell.FProp" title="lingvo.core.rnn_cell.RNNCell.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RNNCell.FProp</span></code></a> defines the forward function:</p>
@@ -189,7 +189,7 @@ to extract the output tensor.</p>
 what fields these <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> are expected to have. <code class="xref py py-obj docutils literal notranslate"><span class="pre">extras</span></code> is a
 <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing some intermediate results <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell.FProp" title="lingvo.core.rnn_cell.RNNCell.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computes to
 facilitate the backprop.</p>
-<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">zero_state(batch_size)</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">state0</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> are all compatible
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">zero_state(theta,</span> <span class="pre">batch_size)</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">state0</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">state1</span></code> are all compatible
 <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> (see <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.IsCompatible" title="lingvo.core.py_utils.NestedMap.IsCompatible"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap.IsCompatible</span></code></a>).
 I.e., they have the same keys recursively. Furthermore, the corresponding
 tensors in these <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> have the same shape and dtype.</p>
@@ -206,7 +206,7 @@ tensors in these <a class="reference internal" href="lingvo.core.py_utils.html#l
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.RNNCell.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -348,7 +348,7 @@ Shape [batch, 1]</li>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.LSTMCellSimple.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimple.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimple.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -449,7 +449,7 @@ Shape [batch, 1]</li>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.LSTMCellGrouped.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellGrouped.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellGrouped.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellGrouped.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellGrouped.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -533,7 +533,7 @@ scattered across output groups.<p>For example, if we have 3 groups, each with 4 
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimpleDeterministic.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimpleDeterministic.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -589,7 +589,7 @@ only clipping is performed.</p>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.QuantizedLSTMCell.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -652,7 +652,7 @@ Shape [batch, 1]</li>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellCuDNNCompliant.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellCuDNNCompliant.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellCuDNNCompliant.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -734,7 +734,7 @@ Shape [batch, 1]</li>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -846,7 +846,7 @@ Shape [batch, 1]</li>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.LayerNormalizedLSTMCellLean.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCellLean.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellLean.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCellLean.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellLean.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -949,7 +949,7 @@ Shape [batch, 1]</li>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -1033,7 +1033,7 @@ Shape [batch, 1]</li>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.ConvLSTMCell.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -1110,7 +1110,7 @@ implementation. It does the 4-matrix implementation found in appendix C.</p>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.SRUCell.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -1202,7 +1202,7 @@ loop.</div></blockquote>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.QRNNPoolingCell.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QRNNPoolingCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QRNNPoolingCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QRNNPoolingCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QRNNPoolingCell.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
@@ -1284,7 +1284,7 @@ Shape [batch, 1]</li>
 
 <dl class="method">
 <dt id="lingvo.core.rnn_cell.GRUCell.zero_state">
-<code class="descname">zero_state</code><span class="sig-paren">(</span><em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#GRUCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.GRUCell.zero_state" title="Permalink to this definition">¶</a></dt>
+<code class="descname">zero_state</code><span class="sig-paren">(</span><em>theta</em>, <em>batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#GRUCell.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.rnn_cell.GRUCell.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 

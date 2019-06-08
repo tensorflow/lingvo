@@ -574,7 +574,6 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;frnn_with_atten&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
         <span class="c1"># TODO(zhifengc): Avoid this?</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_rnn_attn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">rnn_cell</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">attention</span>
 
         <span class="n">rnn_layers_params</span> <span class="o">=</span> <span class="p">[]</span>
@@ -745,9 +744,12 @@
     <span class="n">time</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
     <span class="n">source_encs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="o">.</span><span class="n">encoded</span><span class="p">,</span>
                                     <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">])</span>
-    <span class="n">rnn_states</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_rnn_attn</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">num_hyps</span><span class="p">)]</span>
-    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn</span><span class="p">:</span>
-      <span class="n">rnn_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">rnn_cell</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">num_hyps</span><span class="p">))</span>
+    <span class="n">rnn_states</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="p">,</span>
+                                             <span class="n">num_hyps</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">layer</span><span class="p">,</span> <span class="n">layer_theta</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">frnn</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">frnn</span><span class="p">):</span>
+      <span class="n">rnn_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">rnn_cell</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">layer_theta</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">))</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_zero_atten_state</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">InitForSourcePacked</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">source_encs</span><span class="p">,</span>
@@ -779,14 +781,14 @@
     <span class="sd">&quot;&quot;&quot;Decode one step.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">new_rnn_states</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">new_rnn_states_0</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rnn_attn</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+    <span class="n">new_rnn_states_0</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
         <span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="p">,</span> <span class="n">rnn_states</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
             <span class="n">act</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">embs</span><span class="p">,</span> <span class="n">prev_atten_context</span><span class="p">],</span> <span class="mi">1</span><span class="p">)],</span>
             <span class="n">padding</span><span class="o">=</span><span class="n">step_paddings</span><span class="p">,</span>
             <span class="n">reset_mask</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">step_paddings</span><span class="p">)))</span>
     <span class="n">new_rnn_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_rnn_states_0</span><span class="p">)</span>
-    <span class="n">rnn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_rnn_attn</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">(</span><span class="n">new_rnn_states_0</span><span class="p">)</span>
+    <span class="n">rnn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">(</span><span class="n">new_rnn_states_0</span><span class="p">)</span>
     <span class="n">cur_atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">atten_states</span> <span class="o">=</span> <span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_atten</span><span class="o">.</span><span class="n">ComputeContextVector</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">frnn_with_atten</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span>

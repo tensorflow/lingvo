@@ -3152,6 +3152,16 @@
       <span class="n">_AddDefunNodes</span><span class="p">(</span><span class="n">node</span><span class="o">.</span><span class="n">op</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">stateful_ops</span></div>
+
+
+<div class="viewcode-block" id="ToPlacerholders"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ToPlacerholders">[docs]</a><span class="k">def</span> <span class="nf">ToPlacerholders</span><span class="p">(</span><span class="n">nmap</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Converts every Tensor in nmap to a placeholder.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_ToPlacerholder</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_ToPlacerholder</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
