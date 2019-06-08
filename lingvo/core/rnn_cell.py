@@ -46,7 +46,7 @@ class RNNCell(quant_utils.QuantizableLayer):
 
   RNNCell represents recurrent state in a `.NestedMap`.
 
-  `zero_state(batch_size)` returns the initial state, which is defined
+  `zero_state(theta, batch_size)` returns the initial state, which is defined
   by each subclass. From the state, each subclass defines `GetOutput()`
   to extract the output tensor.
 
@@ -59,7 +59,7 @@ class RNNCell(quant_utils.QuantizableLayer):
   `.NestedMap` containing some intermediate results `FProp` computes to
   facilitate the backprop.
 
-  `zero_state(batch_size)`, `state0` and `state1` are all compatible
+  `zero_state(theta, batch_size)`, `state0` and `state1` are all compatible
   `.NestedMap` (see `.NestedMap.IsCompatible`).
   I.e., they have the same keys recursively. Furthermore, the corresponding
   tensors in these `.NestedMap` have the same shape and dtype.
@@ -99,7 +99,7 @@ class RNNCell(quant_utils.QuantizableLayer):
   def _VariableCollections(self):
     return [RNN_CELL_WT, '%s_vars' % (self.__class__.__name__)]
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     """Returns the initial state given the batch size."""
     raise NotImplementedError('Abstract method')
 
@@ -398,7 +398,7 @@ class LSTMCellSimple(RNNCell):
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,
@@ -638,9 +638,11 @@ class LSTMCellGrouped(RNNCell):
   def batch_size(self, inputs):
     return self.groups[0].batch_size(inputs)
 
-  def zero_state(self, batch_size):
-    return py_utils.NestedMap(
-        groups=[child.zero_state(batch_size) for child in self.groups])
+  def zero_state(self, theta, batch_size):
+    return py_utils.NestedMap(groups=[
+        child.zero_state(child_theta, batch_size)
+        for child, child_theta in zip(self.groups, theta.groups)
+    ])
 
   # TODO(rpang): avoid split and concat between layers with the same number of
   # groups, if necessary.
@@ -755,7 +757,7 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
       if p.random_seed:
         self._prng_seed += p.random_seed
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     zero_m = tf.zeros((batch_size, self.output_size),
                       dtype=py_utils.FPropDtype(p))
@@ -894,7 +896,7 @@ class QuantizedLSTMCell(RNNCell):
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, p.num_output_nodes),
                                        init=p.zero_state_init_params,
@@ -995,7 +997,7 @@ class LSTMCellCuDNNCompliant(RNNCell):
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self._params
     return py_utils.NestedMap(
         m=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
@@ -1147,7 +1149,7 @@ class LayerNormalizedLSTMCell(RNNCell):
   def hidden_size(self):
     return self.params.num_output_nodes
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     return py_utils.NestedMap(
         m=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
@@ -1417,7 +1419,7 @@ class LayerNormalizedLSTMCellLean(RNNCell):
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,
@@ -1582,7 +1584,7 @@ class DoubleProjectionLSTMCell(RNNCell):
   def gates(self):
     return ['i_g', 'i_i', 'f_g', 'o_g']
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,
@@ -1733,7 +1735,7 @@ class ConvLSTMCell(RNNCell):
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     height = p.inputs_shape[1]
     width = p.inputs_shape[2]
@@ -1964,7 +1966,7 @@ class SRUCell(RNNCell):
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,
@@ -2128,7 +2130,7 @@ class QRNNPoolingCell(RNNCell):
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, p.num_output_nodes),
                                        init=p.zero_state_init_params,
@@ -2325,7 +2327,7 @@ class GRUCell(RNNCell):
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     zero_m = py_utils.InitRNNCellState((batch_size, self.output_size),
                                        init=p.zero_state_init_params,

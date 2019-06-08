@@ -90,7 +90,7 @@ class IdentitySeqLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super(IdentitySeqLayer, self).__init__(params)
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     return py_utils.NestedMap()
 
   def FPropFullSequence(self, theta, inputs, paddings):
@@ -125,8 +125,8 @@ class RNN(base_layer.BaseLayer):
     assert p.sequence_length >= 0
     self.CreateChild('cell', p.cell)
 
-  def zero_state(self, batch_size):
-    return self.cell.zero_state(batch_size)
+  def zero_state(self, theta, batch_size):
+    return self.cell.zero_state(theta.cell, batch_size)
 
   def FProp(self, theta, inputs, paddings, state0=None):
     """Compute RNN forward pass.
@@ -167,7 +167,7 @@ class RNN(base_layer.BaseLayer):
       else:
         inputs0 = py_utils.NestedMap(
             act=[inputs_sequence[0]], padding=paddings_sequence[0])
-        state = rcell.zero_state(rcell.batch_size(inputs0))
+        state = rcell.zero_state(theta.cell, rcell.batch_size(inputs0))
       outputs = [None] * sequence_length
       if p.reverse:
         sequence = range(sequence_length - 1, -1, -1)
@@ -267,11 +267,11 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     self.CreateChild('dropout', p.dropout)
     self.TrackQTensor('residual')
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     ret = py_utils.NestedMap(rnn=[])
     for i in range(p.num_layers):
-      state0 = self.rnn[i].zero_state(batch_size)
+      state0 = self.rnn[i].zero_state(theta.rnn[i], batch_size)
       ret.rnn.append(state0)
     return ret
 
@@ -293,7 +293,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     """
     p = self.params
     if not state0:
-      state0 = self.zero_state(tf.shape(inputs)[1])
+      state0 = self.zero_state(theta, tf.shape(inputs)[1])
     xs = inputs
     state1 = py_utils.NestedMap(rnn=[None] * p.num_layers)
     for i in range(p.num_layers):
@@ -393,8 +393,8 @@ class FRNN(base_layer.BaseLayer):
   def rnn_cell(self):
     return self.cell
 
-  def zero_state(self, batch_size):
-    return self.cell.zero_state(batch_size)
+  def zero_state(self, theta, batch_size):
+    return self.cell.zero_state(theta.cell, batch_size)
 
   def FProp(self, theta, inputs, paddings, state0=None, segment_id=None):
     """Compute RNN forward pass.
@@ -446,7 +446,7 @@ class FRNN(base_layer.BaseLayer):
           act=[x[0] for x in inputs],
           padding=paddings[0, :],
           reset_mask=reset_mask[0, :])
-      state0 = rcell.zero_state(rcell.batch_size(inputs0))
+      state0 = rcell.zero_state(theta.cell, rcell.batch_size(inputs0))
 
     inputs = py_utils.NestedMap(
         act=inputs, padding=paddings, reset_mask=reset_mask)
@@ -771,7 +771,7 @@ class CuDNNLSTM(base_layer.BaseLayer):
   def rnn_cell(self):
     return self.rnn.cell
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     if not p.is_eval:
       zero_m = tf.zeros([1, batch_size, p.cell.num_output_nodes], dtype=p.dtype)
@@ -807,7 +807,7 @@ class CuDNNLSTM(base_layer.BaseLayer):
 
     if not state0:
       batch_dim = 1
-      state0 = self.zero_state(tf.shape(paddings)[batch_dim])
+      state0 = self.zero_state(theta, tf.shape(paddings)[batch_dim])
     state_h, state_c = state0.m, state0.c
     if p.reverse:
       inputs = py_utils.ReversePaddedSequence(inputs, paddings)
@@ -885,7 +885,7 @@ class BidirectionalNativeCuDNNLSTM(base_layer.BaseLayer):
       bidi_frnn_p.bak = p.bak.Copy()
       self.CreateChild('rnn', bidi_frnn_p)
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     if not p.is_eval:
       zero_m = tf.zeros(
@@ -894,8 +894,8 @@ class BidirectionalNativeCuDNNLSTM(base_layer.BaseLayer):
           [2, batch_size, p.fwd.num_output_nodes], dtype=p.fwd.dtype)
       return py_utils.NestedMap(m=zero_m, c=zero_c)
     else:
-      fwd = self.fwd_rnn.cell.zero_state(batch_size)
-      bak = self.bak_rnn.cell.zero_state(batch_size)
+      fwd = self.fwd_rnn.cell.zero_state(theta.fwd_rnn.cell, batch_size)
+      bak = self.bak_rnn.cell.zero_state(theta.bak_rnn.cell, batch_size)
       return py_utils.NestedMap(
           m=tf.stack([fwd.m, bak.m], axis=0),
           c=tf.stack([fwd.c, bak.c], axis=0))
@@ -922,7 +922,7 @@ class BidirectionalNativeCuDNNLSTM(base_layer.BaseLayer):
 
     with tf.name_scope(p.name):
       batch_dim = 1
-      state0 = self.zero_state(tf.shape(inputs)[batch_dim])
+      state0 = self.zero_state(theta, tf.shape(inputs)[batch_dim])
       output, _, _ = cudnn_rnn_ops.cudnn_lstm(
           inputs=inputs,
           input_h=state0.m,
@@ -1063,7 +1063,8 @@ class FRNNWithAttention(base_layer.BaseLayer):
     p = self.params
     atten = self.atten
     # Initial RNN states.
-    state0 = py_utils.NestedMap(rnn=self.cell.zero_state(batch_size))
+    state0 = py_utils.NestedMap(
+        rnn=self.cell.zero_state(theta.cell, batch_size))
 
     s_seq_len = tf.shape(src_encs)[0]
 
@@ -1401,7 +1402,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
     rcell = self.cell
 
     # Initial RNN states, theta and auxiliary variables.
-    state0 = py_utils.NestedMap(rnn=rcell.zero_state(batch_size))
+    state0 = py_utils.NestedMap(rnn=rcell.zero_state(theta.cell, batch_size))
     query_vec0 = tf.zeros([batch_size, p.cell.num_output_nodes], dtype)
 
     ctxs0 = []

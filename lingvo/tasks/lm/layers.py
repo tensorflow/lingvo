@@ -46,7 +46,7 @@ class BaseLanguageModel(base_layer.BaseLayer):
   def __init__(self, params):
     super(BaseLanguageModel, self).__init__(params)
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     raise NotImplementedError('Abstract method')
 
   def FProp(self, theta, inputs, paddings, state0, *args, **kwargs):
@@ -73,7 +73,8 @@ class BaseLanguageModel(base_layer.BaseLayer):
         theta,
         inputs,
         paddings,
-        state0=self.zero_state(tf.shape(inputs)[1]),
+        state0=self.zero_state(theta,
+                               tf.shape(inputs)[1]),
         *args,
         **kwargs)
     return xent_output.logits
@@ -162,7 +163,7 @@ class BaseLanguageModel(base_layer.BaseLayer):
 class NullLm(BaseLanguageModel):
   """A trivial language model does nothing really."""
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     return py_utils.NestedMap(
         m=tf.zeros([batch_size, 0], dtype=self.params.dtype))
 
@@ -308,8 +309,8 @@ class RnnLmNoEmbedding(BaseLanguageModel):
       self.CreateChild('rnns', p.rnns)
       self.CreateChild('softmax', p.softmax)
 
-  def zero_state(self, batch_size):
-    return self.rnns.zero_state(batch_size)
+  def zero_state(self, theta, batch_size):
+    return self.rnns.zero_state(theta.rnns, batch_size)
 
   @classmethod
   def StepOutputDimension(cls, params):
@@ -769,15 +770,15 @@ class MoeLm(BaseLanguageModel):
         output_sm_params.num_classes = p.vocab_size
         self.CreateChild('output_softmax', output_sm_params)
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
+    state0 = py_utils.NestedMap(rnns=[
+        x.zero_state(x_theta, batch_size)
+        for x, x_theta in zip(self.rnns, theta.rnns)
+    ])
     if p.add_postgating_rnn:
-      return py_utils.NestedMap(
-          rnns=[x.zero_state(batch_size) for x in self.rnns],
-          merge=self.merge.zero_state(batch_size))
-    else:
-      return py_utils.NestedMap(
-          rnns=[x.zero_state(batch_size) for x in self.rnns])
+      state0.merge = self.merge.zero_state(theta.merge, batch_size)
+    return state0
 
   def FProp(self, theta, inputs, paddings, state0, labels=None):
     """Forward compute."""
@@ -914,7 +915,7 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
       p.softmax.num_classes = p.vocab_size
       self.CreateChild('softmax', p.softmax)
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     p = self.params
     state0 = py_utils.NestedMap()
     for layer in range(p.num_trans_layers):
@@ -1297,7 +1298,7 @@ class GPipeTransformerLmNoEmbedding(BaseLanguageModel):
     xent_output.last_hidden = layer_out
     return xent_output, None
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     return py_utils.NestedMap()
 
 

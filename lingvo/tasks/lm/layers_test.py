@@ -60,7 +60,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
@@ -93,7 +93,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
@@ -124,7 +124,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
@@ -166,7 +166,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets),
           direct_features=direct_features)
@@ -195,7 +195,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
           np.random.randint(vocab, size=(time, batch)), tf.int32)
       sess.run(tf.global_variables_initializer())
 
-      state0 = lm.zero_state(batch)
+      state0 = lm.zero_state(lm.theta, batch)
       _, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -249,7 +249,7 @@ class RnnLmTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
@@ -294,7 +294,7 @@ class RnnLmTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
@@ -335,7 +335,7 @@ class RnnLmTest(test_utils.TestCase):
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
@@ -390,7 +390,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           condition=condition,
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
@@ -439,7 +439,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           condition=condition,
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
@@ -484,7 +484,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           condition=condition,
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
@@ -552,7 +552,7 @@ class MoeLmTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=labels)
 
       xent_output_val, state1_val = sess.run([xent_output, state1])
@@ -576,7 +576,7 @@ class MoeLmTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=labels)
 
       xent_output_val, state1_val = sess.run([xent_output, state1])
@@ -600,7 +600,7 @@ class MoeLmTest(test_utils.TestCase):
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=labels)
 
       xent_output_val, state1_val = sess.run([xent_output, state1])
@@ -625,7 +625,7 @@ class MoeLmTest(test_utils.TestCase):
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=tf.cast(paddings, p.dtype),
-          state0=lm.zero_state(batch),
+          state0=lm.zero_state(lm.theta, batch),
           labels=labels)
 
       lm_vars = lm.vars.Flatten()
@@ -731,7 +731,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
       logits1 = xent_output.logits
 
       time, batch = 5, 3
-      prefix_states = lm.zero_state(batch)
+      prefix_states = lm.zero_state(lm.theta, batch)
       logits2 = []
       for i in range(time):
         l_i_out, prefix_states = lm.Step(lm.theta, inputs[i, :, :],

@@ -3007,3 +3007,13 @@ def StatefulRandomOpsInDefun(func, graph=None):
       _AddDefunNodes(node.op)
 
   return stateful_ops
+
+
+def ToPlacerholders(nmap, dtype=None):
+  """Converts every Tensor in nmap to a placeholder."""
+
+  def _ToPlacerholder(x):
+    shape = [None for _ in x.shape[:-1]] + [x.shape[-1]]
+    return tf.placeholder(dtype=dtype or x.dtype, shape=shape)
+
+  return nmap.Transform(_ToPlacerholder)

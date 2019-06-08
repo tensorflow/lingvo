@@ -403,7 +403,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     p = self.params
     rnn_states = []
     for i in range(p.rnn_layers):
-      rnn_states.append(self.rnn_cell[i].zero_state(bs))
+      rnn_states.append(self.rnn_cell[i].zero_state(theta.rnn_cell[i], bs))
 
     packed_src = self._InitAttention(theta, encoder_outputs)
     zero_atten_state = self.atten.ZeroAttentionState(
@@ -435,7 +435,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         atten_context=atten_context,
         atten_probs=atten_probs,
         atten_states=atten_states,
-        fusion_states=self.fusion.zero_state(bs),
+        fusion_states=self.fusion.zero_state(theta.fusion, bs),
         misc_states=misc_zero_states), packed_src
 
   def _AddDecoderActivationsSummary(self,

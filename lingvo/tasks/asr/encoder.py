@@ -271,7 +271,7 @@ class AsrEncoder(base_layer.BaseLayer):
   def supports_streaming(self):
     return False
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     return py_utils.NestedMap()
 
   def FProp(self, theta, batch, state0=None):

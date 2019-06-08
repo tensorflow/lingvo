@@ -1316,7 +1316,7 @@ class RNNCellTest(test_utils.TestCase):
       inputs = py_utils.NestedMap(
           act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],
           padding=tf.zeros([3, 1]))
-      state0 = lstm.zero_state(3)
+      state0 = lstm.zero_state(lstm.theta, 3)
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
@@ -1760,7 +1760,7 @@ class RNNCellTest(test_utils.TestCase):
       self.assertAllClose(c_expected, state1.c.eval())
 
       # Cell reported zeros.
-      cell_zero_state = lstm.zero_state(batch_size=3)
+      cell_zero_state = lstm.zero_state(lstm.theta, batch_size=3)
       self.assertAllEqual(cell_zero_state.m.eval(),
                           tf.zeros_like(state0.m).eval())
       self.assertAllEqual(cell_zero_state.c.eval(),
@@ -2140,7 +2140,7 @@ class RNNCellTest(test_utils.TestCase):
       np.random.seed(_NUMPY_RANDOM_SEED)
       # Initialize all the variables, and then inspect.
       tf.global_variables_initializer().run()
-      init_state_value = sess.run(lstm.zero_state(1))
+      init_state_value = sess.run(lstm.zero_state(lstm.theta, 1))
       tf.logging.info('testLSTMSimpleWithStateInitializationFn m = %s',
                       np.array_repr(init_state_value['m']))
       tf.logging.info('testLSTMSimpleWithStateInitializationFn c = %s',

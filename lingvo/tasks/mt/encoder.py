@@ -299,8 +299,11 @@ class MTEncoderUniRNN(base_layer.BaseLayer):
     else:
       return x
 
-  def zero_state(self, batch_size):
-    return py_utils.NestedMap(rnn=[l.zero_state(batch_size) for l in self.rnn])
+  def zero_state(self, theta, batch_size):
+    return py_utils.NestedMap(rnn=[
+        self.rnn[i].zero_state(theta.rnn[i], batch_size)
+        for i in range(len(self.rnn))
+    ])
 
   def FProp(self, theta, input_batch, state0=None):
     p = self.params
@@ -316,7 +319,7 @@ class MTEncoderUniRNN(base_layer.BaseLayer):
 
       # Setup streaming states.
       if not state0:
-        state0 = self.zero_state(tf.shape(inputs)[1])
+        state0 = self.zero_state(theta, tf.shape(inputs)[1])
       state1 = py_utils.NestedMap(rnn=[None] * p.num_lstm_layers)
 
       xs = self.emb.EmbLookup(theta.emb, inputs)

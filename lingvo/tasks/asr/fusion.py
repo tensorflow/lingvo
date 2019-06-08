@@ -53,10 +53,10 @@ class FusionBase(base_layer.BaseLayer):
     p = self.params
     self.CreateChild('lm', p.lm)
 
-  def zero_state(self, batch_size):
+  def zero_state(self, theta, batch_size):
     """Returns initial model state for fusion model."""
     state0 = py_utils.NestedMap()
-    state0.lm_states = self.lm.zero_state(batch_size)
+    state0.lm_states = self.lm.zero_state(theta.lm, batch_size)
     return state0
 
   def _FPropLm(self, theta, state0, ids, paddings, misc=None):

@@ -86,7 +86,7 @@ class LanguageModel(base_model.BaseTask):
         input_batch.weights)
 
     batch_size = tf.shape(ids)[1]
-    state0 = self.lm.zero_state(batch_size)
+    state0 = self.lm.zero_state(theta.lm, batch_size)
     labels = py_utils.NestedMap(class_ids=labels_ids, class_weights=weights)
     xent_output, _ = self.lm.FProp(theta.lm, ids, paddings, state0, labels)
 
@@ -193,7 +193,7 @@ class LanguageModel(base_model.BaseTask):
     xent_output, _ = self.lm.FPropDefaultTheta(
         inputs=ids,
         paddings=paddings,
-        state0=self.lm.zero_state(batch_size),
+        state0=self.lm.zero_state(self.theta.lm, batch_size),
         labels=py_utils.NestedMap(class_ids=labels, class_weights=weights))
 
     per_example_xent = py_utils.HasShape(xent_output.per_example_xent,

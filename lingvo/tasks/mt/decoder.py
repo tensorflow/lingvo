@@ -429,7 +429,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         self.CreateChild('frnn_with_atten', params)
 
         # TODO(zhifengc): Avoid this?
-        self._rnn_attn = self.frnn_with_atten.rnn_cell
         self._atten = self.frnn_with_atten.attention
 
         rnn_layers_params = []
@@ -600,9 +599,12 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     time, batch = py_utils.GetShape(source_paddings, 2)
     source_encs = py_utils.HasShape(encoder_outputs.encoded,
                                     [time, batch, p.source_dim])
-    rnn_states = [self._rnn_attn.zero_state(num_hyps)]
-    for layer in self.frnn:
-      rnn_states.append(layer.rnn_cell.zero_state(num_hyps))
+    rnn_states = [
+        self.frnn_with_atten.cell.zero_state(theta.frnn_with_atten.cell,
+                                             num_hyps)
+    ]
+    for layer, layer_theta in zip(self.frnn, theta.frnn):
+      rnn_states.append(layer.rnn_cell.zero_state(layer_theta, num_hyps))
 
     if p.use_zero_atten_state:
       self._atten.InitForSourcePacked(theta.frnn_with_atten.atten, source_encs,
@@ -634,14 +636,14 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     """Decode one step."""
     p = self.params
     new_rnn_states = []
-    new_rnn_states_0, _ = self._rnn_attn.FProp(
+    new_rnn_states_0, _ = self.frnn_with_atten.cell.FProp(
         theta.frnn_with_atten.cell, rnn_states[0],
         py_utils.NestedMap(
             act=[tf.concat([embs, prev_atten_context], 1)],
             padding=step_paddings,
             reset_mask=tf.ones_like(step_paddings)))
     new_rnn_states.append(new_rnn_states_0)
-    rnn_out = self._rnn_attn.GetOutput(new_rnn_states_0)
+    rnn_out = self.frnn_with_atten.cell.GetOutput(new_rnn_states_0)
     cur_atten_context, atten_probs, atten_states = (
         self._atten.ComputeContextVector(
             theta.frnn_with_atten.atten,
