@@ -22,7 +22,8 @@ To run locally:
 
   $ bazel build -c opt //lingvo:trainer
   $ bazel-bin/lingvo/trainer --logtostderr \
-      --model=image.mnist.LeNet5 --mode=sync --logdir=/tmp/lenet5 --run_locally=cpu
+      --model=image.mnist.LeNet5 --mode=sync --logdir=/tmp/lenet5 \
+      --run_locally=cpu
 
 To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.
 """
@@ -132,6 +133,18 @@ tf.flags.DEFINE_string(
     'job prefix, evaler will match all evaler jobs, while '
     'evaler_dev and decoder_dev will only match the corresponding '
     'jobs that are on the dev set.')
+
+tf.flags.DEFINE_integer(
+    'enqueue_max_steps', None, 'Max enqueue steps. -1 meaning no limit.'
+    ' This flag should be set for unit-test only.')
+
+tf.flags.DEFINE_integer('saver_max_to_keep', None,
+                        'Maximum number of recent checkpoints to keep.')
+
+tf.flags.DEFINE_float('saver_keep_checkpoint_every_n_hours', None,
+                      'How often to keep a checkpoint.')
+
+# Please consider adding model params instead of adding flags.
 
 FLAGS = tf.flags.FLAGS
 
@@ -283,7 +296,7 @@ class Controller(base_runner.BaseRunner):
                                                        total_examples)
         if self._trial.ShouldStop() or self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
-          self._saver.save(sess, self._save_path, gsteps)
+          self._Save(sess, global_step)
           # Close all the queues so the enqueue threads can also finish.
           for close_op in self.close_queue_ops:
             sess.run(close_op)
@@ -292,9 +305,7 @@ class Controller(base_runner.BaseRunner):
 
         # Checkpoint.
         if now >= next_checkpoint_seconds:
-          tf.logging.info('Save checkpoint')
-          path = self._saver.save(sess, self._save_path, gsteps)
-          tf.logging.info('Save checkpoint done: %s', path)
+          self._Save(sess, gsteps)
           next_checkpoint_seconds = now + save_interval_seconds
 
         # Summary.
@@ -321,17 +332,26 @@ class Controller(base_runner.BaseRunner):
         if now < next_iteration_seconds:
           time.sleep(next_iteration_seconds - now)
 
+  def _Save(self, sess, gsteps):
+    tf.logging.info('Save checkpoint')
+    path = self._saver.save(sess, self._save_path, gsteps)
+    tf.logging.info('Save checkpoint done: %s', path)
+
+  def _Restore(self, sess):
+    path = tf.train.latest_checkpoint(self._train_dir)
+    if path:
+      tf.logging.info('Load from checkpoint %s.', path)
+      self._saver.restore(sess, path)
+      tf.logging.info('Load checkpoint done.')
+    return path
+
   def _RestoreIfNeeded(self, sess):
     uninitialized_var_names = list(sess.run(self._uninitialized))
     if not uninitialized_var_names:
       return
 
     tf.logging.info('Uninitialized var list: %s ', uninitialized_var_names)
-    path = tf.train.latest_checkpoint(self._train_dir)
-    if path:
-      tf.logging.info('Load from checkpoint %s.', path)
-      self._saver.restore(sess, path)
-      tf.logging.info('Load checkpoint done.')
+    if self._Restore(sess):
       return
 
     if (not any(task.params.train.init_from_checkpoint_rules
@@ -622,8 +642,8 @@ class TrainerTpu(base_runner.BaseRunner):
           self._retrieve_ops = tf.get_collection(
               py_utils.TPU_EMBEDDING_RETRIEVE_OPS)
           tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
-          self._tpu_embedding = (tpu_embedding_collection[0]
-                                 if tpu_embedding_collection else None)
+          self._tpu_embedding = (
+              tpu_embedding_collection[0] if tpu_embedding_collection else None)
           self._model.ConstructFPropBPropGraph()
           per_step_eval_metrics = self._eval_metrics.SetMetrics(
               self._model.GetTask().eval_metrics, args)
@@ -793,8 +813,9 @@ class TrainerTpu(base_runner.BaseRunner):
       tf.logging.info('Training skipped (trial requested to stop).')
       return
     with tf.container(self._container_id), self._GetSession() as sess:
-      config_proto = (self._tpu_embedding.config_proto
-                      if self._tpu_embedding is not None else None)
+      config_proto = (
+          self._tpu_embedding.config_proto
+          if self._tpu_embedding is not None else None)
       sess.run(
           tf.compat.v1.tpu.initialize_system(
               embedding_config=config_proto, job=None))
@@ -1171,8 +1192,8 @@ class Decoder(base_runner.BaseRunner):
                                     options=run_options)
         self._summary_writer.add_summary(summary, global_step)
       post_process_start = time.time()
-      tf.logging.info(
-          'Done fetching (%f seconds)' % (post_process_start - fetch_start))
+      tf.logging.info('Done fetching (%f seconds)' %
+                      (post_process_start - fetch_start))
       decode_out = self._model_task.PostProcessDecodeOut(dec_out, dec_metrics)
       if decode_out:
         buffered_decode_out.extend(decode_out)
@@ -1208,8 +1229,9 @@ class Decoder(base_runner.BaseRunner):
 
     should_stop = global_step >= self.params.train.max_steps
     if self._should_report_metrics:
-      trial_should_stop = self._trial.ReportEvalMeasure(
-          global_step, dec_metrics, checkpoint_path)
+      trial_should_stop = self._trial.ReportEvalMeasure(global_step,
+                                                        dec_metrics,
+                                                        checkpoint_path)
       should_stop = should_stop or trial_should_stop
     return should_stop
 
@@ -1294,9 +1316,17 @@ class RunnerManager(object):
             dataset_name, dataset_name_retry, e)
         cfg = self.model_registry.GetParams(self._model_name,
                                             dataset_name_retry)
-        tf.logging.warning(
-            'Succeeded after retrying as %s.' % dataset_name_retry)
+        tf.logging.warning('Succeeded after retrying as %s.' %
+                           dataset_name_retry)
     cfg.cluster = cluster.params
+
+    # Updates a few params based on flags.
+    if FLAGS.enqueue_max_steps:
+      cfg.train.enqueue_max_steps = FLAGS.enqueue_max_steps
+    if FLAGS.saver_max_to_keep:
+      cfg.train.save_max_to_keep = FLAGS.saver_max_to_keep
+    if FLAGS.saver_keep_checkpoint_every_n_hours:
+      cfg.train.save_keep_checkpoint_every_n_hours = FLAGS.saver_keep_checkpoint_every_n_hours
     return cfg
 
   def MaybeConfigRunDistributed(self):

@@ -33,18 +33,6 @@ from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import py_utils
 
-tf.flags.DEFINE_integer(
-    'enqueue_max_steps', -1, 'Max enqueue steps. -1 meaning no limit.'
-    ' This flag should be set for unit-test only.')
-
-tf.flags.DEFINE_integer('saver_max_to_keep', 100,
-                        'Maximum number of recent checkpoints to keep.')
-
-tf.flags.DEFINE_float('saver_keep_checkpoint_every_n_hours', 0.5,
-                      'How often to keep a checkpoint.')
-
-FLAGS = tf.flags.FLAGS
-
 
 class BaseRunner(object):
   """Base class for all jobs."""
@@ -59,8 +47,8 @@ class BaseRunner(object):
 
     Args:
       params:  Params object containing model configuration.
-      model_task_name:  String name of the task this runner should execute
-        for multitask models only.  See flag for details.
+      model_task_name:  String name of the task this runner should execute for
+        multitask models only.  See flag for details.
       logdir:  String path to the log directory to output to.
       tf_master:  String path to the master job, e.g. 'local'.
       trial:   An optional hyperparameter trial. Used by Vizier studies.
@@ -154,13 +142,15 @@ class BaseRunner(object):
   def _GetSaver(self):
     """Returns a saver."""
     assert tf.get_default_graph() == self._graph
-    if self.params.is_eval and self._model.ema:
+    p = self.params
+    if p.is_eval and self._model.ema:
       tf.logging.info('Using EMA for evaluation.')
       return tf.train.Saver(self._model.ema.variables_to_restore())
+    tp = p.train
     return tf.train.Saver(
         sharded=True,
-        max_to_keep=FLAGS.saver_max_to_keep,
-        keep_checkpoint_every_n_hours=FLAGS.saver_keep_checkpoint_every_n_hours,
+        max_to_keep=tp.save_max_to_keep,
+        keep_checkpoint_every_n_hours=tp.save_keep_checkpoint_every_n_hours,
         pad_step_number=True,  # %08d
         write_version=saver_pb2.SaverDef.V2)
 
@@ -265,6 +255,7 @@ class BaseRunner(object):
 
   def _LoopEnqueue(self, op):
     """Runs the enqueue op in a loop."""
+    p = self.params
     with tf.container(self._container_id), self._GetSession() as sess:
       if self.initialize_tables is not None:
         sess.run(self.initialize_tables)
@@ -277,7 +268,7 @@ class BaseRunner(object):
       global_enqueue_steps = None
 
       tf.logging.info('params.train.max_steps: %d, enqueue_max_steps: %d',
-                      self.params.train.max_steps, FLAGS.enqueue_max_steps)
+                      p.train.max_steps, p.train.enqueue_max_steps)
       while True:
         global_step = sess.run(gsteps)
         if global_enqueue_steps is None:
@@ -289,9 +280,9 @@ class BaseRunner(object):
               local_enqueue_steps, global_step)
 
         if py_utils.use_tpu():
-          global_steps_with_available_data = int(
-              global_enqueue_steps // self.params.train.tpu_steps_per_loop *
-              self.params.train.tpu_steps_per_loop)
+          global_steps_with_available_data = int(global_enqueue_steps //
+                                                 p.train.tpu_steps_per_loop *
+                                                 p.train.tpu_steps_per_loop)
         else:
           global_steps_with_available_data = global_enqueue_steps
 
@@ -299,24 +290,22 @@ class BaseRunner(object):
             self._ShouldStop(sess, global_step)):
           tf.logging.info('Done. ShouldStop is True.')
           return
-        if (FLAGS.enqueue_max_steps > 0 and
-            local_enqueue_steps >= FLAGS.enqueue_max_steps):
-          tf.logging.info('Done. FLAGS.enqueue_max_steps reached.')
+        if (p.train.enqueue_max_steps > 0 and
+            local_enqueue_steps >= p.train.enqueue_max_steps):
+          tf.logging.info('Done. train.enqueue_max_steps reached.')
           return
         local_enqueue_steps += 1
 
         # There are tpu_infeed_parallelism parallel threads enqueuing.
         # We account for all of them when updating global_enqueue_steps.
-        global_enqueue_steps += self.params.input.tpu_infeed_parallelism
+        global_enqueue_steps += p.input.tpu_infeed_parallelism
 
         sess.run([op])
 
   def _GetSession(self, **kwargs):
     graph = kwargs.pop('graph', self._graph)
     return tf.Session(
-        self._tf_master,
-        graph=graph,
-        config=py_utils.SessionConfig(**kwargs))
+        self._tf_master, graph=graph, config=py_utils.SessionConfig(**kwargs))
 
   @classmethod
   def _GetTtlDir(cls, path, duration):
@@ -364,8 +353,8 @@ class BaseRunner(object):
             tf.logging.info('%s summary on checkpoint@%d %s', job_name,
                             global_step, value.tag)
     summary_writer.flush()
-    self._SetStatusMessage(
-        '%s: step:%6d, %s' % (job_name, global_step, ', '.join(status_metrics)))
+    self._SetStatusMessage('%s: step:%6d, %s' %
+                           (job_name, global_step, ', '.join(status_metrics)))
     if text_filename is not None:
       with tf.gfile.GFile(text_filename, 'w') as f:
         f.write('\n'.join(status_metrics))

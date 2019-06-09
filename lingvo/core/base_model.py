@@ -145,8 +145,16 @@ class BaseTask(base_layer.BaseLayer):
     tp.Define(
         'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
         'with hyperparameter: value pairs. See tf.contrib.model_pruning.')
+    tp.Define(
+        'enqueue_max_steps', -1, 'Max enqueue steps. -1 meaning no limit.'
+        ' This flag should be set for unit-test only.')
     tp.Define('save_interval_seconds', 60 * 10,
               'Generates a checkpoint roughly once every this many seconds.')
+    tp.Define('save_max_to_keep', 100,
+              'Maximum number of recent checkpoints to keep.')
+    tp.Define('save_keep_checkpoint_every_n_hours', 0.5,
+              'How often to keep a checkpoint.')
+
     tp.Define('summary_interval_steps', 100,
               'Generates a checkpoint roughly once every this many steps.')
     # The following params must mirror those in Learner.Params().
@@ -607,8 +615,8 @@ class BaseTask(base_layer.BaseLayer):
     all_vars &= set(self.vars.Flatten())
     for var in all_vars:
       tf.logging.debug('ApplyExponentialMovingAverage: %s', var.name)
-    with tf.control_dependencies(
-        [self._train_op]), tf.name_scope('moving_average'):
+    with tf.control_dependencies([self._train_op
+                                 ]), tf.name_scope('moving_average'):
       self._train_op = ema.apply(all_vars)
 
   def Decode(self, input_batch):
@@ -961,8 +969,15 @@ class BaseModel(base_layer.BaseLayer):
               'See BaseTask documentation for details.')
     tp.Define('early_stop', None,
               'Early stopping based on dev-set performance.')
+    tp.Define(
+        'enqueue_max_steps', -1, 'Max enqueue steps. -1 meaning no limit.'
+        ' This flag should be set for unit-test only.')
     tp.Define('save_interval_seconds', 60 * 10,
               'Generates a checkpoint roughly once every this many seconds.')
+    tp.Define('save_max_to_keep', 100,
+              'Maximum number of recent checkpoints to keep.')
+    tp.Define('save_keep_checkpoint_every_n_hours', 0.5,
+              'How often to keep a checkpoint.')
     tp.Define('summary_interval_steps', 100,
               'Generates a checkpoint roughly once every this many steps.')
 
@@ -1063,7 +1078,10 @@ class SingleTaskModel(BaseModel):
       tp.ema_decay = p.task.train.ema_decay
       # init_from_checkpoint_rules does not need to be copied.
       tp.early_stop = p.task.train.early_stop
+      tp.enqueue_max_steps = p.task.train.enqueue_max_steps
       tp.save_interval_seconds = p.task.train.save_interval_seconds
+      tp.save_max_to_keep = p.task.train.save_interval_seconds
+      tp.save_keep_checkpoint_every_n_hours = p.task.train.save_keep_checkpoint_every_n_hours
       tp.summary_interval_steps = p.task.train.summary_interval_steps
 
     return p
