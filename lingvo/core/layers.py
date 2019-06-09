@@ -967,6 +967,143 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     return out
 
 
+class StackingOverTime(base_layer.BaseLayer):
+  """Stacking applied along the time axis.
+
+     At each time step of an input sequence, elements are stacked over the
+     window of ('left_context' + 1 + 'right_context') steps around the current
+     time step. Zeros will be padded to the left or right of the sequence for
+     elements around the boundaries. Finally the stacked outputs are emitted
+     once every 'stride' steps.
+
+     E.g. if an input sequence is: [4], [1], [9], [3], [5], [2], [8]
+     left_context = 1, right_context = 1, stride = 3,
+     then the output sequence would be: [0, 4, 1], [9, 3, 5], [2, 8, 0]
+
+     Note that this layer only performs tensor transformation, so there are no
+     learnable parameters.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(StackingOverTime, cls).Params()
+    p.Define('left_context', 0,
+             'Number of time steps to stack on the left to the central step.')
+    p.Define('right_context', 0,
+             'Number of time steps to stack on the right to the central step.')
+    p.Define('stride', 1, 'The stride for emitting the stacked output.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(StackingOverTime, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.left_context >= 0
+    assert p.right_context >= 0
+    assert p.stride >= 1
+
+  @property
+  def window_size(self):
+    """Returns the stacking window size.
+
+    The output dimension will be window_size * the input dimension.
+
+    Returns:
+      Window size.
+    """
+    p = self.params
+    return p.left_context + p.right_context + 1
+
+  def _ApplyStack(self, inputs, pad_value=0.0):
+    """The core function to apply the stacking to inputs.
+
+    Args:
+      inputs: [batch, time, depth].
+      pad_value: the padding value for left/right context.
+
+    Returns:
+      out: [batch, ceil(time / stride), depth * stacking_window_length].
+    """
+    p = self.params
+    if p.left_context == 0 and p.right_context == 0:
+      out = inputs
+    else:
+      batch = tf.shape(inputs)[0]
+      depth = tf.shape(inputs)[2]
+      # Add zero paddings to the left and right of the input sequence.
+      padded_inputs = inputs
+      if p.left_context > 0:
+        left_padding = tf.cast(
+            tf.fill([batch, p.left_context, depth], pad_value), inputs.dtype)
+        padded_inputs = tf.concat([left_padding, padded_inputs], 1)
+      if p.right_context > 0:
+        right_padding = tf.cast(
+            tf.fill([batch, p.right_context, depth], pad_value), inputs.dtype)
+        padded_inputs = tf.concat([padded_inputs, right_padding], 1)
+
+      # Original sequence length before padding.
+      inputs_max_len = py_utils.GetShape(inputs)[1]
+      # Make p.stacking copies of the padded sequence with the original sequence
+      # length, where each copy is offset by 1 time step.
+      pieces = []
+      stacking_window_len = p.left_context + 1 + p.right_context
+      for i in range(stacking_window_len):
+        pieces.append(padded_inputs[:, i:i + inputs_max_len, :])
+      # Apply stacking.
+      out = tf.concat(pieces, 2)
+
+    # Apply striding.
+    out = out[:, ::p.stride, :]
+    return out
+
+  def FProp(self, inputs, paddings=None):
+    """Apply the stacking to inputs along the time axis.
+
+    Args:
+      inputs: The inputs tensor. It is expected to be of shape [batch, time,
+        feature].
+      paddings: The paddings tensor. It is expected to be of shape [batch, time,
+        1], where all but the last dimension match those of inputs. Each value
+        is 0 or 1 indicating whether a time step of a sequence is padded in the
+        inputs to reach the max length in the batch.
+
+    Returns:
+      (outputs, out_paddings) pair.
+        outputs is of shape [batch, ceil(time / stride), feature * stacking].
+        out_paddings is of shape [batch, ceil(time / stride), 1]. out_paddings
+        will be 0 if any of the corresponding input padding is 0.
+    """
+    if paddings is None:
+      paddings = tf.zeros(
+          tf.concat([py_utils.GetShape(inputs)[:-1], [1]], 0),
+          dtype=inputs.dtype)
+    inputs = py_utils.with_dependencies(
+        [
+            # Checks the inputs shape has 3 dimensions.
+            py_utils.assert_shape_match(tf.shape(inputs), [-1, -1, -1]),
+            # Checks the paddings shape has 3 dimensions, and the last one is 1.
+            py_utils.assert_shape_match(tf.shape(paddings), [-1, -1, 1]),
+            # Checks the first two dimensions of inputs and paddings shapes match.  # pylint: disable=line-too-long
+            py_utils.assert_shape_match(
+                tf.shape(inputs)[:-1],
+                tf.shape(paddings)[:-1])
+        ],
+        inputs)
+    p = self.params
+    with tf.name_scope(p.name):
+      outputs = self._ApplyStack(inputs)
+
+      # Stack the padding values with the same context and stride parameters.
+      # Then take the minimum padding values within each stacking window, since
+      # an output time step becomes a padded one only if all of the underlying
+      # stacked steps are padded ones.
+      out_paddings = self._ApplyStack(paddings, pad_value=1.0)
+      out_paddings = tf.reduce_min(out_paddings, axis=2, keep_dims=True)
+
+      return outputs, out_paddings
+
+
 class FCLayer(ProjectionLayer):
   """Fully-connected layer (matmul + bias + optional activation)."""
 

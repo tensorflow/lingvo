@@ -1738,6 +1738,95 @@ class ProjectionLayerTest(test_utils.TestCase):
       for sg, ng in zip(sym_grads, num_grads):
         self.assertAllClose(sg, ng, rtol=1e-06, atol=1e-06)
 
+  def testStackingOverTimeFProp(self):
+    with self.session(use_gpu=True):
+      params = layers.StackingOverTime.Params()
+      params.name = 'stackingOverTime'
+      params.left_context = 2
+      params.right_context = 0
+      params.stride = 2
+
+      stacker = layers.StackingOverTime(params)
+      self.assertEqual(stacker.window_size, 3)
+
+      inputs = tf.constant(
+          [
+              [[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]],  # batch 0
+              [[7, 7], [8, 8], [0, 0], [0, 0], [0, 0], [0, 0]]
+          ],  # batch 1
+          dtype=tf.float32)
+      paddings = tf.constant(
+          [
+              [[0], [0], [0], [0], [0], [0]],  # batch 0
+              [[0], [0], [1], [1], [1], [1]]
+          ],  # batch 1
+          dtype=tf.float32)
+
+      outputs, output_paddings = stacker.FProp(inputs, paddings)
+      tf.global_variables_initializer().run()
+      print([np.array_repr(outputs.eval())])
+
+      expected_outputs = [
+          [[0, 0, 0, 0, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5,
+                                                    5]],  # batch 0
+          [[0, 0, 0, 0, 7, 7], [7, 7, 8, 8, 0, 0], [0, 0, 0, 0, 0,
+                                                    0]]  # batch 1
+      ]
+      self.assertAllClose(expected_outputs, outputs.eval())
+
+      expected_output_paddings = [
+          [[0], [0], [0]],  # batch 0
+          [[0], [0], [1]]  # batch 1
+      ]
+      self.assertAllClose(expected_output_paddings, output_paddings.eval())
+
+  def testStackingOverTimeFProp2(self):
+    with self.session(use_gpu=True) as sess:
+      params = layers.StackingOverTime.Params()
+      params.name = 'stackingOverTime'
+      params.left_context = 0
+      params.right_context = 1
+      params.stride = 2
+
+      stacker = layers.StackingOverTime(params)
+      self.assertEqual(stacker.window_size, 2)
+
+      inputs = tf.random_normal([2, 21, 16], seed=78123)
+      paddings = 1.0 - tf.sequence_mask([9, 14], 21, tf.float32)
+      paddings = tf.expand_dims(paddings, -1)
+
+      outputs, output_paddings = stacker.FProp(inputs, paddings)
+      tf.global_variables_initializer().run()
+
+      inputs_v, outputs_v, paddings_v = sess.run(
+          [inputs, outputs, output_paddings])
+
+      # length
+      self.assertAllEqual([5, 7], np.sum(1.0 - paddings_v, (1, 2)))
+      # input and output sums are equal
+      self.assertAllClose(np.sum(inputs_v, (1, 2)), np.sum(outputs_v, (1, 2)))
+
+  def testStackingOverTimeIdentityFProp(self):
+    with self.session(use_gpu=True):
+      params = layers.StackingOverTime.Params()
+      params.name = 'stackingOverTime'
+      params.left_context = 0
+      params.right_context = 0
+      params.stride = 1
+
+      stacker = layers.StackingOverTime(params)
+      self.assertEqual(stacker.window_size, 1)
+      inputs = tf.constant([[[1], [2], [3], [4], [5]]], dtype=tf.float32)
+      paddings = tf.zeros([1, 5, 1], dtype=tf.float32)
+
+      outputs, output_paddings = stacker.FProp(inputs, paddings)
+      tf.global_variables_initializer().run()
+      print([np.array_repr(outputs.eval())])
+      expected_outputs = [[[1], [2], [3], [4], [5]]]
+      self.assertAllClose(expected_outputs, outputs.eval())
+      expected_output_paddings = [[[0], [0], [0], [0], [0]]]
+      self.assertAllClose(expected_output_paddings, output_paddings.eval())
+
 
 class EmbeddingLayerTest(test_utils.TestCase):
 

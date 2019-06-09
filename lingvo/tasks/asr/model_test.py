@@ -309,6 +309,7 @@ class AsrModelTest(test_utils.TestCase):
           'ProjectionLayer',
           'SimpleFullSoftmax',
           'SpectrumAugmenter',
+          'StackingOverTime',
           'TestInputGenerator',
       ])
       self.assertEqual(expected_layers, l_names)

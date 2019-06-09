@@ -93,6 +93,13 @@ class AsrEncoder(base_layer.BaseLayer):
         'the regular final output. The corresponding extra outputs are keyed '
         'by "${layer_type}_${layer_index}" in the encoder output NestedMap, '
         'where layer_type is one of: "conv", "conv_lstm" and "rnn".')
+    p.Define('stacking_layer_tpl', layers.StackingOverTime.Params(),
+             'Configs template for the stacking layer over time.')
+    p.Define(
+        'layer_index_before_stacking', -1,
+        'The (0-based) index of the lstm layer after which the stacking layer '
+        'will be inserted. Negative value means no stacking layer will be '
+        'used.')
 
     # TODO(yonghui): Maybe move those configs to a separate file.
     # Set some reasonable default values.
@@ -202,11 +209,9 @@ class AsrEncoder(base_layer.BaseLayer):
       params_rnn_layers = []
       params_proj_layers = []
       params_highway_skip_layers = []
+      output_dim = self._first_lstm_input_dim
       for i in range(p.num_lstm_layers):
-        if i == 0:
-          input_dim = self._first_lstm_input_dim
-        else:
-          input_dim = 2 * p.lstm_cell_size
+        input_dim = output_dim
         forward_p = p.lstm_tpl.Copy()
         forward_p.name = 'fwd_rnn_L%d' % (i)
         forward_p.num_input_nodes = input_dim
@@ -216,6 +221,7 @@ class AsrEncoder(base_layer.BaseLayer):
         rnn_p = self.CreateBidirectionalRNNParams(forward_p, backward_p)
         rnn_p.name = 'brnn_L%d' % (i)
         params_rnn_layers.append(rnn_p)
+        output_dim = 2 * p.lstm_cell_size
 
         if p.project_lstm_output and (i < p.num_lstm_layers - 1):
           proj_p = p.proj_tpl.Copy()
@@ -232,6 +238,16 @@ class AsrEncoder(base_layer.BaseLayer):
           highway_skip.name = 'enc_hwskip_%d' % len(params_highway_skip_layers)
           highway_skip.input_dim = 2 * p.lstm_cell_size
           params_highway_skip_layers.append(highway_skip)
+        # Adds the stacking layer.
+        if p.layer_index_before_stacking == i:
+          stacking_layer = p.stacking_layer_tpl.Copy()
+          stacking_layer.name = 'stacking_%d' % (i)
+          self.CreateChild('stacking', stacking_layer)
+          stacking_window_len = (
+              p.stacking_layer_tpl.left_context + 1 +
+              p.stacking_layer_tpl.right_context)
+          output_dim *= stacking_window_len
+
       self.CreateChildren('rnn', params_rnn_layers)
       self.CreateChildren('proj', params_proj_layers)
       self.CreateChildren('highway_skip', params_highway_skip_layers)
@@ -435,6 +451,16 @@ class AsrEncoder(base_layer.BaseLayer):
           rnn_out *= (1.0 - rnn_padding)
           outputs['rnn_%d' % i] = py_utils.NestedMap(
               encoded=rnn_out, padding=tf.squeeze(rnn_padding, [2]))
+        # Stacking layer connection.
+        if p.layer_index_before_stacking == i:
+          # Stacking layer expects input tensor shape as [batch, time, feature].
+          # So transpose the tensors before and after the layer.
+          rnn_out, rnn_padding = self.stacking.FProp(
+              tf.transpose(rnn_out, [1, 0, 2]),
+              tf.transpose(rnn_padding, [1, 0, 2]))
+          rnn_out = tf.transpose(rnn_out, [1, 0, 2])
+          rnn_padding = tf.transpose(rnn_padding, [1, 0, 2])
+
         plots.append(
             ReshapeForPlot(
                 tf.transpose(rnn_out, [1, 0, 2]),
